@@ -15,9 +15,19 @@ export type StudentRow = {
   grade: string | null;
   status: string;
   enrollments: {
+    class_id: string;
     status: "active" | "paused" | "completed";
-    classes: { subject: string } | null;
+    classes: { name: string; subject: string } | null;
   }[];
+};
+
+export type AcademyClass = {
+  id: string;
+  name: string;
+  subject: string;
+  room: string | null;
+  color: string;
+  active: boolean;
 };
 
 export function createSupabaseBrowserClient() {
