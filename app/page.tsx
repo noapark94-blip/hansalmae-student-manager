@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { createSupabaseBrowserClient, type Profile, type UserRole } from "./supabase";
+import { createSupabaseBrowserClient, type Profile, type StudentRow, type UserRole } from "./supabase";
 
 type View = "dashboard" | "students" | "schedule" | "attendance" | "assignments" | "consultations";
 
@@ -37,14 +37,6 @@ const classes = [
   { time: "20:30", name: "고2 수학 B", teacher: "김선생", room: "B 강의실", present: 5, total: 7, tone: "green" },
 ];
 
-const students = [
-  { name: "김민준", school: "배곧중 2", subjects: ["수학", "영어"], status: "재원", attendance: "96%" },
-  { name: "이서연", school: "배곧고 1", subjects: ["국어", "영어", "수학"], status: "재원", attendance: "100%" },
-  { name: "박지호", school: "서해중 3", subjects: ["국어"], status: "재원", attendance: "91%" },
-  { name: "최하은", school: "군서고 2", subjects: ["영어", "수학"], status: "상담필요", attendance: "87%" },
-  { name: "정유진", school: "배곧중 1", subjects: ["수학"], status: "재원", attendance: "98%" },
-];
-
 const notices = [
   { label: "상담", text: "마지막 상담 후 30일이 지난 학생", count: 7, tone: "wine" },
   { label: "과제", text: "오늘까지 제출하지 않은 과제", count: 12, tone: "amber" },
@@ -61,6 +53,9 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
   const [toast, setToast] = useState("");
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState("");
 
   useEffect(() => {
     if (!supabase) {
@@ -75,7 +70,10 @@ export default function Home() {
         return;
       }
 
-      const { data: role, error } = await supabase.rpc("current_user_role");
+      const [{ data: role, error }, { data: ownProfile }] = await Promise.all([
+        supabase.rpc("current_user_role"),
+        supabase.from("profiles").select("display_name").eq("id", nextUser.id).maybeSingle(),
+      ]);
 
       if (error || !role || !roleViews[role as UserRole]) {
         setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
@@ -86,6 +84,7 @@ export default function Home() {
           id: nextUser.id,
           role: role as UserRole,
           display_name:
+            ownProfile?.display_name ??
             nextUser.user_metadata.display_name ??
             nextUser.user_metadata.full_name ??
             nextUser.email?.split("@")[0] ??
@@ -102,15 +101,43 @@ export default function Home() {
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
+  useEffect(() => {
+    if (!supabase || !profile || (profile.role !== "admin" && profile.role !== "teacher")) {
+      return;
+    }
+
+    let active = true;
+    const loadStudents = async () => {
+      setStudentsLoading(true);
+      setStudentsError("");
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, name, school, grade, status, enrollments(status, classes(subject))")
+        .order("name");
+
+      if (!active) return;
+      if (error) {
+        setStudentsError("학생 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        setStudents([]);
+      } else {
+        setStudents((data ?? []) as StudentRow[]);
+      }
+      setStudentsLoading(false);
+    };
+
+    void loadStudents();
+    return () => { active = false; };
+  }, [profile, supabase]);
+
   const allowedNav = profile ? nav.filter((item) => roleViews[profile.role].includes(item.id)) : [];
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return students;
     return students.filter((student) =>
-      [student.name, student.school, ...student.subjects].some((value) => value.toLowerCase().includes(q)),
+      [student.name, student.school ?? "", student.grade ?? "", ...getStudentSubjects(student)].some((value) => value.toLowerCase().includes(q)),
     );
-  }, [query]);
+  }, [query, students]);
 
   const selectView = (next: View) => {
     if (profile && !roleViews[profile.role].includes(next)) {
@@ -169,8 +196,8 @@ export default function Home() {
         </header>
 
         <div className="content">
-          {view === "dashboard" && <Dashboard profile={profile} onNavigate={selectView} onToast={showToast} />}
-          {view === "students" && <Students rows={filteredStudents} query={query} setQuery={setQuery} onToast={showToast} />}
+          {view === "dashboard" && <Dashboard profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onToast={showToast} />}
+          {view === "students" && <Students rows={filteredStudents} total={students.length} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onToast={showToast} />}
           {view === "schedule" && <Schedule />}
           {view === "attendance" && <SimplePanel title="출결·보강" description="오늘 수업별 출결을 확인하고 결석 학생의 보강 일정을 관리합니다." items={["중3 국어 · 결석 1명", "고1 영어 B · 지각 1명 / 결석 1명", "이번 주 보강 예정 · 5건"]} />}
           {view === "assignments" && <SimplePanel title="과제·첨삭" description="클래스별 과제를 만들고 학생별 제출과 첨삭 상태를 확인합니다." items={["중2 수학 A · 미제출 4명", "고1 영어 B · 첨삭 대기 5건", "중3 국어 · 오늘 마감 3명"]} />}
@@ -182,14 +209,14 @@ export default function Home() {
   );
 }
 
-function Dashboard({ profile, onNavigate, onToast }: { profile: Profile; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+function Dashboard({ profile, activeStudentCount, studentsLoading, onNavigate, onToast }: { profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
   if (profile.role === "student" || profile.role === "guardian") {
     return <FamilyDashboard profile={profile} onNavigate={onNavigate} />;
   }
   return <>
     <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{profile.role === "student" ? "내 수업과 학습 현황을 확인하세요." : profile.role === "guardian" ? "자녀의 수업과 출결 현황을 확인하세요." : "오늘 학원 운영 현황을 한눈에 확인하세요."}</p></div>{(profile.role === "admin" || profile.role === "teacher") && <button className="primary" onClick={() => onToast("새 공지 작성은 다음 단계에서 활성화돼요.")}>✦ 새 공지 작성</button>}</div>
     <section className="stats-grid">
-      <Stat label="전체 재원생" value="96" unit="명" detail="이번 달 +4명" icon="人" tone="wine" />
+      <Stat label="전체 재원생" value={studentsLoading ? "…" : String(activeStudentCount)} unit="명" detail="Supabase 실시간 기준" icon="人" tone="wine" />
       <Stat label="오늘 수업" value="8" unit="개" detail="다음 수업 16:00" icon="▦" tone="blue" />
       <Stat label="오늘 출석률" value="92" unit="%" detail="출석 37 · 결석 3" icon="✓" tone="green" />
       <Stat label="확인할 항목" value="24" unit="건" detail="과제 12 · 상담 7 · 보강 5" icon="!" tone="amber" />
@@ -208,8 +235,24 @@ function FamilyDashboard({ profile, onNavigate }: { profile: Profile; onNavigate
   return <><div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{isStudent ? "내 수업과 학습 현황을 확인하세요." : "자녀의 수업과 출결 현황을 확인하세요."}</p></div></div><section className="stats-grid family-stats"><Stat label="이번 주 수업" value="4" unit="개" detail="다음 수업 오늘 19:00" icon="▦" tone="blue" /><Stat label="이번 달 출석률" value="96" unit="%" detail="출석 12 · 결석 1" icon="✓" tone="green" /><Stat label={isStudent ? "제출할 과제" : "상담 기록"} value={isStudent ? "2" : "1"} unit="건" detail={isStudent ? "가장 가까운 마감 내일" : "최근 공유 8월 7일"} icon={isStudent ? "✎" : "☏"} tone="amber" /></section><div className="dashboard-grid"><section className="panel today-panel"><PanelHeader title="다가오는 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{classes.slice(1, 3).map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div></div>)}</div></section><section className="panel attention-panel"><PanelHeader title="최근 학습 현황" /><div className="notice-list"><button onClick={() => onNavigate("attendance")}><span className="notice-icon green">✓</span><span><b>이번 달 출석 12회</b><small>출결 내역 확인하기</small></span><i>›</i></button><button onClick={() => onNavigate(isStudent ? "assignments" : "consultations")}><span className="notice-icon amber">{isStudent ? "✎" : "☏"}</span><span><b>{isStudent ? "확인할 과제 2건" : "최근 상담 기록"}</b><small>{isStudent ? "과제 현황 확인하기" : "공유된 상담 내용 확인하기"}</small></span><i>›</i></button></div></section></div></>;
 }
 
-function Students({ rows, query, setQuery, onToast }: { rows: typeof students; query: string; setQuery: (value: string) => void; onToast: (message: string) => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생은 한 번만 등록하고 여러 과목과 클래스를 연결합니다.</p></div><button className="primary" onClick={() => onToast("학생 등록 폼은 다음 단계에서 연결할게요.")}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>전체 {rows.length}명</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{rows.map((student) => <button className="table-row" key={student.name} onClick={() => onToast(`${student.name} 학생 상세 화면은 다음 단계에서 연결할게요.`)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{student.school}</span><span className="subject-tags">{student.subjects.map(subject => <em key={subject}>{subject}</em>)}</span><strong>{student.attendance}</strong><span><i className={`status ${student.status === "재원" ? "active" : "warning"}`}>{student.status}</i></span></button>)}</div></section></>;
+function Students({ rows, total, loading, error, query, setQuery, onToast }: { rows: StudentRow[]; total: number; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onToast: (message: string) => void }) {
+  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>Supabase에 등록된 학생과 수강 과목을 표시합니다.</p></div><button className="primary" onClick={() => onToast("학생 등록 폼은 다음 단계에서 연결할게요.")}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>전체 {total}명</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query ? "검색 결과가 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); return <button className="table-row" key={student.id} onClick={() => onToast(`${student.name} 학생 상세 화면은 다음 단계에서 연결할게요.`)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${isActiveStudent(student) ? "active" : "warning"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
+}
+
+function StudentTableMessage({ children, error = false }: { children: string; error?: boolean }) {
+  return <div className={`student-table-message${error ? " error" : ""}`}>{children}</div>;
+}
+
+function getStudentSubjects(student: StudentRow) {
+  return [...new Set(student.enrollments.filter((item) => item.status === "active").map((item) => item.classes?.subject).filter((subject): subject is string => Boolean(subject)))];
+}
+
+function isActiveStudent(student: StudentRow) {
+  return student.status === "active" || student.status === "재원";
+}
+
+function studentStatusLabel(status: string) {
+  return ({ active: "재원", paused: "휴원", completed: "퇴원" } as Record<string, string>)[status] ?? status;
 }
 
 function Schedule() {
