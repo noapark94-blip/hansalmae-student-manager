@@ -1,4 +1,14 @@
-# vinext-starter
+# 한살매 학생관리
+
+Supabase 인증과 역할별 접근 제어를 사용하는 한살매입시전문학원 학생관리 앱입니다.
+
+## Supabase 연결
+
+1. `.env.example`을 `.env.local`로 복사하고 프로젝트 URL과 anon key를 입력합니다.
+2. Supabase CLI로 `supabase/migrations`의 마이그레이션을 적용합니다.
+3. 관리자 계정은 Supabase Auth에서 만든 뒤 `profiles.role`을 `admin`으로 변경합니다.
+
+지원 역할은 관리자 `admin`, 선생님 `teacher`, 학생 `student`, 학부모 `guardian`입니다. 브라우저에는 anon key만 사용하며 service role key와 Aligo 비밀키는 절대 넣지 않습니다.
 
 A clean full-stack starter running on
 [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and

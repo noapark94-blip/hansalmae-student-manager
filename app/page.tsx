@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient, type Profile, type UserRole } from "./supabase";
 
 type View = "dashboard" | "students" | "schedule" | "attendance" | "assignments" | "consultations";
 
@@ -12,6 +15,20 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
 ];
+
+const roleLabels: Record<UserRole, string> = {
+  admin: "관리자",
+  teacher: "교사",
+  student: "학생",
+  guardian: "학부모",
+};
+
+const roleViews: Record<UserRole, View[]> = {
+  admin: ["dashboard", "students", "schedule", "attendance", "assignments", "consultations"],
+  teacher: ["dashboard", "students", "schedule", "attendance", "assignments", "consultations"],
+  student: ["dashboard", "schedule", "attendance", "assignments"],
+  guardian: ["dashboard", "schedule", "attendance", "consultations"],
+};
 
 const classes = [
   { time: "16:00", name: "중3 국어", teacher: "박선생", room: "A 강의실", present: 7, total: 8, tone: "berry" },
@@ -35,10 +52,57 @@ const notices = [
 ];
 
 export default function Home() {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const [authReady, setAuthReady] = useState(!supabase);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authError, setAuthError] = useState("");
   const [view, setView] = useState<View>("dashboard");
   const [query, setQuery] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    const loadProfile = async (nextUser: User | null) => {
+      setUser(nextUser);
+      if (!nextUser) {
+        setProfile(null);
+        setAuthReady(true);
+        return;
+      }
+
+      const { data: role, error } = await supabase.rpc("current_user_role");
+
+      if (error || !role || !roleViews[role as UserRole]) {
+        setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
+        setProfile(null);
+      } else {
+        setAuthError("");
+        setProfile({
+          id: nextUser.id,
+          role: role as UserRole,
+          display_name:
+            nextUser.user_metadata.display_name ??
+            nextUser.user_metadata.full_name ??
+            nextUser.email?.split("@")[0] ??
+            "사용자",
+        });
+      }
+      setAuthReady(true);
+    };
+
+    void supabase.auth.getUser().then(({ data }) => loadProfile(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void loadProfile(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [supabase]);
+
+  const allowedNav = profile ? nav.filter((item) => roleViews[profile.role].includes(item.id)) : [];
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,10 +113,23 @@ export default function Home() {
   }, [query]);
 
   const selectView = (next: View) => {
+    if (profile && !roleViews[profile.role].includes(next)) {
+      showToast("이 역할에서는 접근할 수 없는 메뉴예요.");
+      return;
+    }
     setView(next);
     setMobileNav(false);
     setQuery("");
   };
+
+  if (!authReady) return <LoadingScreen />;
+  if (!supabase) return <ConfigurationScreen />;
+  if (!user) return <LoginScreen onSubmit={async (email, password) => {
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setAuthError("이메일 또는 비밀번호를 확인해 주세요.");
+  }} error={authError} />;
+  if (!profile) return <AccessPendingScreen email={user.email ?? ""} error={authError} onSignOut={() => void supabase.auth.signOut()} />;
 
   const showToast = (message: string) => {
     setToast(message);
@@ -67,7 +144,7 @@ export default function Home() {
           <div><strong>한살매</strong><span>학생관리</span></div>
         </div>
         <nav aria-label="주요 메뉴">
-          {nav.map((item) => (
+          {allowedNav.map((item) => (
             <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => selectView(item.id)}>
               <span className="nav-icon">{item.icon}</span>{item.label}
               {item.id === "assignments" && <em>12</em>}
@@ -75,9 +152,9 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <button onClick={() => showToast("공지·문자 기능은 Supabase 연결 후 활성화돼요.")}><span className="nav-icon">✉</span>공지·문자</button>
-          <button onClick={() => showToast("설정 화면은 다음 단계에서 연결할게요.")}><span className="nav-icon">⚙</span>설정</button>
-          <div className="teacher-card"><div className="avatar">박</div><div><b>박노아 선생님</b><span>관리자</span></div><span>⋮</span></div>
+          {(profile.role === "admin" || profile.role === "teacher") && <button onClick={() => showToast("공지·문자 기능은 다음 단계에서 활성화돼요.")}><span className="nav-icon">✉</span>공지·문자</button>}
+          {profile.role === "admin" && <button onClick={() => showToast("계정·역할 설정은 관리자만 사용할 수 있어요.")}><span className="nav-icon">⚙</span>설정</button>}
+          <div className="teacher-card"><div className="avatar">{profile.display_name.slice(0, 1)}</div><div><b>{profile.display_name}</b><span>{roleLabels[profile.role]}</span></div><button className="signout-button" onClick={() => void supabase.auth.signOut()}>로그아웃</button></div>
         </div>
       </aside>
 
@@ -92,7 +169,7 @@ export default function Home() {
         </header>
 
         <div className="content">
-          {view === "dashboard" && <Dashboard onNavigate={selectView} onToast={showToast} />}
+          {view === "dashboard" && <Dashboard profile={profile} onNavigate={selectView} onToast={showToast} />}
           {view === "students" && <Students rows={filteredStudents} query={query} setQuery={setQuery} onToast={showToast} />}
           {view === "schedule" && <Schedule />}
           {view === "attendance" && <SimplePanel title="출결·보강" description="오늘 수업별 출결을 확인하고 결석 학생의 보강 일정을 관리합니다." items={["중3 국어 · 결석 1명", "고1 영어 B · 지각 1명 / 결석 1명", "이번 주 보강 예정 · 5건"]} />}
@@ -105,9 +182,12 @@ export default function Home() {
   );
 }
 
-function Dashboard({ onNavigate, onToast }: { onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+function Dashboard({ profile, onNavigate, onToast }: { profile: Profile; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+  if (profile.role === "student" || profile.role === "guardian") {
+    return <FamilyDashboard profile={profile} onNavigate={onNavigate} />;
+  }
   return <>
-    <div className="page-heading"><div><p className="eyebrow">2026년 8월 10일 월요일</p><h1>좋은 아침이에요, 박노아 선생님</h1><p>오늘 학원 운영 현황을 한눈에 확인하세요.</p></div><button className="primary" onClick={() => onToast("새 공지 작성은 Supabase 연결 후 활성화돼요.")}>✦ 새 공지 작성</button></div>
+    <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{profile.role === "student" ? "내 수업과 학습 현황을 확인하세요." : profile.role === "guardian" ? "자녀의 수업과 출결 현황을 확인하세요." : "오늘 학원 운영 현황을 한눈에 확인하세요."}</p></div>{(profile.role === "admin" || profile.role === "teacher") && <button className="primary" onClick={() => onToast("새 공지 작성은 다음 단계에서 활성화돼요.")}>✦ 새 공지 작성</button>}</div>
     <section className="stats-grid">
       <Stat label="전체 재원생" value="96" unit="명" detail="이번 달 +4명" icon="人" tone="wine" />
       <Stat label="오늘 수업" value="8" unit="개" detail="다음 수업 16:00" icon="▦" tone="blue" />
@@ -123,6 +203,11 @@ function Dashboard({ onNavigate, onToast }: { onNavigate: (view: View) => void; 
   </>;
 }
 
+function FamilyDashboard({ profile, onNavigate }: { profile: Profile; onNavigate: (view: View) => void }) {
+  const isStudent = profile.role === "student";
+  return <><div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{isStudent ? "내 수업과 학습 현황을 확인하세요." : "자녀의 수업과 출결 현황을 확인하세요."}</p></div></div><section className="stats-grid family-stats"><Stat label="이번 주 수업" value="4" unit="개" detail="다음 수업 오늘 19:00" icon="▦" tone="blue" /><Stat label="이번 달 출석률" value="96" unit="%" detail="출석 12 · 결석 1" icon="✓" tone="green" /><Stat label={isStudent ? "제출할 과제" : "상담 기록"} value={isStudent ? "2" : "1"} unit="건" detail={isStudent ? "가장 가까운 마감 내일" : "최근 공유 8월 7일"} icon={isStudent ? "✎" : "☏"} tone="amber" /></section><div className="dashboard-grid"><section className="panel today-panel"><PanelHeader title="다가오는 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{classes.slice(1, 3).map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div></div>)}</div></section><section className="panel attention-panel"><PanelHeader title="최근 학습 현황" /><div className="notice-list"><button onClick={() => onNavigate("attendance")}><span className="notice-icon green">✓</span><span><b>이번 달 출석 12회</b><small>출결 내역 확인하기</small></span><i>›</i></button><button onClick={() => onNavigate(isStudent ? "assignments" : "consultations")}><span className="notice-icon amber">{isStudent ? "✎" : "☏"}</span><span><b>{isStudent ? "확인할 과제 2건" : "최근 상담 기록"}</b><small>{isStudent ? "과제 현황 확인하기" : "공유된 상담 내용 확인하기"}</small></span><i>›</i></button></div></section></div></>;
+}
+
 function Students({ rows, query, setQuery, onToast }: { rows: typeof students; query: string; setQuery: (value: string) => void; onToast: (message: string) => void }) {
   return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생은 한 번만 등록하고 여러 과목과 클래스를 연결합니다.</p></div><button className="primary" onClick={() => onToast("학생 등록 폼은 다음 단계에서 연결할게요.")}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>전체 {rows.length}명</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{rows.map((student) => <button className="table-row" key={student.name} onClick={() => onToast(`${student.name} 학생 상세 화면은 다음 단계에서 연결할게요.`)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{student.school}</span><span className="subject-tags">{student.subjects.map(subject => <em key={subject}>{subject}</em>)}</span><strong>{student.attendance}</strong><span><i className={`status ${student.status === "재원" ? "active" : "warning"}`}>{student.status}</i></span></button>)}</div></section></>;
 }
@@ -136,6 +221,23 @@ function Schedule() {
 function SimplePanel({ title, description, items }: { title: string; description: string; items: string[] }) {
   return <><div className="page-heading compact"><div><p className="eyebrow">한살매 관리</p><h1>{title}</h1><p>{description}</p></div><button className="primary">＋ 새 기록</button></div><section className="panel simple-panel"><h2>오늘 확인할 항목</h2>{items.map((item, index) => <button key={item}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}</section></>;
 }
+
+function LoginScreen({ onSubmit, error }: { onSubmit: (email: string, password: string) => Promise<void>; error: string }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    await onSubmit(email, password);
+    setSubmitting(false);
+  };
+  return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><p className="eyebrow">HANSALMAE ACADEMY</p><h1>한살매 학생관리</h1><p className="auth-copy">등록된 교사·학생·학부모 계정으로 로그인하세요.</p><form onSubmit={submit}><label>이메일<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required placeholder="name@example.com" /></label><label>비밀번호<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required placeholder="비밀번호" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" disabled={submitting}>{submitting ? "로그인 중…" : "로그인"}</button></form><small>계정과 역할 변경은 학원 관리자에게 문의해 주세요.</small></section></main>;
+}
+
+function LoadingScreen() { return <main className="auth-shell"><section className="auth-card loading"><img src="/hansalmae-logo.png" alt="" /><p>로그인 정보를 확인하고 있어요…</p></section></main>; }
+function ConfigurationScreen() { return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><h1>연결 설정이 필요합니다</h1><p className="auth-copy">Supabase 공개 URL과 anon key를 환경 변수에 등록해 주세요.</p></section></main>; }
+function AccessPendingScreen({ email, error, onSignOut }: { email: string; error: string; onSignOut: () => void }) { return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><h1>접근 권한 확인</h1><p className="auth-copy">{error || `${email} 계정에 아직 역할이 지정되지 않았습니다.`}</p><button className="secondary-button" onClick={onSignOut}>다른 계정으로 로그인</button></section></main>; }
 
 function Stat({ label, value, unit, detail, icon, tone }: { label: string; value: string; unit: string; detail: string; icon: string; tone: string }) { return <article className="stat-card"><div className={`stat-icon ${tone}`}>{icon}</div><div><span>{label}</span><p><strong>{value}</strong> {unit}</p><small>{detail}</small></div></article>; }
 function PanelHeader({ title, action, onClick }: { title: string; action?: string; onClick?: () => void }) { return <div className="panel-header"><h2>{title}</h2>{action && <button onClick={onClick}>{action} <span>›</span></button>}</div>; }
