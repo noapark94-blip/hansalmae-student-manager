@@ -75,14 +75,23 @@ export default function Home() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, role, display_name")
-        .eq("id", nextUser.id)
-        .single<Profile>();
+      const { data: role, error } = await supabase.rpc("current_user_role");
 
-      if (error) setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
-      setProfile(data ?? null);
+      if (error || !role || !roleViews[role as UserRole]) {
+        setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
+        setProfile(null);
+      } else {
+        setAuthError("");
+        setProfile({
+          id: nextUser.id,
+          role: role as UserRole,
+          display_name:
+            nextUser.user_metadata.display_name ??
+            nextUser.user_metadata.full_name ??
+            nextUser.email?.split("@")[0] ??
+            "사용자",
+        });
+      }
       setAuthReady(true);
     };
 
