@@ -300,7 +300,7 @@ export default function Home() {
       {registrationOpen && <StudentRegistrationModal onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classId) => assignClass(enrollmentStudent, classId)} />}
-      {studentDetails && <StudentDetailHub supabase={supabase} student={studentDetails} rosterStudent={students.find((item) => item.id === studentDetails.id)} onClose={() => setStudentDetails(null)} onUpdate={updateStudent} onDelete={deleteStudent} onAssign={(student) => { setStudentDetails(null); setEnrollmentStudent(student as StudentRow); }} />}
+      {studentDetails && <StudentDetailHub supabase={supabase} student={studentDetails} rosterStudent={students.find((item) => item.id === studentDetails.id)} onClose={() => setStudentDetails(null)} onUpdate={updateStudent} onDelete={deleteStudent} onAssign={(student) => { setStudentDetails(null); setEnrollmentStudent(student as StudentRow); }} onLifecycleUpdated={(status) => { setStudentDetails((current) => current ? { ...current, status } : current); setStudents((current) => current.map((item) => item.id === studentDetails.id ? { ...item, status, enrollments:status === "active" ? item.enrollments : item.enrollments.map((enrollment) => enrollment.status === "active" ? { ...enrollment, status:status === "paused" ? "paused" : "completed" } : enrollment) } : item)); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </main>
   );
