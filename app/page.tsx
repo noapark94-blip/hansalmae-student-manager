@@ -14,8 +14,9 @@ import { SettingsBoard } from "./settings-board";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
+import { OperationsAuditBoard } from "./operations-audit";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -46,7 +47,7 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "settings", "my-account"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "my-account"],
@@ -263,6 +264,7 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          {profile.role === "admin" && <button className={view === "audit" ? "active" : ""} onClick={() => selectView("audit")}><span className="nav-icon">◉</span>운영 점검</button>}
           {profile.role === "admin" && <button className={view === "settings" ? "active" : ""} onClick={() => selectView("settings")}><span className="nav-icon">⚙</span>계정·역할</button>}
           <button className={view === "my-account" ? "active" : ""} onClick={() => selectView("my-account")}><span className="nav-icon">♙</span>내 계정</button>
           <div className="teacher-card"><div className="avatar">{profile.display_name.slice(0, 1)}</div><div><b>{profile.display_name}</b><span>{roleLabels[profile.role]}</span></div><button className="signout-button" onClick={() => void supabase.auth.signOut()}>로그아웃</button></div>
@@ -291,6 +293,7 @@ export default function Home() {
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "settings" && <SettingsBoard supabase={supabase} />}
+          {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
         </div>
       </section>
