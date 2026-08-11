@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
 import { TeacherScheduleHub } from "./teacher-schedule-hub";
+import { AttendanceBoard } from "./attendance-board";
 
 type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "assignments" | "consultations";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
@@ -279,7 +280,7 @@ export default function Home() {
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
-          {view === "attendance" && <SimplePanel title="출결·보강" description="오늘 수업별 출결을 확인하고 결석 학생의 보강 일정을 관리합니다." items={["중3 국어 · 결석 1명", "고1 영어 B · 지각 1명 / 결석 1명", "이번 주 보강 예정 · 5건"]} />}
+          {view === "attendance" && (profile.role === "admin" || profile.role === "teacher" ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
           {view === "assignments" && <SimplePanel title="과제·첨삭" description="클래스별 과제를 만들고 학생별 제출과 첨삭 상태를 확인합니다." items={["중2 수학 A · 미제출 4명", "고1 영어 B · 첨삭 대기 5건", "중3 국어 · 오늘 마감 3명"]} />}
           {view === "consultations" && <SimplePanel title="상담 관리" description="내부 상담 메모와 학부모 공유 피드백을 안전하게 분리합니다." items={["상담 권장 학생 · 7명", "이번 주 상담 예정 · 3건", "학부모 공유 대기 · 2건"]} />}
         </div>
