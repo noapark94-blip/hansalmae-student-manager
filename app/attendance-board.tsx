@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type AttendanceStatus = "present" | "late" | "absent" | "excused";
 type AttendanceStudent = { id: string; name: string; status: AttendanceStatus | null; note: string | null; makeupRequired: boolean };
 type AttendanceClass = { scheduleId: string; classId: string; className: string; subject: string; room: string | null; color: string; startTime: string; endTime: string; students: AttendanceStudent[] };
+type Preparation = { createdLessons: number; lessonCount: number; studentCount: number };
 
 const statusOptions: { id: AttendanceStatus; label: string }[] = [
   { id: "present", label: "출석" },
@@ -22,9 +23,16 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [preparation, setPreparation] = useState<Preparation | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
+    const { data: prepared, error: prepareError } = await supabase.rpc("staff_prepare_daily_attendance", { p_date: date });
+    if (prepareError) {
+      setError("출석부를 자동 준비하지 못했습니다. DB 업데이트를 확인해 주세요.");
+      setPreparation(null); setLoading(false); return;
+    }
+    setPreparation(prepared as Preparation);
     const { data, error: loadError } = await supabase.rpc("staff_attendance_board", { p_date: date });
     if (loadError) setError("수업과 학생 명단을 불러오지 못했습니다.");
     else {
@@ -60,6 +68,7 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
   return <>
     <div className="page-heading compact"><div><p className="eyebrow">수업별 실시간 기록</p><h1>출결·보강</h1><p>출석 상태를 선택하면 홈 화면 집계와 결석 학생의 보강 필요 건수에 바로 반영됩니다.</p></div><label className="attendance-date">수업 날짜<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></div>
     {error && <p className="attendance-error">{error}</p>}
+    {!loading && preparation && <p className="attendance-prepared">✓ 시간표 기준 출석부 준비 완료 · 수업 {preparation.lessonCount}개 · 명단 {preparation.studentCount}명{preparation.createdLessons > 0 ? ` · 새로 생성 ${preparation.createdLessons}개` : ""}</p>}
     {loading ? <section className="panel attendance-empty">수업 명단을 불러오는 중이에요…</section> : classes.length === 0 ? <section className="panel attendance-empty">선택한 날짜에 등록된 수업이 없습니다.</section> : <>
       <div className="attendance-class-tabs">{classes.map((item) => <button className={selectedId === item.scheduleId ? "active" : ""} key={item.scheduleId} onClick={() => setSelectedId(item.scheduleId)} style={{ borderTopColor:item.color }}><b>{item.startTime.slice(0,5)}</b><span>{item.className}</span><small>{item.room ?? "강의실 미지정"}</small></button>)}</div>
       {selected && <section className="panel attendance-panel"><header><div><h2>{selected.className}</h2><span>{selected.startTime.slice(0,5)}–{selected.endTime.slice(0,5)} · {selected.subject}{selected.room ? ` · ${selected.room}` : ""}</span></div><button className="secondary-button" disabled={savingId === "all"} onClick={() => void markAllPresent()}>✓ 전체 출석</button></header><div className="attendance-summary"><span>출석 <b>{totals?.present ?? 0}</b></span><span>지각 <b>{totals?.late ?? 0}</b></span><span>결석 <b>{totals?.absent ?? 0}</b></span><span>공결 <b>{totals?.excused ?? 0}</b></span><span>미입력 <b>{totals?.unchecked ?? 0}</b></span></div><div className="attendance-list">{selected.students.length === 0 ? <p className="attendance-empty">이 클래스에 배정된 재원생이 없습니다.</p> : selected.students.map((student) => <article key={student.id}><div className="attendance-student"><i>{student.name.slice(0,1)}</i><b>{student.name}</b>{student.makeupRequired && <em>보강 필요</em>}</div><div className="attendance-statuses">{statusOptions.map((option) => <button key={option.id} disabled={savingId === student.id} className={`${option.id}${student.status === option.id ? " active" : ""}`} onClick={() => void save(student, option.id)}>{option.label}</button>)}</div><input className="attendance-note" value={notes[student.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [student.id]:event.target.value }))} onBlur={() => { if (student.status && notes[student.id] !== (student.note ?? "")) void save(student, student.status); }} placeholder="메모 (선택)" /></article>)}</div></section>}
