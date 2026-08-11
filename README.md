@@ -10,6 +10,13 @@ Supabase 인증과 역할별 접근 제어를 사용하는 한살매입시전문
 
 지원 역할은 관리자 `admin`, 선생님 `teacher`, 학생 `student`, 학부모 `guardian`입니다. 브라우저에는 anon key만 사용하며 service role key와 Aligo 비밀키는 절대 넣지 않습니다.
 
+로그인 계정 생성 기능을 사용할 때는 서버 전용 Edge Function을 배포합니다. `SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 Edge Function에 제공하며 브라우저 환경 변수에는 추가하지 않습니다.
+
+```powershell
+npx.cmd supabase functions deploy admin-create-user
+npx.cmd supabase functions deploy admin-bulk-create-users
+```
+
 A clean full-stack starter running on
 [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
 Drizzle support.
