@@ -114,3 +114,6 @@ button:disabled { cursor:wait; opacity:.7; }
 @media (max-width:480px) { .auth-card { padding:30px 22px; border-radius:18px; }.auth-card h1 { font-size:25px; } }
 @media (max-width:560px) { .student-modal>header,.student-modal form { padding-left:20px; padding-right:20px; }.form-grid { grid-template-columns:1fr; }.form-grid .full { grid-column:auto; } }
 @media (max-width:700px) { .academy-class-grid { grid-template-columns:1fr; } }
+
+.settings-created { margin:-4px 0 16px; padding:12px 15px; border:1px solid #cde7d6; border-radius:12px; background:#f2fbf5; display:flex; align-items:center; justify-content:space-between; gap:12px; color:#385946; font-size:10px; }.settings-created span { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }.settings-created strong { padding:3px 6px; border-radius:5px; background:#fff; color:var(--wine); letter-spacing:.4px; }.account-create-modal { max-width:760px; }.password-field { display:flex; gap:6px; }.password-field input { flex:1; min-width:0; }.password-field button { flex:0 0 auto; padding:0 10px; border:1px solid #d9cbd1; border-radius:9px; background:#fff; color:var(--wine); font-size:9px; font-weight:750; }
+@media (max-width:560px) { .settings-created { align-items:flex-start; flex-direction:column; }.password-field { flex-direction:column; }.password-field button { height:34px; } }
