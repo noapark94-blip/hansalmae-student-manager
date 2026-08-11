@@ -26,6 +26,7 @@ type LiveAttendance = { present: number; late: number; absent: number; checked: 
 type LiveDashboard = { todayClasses: LiveTodayClass[]; attendance: LiveAttendance & { makeup: number }; weekAttendance: (LiveAttendance & { weekday: number })[] };
 type AssignmentCount = { unsubmitted: number; reviewPending: number; total: number };
 type ConsultationCount = { overdue: number; upcoming: number };
+type PauseReturnAlerts={overdue:number;upcoming:number;students:{id:string;name:string;expectedOn:string;overdue:boolean}[]};
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "홈", icon: "⌂" },
@@ -313,16 +314,18 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   const [live, setLive] = useState<LiveDashboard | null>(null);
   const [assignmentCount, setAssignmentCount] = useState<AssignmentCount | null>(null);
   const [consultationCount, setConsultationCount] = useState<ConsultationCount | null>(null);
+  const [pauseReturns,setPauseReturns]=useState<PauseReturnAlerts|null>(null);
   const [liveError, setLiveError] = useState(false);
   useEffect(() => {
     if (profile.role === "student" || profile.role === "guardian") return;
     let active = true;
-    void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("assignment_dashboard_count"), supabase.rpc("consultation_dashboard_count")]).then(([dashboard, assignments, consultations]) => {
+    void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("assignment_dashboard_count"), supabase.rpc("consultation_dashboard_count"),supabase.rpc("staff_pause_return_alerts",{p_days:7})]).then(([dashboard, assignments, consultations,pauseAlerts]) => {
       if (!active) return;
       if (dashboard.error || !dashboard.data) setLiveError(true);
       else setLive(dashboard.data as LiveDashboard);
       if (!assignments.error && assignments.data) setAssignmentCount(assignments.data as AssignmentCount);
       if (!consultations.error && consultations.data) setConsultationCount(consultations.data as ConsultationCount);
+      if (!pauseAlerts.error&&pauseAlerts.data)setPauseReturns(pauseAlerts.data as PauseReturnAlerts);
     });
     return () => { active = false; };
   }, [profile.role, supabase]);
@@ -342,6 +345,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
       <Stat label="확인할 항목" value={attendance ? String(attendance.makeup) : "…"} unit="건" detail="보강 필요 출결 기준" icon="!" tone="amber" />
     </section>
     <section className="teacher-schedule-shortcuts" aria-label="선생님 시간표 바로가기"><button onClick={() => onNavigate("schedule")}><span>▦</span><b>학원 전과목 시간표</b><small>공동담당·개인 시간표 연동</small></button><button onClick={() => onNavigate("corrections")}><span>✎</span><b>첨삭 시간표</b><small>월–금 90분 고정 슬롯</small></button><button onClick={() => onNavigate("transport")}><span>◇</span><b>차량 운행 시간표</b><small>차량실장님·탑승 위치·학생</small></button></section>
+    {pauseReturns&&(pauseReturns.overdue+pauseReturns.upcoming)>0&&<button className={`pause-return-banner${pauseReturns.overdue?" overdue":""}`} onClick={()=>onNavigate("students")}><span>↗</span><div><b>{pauseReturns.overdue?`복귀 예정일이 지난 휴원생 ${pauseReturns.overdue}명`:`7일 이내 복귀 예정 휴원생 ${pauseReturns.upcoming}명`}</b><small>{pauseReturns.students.slice(0,4).map((item)=>`${item.name} ${formatShortDate(item.expectedOn)}`).join(" · ")}</small></div><i>학생 현황에서 확인 ›</i></button>}
     <div className="dashboard-grid">
       <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{live?.todayClasses.map((item) => <div className="class-row" key={item.id}><time>{item.time.slice(0,5)}</time><span className="class-bar" style={{ background:item.color }} /><div className="class-info"><b>{item.name}</b><span>{item.teachers}{item.room ? ` · ${item.room}` : ""}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.enrolled}</b></div><button aria-label={`${item.name} 상세`} onClick={() => onNavigate("attendance")}>›</button></div>)}{live && live.todayClasses.length === 0 && <p className="dashboard-empty">오늘 등록된 수업이 없습니다.</p>}{!live && <p className={`dashboard-empty${liveError ? " error" : ""}`}>{liveError ? "오늘 일정을 불러오지 못했습니다." : "오늘 일정을 불러오는 중이에요…"}</p>}</div></section>
       <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => { const text = notice.label === "과제" && assignmentCount ? `미제출 ${assignmentCount.unsubmitted}건 · 첨삭 대기 ${assignmentCount.reviewPending}건` : notice.label === "상담" && consultationCount ? `30일 이상 미상담 ${consultationCount.overdue}명 · 예정 ${consultationCount.upcoming}건` : notice.text; const count = notice.label === "과제" && assignmentCount ? assignmentCount.total : notice.label === "상담" && consultationCount ? consultationCount.overdue : notice.count; return <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "makeups")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{count}</strong><i>›</i></button>; })}</div></section>
@@ -418,6 +422,8 @@ function isActiveStudent(student: StudentRow) {
 function normalizeStudentStatus(status:string):Exclude<StudentStatusFilter,"all"> {
   return status==="active"||status==="재원"?"active":status==="paused"||status==="휴원"?"paused":"completed";
 }
+
+function formatShortDate(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"short",day:"numeric"}).format(new Date(value))}
 
 function studentStatusLabel(status: string) {
   return ({ active: "재원", paused: "휴원", completed: "퇴원" } as Record<string, string>)[status] ?? status;
