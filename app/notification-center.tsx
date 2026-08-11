@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type Item={id:string;studentName:string;title:string;body:string;sourceType:"attendance"|"makeup";readAt:string|null;createdAt:string};
+type Item={id:string;studentName:string;title:string;body:string;sourceType:"attendance"|"makeup"|"tuition";readAt:string|null;createdAt:string};
 type Data={unreadCount:number;items:Item[]};
 
 export function NotificationCenter({supabase}:{supabase:SupabaseClient}){
