@@ -9,8 +9,9 @@ import { AttendanceBoard } from "./attendance-board";
 import { MakeupBoard } from "./makeup-board";
 import { AssignmentBoard } from "./assignment-board";
 import { ConsultationBoard } from "./consultation-board";
+import { CommunicationBoard } from "./communication-board";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -30,6 +31,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "makeups", label: "보강 일정", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
+  { id: "communications", label: "공지·문자", icon: "✉" },
 ];
 
 const roleLabels: Record<UserRole, string> = {
@@ -40,10 +42,10 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations"],
-  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations"],
-  student: ["dashboard", "schedule", "attendance", "makeups", "assignments"],
-  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications"],
+  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications"],
+  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications"],
+  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications"],
 };
 
 const demoClasses = [
@@ -264,7 +266,6 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          {(profile.role === "admin" || profile.role === "teacher") && <button onClick={() => showToast("공지·문자 기능은 다음 단계에서 활성화돼요.")}><span className="nav-icon">✉</span>공지·문자</button>}
           {profile.role === "admin" && <button onClick={() => showToast("계정·역할 설정은 관리자만 사용할 수 있어요.")}><span className="nav-icon">⚙</span>설정</button>}
           <div className="teacher-card"><div className="avatar">{profile.display_name.slice(0, 1)}</div><div><b>{profile.display_name}</b><span>{roleLabels[profile.role]}</span></div><button className="signout-button" onClick={() => void supabase.auth.signOut()}>로그아웃</button></div>
         </div>
@@ -281,7 +282,7 @@ export default function Home() {
         </header>
 
         <div className="content">
-          {view === "dashboard" && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onToast={showToast} />}
+          {view === "dashboard" && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
           {view === "students" && <Students rows={filteredStudents} total={students.length} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} />}
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
@@ -290,6 +291,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
+          {view === "communications" && <CommunicationBoard supabase={supabase} />}
         </div>
       </section>
       {registrationOpen && <StudentRegistrationModal onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
@@ -301,7 +303,7 @@ export default function Home() {
   );
 }
 
-function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate, onToast }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void }) {
   const [live, setLive] = useState<LiveDashboard | null>(null);
   const [assignmentCount, setAssignmentCount] = useState<AssignmentCount | null>(null);
   const [consultationCount, setConsultationCount] = useState<ConsultationCount | null>(null);
@@ -326,7 +328,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   const nextClass = live?.todayClasses.find((item) => item.time.slice(0,5) >= new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }));
   const weekTotals = (live?.weekAttendance ?? []).reduce((total, day) => ({ present: total.present + day.present, late: total.late + day.late, absent: total.absent + day.absent }), { present: 0, late: 0, absent: 0 });
   return <>
-    <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{profile.role === "student" ? "내 수업과 학습 현황을 확인하세요." : profile.role === "guardian" ? "자녀의 수업과 출결 현황을 확인하세요." : "오늘 학원 운영 현황을 한눈에 확인하세요."}</p></div>{(profile.role === "admin" || profile.role === "teacher") && <button className="primary" onClick={() => onToast("새 공지 작성은 다음 단계에서 활성화돼요.")}>✦ 새 공지 작성</button>}</div>
+    <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{profile.role === "student" ? "내 수업과 학습 현황을 확인하세요." : profile.role === "guardian" ? "자녀의 수업과 출결 현황을 확인하세요." : "오늘 학원 운영 현황을 한눈에 확인하세요."}</p></div>{(profile.role === "admin" || profile.role === "teacher") && <button className="primary" onClick={() => onNavigate("communications")}>✦ 새 공지 작성</button>}</div>
     <section className="stats-grid">
       <Stat label="전체 재원생" value={studentsLoading ? "…" : String(activeStudentCount)} unit="명" detail="Supabase 실시간 기준" icon="人" tone="wine" />
       <Stat label="오늘 수업" value={live ? String(live.todayClasses.length) : "…"} unit="개" detail={nextClass ? `다음 수업 ${nextClass.time.slice(0,5)}` : live ? "오늘 남은 수업 없음" : "Supabase 확인 중"} icon="▦" tone="blue" />
@@ -345,7 +347,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
 
 function FamilyDashboard({ profile, onNavigate }: { profile: Profile; onNavigate: (view: View) => void }) {
   const isStudent = profile.role === "student";
-  return <><div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{isStudent ? "내 수업과 학습 현황을 확인하세요." : "자녀의 수업과 출결 현황을 확인하세요."}</p></div></div><section className="stats-grid family-stats"><Stat label="이번 주 수업" value="4" unit="개" detail="다음 수업 오늘 19:00" icon="▦" tone="blue" /><Stat label="이번 달 출석률" value="96" unit="%" detail="출석 12 · 결석 1" icon="✓" tone="green" /><Stat label={isStudent ? "제출할 과제" : "상담 기록"} value={isStudent ? "2" : "1"} unit="건" detail={isStudent ? "가장 가까운 마감 내일" : "최근 공유 8월 7일"} icon={isStudent ? "✎" : "☏"} tone="amber" /></section><div className="dashboard-grid"><section className="panel today-panel"><PanelHeader title="다가오는 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{demoClasses.slice(1, 3).map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div></div>)}</div></section><section className="panel attention-panel"><PanelHeader title="최근 학습 현황" /><div className="notice-list"><button onClick={() => onNavigate("attendance")}><span className="notice-icon green">✓</span><span><b>이번 달 출석 12회</b><small>출결 내역 확인하기</small></span><i>›</i></button><button onClick={() => onNavigate(isStudent ? "assignments" : "consultations")}><span className="notice-icon amber">{isStudent ? "✎" : "☏"}</span><span><b>{isStudent ? "확인할 과제 2건" : "최근 상담 기록"}</b><small>{isStudent ? "과제 현황 확인하기" : "공유된 상담 내용 확인하기"}</small></span><i>›</i></button></div></section></div></>;
+  return <><div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{isStudent ? "내 수업과 학습 현황을 확인하세요." : "자녀의 수업과 출결 현황을 확인하세요."}</p></div></div><section className="stats-grid family-stats"><Stat label="이번 주 수업" value="4" unit="개" detail="다음 수업 오늘 19:00" icon="▦" tone="blue" /><Stat label="이번 달 출석률" value="96" unit="%" detail="출석 12 · 결석 1" icon="✓" tone="green" /><Stat label={isStudent ? "제출할 과제" : "상담 기록"} value={isStudent ? "2" : "1"} unit="건" detail={isStudent ? "가장 가까운 마감 내일" : "최근 공유 8월 7일"} icon={isStudent ? "✎" : "☏"} tone="amber" /></section><div className="dashboard-grid"><section className="panel today-panel"><PanelHeader title="다가오는 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{demoClasses.slice(1, 3).map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div></div>)}</div></section><section className="panel attention-panel"><PanelHeader title="최근 학습 현황" /><div className="notice-list"><button onClick={() => onNavigate("communications")}><span className="notice-icon wine">✉</span><span><b>학원 공지 확인</b><small>나에게 공개된 공지 보기</small></span><i>›</i></button><button onClick={() => onNavigate("attendance")}><span className="notice-icon green">✓</span><span><b>이번 달 출석 12회</b><small>출결 내역 확인하기</small></span><i>›</i></button><button onClick={() => onNavigate(isStudent ? "assignments" : "consultations")}><span className="notice-icon amber">{isStudent ? "✎" : "☏"}</span><span><b>{isStudent ? "확인할 과제 2건" : "최근 상담 기록"}</b><small>{isStudent ? "과제 현황 확인하기" : "공유된 상담 내용 확인하기"}</small></span><i>›</i></button></div></section></div></>;
 }
 
 function Students({ rows, total, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
