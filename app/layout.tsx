@@ -6,7 +6,7 @@ import "./bulk-import.css";
 import "./bulk-account.css";
 
 export const metadata: Metadata = {
-  title: "한살매 학생관리",
+  title: "한살매 입시전문학원",
   description: "한살매입시전문학원 학생·수업·출결 통합 관리",
   other: { "codex-preview": "development" },
 };
