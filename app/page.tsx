@@ -12,6 +12,7 @@ import { ConsultationBoard } from "./consultation-board";
 import { CommunicationBoard } from "./communication-board";
 import { SettingsBoard } from "./settings-board";
 import { MyAccount } from "./my-account";
+import { StudentDetailHub } from "./student-detail-hub";
 
 type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
@@ -302,7 +303,7 @@ export default function Home() {
       {registrationOpen && <StudentRegistrationModal onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classId) => assignClass(enrollmentStudent, classId)} />}
-      {studentDetails && <StudentDetailModal student={studentDetails} rosterStudent={students.find((item) => item.id === studentDetails.id)} onClose={() => setStudentDetails(null)} onUpdate={updateStudent} onDelete={deleteStudent} onAssign={(student) => { setStudentDetails(null); setEnrollmentStudent(student); }} />}
+      {studentDetails && <StudentDetailHub supabase={supabase} student={studentDetails} rosterStudent={students.find((item) => item.id === studentDetails.id)} onClose={() => setStudentDetails(null)} onUpdate={updateStudent} onDelete={deleteStudent} onAssign={(student) => { setStudentDetails(null); setEnrollmentStudent(student as StudentRow); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </main>
   );
@@ -376,18 +377,6 @@ function StudentRegistrationModal({ onClose, onSubmit }: { onClose: () => void; 
     }
   };
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-registration-title"><header><div><p className="eyebrow">SUPABASE 학생 관리</p><h2 id="student-registration-title">학생 등록</h2><span>기본 정보를 먼저 등록하고 수강 과목은 이후 연결합니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>학생 이름 <b>*</b><input autoFocus required value={values.name} onChange={(event) => update("name", event.target.value)} placeholder="예: 김민준" /></label><label>학교<input value={values.school} onChange={(event) => update("school", event.target.value)} placeholder="예: 배곧중학교" /></label><label>학년<input value={values.grade} onChange={(event) => update("grade", event.target.value)} placeholder="예: 중2" /></label><label>학생 연락처<input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} placeholder="010-0000-0000" /></label><label>재원 상태<select value={values.status} onChange={(event) => update("status", event.target.value)}><option value="active">재원</option><option value="paused">휴원</option><option value="completed">퇴원</option></select></label><label className="full">내부 메모<textarea value={values.internalNote} onChange={(event) => update("internalNote", event.target.value)} placeholder="관리자와 교사만 확인할 메모" rows={3} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={submitting}>{submitting ? "저장 중…" : "학생 등록"}</button></footer></form></section></div>;
-}
-
-function StudentDetailModal({ student, rosterStudent, onClose, onUpdate, onDelete, onAssign }: { student: StudentDetails; rosterStudent?: StudentRow; onClose: () => void; onUpdate: (values: StudentDetails) => Promise<void>; onDelete: (student: StudentDetails) => Promise<void>; onAssign: (student: StudentRow) => void }) {
-  const [values, setValues] = useState(student);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteName, setDeleteName] = useState("");
-  const update = (field: keyof StudentFormValues, value: string) => setValues((current) => ({ ...current, [field]: value }));
-  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); setSubmitting(true); setError(""); try { await onUpdate(values); } catch { setError("학생 정보를 수정하지 못했습니다. 다시 시도해 주세요."); setSubmitting(false); } };
-  const remove = async () => { setSubmitting(true); setError(""); try { await onDelete(student); } catch { setError("학생을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요."); setSubmitting(false); } };
-  return <ModalShell eyebrow="학생 상세 관리" title={student.name} description="기본 정보를 수정하고 수강 클래스를 관리합니다." onClose={onClose}><form onSubmit={submit}><div className="form-grid"><label>학생 이름 <b>*</b><input required value={values.name} onChange={(event) => update("name", event.target.value)} /></label><label>학교<input value={values.school} onChange={(event) => update("school", event.target.value)} /></label><label>학년<input value={values.grade} onChange={(event) => update("grade", event.target.value)} /></label><label>학생 연락처<input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} /></label><label>재원 상태<select value={values.status} onChange={(event) => update("status", event.target.value)}><option value="active">재원</option><option value="paused">휴원</option><option value="completed">퇴원</option></select></label><label className="full">내부 메모<textarea value={values.internalNote} onChange={(event) => update("internalNote", event.target.value)} rows={3} /></label></div><div className="student-detail-actions">{rosterStudent && <button type="button" className="secondary-button" onClick={() => onAssign(rosterStudent)}>＋ 수강 클래스 배정</button>}<button type="button" className="danger-link" onClick={() => setConfirmDelete((current) => !current)}>학생 삭제</button></div>{confirmDelete && <div className="delete-confirm"><b>삭제하면 수강 배정 등 연결 기록도 함께 삭제됩니다.</b><span>확인을 위해 <strong>{student.name}</strong>을 입력하세요.</span><input value={deleteName} onChange={(event) => setDeleteName(event.target.value)} placeholder={student.name} /><button type="button" disabled={submitting || deleteName !== student.name} onClick={() => void remove()}>영구 삭제</button></div>}{error && <p className="form-error" role="alert">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="변경사항 저장" /></form></ModalShell>;
 }
 
 function ClassRegistrationModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (values: ClassFormValues) => Promise<void> }) {
