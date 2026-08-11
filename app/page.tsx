@@ -16,6 +16,7 @@ import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
 import { OperationsAuditBoard } from "./operations-audit";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
+import { NotificationCenter } from "./notification-center";
 
 type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
@@ -281,7 +282,7 @@ export default function Home() {
         <header className="topbar">
           <button className="menu-button" aria-label="메뉴 열기" onClick={() => setMobileNav(true)}>☰</button>
           <div className="search-wrap"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="학생, 클래스 검색" /></div>
-          <button className="icon-button" aria-label="알림" onClick={() => showToast("새로운 알림이 없어요.")}>♢<i /></button>
+          <NotificationCenter supabase={supabase} />
           {(profile.role === "admin" || profile.role === "teacher") && <button className="primary small" onClick={() => setRegistrationOpen(true)}>＋ 학생 등록</button>}
         </header>
 
