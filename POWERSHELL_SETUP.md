@@ -56,3 +56,13 @@ git push -u origin main
 - Supabase 관계형 초기 스키마
 
 다음 단계에서 Supabase 로그인, 실제 학생 등록, 클래스 등록, 시간표 저장을 연결합니다.
+
+## 관리자 계정 생성 함수 배포
+
+관리자가 앱의 `설정 → 계정·역할 설정`에서 새 로그인 계정을 만들 수 있도록 Edge Function을 한 번 배포합니다.
+
+```powershell
+npx.cmd supabase functions deploy admin-create-user --no-verify-jwt
+```
+
+함수 자체에서 로그인 토큰과 관리자 역할을 다시 확인합니다. `service_role` 키는 Supabase가 함수에 제공하며 브라우저 환경변수나 `.env.local`에 넣지 않습니다.
