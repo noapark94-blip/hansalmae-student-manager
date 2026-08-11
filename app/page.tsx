@@ -6,8 +6,9 @@ import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
 import { TeacherScheduleHub } from "./teacher-schedule-hub";
 import { AttendanceBoard } from "./attendance-board";
+import { MakeupBoard } from "./makeup-board";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "assignments" | "consultations";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -21,7 +22,8 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "schedule", label: "전과목 시간표", icon: "▦" },
   { id: "corrections", label: "첨삭 시간표", icon: "✎" },
   { id: "transport", label: "차량 운행표", icon: "◇" },
-  { id: "attendance", label: "출결·보강", icon: "✓" },
+  { id: "attendance", label: "출결 입력", icon: "✓" },
+  { id: "makeups", label: "보강 일정", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
 ];
@@ -34,10 +36,10 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "assignments", "consultations"],
-  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "assignments", "consultations"],
-  student: ["dashboard", "schedule", "attendance", "assignments"],
-  guardian: ["dashboard", "schedule", "attendance", "consultations"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations"],
+  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations"],
+  student: ["dashboard", "schedule", "attendance", "makeups", "assignments"],
+  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations"],
 };
 
 const demoClasses = [
@@ -281,6 +283,7 @@ export default function Home() {
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
           {view === "attendance" && (profile.role === "admin" || profile.role === "teacher" ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
+          {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <SimplePanel title="과제·첨삭" description="클래스별 과제를 만들고 학생별 제출과 첨삭 상태를 확인합니다." items={["중2 수학 A · 미제출 4명", "고1 영어 B · 첨삭 대기 5건", "중3 국어 · 오늘 마감 3명"]} />}
           {view === "consultations" && <SimplePanel title="상담 관리" description="내부 상담 메모와 학부모 공유 피드백을 안전하게 분리합니다." items={["상담 권장 학생 · 7명", "이번 주 상담 예정 · 3건", "학부모 공유 대기 · 2건"]} />}
         </div>
@@ -325,7 +328,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
     <section className="teacher-schedule-shortcuts" aria-label="선생님 시간표 바로가기"><button onClick={() => onNavigate("schedule")}><span>▦</span><b>학원 전과목 시간표</b><small>공동담당·개인 시간표 연동</small></button><button onClick={() => onNavigate("corrections")}><span>✎</span><b>첨삭 시간표</b><small>월–금 90분 고정 슬롯</small></button><button onClick={() => onNavigate("transport")}><span>◇</span><b>차량 운행 시간표</b><small>차량실장님·탑승 위치·학생</small></button></section>
     <div className="dashboard-grid">
       <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{live?.todayClasses.map((item) => <div className="class-row" key={item.id}><time>{item.time.slice(0,5)}</time><span className="class-bar" style={{ background:item.color }} /><div className="class-info"><b>{item.name}</b><span>{item.teachers}{item.room ? ` · ${item.room}` : ""}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.enrolled}</b></div><button aria-label={`${item.name} 상세`} onClick={() => onNavigate("attendance")}>›</button></div>)}{live && live.todayClasses.length === 0 && <p className="dashboard-empty">오늘 등록된 수업이 없습니다.</p>}{!live && <p className={`dashboard-empty${liveError ? " error" : ""}`}>{liveError ? "오늘 일정을 불러오지 못했습니다." : "오늘 일정을 불러오는 중이에요…"}</p>}</div></section>
-      <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "attendance")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{notice.text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{notice.count}</strong><i>›</i></button>)}</div></section>
+      <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "makeups")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{notice.text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{notice.count}</strong><i>›</i></button>)}</div></section>
       <section className="panel weekly-panel"><PanelHeader title="이번 주 출결" action="출결 관리" onClick={() => onNavigate("attendance")} /><div className="week-bars">{(live?.weekAttendance ?? []).map((day) => { const value = day.checked ? Math.round((day.present / day.checked) * 100) : 0; return <div key={day.weekday}><span><b>{["월","화","수","목","금"][day.weekday - 1]}</b><small>{day.checked ? `${value}%` : "–"}</small></span><i><em style={{width:`${value}%`}} /></i></div>; })}</div><div className="legend"><span><i className="dot wine" /> 출석 {weekTotals.present}</span><span><i className="dot amber" /> 지각 {weekTotals.late}</span><span><i className="dot gray" /> 결석 {weekTotals.absent}</span></div></section>
       <section className="panel activity-panel"><PanelHeader title="최근 활동" /><div className="activity-list"><Activity icon="✓" tone="green" title="중2 수학 A 출결 완료" meta="학생 9명 · 12분 전"/><Activity icon="✎" tone="wine" title="영어 첨삭 피드백 5건 등록" meta="이선생 · 36분 전"/><Activity icon="☏" tone="blue" title="학부모 상담 기록 작성" meta="학생 1명 · 1시간 전"/><Activity icon="✉" tone="amber" title="수업 변경 안내 발송" meta="수신 8명 · 2시간 전"/></div></section>
     </div>
