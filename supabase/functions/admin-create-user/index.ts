@@ -27,8 +27,9 @@ Deno.serve(async (request) => {
   const { data: userData, error: userError } = await authClient.auth.getUser(token);
   if (userError || !userData.user) return json({ error: "로그인 정보를 확인할 수 없습니다." }, 401);
 
-  const { data: actor } = await adminClient.from("profiles").select("role,is_active").eq("id", userData.user.id).maybeSingle();
-  if (!actor?.is_active || actor.role !== "admin") return json({ error: "관리자만 로그인 계정을 만들 수 있습니다." }, 403);
+  const { data: actorRole, error: roleError } = await authClient.rpc("current_user_role");
+  if (roleError) return json({ error: `관리자 권한을 확인하지 못했습니다: ${roleError.message}` }, 500);
+  if (actorRole !== "admin") return json({ error: "관리자만 로그인 계정을 만들 수 있습니다." }, 403);
 
   let input: { email?:string; password?:string; displayName?:string; phone?:string|null; role?:string; studentId?:string|null; childIds?:string[] };
   try { input = await request.json(); } catch { return json({ error: "입력 내용을 확인해 주세요." }, 400); }
