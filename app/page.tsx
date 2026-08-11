@@ -20,8 +20,9 @@ import { NotificationCenter } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
 import { TuitionRulesBoard } from "./tuition-rules-board";
 import { OperationsAnalytics } from "./operations-analytics";
+import { BackupBoard } from "./backup-board";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "settings" | "my-account" | "audit";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -46,6 +47,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "tuition", label: "수납·미납", icon: "₩" },
   { id: "tuition-settings", label: "수강료 설정", icon: "￦" },
   { id: "analytics", label: "운영 통계", icon: "▥" },
+  { id: "backup", label: "데이터 백업", icon: "⇩" },
 ];
 
 const roleLabels: Record<UserRole, string> = {
@@ -56,7 +58,7 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "settings", "my-account", "audit"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
@@ -306,6 +308,7 @@ export default function Home() {
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
           {view === "tuition-settings" && <TuitionRulesBoard supabase={supabase} />}
           {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
+          {view === "backup" && <BackupBoard supabase={supabase} />}
           {view === "settings" && <SettingsBoard supabase={supabase} />}
           {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
