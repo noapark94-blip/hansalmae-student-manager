@@ -117,7 +117,7 @@ export default function Home() {
       setStudentsLoading(true);
       setStudentsError("");
       const [{ data, error }, { data: classData, error: classError }] = await Promise.all([
-        supabase.from("students").select("id, name, school, grade, status, enrollments(class_id, status, classes(name, subject))").order("name"),
+        supabase.rpc("staff_student_roster"),
         supabase.from("classes").select("id, name, subject, room, color, active").eq("active", true).order("name"),
       ]);
 
@@ -126,7 +126,7 @@ export default function Home() {
         setStudentsError("학생 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
         setStudents([]);
       } else {
-        setStudents((data ?? []) as StudentRow[]);
+        setStudents(((data ?? []) as StudentRow[]).sort((a, b) => a.name.localeCompare(b.name, "ko")));
         setAcademyClasses((classData ?? []) as AcademyClass[]);
       }
       setStudentsLoading(false);
