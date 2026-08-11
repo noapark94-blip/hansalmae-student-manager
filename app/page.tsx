@@ -19,8 +19,9 @@ import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-l
 import { NotificationCenter } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
 import { TuitionRulesBoard } from "./tuition-rules-board";
+import { OperationsAnalytics } from "./operations-analytics";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "settings" | "my-account" | "audit";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -44,6 +45,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "communications", label: "공지·문자", icon: "✉" },
   { id: "tuition", label: "수납·미납", icon: "₩" },
   { id: "tuition-settings", label: "수강료 설정", icon: "￦" },
+  { id: "analytics", label: "운영 통계", icon: "▥" },
 ];
 
 const roleLabels: Record<UserRole, string> = {
@@ -54,7 +56,7 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "settings", "my-account", "audit"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
@@ -303,6 +305,7 @@ export default function Home() {
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
           {view === "tuition-settings" && <TuitionRulesBoard supabase={supabase} />}
+          {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
           {view === "settings" && <SettingsBoard supabase={supabase} />}
           {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
@@ -355,9 +358,9 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
     {pauseReturns&&(pauseReturns.overdue+pauseReturns.upcoming)>0&&<button className={`pause-return-banner${pauseReturns.overdue?" overdue":""}`} onClick={()=>onNavigate("students")}><span>↗</span><div><b>{pauseReturns.overdue?`복귀 예정일이 지난 휴원생 ${pauseReturns.overdue}명`:`7일 이내 복귀 예정 휴원생 ${pauseReturns.upcoming}명`}</b><small>{pauseReturns.students.slice(0,4).map((item)=>`${item.name} ${formatShortDate(item.expectedOn)}`).join(" · ")}</small></div><i>학생 현황에서 확인 ›</i></button>}
     <div className="dashboard-grid">
       <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{live?.todayClasses.map((item) => <div className="class-row" key={item.id}><time>{item.time.slice(0,5)}</time><span className="class-bar" style={{ background:item.color }} /><div className="class-info"><b>{item.name}</b><span>{item.teachers}{item.room ? ` · ${item.room}` : ""}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.enrolled}</b></div><button aria-label={`${item.name} 상세`} onClick={() => onNavigate("attendance")}>›</button></div>)}{live && live.todayClasses.length === 0 && <p className="dashboard-empty">오늘 등록된 수업이 없습니다.</p>}{!live && <p className={`dashboard-empty${liveError ? " error" : ""}`}>{liveError ? "오늘 일정을 불러오지 못했습니다." : "오늘 일정을 불러오는 중이에요…"}</p>}</div></section>
-      <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => { const text = notice.label === "과제" && assignmentCount ? `미제출 ${assignmentCount.unsubmitted}건 · 첨삭 대기 ${assignmentCount.reviewPending}건` : notice.label === "상담" && consultationCount ? `30일 이상 미상담 ${consultationCount.overdue}명 · 예정 ${consultationCount.upcoming}건` : notice.text; const count = notice.label === "과제" && assignmentCount ? assignmentCount.total : notice.label === "상담" && consultationCount ? consultationCount.overdue : notice.count; return <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "makeups")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{count}</strong><i>›</i></button>; })}</div></section>
+      <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => { const text = notice.label === "과제" && assignmentCount ? `미제출 ${assignmentCount.unsubmitted}건 · 첨삭 대기 ${assignmentCount.reviewPending}건` : notice.label === "상담" && consultationCount ? `30일 이상 미상담 ${consultationCount.overdue}명 · 예정 ${consultationCount.upcoming}건` : notice.label === "보강" && attendance ? `보강이 필요한 결석 기록 ${attendance.makeup}건` : notice.text; const count = notice.label === "과제" && assignmentCount ? assignmentCount.total : notice.label === "상담" && consultationCount ? consultationCount.overdue : notice.label === "보강" && attendance ? attendance.makeup : notice.count; return <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "makeups")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{count}</strong><i>›</i></button>; })}</div></section>
       <section className="panel weekly-panel"><PanelHeader title="이번 주 출결" action="출결 관리" onClick={() => onNavigate("attendance")} /><div className="week-bars">{(live?.weekAttendance ?? []).map((day) => { const value = day.checked ? Math.round((day.present / day.checked) * 100) : 0; return <div key={day.weekday}><span><b>{["월","화","수","목","금"][day.weekday - 1]}</b><small>{day.checked ? `${value}%` : "–"}</small></span><i><em style={{width:`${value}%`}} /></i></div>; })}</div><div className="legend"><span><i className="dot wine" /> 출석 {weekTotals.present}</span><span><i className="dot amber" /> 지각 {weekTotals.late}</span><span><i className="dot gray" /> 결석 {weekTotals.absent}</span></div></section>
-      <section className="panel activity-panel"><PanelHeader title="최근 활동" /><div className="activity-list"><Activity icon="✓" tone="green" title="중2 수학 A 출결 완료" meta="학생 9명 · 12분 전"/><Activity icon="✎" tone="wine" title="영어 첨삭 피드백 5건 등록" meta="이선생 · 36분 전"/><Activity icon="☏" tone="blue" title="학부모 상담 기록 작성" meta="학생 1명 · 1시간 전"/><Activity icon="✉" tone="amber" title="수업 변경 안내 발송" meta="수신 8명 · 2시간 전"/></div></section>
+      <section className="panel activity-panel"><PanelHeader title="오늘 운영 집계" /><div className="activity-list"><Activity icon="✓" tone="green" title={`출결 입력 ${attendance?.checked ?? 0}건`} meta={`출석 ${attendance?.present ?? 0} · 지각 ${attendance?.late ?? 0} · 결석 ${attendance?.absent ?? 0}`}/><Activity icon="✎" tone="wine" title={`확인할 과제 ${assignmentCount?.total ?? 0}건`} meta={`미제출 ${assignmentCount?.unsubmitted ?? 0} · 첨삭 대기 ${assignmentCount?.reviewPending ?? 0}`}/><Activity icon="☏" tone="blue" title={`상담 점검 학생 ${consultationCount?.overdue ?? 0}명`} meta={`예정 상담 ${consultationCount?.upcoming ?? 0}건`}/><Activity icon="↻" tone="amber" title={`보강 필요 ${attendance?.makeup ?? 0}건`} meta="실시간 출결 기록 기준"/></div></section>
     </div>
   </>;
 }
