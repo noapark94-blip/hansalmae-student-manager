@@ -17,8 +17,9 @@ import { FamilyLiveDashboard } from "./family-dashboard";
 import { OperationsAuditBoard } from "./operations-audit";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter } from "./notification-center";
+import { TuitionBoard } from "./tuition-board";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account" | "audit";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -40,6 +41,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "✉" },
+  { id: "tuition", label: "수납·미납", icon: "₩" },
 ];
 
 const roleLabels: Record<UserRole, string> = {
@@ -50,10 +52,10 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "my-account"],
-  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "my-account"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "my-account"],
+  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
+  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
 };
 
 const notices = [
@@ -297,6 +299,7 @@ export default function Home() {
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
+          {view === "tuition" && <TuitionBoard supabase={supabase} />}
           {view === "settings" && <SettingsBoard supabase={supabase} />}
           {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
