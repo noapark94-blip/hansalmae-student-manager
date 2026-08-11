@@ -10,8 +10,9 @@ import { MakeupBoard } from "./makeup-board";
 import { AssignmentBoard } from "./assignment-board";
 import { ConsultationBoard } from "./consultation-board";
 import { CommunicationBoard } from "./communication-board";
+import { SettingsBoard } from "./settings-board";
 
-type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -42,7 +43,7 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "settings"],
   teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications"],
@@ -266,7 +267,7 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          {profile.role === "admin" && <button onClick={() => showToast("계정·역할 설정은 관리자만 사용할 수 있어요.")}><span className="nav-icon">⚙</span>설정</button>}
+          {profile.role === "admin" && <button className={view === "settings" ? "active" : ""} onClick={() => selectView("settings")}><span className="nav-icon">⚙</span>설정</button>}
           <div className="teacher-card"><div className="avatar">{profile.display_name.slice(0, 1)}</div><div><b>{profile.display_name}</b><span>{roleLabels[profile.role]}</span></div><button className="signout-button" onClick={() => void supabase.auth.signOut()}>로그아웃</button></div>
         </div>
       </aside>
@@ -292,6 +293,7 @@ export default function Home() {
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
+          {view === "settings" && <SettingsBoard supabase={supabase} />}
         </div>
       </section>
       {registrationOpen && <StudentRegistrationModal onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
