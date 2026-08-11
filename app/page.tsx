@@ -15,6 +15,7 @@ import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
 import { OperationsAuditBoard } from "./operations-audit";
+import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 
 type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
@@ -77,6 +78,7 @@ export default function Home() {
   const [classRegistrationOpen, setClassRegistrationOpen] = useState(false);
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
+  const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
 
   useEffect(() => {
     if (!supabase) {
@@ -155,11 +157,12 @@ export default function Home() {
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter((student) =>
-      [student.name, student.school ?? "", student.grade ?? "", ...getStudentSubjects(student)].some((value) => value.toLowerCase().includes(q)),
-    );
-  }, [query, students]);
+    return students.filter((student) => {
+      const matchesStatus=studentStatusFilter==="all"||normalizeStudentStatus(student.status)===studentStatusFilter;
+      const matchesQuery=!q||[student.name, student.school ?? "", student.grade ?? "", ...getStudentSubjects(student)].some((value) => value.toLowerCase().includes(q));
+      return matchesStatus&&matchesQuery;
+    });
+  }, [query, studentStatusFilter, students]);
 
   const selectView = (next: View) => {
     if (profile && !roleViews[profile.role].includes(next)) {
@@ -283,7 +286,7 @@ export default function Home() {
 
         <div className="content">
           {view === "dashboard" && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
-          {view === "students" && <Students rows={filteredStudents} total={students.length} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} />}
+          {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} /></>}
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
@@ -348,8 +351,8 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   </>;
 }
 
-function Students({ rows, total, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생을 선택하면 상세 정보와 수강 클래스를 관리할 수 있습니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>전체 {total}명</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query ? "검색 결과가 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); return <button className="table-row" key={student.id} onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${isActiveStudent(student) ? "active" : "warning"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
+function Students({ rows, total, filteredTotal, statusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; filteredTotal:number; statusFilter:StudentStatusFilter; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
+  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생을 선택하면 상세 정보와 수강 클래스를 관리할 수 있습니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>{statusFilter==="all"?`전체 ${total}명`:`검색 결과 ${filteredTotal}명`}</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query||statusFilter!=="all" ? "선택한 조건의 학생이 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); const normalizedStatus=normalizeStudentStatus(student.status); return <button className="table-row" key={student.id} onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${normalizedStatus==="active"?"active":normalizedStatus==="paused"?"warning":"completed"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
 }
 
 function StudentRegistrationModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
@@ -410,6 +413,10 @@ function getStudentSubjects(student: StudentRow) {
 
 function isActiveStudent(student: StudentRow) {
   return student.status === "active" || student.status === "재원";
+}
+
+function normalizeStudentStatus(status:string):Exclude<StudentStatusFilter,"all"> {
+  return status==="active"||status==="재원"?"active":status==="paused"||status==="휴원"?"paused":"completed";
 }
 
 function studentStatusLabel(status: string) {
