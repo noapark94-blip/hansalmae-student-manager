@@ -11,7 +11,7 @@ type Student = { id:string; name:string; profileId:string|null };
 type ChangeLog = { id:string; action:string; details:Record<string,unknown>; targetName:string; changedByName:string; createdAt:string };
 type BoardData = { accounts:Account[]; students:Student[]; logs:ChangeLog[] };
 const roleLabels:Record<UserRole,string> = { admin:"관리자",teacher:"교사",student:"학생",guardian:"학부모" };
-const actionLabels:Record<string,string> = { account_updated:"계정 정보·역할 변경",student_link_changed:"학생 정보 연결 변경",guardian_children_changed:"자녀 연결 변경" };
+const actionLabels:Record<string,string> = { account_updated:"계정 정보·역할 변경",student_link_changed:"학생 정보 연결 변경",guardian_children_changed:"자녀 연결 변경",teacher_classes_changed:"담당 클래스 연결 변경" };
 
 export function SettingsBoard({ supabase }: { supabase:SupabaseClient }) {
   const [data,setData] = useState<BoardData>({ accounts:[],students:[],logs:[] }); const [loading,setLoading] = useState(true); const [error,setError] = useState(""); const [query,setQuery] = useState(""); const [role,setRole] = useState<"all"|UserRole>("all"); const [editing,setEditing] = useState<Account|null>(null); const [creating,setCreating] = useState(false); const [created,setCreated] = useState<{ email:string; password:string }|null>(null);
