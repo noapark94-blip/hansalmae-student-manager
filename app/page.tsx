@@ -10,6 +10,9 @@ type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" 
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
+type LiveTodayClass = { id: string; time: string; name: string; room: string | null; color: string; teachers: string; enrolled: number; present: number };
+type LiveAttendance = { present: number; late: number; absent: number; checked: number };
+type LiveDashboard = { todayClasses: LiveTodayClass[]; attendance: LiveAttendance & { makeup: number }; weekAttendance: (LiveAttendance & { weekday: number })[] };
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "홈", icon: "⌂" },
@@ -271,7 +274,7 @@ export default function Home() {
         </header>
 
         <div className="content">
-          {view === "dashboard" && <Dashboard profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onToast={showToast} />}
+          {view === "dashboard" && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onToast={showToast} />}
           {view === "students" && <Students rows={filteredStudents} total={students.length} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} />}
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
@@ -290,23 +293,39 @@ export default function Home() {
   );
 }
 
-function Dashboard({ profile, activeStudentCount, studentsLoading, onNavigate, onToast }: { profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate, onToast }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onToast: (message: string) => void }) {
+  const [live, setLive] = useState<LiveDashboard | null>(null);
+  const [liveError, setLiveError] = useState(false);
+  useEffect(() => {
+    if (profile.role === "student" || profile.role === "guardian") return;
+    let active = true;
+    void supabase.rpc("staff_dashboard_live").then(({ data, error }) => {
+      if (!active) return;
+      if (error || !data) setLiveError(true);
+      else setLive(data as LiveDashboard);
+    });
+    return () => { active = false; };
+  }, [profile.role, supabase]);
   if (profile.role === "student" || profile.role === "guardian") {
     return <FamilyDashboard profile={profile} onNavigate={onNavigate} />;
   }
+  const attendance = live?.attendance;
+  const attendanceRate = attendance?.checked ? Math.round((attendance.present / attendance.checked) * 100) : null;
+  const nextClass = live?.todayClasses.find((item) => item.time.slice(0,5) >= new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }));
+  const weekTotals = (live?.weekAttendance ?? []).reduce((total, day) => ({ present: total.present + day.present, late: total.late + day.late, absent: total.absent + day.absent }), { present: 0, late: 0, absent: 0 });
   return <>
     <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{profile.role === "student" ? "내 수업과 학습 현황을 확인하세요." : profile.role === "guardian" ? "자녀의 수업과 출결 현황을 확인하세요." : "오늘 학원 운영 현황을 한눈에 확인하세요."}</p></div>{(profile.role === "admin" || profile.role === "teacher") && <button className="primary" onClick={() => onToast("새 공지 작성은 다음 단계에서 활성화돼요.")}>✦ 새 공지 작성</button>}</div>
     <section className="stats-grid">
       <Stat label="전체 재원생" value={studentsLoading ? "…" : String(activeStudentCount)} unit="명" detail="Supabase 실시간 기준" icon="人" tone="wine" />
-      <Stat label="오늘 수업" value="8" unit="개" detail="다음 수업 16:00" icon="▦" tone="blue" />
-      <Stat label="오늘 출석률" value="92" unit="%" detail="출석 37 · 결석 3" icon="✓" tone="green" />
-      <Stat label="확인할 항목" value="24" unit="건" detail="과제 12 · 상담 7 · 보강 5" icon="!" tone="amber" />
+      <Stat label="오늘 수업" value={live ? String(live.todayClasses.length) : "…"} unit="개" detail={nextClass ? `다음 수업 ${nextClass.time.slice(0,5)}` : live ? "오늘 남은 수업 없음" : "Supabase 확인 중"} icon="▦" tone="blue" />
+      <Stat label="오늘 출석률" value={attendanceRate === null ? "–" : String(attendanceRate)} unit={attendanceRate === null ? "" : "%"} detail={attendance?.checked ? `출석 ${attendance.present} · 지각 ${attendance.late} · 결석 ${attendance.absent}` : "아직 기록된 출결 없음"} icon="✓" tone="green" />
+      <Stat label="확인할 항목" value={attendance ? String(attendance.makeup) : "…"} unit="건" detail="보강 필요 출결 기준" icon="!" tone="amber" />
     </section>
     <section className="teacher-schedule-shortcuts" aria-label="선생님 시간표 바로가기"><button onClick={() => onNavigate("schedule")}><span>▦</span><b>학원 전과목 시간표</b><small>공동담당·개인 시간표 연동</small></button><button onClick={() => onNavigate("corrections")}><span>✎</span><b>첨삭 시간표</b><small>월–금 90분 고정 슬롯</small></button><button onClick={() => onNavigate("transport")}><span>◇</span><b>차량 운행 시간표</b><small>차량실장님·탑승 위치·학생</small></button></section>
     <div className="dashboard-grid">
-      <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{demoClasses.map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.total}</b></div><button aria-label={`${item.name} 상세`}>›</button></div>)}</div></section>
+      <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{live?.todayClasses.map((item) => <div className="class-row" key={item.id}><time>{item.time.slice(0,5)}</time><span className="class-bar" style={{ background:item.color }} /><div className="class-info"><b>{item.name}</b><span>{item.teachers}{item.room ? ` · ${item.room}` : ""}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.enrolled}</b></div><button aria-label={`${item.name} 상세`} onClick={() => onNavigate("attendance")}>›</button></div>)}{live && live.todayClasses.length === 0 && <p className="dashboard-empty">오늘 등록된 수업이 없습니다.</p>}{!live && <p className={`dashboard-empty${liveError ? " error" : ""}`}>{liveError ? "오늘 일정을 불러오지 못했습니다." : "오늘 일정을 불러오는 중이에요…"}</p>}</div></section>
       <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "attendance")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{notice.text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{notice.count}</strong><i>›</i></button>)}</div></section>
-      <section className="panel weekly-panel"><PanelHeader title="이번 주 출결" action="출결 관리" onClick={() => onNavigate("attendance")} /><div className="week-bars">{[["월",94],["화",91],["수",96],["목",89],["금",92]].map(([day,value]) => <div key={day}><span><b>{day}</b><small>{value}%</small></span><i><em style={{width:`${value}%`}} /></i></div>)}</div><div className="legend"><span><i className="dot wine" /> 출석 184</span><span><i className="dot amber" /> 지각 8</span><span><i className="dot gray" /> 결석 12</span></div></section>
+      <section className="panel weekly-panel"><PanelHeader title="이번 주 출결" action="출결 관리" onClick={() => onNavigate("attendance")} /><div className="week-bars">{(live?.weekAttendance ?? []).map((day) => { const value = day.checked ? Math.round((day.present / day.checked) * 100) : 0; return <div key={day.weekday}><span><b>{["월","화","수","목","금"][day.weekday - 1]}</b><small>{day.checked ? `${value}%` : "–"}</small></span><i><em style={{width:`${value}%`}} /></i></div>; })}</div><div className="legend"><span><i className="dot wine" /> 출석 {weekTotals.present}</span><span><i className="dot amber" /> 지각 {weekTotals.late}</span><span><i className="dot gray" /> 결석 {weekTotals.absent}</span></div></section>
       <section className="panel activity-panel"><PanelHeader title="최근 활동" /><div className="activity-list"><Activity icon="✓" tone="green" title="중2 수학 A 출결 완료" meta="학생 9명 · 12분 전"/><Activity icon="✎" tone="wine" title="영어 첨삭 피드백 5건 등록" meta="이선생 · 36분 전"/><Activity icon="☏" tone="blue" title="학부모 상담 기록 작성" meta="학생 1명 · 1시간 전"/><Activity icon="✉" tone="amber" title="수업 변경 안내 발송" meta="수신 8명 · 2시간 전"/></div></section>
     </div>
   </>;
