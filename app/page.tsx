@@ -13,6 +13,7 @@ import { CommunicationBoard } from "./communication-board";
 import { SettingsBoard } from "./settings-board";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
+import { FamilyLiveDashboard } from "./family-dashboard";
 
 type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "settings" | "my-account";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
@@ -50,13 +51,6 @@ const roleViews: Record<UserRole, View[]> = {
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "my-account"],
 };
-
-const demoClasses = [
-  { time: "16:00", name: "중3 국어", teacher: "박선생", room: "A 강의실", present: 7, total: 8, tone: "berry" },
-  { time: "17:30", name: "중2 수학 A", teacher: "김선생", room: "B 강의실", present: 9, total: 9, tone: "violet" },
-  { time: "19:00", name: "고1 영어 B", teacher: "이선생", room: "A 강의실", present: 6, total: 8, tone: "navy" },
-  { time: "20:30", name: "고2 수학 B", teacher: "김선생", room: "B 강의실", present: 5, total: 7, tone: "green" },
-];
 
 const notices = [
   { label: "상담", text: "마지막 상담 후 30일이 지난 학생", count: 7, tone: "wine" },
@@ -327,7 +321,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
     return () => { active = false; };
   }, [profile.role, supabase]);
   if (profile.role === "student" || profile.role === "guardian") {
-    return <FamilyDashboard profile={profile} onNavigate={onNavigate} />;
+    return <FamilyLiveDashboard supabase={supabase} profile={profile} onNavigate={onNavigate} />;
   }
   const attendance = live?.attendance;
   const attendanceRate = attendance?.checked ? Math.round((attendance.present / attendance.checked) * 100) : null;
@@ -349,11 +343,6 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
       <section className="panel activity-panel"><PanelHeader title="최근 활동" /><div className="activity-list"><Activity icon="✓" tone="green" title="중2 수학 A 출결 완료" meta="학생 9명 · 12분 전"/><Activity icon="✎" tone="wine" title="영어 첨삭 피드백 5건 등록" meta="이선생 · 36분 전"/><Activity icon="☏" tone="blue" title="학부모 상담 기록 작성" meta="학생 1명 · 1시간 전"/><Activity icon="✉" tone="amber" title="수업 변경 안내 발송" meta="수신 8명 · 2시간 전"/></div></section>
     </div>
   </>;
-}
-
-function FamilyDashboard({ profile, onNavigate }: { profile: Profile; onNavigate: (view: View) => void }) {
-  const isStudent = profile.role === "student";
-  return <><div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>{isStudent ? "내 수업과 학습 현황을 확인하세요." : "자녀의 수업과 출결 현황을 확인하세요."}</p></div></div><section className="stats-grid family-stats"><Stat label="이번 주 수업" value="4" unit="개" detail="다음 수업 오늘 19:00" icon="▦" tone="blue" /><Stat label="이번 달 출석률" value="96" unit="%" detail="출석 12 · 결석 1" icon="✓" tone="green" /><Stat label={isStudent ? "제출할 과제" : "상담 기록"} value={isStudent ? "2" : "1"} unit="건" detail={isStudent ? "가장 가까운 마감 내일" : "최근 공유 8월 7일"} icon={isStudent ? "✎" : "☏"} tone="amber" /></section><div className="dashboard-grid"><section className="panel today-panel"><PanelHeader title="다가오는 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{demoClasses.slice(1, 3).map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div></div>)}</div></section><section className="panel attention-panel"><PanelHeader title="최근 학습 현황" /><div className="notice-list"><button onClick={() => onNavigate("communications")}><span className="notice-icon wine">✉</span><span><b>학원 공지 확인</b><small>나에게 공개된 공지 보기</small></span><i>›</i></button><button onClick={() => onNavigate("attendance")}><span className="notice-icon green">✓</span><span><b>이번 달 출석 12회</b><small>출결 내역 확인하기</small></span><i>›</i></button><button onClick={() => onNavigate(isStudent ? "assignments" : "consultations")}><span className="notice-icon amber">{isStudent ? "✎" : "☏"}</span><span><b>{isStudent ? "확인할 과제 2건" : "최근 상담 기록"}</b><small>{isStudent ? "과제 현황 확인하기" : "공유된 상담 내용 확인하기"}</small></span><i>›</i></button></div></section></div></>;
 }
 
 function Students({ rows, total, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
