@@ -4,8 +4,9 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
+import { TeacherScheduleHub } from "./teacher-schedule-hub";
 
-type View = "dashboard" | "students" | "schedule" | "attendance" | "assignments" | "consultations";
+type View = "dashboard" | "students" | "schedule" | "corrections" | "transport" | "attendance" | "assignments" | "consultations";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type StudentDetails = StudentFormValues & { id: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -13,7 +14,9 @@ type ClassFormValues = { name: string; subject: string; room: string; color: str
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "홈", icon: "⌂" },
   { id: "students", label: "학생", icon: "人" },
-  { id: "schedule", label: "시간표", icon: "▦" },
+  { id: "schedule", label: "전과목 시간표", icon: "▦" },
+  { id: "corrections", label: "첨삭 시간표", icon: "✎" },
+  { id: "transport", label: "차량 운행표", icon: "◇" },
   { id: "attendance", label: "출결·보강", icon: "✓" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
@@ -27,8 +30,8 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "schedule", "attendance", "assignments", "consultations"],
-  teacher: ["dashboard", "students", "schedule", "attendance", "assignments", "consultations"],
+  admin: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "assignments", "consultations"],
+  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "assignments", "consultations"],
   student: ["dashboard", "schedule", "attendance", "assignments"],
   guardian: ["dashboard", "schedule", "attendance", "consultations"],
 };
@@ -270,7 +273,9 @@ export default function Home() {
         <div className="content">
           {view === "dashboard" && <Dashboard profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onToast={showToast} />}
           {view === "students" && <Students rows={filteredStudents} total={students.length} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} />}
-          {view === "schedule" && <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />}
+          {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
+          {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
+          {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
           {view === "attendance" && <SimplePanel title="출결·보강" description="오늘 수업별 출결을 확인하고 결석 학생의 보강 일정을 관리합니다." items={["중3 국어 · 결석 1명", "고1 영어 B · 지각 1명 / 결석 1명", "이번 주 보강 예정 · 5건"]} />}
           {view === "assignments" && <SimplePanel title="과제·첨삭" description="클래스별 과제를 만들고 학생별 제출과 첨삭 상태를 확인합니다." items={["중2 수학 A · 미제출 4명", "고1 영어 B · 첨삭 대기 5건", "중3 국어 · 오늘 마감 3명"]} />}
           {view === "consultations" && <SimplePanel title="상담 관리" description="내부 상담 메모와 학부모 공유 피드백을 안전하게 분리합니다." items={["상담 권장 학생 · 7명", "이번 주 상담 예정 · 3건", "학부모 공유 대기 · 2건"]} />}
@@ -297,6 +302,7 @@ function Dashboard({ profile, activeStudentCount, studentsLoading, onNavigate, o
       <Stat label="오늘 출석률" value="92" unit="%" detail="출석 37 · 결석 3" icon="✓" tone="green" />
       <Stat label="확인할 항목" value="24" unit="건" detail="과제 12 · 상담 7 · 보강 5" icon="!" tone="amber" />
     </section>
+    <section className="teacher-schedule-shortcuts" aria-label="선생님 시간표 바로가기"><button onClick={() => onNavigate("schedule")}><span>▦</span><b>학원 전과목 시간표</b><small>공동담당·개인 시간표 연동</small></button><button onClick={() => onNavigate("corrections")}><span>✎</span><b>첨삭 시간표</b><small>월–금 90분 고정 슬롯</small></button><button onClick={() => onNavigate("transport")}><span>◇</span><b>차량 운행 시간표</b><small>차량실장님·탑승 위치·학생</small></button></section>
     <div className="dashboard-grid">
       <section className="panel today-panel"><PanelHeader title="오늘 수업" action="전체 시간표" onClick={() => onNavigate("schedule")} /><div className="class-list">{demoClasses.map((item) => <div className="class-row" key={item.time}><time>{item.time}</time><span className={`class-bar ${item.tone}`} /><div className="class-info"><b>{item.name}</b><span>{item.teacher} · {item.room}</span></div><div className="attendance-pill"><span>출석</span><b>{item.present}/{item.total}</b></div><button aria-label={`${item.name} 상세`}>›</button></div>)}</div></section>
       <section className="panel attention-panel"><PanelHeader title="지금 확인해 주세요" /><div className="notice-list">{notices.map((notice) => <button key={notice.label} onClick={() => onNavigate(notice.label === "상담" ? "consultations" : notice.label === "과제" ? "assignments" : "attendance")}><span className={`notice-icon ${notice.tone}`}>{notice.label === "상담" ? "☏" : notice.label === "과제" ? "✎" : "↻"}</span><span><b>{notice.text}</b><small>{notice.label} 관리에서 확인하기</small></span><strong>{notice.count}</strong><i>›</i></button>)}</div></section>
