@@ -17,6 +17,9 @@ button:disabled { cursor:wait; opacity:.7; }
 .auth-card label { color:#51484c; font-size:12px; font-weight:750; }
 .auth-card input { width:100%; height:47px; margin-top:7px; padding:0 14px; border:1px solid #ded6d9; border-radius:11px; outline:none; background:#fff; color:var(--text); }
 .auth-card input:focus { border-color:var(--wine); box-shadow:0 0 0 3px rgba(146,45,97,.1); }
+.auth-card .remember-email { width:max-content; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+.auth-card .remember-email input { width:17px; height:17px; margin:0; accent-color:var(--wine); box-shadow:none; }
+.auth-card .remember-email span { line-height:1; }
 .auth-card form .primary { height:47px; margin-top:3px; }
 .auth-card>small { display:block; margin-top:22px; color:#9a9094; font-size:10px; }
 .auth-error { margin:0; padding:10px 12px; border-radius:9px; background:#fff0f1; color:#a42c3a; font-size:11px; }
@@ -118,7 +121,8 @@ button:disabled { cursor:wait; opacity:.7; }
   .auth-card>img { width:84px; height:84px; margin-bottom:26px; }
   .auth-card h1 { font-size:27px; }
   .auth-card form { width:100%; }
-  .auth-card input { min-height:52px; font-size:16px; }
+  .auth-card input:not([type="checkbox"]) { min-height:52px; font-size:16px; }
+  .auth-card .remember-email input { min-height:0; }
   .auth-card form .primary { min-height:52px; }
 }
 @media (max-width:560px) { .student-modal>header,.student-modal form { padding-left:20px; padding-right:20px; }.form-grid { grid-template-columns:1fr; }.form-grid .full { grid-column:auto; } }
