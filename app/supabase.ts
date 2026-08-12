@@ -25,6 +25,7 @@ export type AcademyClass = {
   id: string;
   name: string;
   subject: string;
+  subject_id?: string | null;
   room: string | null;
   color: string;
   active: boolean;
