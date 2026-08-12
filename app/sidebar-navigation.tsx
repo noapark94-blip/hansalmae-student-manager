@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserRole } from "./supabase";
 import type { View } from "./page";
+import { reorderById, useSortableOrder } from "./use-sortable-order";
 
 type MenuItem = { id: View; label: string; icon: string };
 type MenuFolder = { id: string; name: string; itemIds: View[] };
@@ -39,7 +40,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
 
   return <>
     <nav aria-label="주요 메뉴" className="folder-navigation">
-      {role === "admin" && <button type="button" className="menu-customize-button" onClick={() => setEditing(true)}><span className="nav-icon">☷</span>메뉴 폴더 편집</button>}
+      <button type="button" className="menu-customize-button" onClick={() => setEditing(true)}><span className="nav-icon">☷</span>내 메뉴 편집</button>
       {folders.map((folder) => <section className="nav-folder" key={folder.id}>
         <button type="button" className="nav-folder-title" aria-expanded={!collapsed[folder.id]} onClick={() => setCollapsed((current) => ({ ...current, [folder.id]: !current[folder.id] }))}>
           <span>{folder.name}</span><i>{collapsed[folder.id] ? "＋" : "－"}</i>
@@ -56,6 +57,14 @@ function MenuLayoutEditor({ supabase, items, value, onClose, onSaved }: { supaba
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const itemMap = new Map(items.map((item) => [item.id, item]));
+  const folderSortable=useSortableOrder((activeId,overId)=>setDraft((current)=>({folders:reorderById(current.folders,activeId,overId)})));
+  const itemSortable=useSortableOrder((activeId,overId)=>setDraft((current)=>{
+    const source=current.folders.find((folder)=>folder.itemIds.includes(activeId as View));
+    const target=current.folders.find((folder)=>folder.itemIds.includes(overId as View));
+    if(!source||!target)return current;
+    if(source.id===target.id)return{folders:current.folders.map((folder)=>folder.id===source.id?{...folder,itemIds:reorderById(folder.itemIds.map((id)=>({id})),activeId,overId).map((item)=>item.id as View)}:folder)};
+    return{folders:current.folders.map((folder)=>folder.id===source.id?{...folder,itemIds:folder.itemIds.filter((id)=>id!==activeId)}:folder.id===target.id?{...folder,itemIds:[...folder.itemIds.slice(0,folder.itemIds.indexOf(overId as View)),activeId as View,...folder.itemIds.slice(folder.itemIds.indexOf(overId as View))]}:folder)};
+  }));
 
   const addFolder = () => setDraft((current) => ({ folders: [...current.folders, { id: crypto.randomUUID(), name: "새 폴더", itemIds: [] }] }));
   const renameFolder = (id: string, name: string) => setDraft((current) => ({ folders: current.folders.map((folder) => folder.id === id ? { ...folder, name } : folder) }));
@@ -63,14 +72,14 @@ function MenuLayoutEditor({ supabase, items, value, onClose, onSaved }: { supaba
   const deleteFolder = (id: string) => setDraft((current) => { const target = current.folders.find((folder) => folder.id === id); const rest = current.folders.filter((folder) => folder.id !== id); if (!rest.length) return current; return { folders: rest.map((folder, index) => index === 0 ? { ...folder, itemIds: [...folder.itemIds, ...(target?.itemIds ?? [])] } : folder) }; });
   const assign = (itemId: View, folderId: string) => setDraft((current) => ({ folders: current.folders.map((folder) => ({ ...folder, itemIds: folder.id === folderId ? [...folder.itemIds.filter((id) => id !== itemId), itemId] : folder.itemIds.filter((id) => id !== itemId) })) }));
   const moveItem = (folderId: string, index: number, direction: -1 | 1) => setDraft((current) => ({ folders: current.folders.map((folder) => folder.id === folderId ? { ...folder, itemIds: move(folder.itemIds, index, direction) } : folder) }));
-  const save = async () => { setSaving(true); setError(""); const cleaned = { folders: draft.folders.map((folder) => ({ ...folder, name: folder.name.trim() || "이름 없는 폴더" })) }; const { error: saveError } = await supabase.rpc("admin_save_app_menu_layout", { p_layout: cleaned }); if (saveError) { setError("메뉴 구성을 저장하지 못했습니다. Supabase 최신 적용 여부를 확인해 주세요."); setSaving(false); return; } onSaved(cleaned); };
+  const save = async () => { setSaving(true); setError(""); const cleaned = { folders: draft.folders.map((folder) => ({ ...folder, name: folder.name.trim() || "이름 없는 폴더" })) }; const { error: saveError } = await supabase.rpc("save_app_menu_layout", { p_layout: cleaned }); if (saveError) { setError("내 메뉴 구성을 저장하지 못했습니다. Supabase 최신 적용 여부를 확인해 주세요."); setSaving(false); return; } onSaved(cleaned); };
 
   return <div className="modal-backdrop menu-editor-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="menu-editor" role="dialog" aria-modal="true" aria-labelledby="menu-editor-title">
-    <header><div><p className="eyebrow">관리자 전용</p><h2 id="menu-editor-title">메뉴 폴더 편집</h2><span>폴더를 만들고 메뉴를 배정한 뒤 순서를 조정하세요. 저장하면 모든 계정에 적용됩니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>
-    <div className="menu-editor-toolbar"><button type="button" className="secondary-button" onClick={addFolder}>＋ 새 폴더</button><small>▲▼ 버튼으로 표시 순서를 바꿀 수 있습니다.</small></div>
-    <div className="menu-folder-editor-list">{draft.folders.map((folder, folderIndex) => <article key={folder.id}>
-      <header><input aria-label="폴더 이름" value={folder.name} onChange={(event) => renameFolder(folder.id, event.target.value)} /><span><button type="button" onClick={() => moveFolder(folderIndex, -1)} disabled={folderIndex === 0}>▲</button><button type="button" onClick={() => moveFolder(folderIndex, 1)} disabled={folderIndex === draft.folders.length - 1}>▼</button><button type="button" className="danger" onClick={() => deleteFolder(folder.id)} disabled={draft.folders.length === 1}>삭제</button></span></header>
-      <div>{folder.itemIds.map((itemId, itemIndex) => { const item = itemMap.get(itemId); return item ? <p key={itemId}><span className="nav-icon">{item.icon}</span><b>{item.label}</b><select value={folder.id} onChange={(event) => assign(itemId, event.target.value)}>{draft.folders.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><button type="button" onClick={() => moveItem(folder.id, itemIndex, -1)} disabled={itemIndex === 0}>▲</button><button type="button" onClick={() => moveItem(folder.id, itemIndex, 1)} disabled={itemIndex === folder.itemIds.length - 1}>▼</button></p> : null; })}{folder.itemIds.length === 0 && <em>이 폴더에 배정된 메뉴가 없습니다.</em>}</div>
+    <header><div><p className="eyebrow">개인 메뉴 설정</p><h2 id="menu-editor-title">내 메뉴 폴더 편집</h2><span>폴더와 메뉴 순서는 내 계정에만 적용됩니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>
+    <div className="menu-editor-toolbar"><button type="button" className="secondary-button" onClick={addFolder}>＋ 새 폴더</button><small>끌어서 이동하세요. 모바일에서는 손잡이를 길게 누르세요.</small></div>
+    <div className="menu-folder-editor-list">{draft.folders.map((folder, folderIndex) => <article key={folder.id} {...folderSortable.itemProps(folder.id)} className={folderSortable.draggingId===folder.id?"dragging":""}>
+      <header><button type="button" data-drag-handle aria-label={`${folder.name} 폴더 이동`}>☷</button><input aria-label="폴더 이름" value={folder.name} onChange={(event) => renameFolder(folder.id, event.target.value)} /><span><button type="button" onClick={() => moveFolder(folderIndex, -1)} disabled={folderIndex === 0}>▲</button><button type="button" onClick={() => moveFolder(folderIndex, 1)} disabled={folderIndex === draft.folders.length - 1}>▼</button><button type="button" className="danger" onClick={() => deleteFolder(folder.id)} disabled={draft.folders.length === 1}>삭제</button></span></header>
+      <div>{folder.itemIds.map((itemId, itemIndex) => { const item = itemMap.get(itemId); return item ? <p key={itemId} {...itemSortable.itemProps(itemId)} className={itemSortable.draggingId===itemId?"dragging":""}><button type="button" data-drag-handle aria-label={`${item.label} 이동`}>☷</button><span className="nav-icon">{item.icon}</span><b>{item.label}</b><select value={folder.id} onChange={(event) => assign(itemId, event.target.value)}>{draft.folders.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><button type="button" onClick={() => moveItem(folder.id, itemIndex, -1)} disabled={itemIndex === 0}>▲</button><button type="button" onClick={() => moveItem(folder.id, itemIndex, 1)} disabled={itemIndex === folder.itemIds.length - 1}>▼</button></p> : null; })}{folder.itemIds.length === 0 && <em>이 폴더에 배정된 메뉴가 없습니다.</em>}</div>
     </article>)}</div>
     {error && <p className="form-error" role="alert">{error}</p>}
     <footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button type="button" className="primary" onClick={() => void save()} disabled={saving}>{saving ? "저장 중…" : "메뉴 구성 저장"}</button></footer>
