@@ -3,6 +3,7 @@
 :root { --wine:#922d61; --wine-dark:#732449; --wine-deep:#400d23; --cream:#faf8f5; --line:#ece7e4; --text:#2d2629; --muted:#7a7075; --white:#fff; }
 * { box-sizing:border-box; }
 html, body { margin:0; min-height:100%; background:var(--cream); color:var(--text); }
+html { min-height:100dvh; }
 body { font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif; }
 button,input { font:inherit; }
 button { cursor:pointer; }
@@ -111,7 +112,15 @@ button:disabled { cursor:wait; opacity:.7; }
   .settings-guide { flex-direction:column; }.account-toolbar { align-items:stretch; flex-direction:column; }.account-toolbar .search-wrap { width:100%; }.account-toolbar select { height:36px; }.account-head { display:none; }.account-table>article { grid-template-columns:1fr auto; padding:13px 16px; }.account-person { grid-column:1/-1; }.account-link { grid-column:1/-1; }.account-history>div { grid-template-columns:1fr; }
 }
 @media (max-width:430px) { .stats-grid { grid-template-columns:1fr; }.page-heading p:not(.eyebrow) { max-width:250px; }.page-heading>.primary { font-size:0; }.page-heading>.primary::first-letter { font-size:16px; }.attendance-pill { display:none; } }
-@media (max-width:480px) { .auth-card { padding:30px 22px; border-radius:18px; }.auth-card h1 { font-size:25px; } }
+@media (max-width:480px) {
+  .auth-shell { min-height:100dvh; padding:0; place-items:stretch; background:#fff; }
+  .auth-card { width:100%; min-height:100dvh; padding:max(34px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom)); border:0; border-radius:0; box-shadow:none; display:flex; flex-direction:column; justify-content:center; }
+  .auth-card>img { width:84px; height:84px; margin-bottom:26px; }
+  .auth-card h1 { font-size:27px; }
+  .auth-card form { width:100%; }
+  .auth-card input { min-height:52px; font-size:16px; }
+  .auth-card form .primary { min-height:52px; }
+}
 @media (max-width:560px) { .student-modal>header,.student-modal form { padding-left:20px; padding-right:20px; }.form-grid { grid-template-columns:1fr; }.form-grid .full { grid-column:auto; } }
 @media (max-width:700px) { .academy-class-grid { grid-template-columns:1fr; } }
 
