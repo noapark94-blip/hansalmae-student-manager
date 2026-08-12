@@ -90,6 +90,8 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [view, setView] = useState<View>("dashboard");
   const [query, setQuery] = useState("");
+  const [searchOpen,setSearchOpen]=useState(false);
+  const [adminHomeMode,setAdminHomeMode]=useState<"operations"|"classes">("operations");
   const [mobileNav, setMobileNav] = useState(false);
   const [toast, setToast] = useState("");
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -191,6 +193,15 @@ export default function Home() {
     });
   }, [query, studentStatusFilter, students]);
 
+  const globalSearch=useMemo(()=>{
+    const text=query.trim().toLowerCase();
+    if(!text)return{students:[] as StudentRow[],classes:[] as AcademyClass[]};
+    return{
+      students:students.filter((student)=>[student.name,student.school??"",student.grade??"",...getStudentSubjects(student)].some((value)=>value.toLowerCase().includes(text))).slice(0,6),
+      classes:academyClasses.filter((item)=>[item.name,item.subject,item.room??""].some((value)=>value.toLowerCase().includes(text))).slice(0,6),
+    };
+  },[academyClasses,query,students]);
+
   const selectView = (next: View) => {
     if (profile && !roleViews[profile.role].includes(next)) {
       showToast("이 역할에서는 접근할 수 없는 메뉴예요.");
@@ -199,6 +210,7 @@ export default function Home() {
     setView(next);
     setMobileNav(false);
     setQuery("");
+    setSearchOpen(false);
   };
 
   if (!authReady) return <LoadingScreen />;
@@ -300,13 +312,15 @@ export default function Home() {
       <section className="workspace">
         <header className="topbar">
           <button className="menu-button" aria-label="메뉴 열기" onClick={() => setMobileNav(true)}>☰</button>
-          <div className="search-wrap"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="학생, 클래스 검색" /></div>
+          <div className="global-search"><div className="search-wrap"><span>⌕</span><input value={query} onFocus={()=>setSearchOpen(true)} onChange={(event) => {setQuery(event.target.value);setSearchOpen(true);}} onKeyDown={(event)=>{if(event.key==="Escape")setSearchOpen(false);if(event.key==="Enter"){const firstStudent=globalSearch.students[0];const firstClass=globalSearch.classes[0];if(firstStudent){void openStudentDetails(firstStudent);setSearchOpen(false);}else if(firstClass){selectView("schedule");showToast(`${firstClass.name} 클래스를 시간표에서 확인해 주세요.`);}}}} placeholder="학생, 클래스 검색" /></div>{searchOpen&&query.trim()&&<div className="global-search-results">{globalSearch.students.map((student)=><button key={student.id} onClick={()=>{void openStudentDetails(student);setSearchOpen(false);}}><i>人</i><span><b>{student.name}</b><small>{[student.school,student.grade].filter(Boolean).join(" · ")||"학생"}</small></span><em>학생 보기</em></button>)}{globalSearch.classes.map((item)=><button key={item.id} onClick={()=>{selectView("schedule");showToast(`${item.name} 클래스를 시간표에서 확인해 주세요.`);}}><i style={{color:item.color}}>▦</i><span><b>{item.name}</b><small>{item.subject}{item.room?` · ${item.room}`:""}</small></span><em>시간표 보기</em></button>)}{!globalSearch.students.length&&!globalSearch.classes.length&&<p>검색 결과가 없습니다.</p>}</div>}</div>
           <NotificationCenter supabase={supabase} />
           {(profile.role === "admin" || profile.role === "teacher") && <button className="primary small" onClick={() => setRegistrationOpen(true)}>＋ 학생 등록</button>}
         </header>
 
         <div className="content">
-          {view === "dashboard" && (profile.role==="teacher"?<TeacherClassWorkspace supabase={supabase} profile={profile}/>:<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />)}
+          {view === "dashboard" && profile.role==="admin"&&<><div className="admin-home-switch"><button className={adminHomeMode==="operations"?"active":""} onClick={()=>setAdminHomeMode("operations")}>학원 운영</button><button className={adminHomeMode==="classes"?"active":""} onClick={()=>setAdminHomeMode("classes")}>내 수업</button></div>{adminHomeMode==="operations"?<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>:<TeacherClassWorkspace supabase={supabase} profile={profile}/>}</>}
+          {view === "dashboard" && profile.role==="teacher"&&<TeacherClassWorkspace supabase={supabase} profile={profile}/>}
+          {view === "dashboard" && (profile.role==="student"||profile.role==="guardian")&&<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>}
           {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} /></>}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
