@@ -28,7 +28,7 @@ import { SidebarNavigation } from "./sidebar-navigation";
 import { BulkRegistrationGuide } from "./bulk-registration-guide";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string; classIds:string[] };
 type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type ClassFormValues = { name: string; subject: string; subjectId:string; room: string; color: string };
@@ -46,6 +46,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "bulk-import", label: "학생 일괄 등록", icon: "＋" },
   { id: "bulk-accounts", label: "계정 일괄 생성", icon: "♙" },
   { id: "guide", label: "일괄 등록 설명서", icon: "?" },
+  { id: "class-management", label: "클래스 관리", icon: "▤" },
   { id: "schedule", label: "전과목 시간표", icon: "▦" },
   { id: "corrections", label: "첨삭 시간표", icon: "✎" },
   { id: "transport", label: "차량 운행표", icon: "◇" },
@@ -71,8 +72,8 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
 };
@@ -324,6 +325,7 @@ export default function Home() {
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
+          {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly />}
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}

@@ -19,8 +19,8 @@ type LessonHistoryItem={id:string;lessonDate:string;startsAt:string;examContent:
 type StudentExamResult={studentId:string;studentName:string;school:string|null;grade:string|null;score:string;maxScore:string;evaluation:string;feedback:string};
 const weekdays=["월","화","수","목","금","토","일"];
 
-export function TeacherClassWorkspace({supabase,profile}:{supabase:SupabaseClient;profile:Profile}){
-  const[data,setData]=useState<Workspace|null>(null);const[selectedId,setSelectedId]=useState("");const[date,setDate]=useState(today());const[day,setDay]=useState<DayData|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[subjectOpen,setSubjectOpen]=useState(false);const[classOpen,setClassOpen]=useState(false);const[manageOpen,setManageOpen]=useState(false);
+export function TeacherClassWorkspace({supabase,profile,manageOnly=false}:{supabase:SupabaseClient;profile:Profile;manageOnly?:boolean}){
+  const[data,setData]=useState<Workspace|null>(null);const[selectedId,setSelectedId]=useState("");const[date,setDate]=useState(today());const[day,setDay]=useState<DayData|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[subjectOpen,setSubjectOpen]=useState(false);const[classOpen,setClassOpen]=useState(false);const[manageOpen,setManageOpen]=useState(manageOnly);
   const load=useCallback(async()=>{setLoading(true);setError("");const{data:next,error:loadError}=await supabase.rpc("teacher_class_workspace");if(loadError||!next){setError("담당 클래스 정보를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");setLoading(false);return;}const workspace=next as Workspace;setData(workspace);setSelectedId((current)=>workspace.classes.some((item)=>item.id===current)?current:workspace.classes[0]?.id??"");setLoading(false);},[supabase]);
   useEffect(()=>{void load();},[load]);
   const selected=data?.classes.find((item)=>item.id===selectedId);

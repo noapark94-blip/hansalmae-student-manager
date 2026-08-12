@@ -14,7 +14,7 @@ const defaultLayout: MenuLayout = {
     { id: "main", name: "바로가기", itemIds: ["dashboard"] },
     { id: "students", name: "학생 관리", itemIds: ["students", "bulk-import", "bulk-accounts", "guide"] },
     { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
-    { id: "classes", name: "수업 관리", itemIds: ["attendance", "makeups", "assignments", "consultations"] },
+    { id: "classes", name: "수업 관리", itemIds: ["class-management", "attendance", "makeups", "assignments", "consultations"] },
     { id: "operations", name: "학원 운영", itemIds: ["communications", "tuition", "tuition-settings", "analytics", "backup", "audit"] },
     { id: "accounts", name: "계정 설정", itemIds: ["settings", "my-account"] },
   ],
