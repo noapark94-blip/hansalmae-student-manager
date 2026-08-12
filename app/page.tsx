@@ -23,8 +23,10 @@ import { OperationsAnalytics } from "./operations-analytics";
 import { BackupBoard } from "./backup-board";
 import { BulkImportBoard } from "./bulk-import-board";
 import { BulkAccountBoard } from "./bulk-account-board";
+import { SidebarNavigation } from "./sidebar-navigation";
+import { BulkRegistrationGuide } from "./bulk-registration-guide";
 
-type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string };
 type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type ClassFormValues = { name: string; subject: string; room: string; color: string };
@@ -40,12 +42,22 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "students", label: "학생", icon: "人" },
   { id: "bulk-import", label: "학생 일괄 등록", icon: "＋" },
   { id: "bulk-accounts", label: "계정 일괄 생성", icon: "♙" },
-  { id: "schedule", label: "시간표 허브", icon: "▦" },
+  { id: "guide", label: "일괄 등록 설명서", icon: "?" },
+  { id: "schedule", label: "전과목 시간표", icon: "▦" },
+  { id: "corrections", label: "첨삭 시간표", icon: "✎" },
+  { id: "transport", label: "차량 운행표", icon: "◇" },
   { id: "attendance", label: "출결 입력", icon: "✓" },
   { id: "makeups", label: "보강 일정", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
-  { id: "communications", label: "운영 관리", icon: "▥" },
+  { id: "communications", label: "공지·문자", icon: "▣" },
+  { id: "tuition", label: "수납·미납", icon: "₩" },
+  { id: "tuition-settings", label: "수강료 설정", icon: "₩" },
+  { id: "analytics", label: "운영 통계", icon: "▥" },
+  { id: "backup", label: "데이터 백업", icon: "⇩" },
+  { id: "audit", label: "운영 점검", icon: "◉" },
+  { id: "settings", label: "계정·역할", icon: "⚙" },
+  { id: "my-account", label: "내 계정", icon: "♙" },
 ];
 
 const roleLabels: Record<UserRole, string> = {
@@ -56,8 +68,8 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "guide", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
 };
@@ -87,7 +99,6 @@ export default function Home() {
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
-  const [operationsTab, setOperationsTab] = useState<"communications" | "tuition" | "tuition-settings" | "analytics" | "backup">("communications");
 
   useEffect(() => {
     if (!supabase) {
@@ -164,7 +175,7 @@ export default function Home() {
     return () => { active = false; };
   }, [profile, supabase]);
 
-  const allowedNav = profile ? nav.filter((item) => roleViews[profile.role].includes(item.id)) : [];
+  const allowedNav = useMemo(() => profile ? nav.filter((item) => roleViews[profile.role].includes(item.id)) : [], [profile]);
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -180,12 +191,7 @@ export default function Home() {
       showToast("이 역할에서는 접근할 수 없는 메뉴예요.");
       return;
     }
-    if (["communications", "tuition", "tuition-settings", "analytics", "backup"].includes(next)) {
-      setOperationsTab(next as typeof operationsTab);
-      setView("communications");
-    } else {
-      setView(next);
-    }
+    setView(next);
     setMobileNav(false);
     setQuery("");
   };
@@ -272,17 +278,8 @@ export default function Home() {
           <img className="brand-mark" src="/hansalmae-logo.png" alt="한살매 로고" />
           <div><strong>한살매</strong><span>학생관리</span></div>
         </button>
-        <nav aria-label="주요 메뉴">
-          {allowedNav.map((item) => (
-            <button key={item.id} className={(view === item.id || (item.id === "schedule" && ["corrections", "transport"].includes(view))) ? "active" : ""} onClick={() => selectView(item.id)}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
-            </button>
-          ))}
-        </nav>
+        <SidebarNavigation supabase={supabase} role={profile.role} items={allowedNav} activeView={view} onSelect={selectView} />
         <div className="sidebar-bottom">
-          {profile.role === "admin" && <button className={view === "audit" ? "active" : ""} onClick={() => selectView("audit")}><span className="nav-icon">◉</span>운영 점검</button>}
-          {profile.role === "admin" && <button className={view === "settings" ? "active" : ""} onClick={() => selectView("settings")}><span className="nav-icon">⚙</span>계정·역할</button>}
-          <button className={view === "my-account" ? "active" : ""} onClick={() => selectView("my-account")}><span className="nav-icon">♙</span>내 계정</button>
           <div className="teacher-card"><div className="avatar">{profile.display_name.slice(0, 1)}</div><div><b>{profile.display_name}</b><span>{roleLabels[profile.role]}</span></div><button className="signout-button" onClick={() => void supabase.auth.signOut()}>로그아웃</button></div>
         </div>
       </aside>
@@ -302,6 +299,7 @@ export default function Home() {
           {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} /></>}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
+          {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
@@ -309,7 +307,11 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
-          {view === "communications" && <OperationsHub role={profile.role} active={operationsTab} onSelect={setOperationsTab}>{operationsTab === "communications" ? <CommunicationBoard supabase={supabase} /> : operationsTab === "tuition" ? <TuitionBoard supabase={supabase} /> : operationsTab === "tuition-settings" ? <TuitionRulesBoard supabase={supabase} /> : operationsTab === "analytics" ? <OperationsAnalytics supabase={supabase} /> : <BackupBoard supabase={supabase} />}</OperationsHub>}
+          {view === "communications" && <CommunicationBoard supabase={supabase} />}
+          {view === "tuition" && <TuitionBoard supabase={supabase} />}
+          {view === "tuition-settings" && <TuitionRulesBoard supabase={supabase} />}
+          {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
+          {view === "backup" && <BackupBoard supabase={supabase} />}
           {view === "settings" && <SettingsBoard supabase={supabase} />}
           {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
@@ -371,17 +373,6 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
 
 function Students({ rows, total, filteredTotal, statusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; filteredTotal:number; statusFilter:StudentStatusFilter; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
   return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생을 선택하면 상세 정보와 수강 클래스를 관리할 수 있습니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>{statusFilter==="all"?`전체 ${total}명`:`검색 결과 ${filteredTotal}명`}</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query||statusFilter!=="all" ? "선택한 조건의 학생이 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); const normalizedStatus=normalizeStudentStatus(student.status); return <button className="table-row" key={student.id} onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${normalizedStatus==="active"?"active":normalizedStatus==="paused"?"warning":"completed"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
-}
-
-function OperationsHub({ role, active, onSelect, children }: { role: UserRole; active: "communications" | "tuition" | "tuition-settings" | "analytics" | "backup"; onSelect: (tab: "communications" | "tuition" | "tuition-settings" | "analytics" | "backup") => void; children: ReactNode }) {
-  const tabs = ([
-    ["communications", "공지·문자"],
-    ["tuition", "수납·미납"],
-    ["tuition-settings", "수강료 설정"],
-    ["analytics", "운영 통계"],
-    ["backup", "데이터 백업"],
-  ] as const).filter(([id]) => roleViews[role].includes(id));
-  return <section className="operations-hub"><nav className="hub-tabs" aria-label="운영 관리 메뉴">{tabs.map(([id, label]) => <button key={id} className={active === id ? "active" : ""} onClick={() => onSelect(id)}>{label}</button>)}</nav>{children}</section>;
 }
 
 function StudentRegistrationModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
