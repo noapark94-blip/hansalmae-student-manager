@@ -11,6 +11,7 @@ import { AssignmentBoard } from "./assignment-board";
 import { ConsultationBoard } from "./consultation-board";
 import { CommunicationBoard } from "./communication-board";
 import { SettingsBoard } from "./settings-board";
+import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
@@ -337,7 +338,7 @@ export default function Home() {
           {view === "tuition-settings" && <TuitionRulesBoard supabase={supabase} />}
           {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
           {view === "backup" && <BackupBoard supabase={supabase} />}
-          {view === "settings" && <SettingsBoard supabase={supabase} />}
+          {view === "settings" && <><SettingsBoard supabase={supabase} /><AccountDeletionPanel supabase={supabase} /></>}
           {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
         </div>
