@@ -100,9 +100,11 @@ export default function Home() {
     }
 
     const loadProfile = async (nextUser: User | null) => {
+      setAuthReady(false);
       setUser(nextUser);
       if (!nextUser) {
         setProfile(null);
+        setAuthError("");
         setAuthReady(true);
         return;
       }
