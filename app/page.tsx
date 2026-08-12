@@ -25,11 +25,13 @@ import { BulkImportBoard } from "./bulk-import-board";
 import { BulkAccountBoard } from "./bulk-account-board";
 import { SidebarNavigation } from "./sidebar-navigation";
 import { BulkRegistrationGuide } from "./bulk-registration-guide";
+import { TeacherClassWorkspace } from "./teacher-class-workspace";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
-type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string };
+type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string; classIds:string[] };
 type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
-type ClassFormValues = { name: string; subject: string; room: string; color: string };
+type ClassFormValues = { name: string; subject: string; subjectId:string; room: string; color: string };
+type SubjectOption={id:string;name:string;main_subject:string;parent_id:string|null};
 type LiveTodayClass = { id: string; time: string; name: string; room: string | null; color: string; teachers: string; enrolled: number; present: number };
 type LiveAttendance = { present: number; late: number; absent: number; checked: number };
 type LiveDashboard = { todayClasses: LiveTodayClass[]; attendance: LiveAttendance & { makeup: number }; weekAttendance: (LiveAttendance & { weekday: number })[] };
@@ -95,6 +97,7 @@ export default function Home() {
   const [studentsError, setStudentsError] = useState("");
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [academyClasses, setAcademyClasses] = useState<AcademyClass[]>([]);
+  const [academySubjects,setAcademySubjects]=useState<SubjectOption[]>([]);
   const [classRegistrationOpen, setClassRegistrationOpen] = useState(false);
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
@@ -155,18 +158,20 @@ export default function Home() {
     const loadStudents = async () => {
       setStudentsLoading(true);
       setStudentsError("");
-      const [{ data, error }, { data: classData, error: classError }] = await Promise.all([
+      const [{ data, error }, { data: classData, error: classError },{data:subjectData,error:subjectError}] = await Promise.all([
         supabase.rpc("staff_student_roster"),
-        supabase.from("classes").select("id, name, subject, room, color, active").eq("active", true).order("name"),
+        supabase.from("classes").select("id, name, subject, subject_id, room, color, active").eq("active", true).order("name"),
+        supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active",true).order("main_subject").order("name"),
       ]);
 
       if (!active) return;
-      if (error || classError) {
+      if (error || classError || subjectError) {
         setStudentsError("학생 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
         setStudents([]);
       } else {
         setStudents(((data ?? []) as StudentRow[]).sort((a, b) => a.name.localeCompare(b.name, "ko")));
         setAcademyClasses((classData ?? []) as AcademyClass[]);
+        setAcademySubjects((subjectData??[]) as SubjectOption[]);
       }
       setStudentsLoading(false);
     };
@@ -224,6 +229,11 @@ export default function Home() {
 
     if (error || !data) throw error ?? new Error("student registration returned no data");
     const created = { ...(data as unknown as Omit<StudentRow, "enrollments">), enrollments: [] } as StudentRow;
+    if(values.classIds.length){
+      const{error:enrollmentError}=await supabase.from("enrollments").insert(values.classIds.map((classId)=>({student_id:created.id,class_id:classId,status:"active"})));
+      if(enrollmentError)throw enrollmentError;
+      created.enrollments=values.classIds.map((classId)=>{const selected=academyClasses.find((item)=>item.id===classId);return{class_id:classId,status:"active",classes:selected?{name:selected.name,subject:selected.subject}:null};});
+    }
     setStudents((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name, "ko")));
     setStudentsError("");
     setRegistrationOpen(false);
@@ -232,21 +242,22 @@ export default function Home() {
   };
 
   const registerClass = async (values: ClassFormValues) => {
-    const { data, error } = await supabase.from("classes").insert({ name: values.name.trim(), subject: values.subject.trim(), room: values.room.trim() || null, color: values.color }).select("id, name, subject, room, color, active").single();
+    const { data, error } = await supabase.from("classes").insert({ name: values.name.trim(), subject: values.subject.trim(),subject_id:values.subjectId||null, room: values.room.trim() || null, color: values.color }).select("id, name, subject, subject_id, room, color, active").single();
     if (error) throw error;
     setAcademyClasses((current) => [...current, data as AcademyClass].sort((a, b) => a.name.localeCompare(b.name, "ko")));
     setClassRegistrationOpen(false);
     showToast(`${data.name} 클래스를 등록했습니다.`);
   };
 
-  const assignClass = async (student: StudentRow, classId: string) => {
-    const selectedClass = academyClasses.find((item) => item.id === classId);
-    if (!selectedClass) throw new Error("class not found");
-    const { error } = await supabase.from("enrollments").insert({ student_id: student.id, class_id: classId, status: "active" });
-    if (error) throw error;
-    setStudents((current) => current.map((item) => item.id === student.id ? { ...item, enrollments: [...item.enrollments, { class_id: classId, status: "active", classes: { name: selectedClass.name, subject: selectedClass.subject } }] } : item));
+  const saveClassAssignments = async (student: StudentRow, classIds: string[]) => {
+    const activeIds=new Set(student.enrollments.filter((item)=>item.status==="active").map((item)=>item.class_id));
+    const added=classIds.filter((id)=>!activeIds.has(id));const removed=[...activeIds].filter((id)=>!classIds.includes(id));
+    if(added.length){const{error}=await supabase.from("enrollments").insert(added.map((classId)=>({student_id:student.id,class_id:classId,status:"active"})));if(error)throw error;}
+    if(removed.length){const{error}=await supabase.from("enrollments").update({status:"completed",ended_on:new Date().toISOString().slice(0,10)}).eq("student_id",student.id).in("class_id",removed).eq("status","active");if(error)throw error;}
+    const nextEnrollments=classIds.map((classId)=>{const selected=academyClasses.find((item)=>item.id===classId);return{class_id:classId,status:"active" as const,classes:selected?{name:selected.name,subject:selected.subject}:null};});
+    setStudents((current) => current.map((item) => item.id === student.id ? { ...item, enrollments:nextEnrollments } : item));
     setEnrollmentStudent(null);
-    showToast(`${student.name} 학생에게 ${selectedClass.name} 클래스를 배정했습니다.`);
+    showToast(`${student.name} 학생의 수강 클래스 ${classIds.length}개를 저장했습니다.`);
   };
 
   const openStudentDetails = async (student: StudentRow) => {
@@ -295,7 +306,7 @@ export default function Home() {
         </header>
 
         <div className="content">
-          {view === "dashboard" && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
+          {view === "dashboard" && (profile.role==="teacher"?<TeacherClassWorkspace supabase={supabase} profile={profile}/>:<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />)}
           {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => setRegistrationOpen(true)} onOpen={openStudentDetails} /></>}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
@@ -317,9 +328,9 @@ export default function Home() {
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
         </div>
       </section>
-      {registrationOpen && <StudentRegistrationModal onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
-      {classRegistrationOpen && <ClassRegistrationModal onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
-      {enrollmentStudent && <EnrollmentModal student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classId) => assignClass(enrollmentStudent, classId)} />}
+      {registrationOpen && <StudentRegistrationModal classes={academyClasses} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
+      {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
+      {enrollmentStudent && <EnrollmentModal student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
       {studentDetails && <StudentDetailHub supabase={supabase} student={studentDetails} rosterStudent={students.find((item) => item.id === studentDetails.id)} onClose={() => setStudentDetails(null)} onUpdate={updateStudent} onDelete={deleteStudent} onAssign={(student) => { setStudentDetails(null); setEnrollmentStudent(student as StudentRow); }} onLifecycleUpdated={(status) => { setStudentDetails((current) => current ? { ...current, status } : current); setStudents((current) => current.map((item) => item.id === studentDetails.id ? { ...item, status, enrollments:status === "active" ? item.enrollments : item.enrollments.map((enrollment) => enrollment.status === "active" ? { ...enrollment, status:status === "paused" ? "paused" : "completed" } : enrollment) } : item)); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </main>
@@ -375,11 +386,11 @@ function Students({ rows, total, filteredTotal, statusFilter, loading, error, qu
   return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생을 선택하면 상세 정보와 수강 클래스를 관리할 수 있습니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>{statusFilter==="all"?`전체 ${total}명`:`검색 결과 ${filteredTotal}명`}</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query||statusFilter!=="all" ? "선택한 조건의 학생이 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); const normalizedStatus=normalizeStudentStatus(student.status); return <button className="table-row" key={student.id} onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${normalizedStatus==="active"?"active":normalizedStatus==="paused"?"warning":"completed"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
 }
 
-function StudentRegistrationModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
-  const [values, setValues] = useState<StudentFormValues>({ name: "", school: "", grade: "", phone: "", guardianName: "", guardianPhone: "", status: "active", internalNote: "" });
+function StudentRegistrationModal({ classes,onClose, onSubmit }: { classes:AcademyClass[];onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
+  const [values, setValues] = useState<StudentFormValues>({ name: "", school: "", grade: "", phone: "", guardianName: "", guardianPhone: "", status: "active", internalNote: "",classIds:[] });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const update = (field: keyof StudentFormValues, value: string) => setValues((current) => ({ ...current, [field]: value }));
+  const update = (field: Exclude<keyof StudentFormValues, "classIds">, value: string) => setValues((current) => ({ ...current, [field]: value }));
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
@@ -391,28 +402,29 @@ function StudentRegistrationModal({ onClose, onSubmit }: { onClose: () => void; 
       setSubmitting(false);
     }
   };
-  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-registration-title"><header><div><p className="eyebrow">SUPABASE 학생 관리</p><h2 id="student-registration-title">학생 등록</h2><span>학생과 학부모 기본 정보를 등록하고 수강 과목은 이후 연결합니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>학생 이름 <b>*</b><input autoFocus required value={values.name} onChange={(event) => update("name", event.target.value)} placeholder="예: 김민준" /></label><label>학교<input value={values.school} onChange={(event) => update("school", event.target.value)} placeholder="예: 배곧중학교" /></label><label>학년<input value={values.grade} onChange={(event) => update("grade", event.target.value)} placeholder="예: 중2" /></label><label>학생 연락처<input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} placeholder="010-0000-0000" /></label><label>학부모 성함<input value={values.guardianName} onChange={(event) => update("guardianName", event.target.value)} placeholder="예: 김보호" /></label><label>학부모 연락처<input type="tel" value={values.guardianPhone} onChange={(event) => update("guardianPhone", event.target.value)} placeholder="010-0000-0000" /></label><label>재원 상태<select value={values.status} onChange={(event) => update("status", event.target.value)}><option value="active">재원</option><option value="paused">휴원</option><option value="completed">퇴원</option></select></label><label className="full">내부 메모<textarea value={values.internalNote} onChange={(event) => update("internalNote", event.target.value)} placeholder="관리자와 교사만 확인할 메모" rows={3} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={submitting}>{submitting ? "저장 중…" : "학생 등록"}</button></footer></form></section></div>;
+  const toggleClass=(id:string)=>setValues((current)=>({...current,classIds:current.classIds.includes(id)?current.classIds.filter((item)=>item!==id):[...current.classIds,id]}));
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-registration-title"><header><div><p className="eyebrow">SUPABASE 학생 관리</p><h2 id="student-registration-title">학생 등록</h2><span>학생은 한 번만 등록하고 여러 과목과 클래스를 동시에 선택할 수 있습니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>학생 이름 <b>*</b><input autoFocus required value={values.name} onChange={(event) => update("name", event.target.value)} placeholder="예: 김민준" /></label><label>학교<input value={values.school} onChange={(event) => update("school", event.target.value)} placeholder="예: 배곧중학교" /></label><label>학년<input value={values.grade} onChange={(event) => update("grade", event.target.value)} placeholder="예: 중2" /></label><label>학생 연락처<input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} placeholder="010-0000-0000" /></label><label>학부모 성함<input value={values.guardianName} onChange={(event) => update("guardianName", event.target.value)} placeholder="예: 김보호" /></label><label>학부모 연락처<input type="tel" value={values.guardianPhone} onChange={(event) => update("guardianPhone", event.target.value)} placeholder="010-0000-0000" /></label><label>재원 상태<select value={values.status} onChange={(event) => update("status", event.target.value)}><option value="active">재원</option><option value="paused">휴원</option><option value="completed">퇴원</option></select></label><fieldset className="registration-class-picker full"><legend>수강 과목·클래스 <small>여러 개 선택 가능</small></legend><div>{classes.map((item)=><label className={values.classIds.includes(item.id)?"selected":""} key={item.id}><input type="checkbox" checked={values.classIds.includes(item.id)} onChange={()=>toggleClass(item.id)}/><i style={{background:item.color}}/><span><b>{item.subject}</b><em>{item.name}</em></span></label>)}{!classes.length&&<p>등록된 클래스가 없습니다. 시간표에서 클래스를 먼저 만들어 주세요.</p>}</div></fieldset><label className="full">내부 메모<textarea value={values.internalNote} onChange={(event) => update("internalNote", event.target.value)} placeholder="관리자와 교사만 확인할 메모" rows={3} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={submitting}>{submitting ? "저장 중…" : "학생 등록"}</button></footer></form></section></div>;
 }
 
-function ClassRegistrationModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (values: ClassFormValues) => Promise<void> }) {
-  const [values, setValues] = useState<ClassFormValues>({ name: "", subject: "", room: "", color: "#922D61" });
+function ClassRegistrationModal({ subjects,onClose, onSubmit }: { subjects:SubjectOption[];onClose: () => void; onSubmit: (values: ClassFormValues) => Promise<void> }) {
+  const [values, setValues] = useState<ClassFormValues>(()=>{const first=subjects[0];return{ name: "", subject:first?.name??"",subjectId:first?.id??"", room: "", color: "#922D61" }});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setSubmitting(true); setError("");
     try { await onSubmit(values); } catch { setError("클래스를 등록하지 못했습니다. 다시 시도해 주세요."); setSubmitting(false); }
   };
-  return <ModalShell eyebrow="SUPABASE 수업 관리" title="클래스 등록" description="클래스와 과목을 등록한 뒤 학생에게 배정합니다." onClose={onClose}><form onSubmit={submit}><div className="form-grid"><label>클래스 이름 <b>*</b><input autoFocus required value={values.name} onChange={(event) => setValues({ ...values, name: event.target.value })} placeholder="예: 고3 영어 A" /></label><label>과목 <b>*</b><input required value={values.subject} onChange={(event) => setValues({ ...values, subject: event.target.value })} placeholder="예: 영어" /></label><label>강의실<input value={values.room} onChange={(event) => setValues({ ...values, room: event.target.value })} placeholder="예: A 강의실" /></label><label>표시 색상<input type="color" value={values.color} onChange={(event) => setValues({ ...values, color: event.target.value })} /></label></div>{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="클래스 등록" /></form></ModalShell>;
+  return <ModalShell eyebrow="SUPABASE 수업 관리" title="클래스 등록" description="기본 과목 또는 담당 선생님이 만든 하위과목을 선택합니다." onClose={onClose}><form onSubmit={submit}><div className="form-grid"><label>클래스 이름 <b>*</b><input autoFocus required value={values.name} onChange={(event) => setValues({ ...values, name: event.target.value })} placeholder="예: 고3 미적분 A" /></label><label>과목 <b>*</b><select required value={values.subjectId} onChange={(event)=>{const selected=subjects.find((item)=>item.id===event.target.value);setValues({...values,subjectId:event.target.value,subject:selected?.name??""});}}>{(["국어","영어","수학"] as const).map((main)=><optgroup label={main} key={main}>{subjects.filter((item)=>item.main_subject===main).map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label><label>강의실<input value={values.room} onChange={(event) => setValues({ ...values, room: event.target.value })} placeholder="예: A 강의실" /></label><label>표시 색상<input type="color" value={values.color} onChange={(event) => setValues({ ...values, color: event.target.value })} /></label></div>{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="클래스 등록" disabled={!values.subjectId}/></form></ModalShell>;
 }
 
-function EnrollmentModal({ student, classes, onClose, onSubmit }: { student: StudentRow; classes: AcademyClass[]; onClose: () => void; onSubmit: (classId: string) => Promise<void> }) {
+function EnrollmentModal({ student, classes, onClose, onSubmit }: { student: StudentRow; classes: AcademyClass[]; onClose: () => void; onSubmit: (classIds: string[]) => Promise<void> }) {
   const assigned = new Set(student.enrollments.filter((item) => item.status === "active").map((item) => item.class_id));
-  const available = classes.filter((item) => !assigned.has(item.id));
-  const [classId, setClassId] = useState(available[0]?.id ?? "");
+  const [classIds, setClassIds] = useState([...assigned]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); setSubmitting(true); setError(""); try { await onSubmit(classId); } catch { setError("수강 과목을 배정하지 못했습니다. 이미 배정된 클래스인지 확인해 주세요."); setSubmitting(false); } };
-  return <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 클래스 배정`} description="등록된 클래스 중 수강할 클래스를 선택합니다." onClose={onClose}><form onSubmit={submit}>{available.length ? <div className="class-choice-list">{available.map((item) => <label key={item.id} className={classId === item.id ? "selected" : ""}><input type="radio" name="class" value={item.id} checked={classId === item.id} onChange={() => setClassId(item.id)} /><i style={{ background:item.color }} /><span><b>{item.name}</b><small>{item.subject}{item.room ? ` · ${item.room}` : ""}</small></span></label>)}</div> : <p className="modal-empty">배정 가능한 클래스가 없습니다. 시간표에서 클래스를 먼저 등록해 주세요.</p>}{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="수강 배정" disabled={!classId} /></form></ModalShell>;
+  const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); setSubmitting(true); setError(""); try { await onSubmit(classIds); } catch { setError("수강 과목을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."); setSubmitting(false); } };
+  const toggle=(id:string)=>setClassIds((current)=>current.includes(id)?current.filter((item)=>item!==id):[...current,id]);
+  return <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description="국어·영어·수학과 세부 클래스를 여러 개 선택할 수 있습니다." onClose={onClose}><form onSubmit={submit}>{classes.length ? <div className="class-choice-list">{classes.map((item) => <label key={item.id} className={classIds.includes(item.id) ? "selected" : ""}><input type="checkbox" checked={classIds.includes(item.id)} onChange={() => toggle(item.id)} /><i style={{ background:item.color }} /><span><b>{item.name}</b><small>{item.subject}{item.room ? ` · ${item.room}` : ""}</small></span></label>)}</div> : <p className="modal-empty">등록된 클래스가 없습니다. 시간표에서 클래스를 먼저 등록해 주세요.</p>}{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="수강 정보 저장" /></form></ModalShell>;
 }
 
 function ModalShell({ eyebrow, title, description, onClose, children }: { eyebrow: string; title: string; description: string; onClose: () => void; children: ReactNode }) {
