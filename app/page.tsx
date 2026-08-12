@@ -243,7 +243,7 @@ export default function Home() {
     if (error || !data) throw error ?? new Error("student registration returned no data");
     const created = { ...(data as unknown as Omit<StudentRow, "enrollments">), enrollments: [] } as StudentRow;
     if(values.classIds.length){
-      const{error:enrollmentError}=await supabase.from("enrollments").insert(values.classIds.map((classId)=>({student_id:created.id,class_id:classId,status:"active"})));
+      const{error:enrollmentError}=await supabase.rpc("staff_sync_student_enrollments",{p_student_id:created.id,p_class_ids:values.classIds});
       if(enrollmentError)throw enrollmentError;
       created.enrollments=values.classIds.map((classId)=>{const selected=academyClasses.find((item)=>item.id===classId);return{class_id:classId,status:"active",classes:selected?{name:selected.name,subject:selected.subject}:null};});
     }
@@ -263,10 +263,8 @@ export default function Home() {
   };
 
   const saveClassAssignments = async (student: StudentRow, classIds: string[]) => {
-    const activeIds=new Set(student.enrollments.filter((item)=>item.status==="active").map((item)=>item.class_id));
-    const added=classIds.filter((id)=>!activeIds.has(id));const removed=[...activeIds].filter((id)=>!classIds.includes(id));
-    if(added.length){const{error}=await supabase.from("enrollments").insert(added.map((classId)=>({student_id:student.id,class_id:classId,status:"active"})));if(error)throw error;}
-    if(removed.length){const{error}=await supabase.from("enrollments").update({status:"completed",ended_on:new Date().toISOString().slice(0,10)}).eq("student_id",student.id).in("class_id",removed).eq("status","active");if(error)throw error;}
+    const{error}=await supabase.rpc("staff_sync_student_enrollments",{p_student_id:student.id,p_class_ids:classIds});
+    if(error)throw error;
     const nextEnrollments=classIds.map((classId)=>{const selected=academyClasses.find((item)=>item.id===classId);return{class_id:classId,status:"active" as const,classes:selected?{name:selected.name,subject:selected.subject}:null};});
     setStudents((current) => current.map((item) => item.id === student.id ? { ...item, enrollments:nextEnrollments } : item));
     setEnrollmentStudent(null);
@@ -439,7 +437,7 @@ function EnrollmentModal({ student, classes, onClose, onSubmit }: { student: Stu
   const [error, setError] = useState("");
   const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); setSubmitting(true); setError(""); try { await onSubmit(classIds); } catch { setError("수강 과목을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."); setSubmitting(false); } };
   const toggle=(id:string)=>setClassIds((current)=>current.includes(id)?current.filter((item)=>item!==id):[...current,id]);
-  return <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description="국어·영어·수학과 세부 클래스를 여러 개 선택할 수 있습니다." onClose={onClose}><form onSubmit={submit}>{classes.length ? <div className="class-choice-list">{classes.map((item) => <label key={item.id} className={classIds.includes(item.id) ? "selected" : ""}><input type="checkbox" checked={classIds.includes(item.id)} onChange={() => toggle(item.id)} /><i style={{ background:item.color }} /><span><b>{item.name}</b><small>{item.subject}{item.room ? ` · ${item.room}` : ""}</small></span></label>)}</div> : <p className="modal-empty">등록된 클래스가 없습니다. 시간표에서 클래스를 먼저 등록해 주세요.</p>}{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="수강 정보 저장" /></form></ModalShell>;
+  return <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description="한 학생에게 여러 과목·세부 반을 동시에 배정합니다. 선택 해제한 반은 오늘 기준으로 수강 종료 처리되며, 이전 이력은 보존됩니다." onClose={onClose}><form onSubmit={submit}>{classes.length ? <div className="class-choice-list">{classes.map((item) => <label key={item.id} className={classIds.includes(item.id) ? "selected" : ""}><input type="checkbox" checked={classIds.includes(item.id)} onChange={() => toggle(item.id)} /><i style={{ background:item.color }} /><span><b>{item.name}</b><small>{item.subject}{item.room ? ` · ${item.room}` : ""}</small></span></label>)}</div> : <p className="modal-empty">등록된 클래스가 없습니다. 시간표에서 클래스를 먼저 등록해 주세요.</p>}{error && <p className="form-error">{error}</p>}<ModalActions onClose={onClose} submitting={submitting} submitLabel="수강 정보 저장" /></form></ModalShell>;
 }
 
 function ModalShell({ eyebrow, title, description, onClose, children }: { eyebrow: string; title: string; description: string; onClose: () => void; children: ReactNode }) {
