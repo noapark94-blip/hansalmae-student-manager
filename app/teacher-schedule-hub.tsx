@@ -1,15 +1,14 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
-import { WeeklyTimetable } from "./weekly-timetable";
 
 type HubTab = "all" | "teacher" | "correction" | "vehicle";
 type Named = { id: string; name: string };
-type ClassSchedule = { id: string; classId: string; className: string; subject: string; color: string; weekday: number; startTime: string; endTime: string; room: string | null; teachers: Named[] };
+type ClassSchedule = { id: string; classId: string; className: string; subject: string; color: string; weekday: number; startTime: string; endTime: string; room: string | null; teachers: Named[]; students:Named[] };
 type Correction = { id: string; studentId: string; studentName: string; teacherId: string; teacherName: string; weekday: number; slotIndex: number };
 type CorrectionException = { id: string; assignmentId: string; weekStart: string; weekday: number; slotIndex: number; note: string | null };
 type CorrectionCapacity={teacherId:string;weekday:number;slotIndex:number;capacity:number};
@@ -29,13 +28,14 @@ export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editor, setEditor] = useState<Editor>(null);
+  const [roster, setRoster] = useState<ClassSchedule|null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [{data:result,error:loadError},{data:vehicleResult,error:vehicleError}]=await Promise.all([supabase.rpc("staff_schedule_hub"),supabase.rpc("staff_vehicle_operations")]);
-    if (loadError || !result||vehicleError||!vehicleResult) setError("시간표 데이터를 불러오지 못했습니다.");
-    else setData({ ...emptyData, ...(result as Partial<HubData>),...(vehicleResult as Partial<HubData>) });
+    const [{data:result,error:loadError},{data:vehicleResult,error:vehicleError},{data:rosterResult,error:rosterError}]=await Promise.all([supabase.rpc("staff_schedule_hub"),supabase.rpc("staff_vehicle_operations"),supabase.rpc("staff_class_schedule_rosters")]);
+    if (loadError || !result||vehicleError||!vehicleResult||rosterError) setError("시간표 데이터를 불러오지 못했습니다.");
+    else { const hub={ ...emptyData, ...(result as Partial<HubData>),...(vehicleResult as Partial<HubData>) }; const rosterMap=new Map(((rosterResult??[]) as {classId:string;students:Named[]}[]).map((item)=>[item.classId,item.students])); setData({...hub,classSchedules:hub.classSchedules.map((item)=>({...item,students:rosterMap.get(item.classId)??[]}))}); }
     setLoading(false);
   }, [supabase]);
 
@@ -56,7 +56,7 @@ export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase
       <button className={tab === "correction" ? "active" : ""} onClick={() => setTab("correction")}>첨삭 시간표</button>
       <button className={tab === "vehicle" ? "active" : ""} onClick={() => setTab("vehicle")}>차량 운행표</button>
     </div>
-    {(tab === "all" || tab === "teacher") && <ClassScheduleBoard rows={visibleClasses} teachers={data.teachers} teacherId={teacherId} setTeacherId={setTeacherId} personal={tab === "teacher"} onAdd={() => setEditor({ kind: "class" })} onEdit={(row) => setEditor({ kind: "class", row })} />}
+    {(tab === "all" || tab === "teacher") && <ClassScheduleBoard rows={visibleClasses} teachers={data.teachers} teacherId={teacherId} setTeacherId={setTeacherId} personal={tab === "teacher"} onAdd={() => setEditor({ kind: "class" })} onEdit={(row) => setEditor({ kind: "class", row })} onRoster={setRoster} />}
     {tab === "correction" && <CorrectionBoard rows={data.corrections} exceptions={data.correctionExceptions} capacities={data.correctionCapacities} profile={profile} onAdd={() => setEditor({ kind: "correction" })} onCapacity={()=>setEditor({kind:"capacity"})} onEdit={(row) => setEditor({ kind: "correction", row })} onException={(row) => setEditor({ kind: "exception", row })} />}
     {tab === "vehicle" && <VehicleBoard rows={data.vehicles} todayRows={data.todayVehicles} exceptions={data.vehicleExceptions} onAdd={() => setEditor({ kind: "vehicle" })} onEdit={(row) => setEditor({ kind: "vehicle", row })} onException={(row)=>setEditor({kind:"vehicleException",row})} />}
     {editor?.kind === "class" && <ClassEditor supabase={supabase} data={data} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
@@ -65,12 +65,16 @@ export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase
     {editor?.kind === "capacity"&&<CapacityEditor supabase={supabase} profile={profile} capacities={data.correctionCapacities} onClose={()=>setEditor(null)} onSaved={saved}/>}
     {editor?.kind === "vehicle" && <VehicleEditor supabase={supabase} data={data} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
     {editor?.kind==="vehicleException"&&<VehicleExceptionEditor supabase={supabase} row={editor.row} onClose={()=>setEditor(null)} onSaved={saved}/>}
+    {roster&&<ClassRosterModal row={roster} onClose={()=>setRoster(null)} onEdit={()=>{setRoster(null);setEditor({kind:"class",row:roster});}}/>}
   </>;
 }
 
-function ClassScheduleBoard({ rows, teachers, teacherId, setTeacherId, personal, onAdd, onEdit }: { rows: ClassSchedule[]; teachers: Named[]; teacherId: string; setTeacherId: (id: string) => void; personal: boolean; onAdd: () => void; onEdit: (row: ClassSchedule) => void }) {
-  return <section className="panel hub-panel"><HubToolbar title={personal ? "선생님별 클래스 배정" : "학원 전과목 시간표"} description="월–일 09:30–22:00 시간표이며 클래스 정보와 자동 연동됩니다."><>{personal && <select value={teacherId} onChange={(event) => setTeacherId(event.target.value)}>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select>}<button className="primary hub-add" onClick={onAdd}>＋ 수업 배정</button></></HubToolbar><WeeklyTimetable rows={rows} onSelect={(selected)=>{const matched=rows.find((row)=>row.id===selected.id);if(matched)onEdit(matched);}}/>{rows.length === 0 && <Empty text="등록된 클래스 시간 배정이 없습니다." />}</section>;
+function ClassScheduleBoard({ rows, teachers, teacherId, setTeacherId, personal, onAdd, onEdit,onRoster }: { rows: ClassSchedule[]; teachers: Named[]; teacherId: string; setTeacherId: (id: string) => void; personal: boolean; onAdd: () => void; onEdit: (row: ClassSchedule) => void;onRoster:(row:ClassSchedule)=>void }) {
+  const groups=Array.from(new Map(rows.map((row)=>[`${row.startTime.slice(0,5)}-${row.endTime.slice(0,5)}-${row.subject}`,{start:row.startTime.slice(0,5),end:row.endTime.slice(0,5),subject:row.subject}])).values()).sort((a,b)=>a.start.localeCompare(b.start)||a.subject.localeCompare(b.subject,"ko"));
+  return <section className="panel hub-panel"><HubToolbar title={personal ? "선생님별 클래스 배정" : "학원 전과목 시간표"} description="같은 과목·시간대는 한 줄에 정렬되며, 수업을 누르면 수강 학생을 확인할 수 있습니다."><>{personal && <select value={teacherId} onChange={(event) => setTeacherId(event.target.value)}>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}</select>}<button className="primary hub-add" onClick={onAdd}>＋ 수업 배정</button></></HubToolbar>{rows.length>0&&<div className="aligned-schedule"><div className="aligned-schedule-head"><b>시간·과목</b>{weekdays.map((day)=><b key={day}>{day}</b>)}</div>{groups.map((group)=><div className="aligned-schedule-row" key={`${group.start}-${group.subject}`}><strong><time>{group.start}–{group.end}</time><span>{group.subject}</span></strong>{weekdays.map((day,dayIndex)=><div key={day}>{rows.filter((row)=>row.weekday===dayIndex+1&&row.startTime.slice(0,5)===group.start&&row.endTime.slice(0,5)===group.end&&row.subject===group.subject).map((row)=><article className="aligned-class-card" key={row.id} style={{"--schedule-color":row.color} as CSSProperties}><button className="aligned-class-main" onClick={()=>onRoster(row)}><b>{row.className}</b><small>{row.teachers.map((teacher)=>teacher.name).join("·")||"담당 미배정"}{row.room?` · ${row.room}`:""}</small><em>{row.students.length}명 · 명단 보기</em></button><button className="aligned-class-edit" aria-label={`${row.className} 수업 배정 수정`} onClick={()=>onEdit(row)}>수정</button></article>)}</div>)}</div>)}</div>}{rows.length === 0 && <Empty text="등록된 클래스 시간 배정이 없습니다." />}</section>;
 }
+
+function ClassRosterModal({row,onClose,onEdit}:{row:ClassSchedule;onClose:()=>void;onEdit:()=>void}){return <EditorModal title={row.className} description={`${weekdays[row.weekday-1]}요일 ${row.startTime.slice(0,5)}–${row.endTime.slice(0,5)} · ${row.subject}`} onClose={onClose}><div className="class-roster-modal"><header><b>수강 학생 명단</b><span>총 {row.students.length}명</span></header>{row.students.length?<div>{row.students.map((student,index)=><p key={student.id}><i>{index+1}</i><b>{student.name}</b></p>)}</div>:<Empty text="현재 수강 중인 학생이 없습니다."/>}<footer><button className="secondary-button" onClick={onClose}>닫기</button><button className="primary" onClick={onEdit}>수업 배정 수정</button></footer></div></EditorModal>}
 
 function CorrectionBoard({ rows, exceptions, capacities, profile, onAdd,onCapacity, onEdit, onException }: { rows: Correction[]; exceptions: CorrectionException[]; capacities:CorrectionCapacity[]; profile: Profile; onAdd: () => void;onCapacity:()=>void; onEdit: (row: Correction) => void; onException: (row: Correction) => void }) {
   const upcoming = exceptions.filter((item) => item.weekStart >= getMonday()).slice(0, 6);

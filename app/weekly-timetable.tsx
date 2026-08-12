@@ -9,3 +9,11 @@ const slots=[["09:30","11:00"],["11:00","12:30"],["12:30","14:00"],["14:00","15:
 export function WeeklyTimetable({rows,compact=false,onSelect}:{rows:WeeklyTimetableRow[];compact?:boolean;onSelect?:(row:WeeklyTimetableRow)=>void}){
   return <div className={`weekly-timetable${compact?" compact":""}`}><div className="weekly-timetable-grid"><b className="timetable-corner">시간</b>{days.map(day=><b key={day}>{day}</b>)}{slots.flatMap(([start,end])=>[<strong key={`${start}-label`}>{start}<i>–</i>{end}</strong>,...days.map((day,dayIndex)=><div className="timetable-cell" key={`${day}-${start}`}>{rows.filter(row=>row.weekday===dayIndex+1&&row.startTime.slice(0,5)>=start&&row.startTime.slice(0,5)<end).map(row=><button type="button" key={`${row.id}-${start}`} onClick={()=>onSelect?.(row)} disabled={!onSelect} style={{"--schedule-color":row.color} as CSSProperties}><span>{row.className}</span><small>{row.startTime.slice(0,5)}–{row.endTime.slice(0,5)}</small><em>{row.subject}{row.teachers?.length?` · ${row.teachers.map(item=>item.name).join("·")}`:""}</em></button>)}</div>)])}</div></div>;
 }
+
+export function StudentRelevantTimetable({rows}:{rows:WeeklyTimetableRow[]}){
+  const visibleDays=days.map((label,index)=>({label,weekday:index+1,rows:rows.filter((row)=>row.weekday===index+1).sort(compareRows)})).filter((day)=>day.rows.length>0);
+  if(!visibleDays.length)return <p className="student-hub-empty">배정된 수업 시간이 없습니다.</p>;
+  return <div className="student-relevant-timetable">{visibleDays.map((day)=><section key={day.weekday}><h4>{day.label}요일</h4><div>{day.rows.map((row)=><article key={`${row.id}-${row.weekday}`} style={{"--schedule-color":row.color} as CSSProperties}><time>{row.startTime.slice(0,5)}–{row.endTime.slice(0,5)}</time><span><b>{row.className}</b><small>{row.subject}{row.room?` · ${row.room}`:""}{row.teachers?.length?` · ${row.teachers.map((teacher)=>teacher.name).join("·")}`:""}</small></span></article>)}</div></section>)}</div>;
+}
+
+function compareRows(left:WeeklyTimetableRow,right:WeeklyTimetableRow){return left.startTime.localeCompare(right.startTime)||left.subject.localeCompare(right.subject,"ko")||left.className.localeCompare(right.className,"ko")}
