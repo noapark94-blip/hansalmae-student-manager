@@ -28,6 +28,7 @@ import { SidebarNavigation } from "./sidebar-navigation";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { BulkRegistrationGuide } from "./bulk-registration-guide";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
+import { WeeklyTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string; classIds:string[] };
@@ -106,6 +107,7 @@ export default function Home() {
   const [mobileNav, setMobileNav] = useState(false);
   const [toast, setToast] = useState("");
   const [students, setStudents] = useState<StudentRow[]>([]);
+  const [studentTimetables,setStudentTimetables]=useState<Record<string,WeeklyTimetableRow[]>>({});
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [studentsError, setStudentsError] = useState("");
   const [registrationOpen, setRegistrationOpen] = useState(false);
@@ -172,20 +174,24 @@ export default function Home() {
     const loadStudents = async () => {
       setStudentsLoading(true);
       setStudentsError("");
-      const [{ data, error }, { data: classData, error: classError },{data:subjectData,error:subjectError}] = await Promise.all([
+      const [{ data, error }, { data: classData, error: classError },{data:subjectData,error:subjectError},{data:timetableData,error:timetableError}] = await Promise.all([
         supabase.rpc("staff_student_roster"),
         supabase.from("classes").select("id, name, subject, subject_id, room, color, active").eq("active", true).order("name"),
         supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active",true).order("main_subject").order("name"),
+        supabase.rpc("staff_student_weekly_timetables"),
       ]);
 
       if (!active) return;
-      if (error || classError || subjectError) {
+      if (error || classError || subjectError || timetableError) {
         setStudentsError("학생 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
         setStudents([]);
       } else {
         setStudents(((data ?? []) as StudentRow[]).sort((a, b) => a.name.localeCompare(b.name, "ko")));
         setAcademyClasses((classData ?? []) as AcademyClass[]);
         setAcademySubjects((subjectData??[]) as SubjectOption[]);
+        const grouped:Record<string,WeeklyTimetableRow[]>={};
+        for(const entry of (timetableData??[]) as {studentId:string;rows:WeeklyTimetableRow[]}[])grouped[entry.studentId]=entry.rows??[];
+        setStudentTimetables(grouped);
       }
       setStudentsLoading(false);
     };
@@ -366,7 +372,7 @@ export default function Home() {
           {view === "dashboard" && profile.role==="admin"&&<><div className="admin-home-switch"><button className={adminHomeMode==="operations"?"active":""} onClick={()=>setAdminHomeMode("operations")}>학원 운영</button><button className={adminHomeMode==="classes"?"active":""} onClick={()=>setAdminHomeMode("classes")}>내 수업</button></div>{adminHomeMode==="operations"?<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>:<TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={()=>void refreshStudentRegistrationCatalog()}/>}</>}
           {view === "dashboard" && profile.role==="teacher"&&<TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={()=>void refreshStudentRegistrationCatalog()}/>}
           {view === "dashboard" && (profile.role==="student"||profile.role==="guardian")&&<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>}
-          {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready)=>ready&&setRegistrationOpen(true))} onOpen={openStudentDetails} /></>}
+          {view === "students" && <><StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/><Students rows={filteredStudents} timetables={studentTimetables} total={students.length} filteredTotal={filteredStudents.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready)=>ready&&setRegistrationOpen(true))} onOpen={openStudentDetails} /></>}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
@@ -442,8 +448,8 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   </>;
 }
 
-function Students({ rows, total, filteredTotal, statusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; total: number; filteredTotal:number; statusFilter:StudentStatusFilter; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생을 선택하면 상세 정보와 수강 클래스를 관리할 수 있습니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>{statusFilter==="all"?`전체 ${total}명`:`검색 결과 ${filteredTotal}명`}</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query||statusFilter!=="all" ? "선택한 조건의 학생이 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); const normalizedStatus=normalizeStudentStatus(student.status); return <button className="table-row" key={student.id} onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${normalizedStatus==="active"?"active":normalizedStatus==="paused"?"warning":"completed"}`}>{studentStatusLabel(student.status)}</i></span></button>; })}</div></section></>;
+function Students({ rows,timetables, total, filteredTotal, statusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[];timetables:Record<string,WeeklyTimetableRow[]>; total: number; filteredTotal:number; statusFilter:StudentStatusFilter; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
+  return <><div className="page-heading compact"><div><p className="eyebrow">학생 통합 관리</p><h1>학생</h1><p>학생별 월–일 수강 시간표가 등록 클래스와 자동 연동됩니다.</p></div><button className="primary" onClick={onRegister}>＋ 학생 등록</button></div><section className="panel table-panel"><div className="table-tools"><div className="search-wrap inner"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" /></div><span>{statusFilter==="all"?`전체 ${total}명`:`검색 결과 ${filteredTotal}명`}</span></div><div className="student-table"><div className="table-head"><span>학생</span><span>학교·학년</span><span>수강 과목</span><span>출석률</span><span>상태</span></div>{loading ? <StudentTableMessage>학생 데이터를 불러오는 중이에요…</StudentTableMessage> : error ? <StudentTableMessage error>{error}</StudentTableMessage> : rows.length === 0 ? <StudentTableMessage>{query||statusFilter!=="all" ? "선택한 조건의 학생이 없습니다." : "아직 등록된 학생이 없습니다."}</StudentTableMessage> : rows.map((student) => { const subjects = getStudentSubjects(student); const normalizedStatus=normalizeStudentStatus(student.status); return <article className="student-timetable-entry" key={student.id}><button className="table-row" onClick={() => onOpen(student)}><span className="student-name"><i>{student.name.slice(0,1)}</i><b>{student.name}</b></span><span>{[student.school, student.grade].filter(Boolean).join(" · ") || "-"}</span><span className="subject-tags">{subjects.length ? subjects.map(subject => <em key={subject}>{subject}</em>) : <em>미배정</em>}</span><strong>-</strong><span><i className={`status ${normalizedStatus==="active"?"active":normalizedStatus==="paused"?"warning":"completed"}`}>{studentStatusLabel(student.status)}</i></span></button><WeeklyTimetable compact rows={timetables[student.id]??[]}/></article>; })}</div></section></>;
 }
 
 function StudentRegistrationModal({ classes,schools,onAddSchool,onDeleteSchool,onReorderSchools,onClose, onSubmit }: { classes:AcademyClass[];schools:SchoolOption[];onAddSchool:(name:string)=>Promise<string>;onDeleteSchool:(id:string)=>Promise<void>;onReorderSchools:(schools:SchoolOption[])=>Promise<void>;onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
