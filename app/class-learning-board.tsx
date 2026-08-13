@@ -1,32 +1,681 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
-import type {CSSProperties} from "react";
-import type {SupabaseClient} from "@supabase/supabase-js";
-type Status="present"|"late"|"absent"|"excused";
-type Student={id:string;name:string;school:string|null;grade:string|null;status:Status|null;lateMinutes:number|null;absenceReason:string|null;note:string|null};
-type ExamDraft={id:string;examType:string;examTitle:string;score:string;maxScore:string;evaluation:string};
-type Row=Student&{exams:ExamDraft[];assignedHomework:string;previousHomework:string;inspectionStatus:string;inspectionNote:string};
-type CalendarDay={date:string;scheduled:boolean;students:{id:string;name:string;status:Status}[]};
-type Makeup={id:string;name:string;school:string|null;grade:string|null;selected:boolean};
-type ExamResult={studentId:string;exams:{id:string;examType:string|null;examTitle:string|null;score:number|null;maxScore:number|null;evaluation:string|null}[]};
-type HomeworkResult={studentId:string;assignedHomework:string|null;previousHomework:string|null;inspectionStatus:string|null;inspectionNote:string|null};
-const attendance:[Status,string][]=[["present","출석"],["late","지각"],["absent","결석"],["excused","공결"]];
-const homework=[["","미검사"],["complete","완료"],["partial","일부"],["missing","미제출"],["excused","면제"]];
-const exams=[["","종류 선택"],["vocabulary","영단어 시험"],["weekly","주간평가"],["monthly","월간평가"],["mock","모의고사"],["custom","기타 시험"]];
-const weekdays=["월","화","수","목","금","토","일"];
-export function ClassLearningBoard({supabase,classId,date,students,onDate,onReload}:{supabase:SupabaseClient;classId:string;date:string;students:Student[];validDay:boolean;onDate:(v:string)=>void;onReload:()=>Promise<void>}){
- const[rows,setRows]=useState<Row[]>([]),[week,setWeek]=useState<CalendarDay[]>([]),[notice,setNotice]=useState(""),[loading,setLoading]=useState(true),[saving,setSaving]=useState(""),[error,setError]=useState(""),[monthOpen,setMonthOpen]=useState(false),[makeupOpen,setMakeupOpen]=useState(false);
- const loadWeek=useCallback(async()=>{const{data}=await supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"});setWeek((data??[]) as CalendarDay[]);},[classId,date,supabase]);
- useEffect(()=>{let active=true;void Promise.all([supabase.rpc("staff_class_exam_results",{p_class_id:classId,p_date:date}),supabase.rpc("staff_class_homework_results",{p_class_id:classId,p_date:date}),supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"}),supabase.rpc("staff_class_daily_notice",{p_class_id:classId,p_date:date})]).then(([e,h,w,n])=>{if(!active)return;if(e.error||h.error||w.error||n.error){setError("개인별 기록을 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");setLoading(false);return;}const examsByStudent=new Map(((e.data??[]) as ExamResult[]).map(x=>[x.studentId,x])),homeworkByStudent=new Map(((h.data??[]) as HomeworkResult[]).map(x=>[x.studentId,x]));setRows(students.map(s=>{const a=examsByStudent.get(s.id),b=homeworkByStudent.get(s.id);const examRows=(a?.exams??[]).map(x=>({id:x.id,examType:x.examType??"",examTitle:x.examTitle??"",score:x.score==null?"":String(x.score),maxScore:String(x.maxScore??100),evaluation:x.evaluation??""}));return{...s,exams:examRows.length?examRows:[{id:"",examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""}],assignedHomework:b?.assignedHomework??"",previousHomework:b?.previousHomework??"",inspectionStatus:b?.inspectionStatus??"",inspectionNote:b?.inspectionNote??""};}));setWeek(w.data??[]);setNotice(n.data??"");setError("");setLoading(false);});return()=>{active=false;};},[classId,date,students,supabase]);
- const update=(id:string,p:Partial<Row>)=>setRows(v=>v.map(x=>x.id===id?{...x,...p}:x));
- const blankExam=():ExamDraft=>({id:"",examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""});
- const updateExam=(studentId:string,index:number,p:Partial<ExamDraft>)=>setRows(v=>v.map(row=>row.id===studentId?{...row,exams:row.exams.map((exam,i)=>i===index?{...exam,...p}:exam)}:row));
- const addExam=(studentId:string)=>setRows(v=>v.map(row=>row.id===studentId?{...row,exams:[...row.exams,blankExam()]}:row));
- const removeExam=(studentId:string,index:number)=>setRows(v=>v.map(row=>row.id===studentId?{...row,exams:row.exams.filter((_,i)=>i!==index)}:row));
- const saveAttendance=async(row:Row,status:Status)=>{setSaving(row.id);setError("");if(row.status===status){const{error:e}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(e)setError(e.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});await loadWeek();}setSaving("");return;}let late:number|null=null,reason:string|null=null;if(status==="late"){const v=prompt(`${row.name} 학생은 몇 분 지각했나요?`,String(row.lateMinutes??10));if(v===null){setSaving("");return;}late=Number(v);if(!Number.isFinite(late)||late<1){setSaving("");return setError("지각 시간을 숫자로 입력해 주세요.");}}if(status==="absent"){const v=prompt(`${row.name} 학생의 결석 사유 (선택)`,row.absenceReason??"");reason=v?.trim()||null;}const{error:e}=await supabase.rpc("staff_save_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id,p_status:status,p_late_minutes:late,p_absence_reason:reason,p_note:row.note});if(e)setError(e.message);else{update(row.id,{status,lateMinutes:late,absenceReason:reason});await loadWeek();}setSaving("");};
- const save=async()=>{for(const r of rows)for(const exam of r.exams){if(exam.score!==""&&(!Number.isFinite(+exam.score)||+exam.score<0||+exam.score>+exam.maxScore))return setError(`${r.name} 학생의 점수를 확인해 주세요.`);}setSaving("all");setError("");const ep=rows.map(r=>({studentId:r.id,exams:r.exams.map(exam=>({id:exam.id||null,examType:exam.examType||null,examTitle:exam.examTitle.trim()||null,score:exam.score===""?null:+exam.score,maxScore:+exam.maxScore,evaluation:exam.evaluation.trim()||null}))})),hp=rows.map(r=>({studentId:r.id,assignedHomework:r.assignedHomework.trim()||null,inspectionStatus:r.inspectionStatus||null,inspectionNote:r.inspectionNote.trim()||null}));const[a,b,c]=await Promise.all([supabase.rpc("staff_save_class_exam_results",{p_class_id:classId,p_date:date,p_results:ep}),supabase.rpc("staff_save_class_homework_results",{p_class_id:classId,p_date:date,p_results:hp}),supabase.rpc("staff_save_class_daily_notice",{p_class_id:classId,p_date:date,p_content:notice})]);if(a.error||b.error||c.error)setError(a.error?.message??b.error?.message??c.error?.message??"저장하지 못했습니다.");else await onReload();setSaving("");};
- return <section className="class-learning-board"><header><div><h3>이번 주 출석부</h3><p>학생별 출석·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</p></div><div className="learning-header-actions"><button className="secondary-button" onClick={()=>setMakeupOpen(true)}>＋ 보충 학생</button><button className="secondary-button" onClick={()=>setMonthOpen(true)}>전체 출석 캘린더</button></div></header><div className="class-week-strip">{week.map((d,i)=><button key={d.date} className={`${d.date===date?"active":""} ${d.scheduled?"scheduled":""}`} onClick={()=>onDate(d.date)}><span>{weekdays[i]}</span><b>{+d.date.slice(8)}</b><div>{d.students.slice(0,4).map(s=><em className={s.status} key={s.id}>{s.name}</em>)}{!d.students.length?<small>{d.scheduled?"출석 전":"수업 없음"}</small>:null}</div></button>)}</div><label className="class-daily-notice"><b>반 전체 공지사항</b><textarea value={notice} onChange={e=>setNotice(e.target.value)} placeholder="준비물·일정·반 전체 안내" rows={2}/></label><div className="learning-board-heading"><span>학생·출결</span><span>개인별 시험</span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>{loading?<p className="settings-empty">불러오는 중이에요…</p>:<div className="learning-board-rows">{rows.map(r=><article key={r.id}><div className="learning-person-attendance"><span className="learning-student"><i>{r.name[0]}</i><b>{r.name}</b><small>{[r.school,r.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([s,l])=><button key={s} className={`${s} ${r.status===s?"active":""}`} disabled={saving===r.id} onClick={()=>void saveAttendance(r,s)}>{l}</button>)}{r.status==="late"?<small>{r.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:null}{r.status==="absent"?<small>{r.absenceReason?`${r.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:null}{r.status==="present"||r.status==="excused"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div><div className="learning-exam-list">{r.exams.map((exam,index)=>{const score=Number(exam.score),max=Number(exam.maxScore),percent=exam.score!==""&&Number.isFinite(score)&&Number.isFinite(max)&&max>0?Math.round(score/max*1000)/10:null;return <div className="learning-exam-card" key={exam.id||`new-${index}`}><div className="learning-exam-card-actions"><b>시험 {index+1}</b><button type="button" onClick={()=>removeExam(r.id,index)}>삭제</button></div><div className="learning-exam individual"><select value={exam.examType} onChange={e=>updateExam(r.id,index,{examType:e.target.value})}>{exams.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select><input value={exam.examTitle} onChange={e=>updateExam(r.id,index,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={exam.score} onChange={e=>updateExam(r.id,index,{score:e.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={exam.maxScore} onChange={e=>updateExam(r.id,index,{maxScore:e.target.value})} placeholder="만점"/></span><input value={exam.evaluation} onChange={e=>updateExam(r.id,index,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{percent===null?"점수를 입력하면 백분율이 표시됩니다.":`원점수 ${exam.score}/${exam.maxScore} · 백분율 ${percent}%`}</small></div>})}<button type="button" className="add-exam-button" onClick={()=>addExam(r.id)}>＋ 시험 추가</button></div><div className="learning-homework previous"><p>{r.previousHomework||"지난 숙제 없음"}</p><select value={r.inspectionStatus} onChange={e=>update(r.id,{inspectionStatus:e.target.value})}>{homework.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select><input value={r.inspectionNote} onChange={e=>update(r.id,{inspectionNote:e.target.value})} placeholder="검사 메모"/></div><div className="learning-homework assigned"><textarea value={r.assignedHomework} onChange={e=>update(r.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div></article>)}{!rows.length?<div className="makeup-empty"><p>이 날짜에 학생이 없습니다.</p><button className="secondary-button" onClick={()=>setMakeupOpen(true)}>보충 학생 추가</button></div>:null}</div>}{error?<p className="form-error learning-board-error">{error}</p>:null}<footer><span>출결은 즉시 저장되며, 지난 숙제는 이전 수업 기록에서 자동으로 이어집니다.</span><button className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save()}>{saving==="all"?"저장 중…":"개인별 기록 저장"}</button></footer>{monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={v=>{onDate(v);setMonthOpen(false);}} onClose={()=>setMonthOpen(false)}/>:null}{makeupOpen?<MakeupModal supabase={supabase} classId={classId} date={date} onClose={()=>setMakeupOpen(false)} onSaved={async()=>{setMakeupOpen(false);await onReload();await loadWeek();}}/>:null}</section>;
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type Status = "present" | "late" | "absent";
+type Student = {
+  id: string;
+  name: string;
+  school: string | null;
+  grade: string | null;
+  status: Status | "excused" | null;
+  lateMinutes: number | null;
+  absenceReason: string | null;
+  note: string | null;
+};
+type ExamDraft = {
+  id: string;
+  examType: string;
+  examTitle: string;
+  score: string;
+  maxScore: string;
+  evaluation: string;
+};
+type Row = Omit<Student, "status"> & {
+  status: Status | null;
+  exams: ExamDraft[];
+  assignedHomework: string;
+  previousHomework: string;
+  inspectionStatus: string;
+  inspectionNote: string;
+};
+type CalendarDay = {
+  date: string;
+  scheduled: boolean;
+  students: { id: string; name: string; status: Status | "excused" }[];
+};
+type Makeup = {
+  id: string;
+  name: string;
+  school: string | null;
+  grade: string | null;
+  selected: boolean;
+};
+type ExamResult = {
+  studentId: string;
+  exams: {
+    id: string;
+    examType: string | null;
+    examTitle: string | null;
+    score: number | null;
+    maxScore: number | null;
+    evaluation: string | null;
+  }[];
+};
+type HomeworkResult = {
+  studentId: string;
+  assignedHomework: string | null;
+  previousHomework: string | null;
+  inspectionStatus: string | null;
+  inspectionNote: string | null;
+};
+type ExamCategory = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+const attendance: [Status, string][] = [
+  ["present", "출석"],
+  ["late", "지각"],
+  ["absent", "결석"],
+];
+const homework = [
+  ["", "미검사"],
+  ["complete", "완료"],
+  ["partial", "일부"],
+  ["missing", "미제출"],
+  ["excused", "면제"],
+];
+const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+const emptyExam = (): ExamDraft => ({
+  id: "",
+  examType: "",
+  examTitle: "",
+  score: "",
+  maxScore: "100",
+  evaluation: "",
+});
+
+export function ClassLearningBoard({ supabase, classId, date, students, onDate, onReload }: { supabase: SupabaseClient; classId: string; date: string; students: Student[]; validDay: boolean; onDate: (v: string) => void; onReload: () => Promise<void> }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [week, setWeek] = useState<CalendarDay[]>([]);
+  const [notice, setNotice] = useState("");
+  const [categories, setCategories] = useState<ExamCategory[]>([]);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState("");
+  const [error, setError] = useState("");
+  const [monthOpen, setMonthOpen] = useState(false);
+  const [makeupOpen, setMakeupOpen] = useState(false);
+
+  const loadWeek = useCallback(async () => {
+    const { data } = await supabase.rpc("staff_class_attendance_calendar", {
+      p_class_id: classId,
+      p_anchor_date: date,
+      p_view: "week",
+    });
+    setWeek((data ?? []) as CalendarDay[]);
+  }, [classId, date, supabase]);
+
+  const loadCategories = useCallback(async () => {
+    const { data, error: categoryError } = await supabase.rpc("staff_exam_categories");
+    if (categoryError) setError(categoryError.message);
+    else setCategories((data ?? []) as ExamCategory[]);
+  }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    void Promise.all([
+      supabase.rpc("staff_class_exam_results", {
+        p_class_id: classId,
+        p_date: date,
+      }),
+      supabase.rpc("staff_class_homework_results", {
+        p_class_id: classId,
+        p_date: date,
+      }),
+      supabase.rpc("staff_class_attendance_calendar", {
+        p_class_id: classId,
+        p_anchor_date: date,
+        p_view: "week",
+      }),
+      supabase.rpc("staff_class_daily_notice", {
+        p_class_id: classId,
+        p_date: date,
+      }),
+      supabase.rpc("staff_exam_categories"),
+    ]).then(([examResponse, homeworkResponse, weekResponse, noticeResponse, categoryResponse]) => {
+      if (!active) return;
+      if (examResponse.error || homeworkResponse.error || weekResponse.error || noticeResponse.error || categoryResponse.error) {
+        setError("개인별 기록을 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
+        setLoading(false);
+        return;
+      }
+      const examsByStudent = new Map(((examResponse.data ?? []) as ExamResult[]).map((item) => [item.studentId, item]));
+      const homeworkByStudent = new Map(((homeworkResponse.data ?? []) as HomeworkResult[]).map((item) => [item.studentId, item]));
+      setRows(
+        students.map((student) => {
+          const exam = examsByStudent.get(student.id)?.exams?.[0];
+          const homeworkRow = homeworkByStudent.get(student.id);
+          return {
+            ...student,
+            status: student.status === "excused" ? "absent" : student.status,
+            exams: [
+              exam
+                ? {
+                    id: exam.id,
+                    examType: exam.examType ?? "",
+                    examTitle: exam.examTitle ?? "",
+                    score: exam.score == null ? "" : String(exam.score),
+                    maxScore: String(exam.maxScore ?? 100),
+                    evaluation: exam.evaluation ?? "",
+                  }
+                : emptyExam(),
+            ],
+            assignedHomework: homeworkRow?.assignedHomework ?? "",
+            previousHomework: homeworkRow?.previousHomework ?? "",
+            inspectionStatus: homeworkRow?.inspectionStatus ?? "",
+            inspectionNote: homeworkRow?.inspectionNote ?? "",
+          };
+        }),
+      );
+      setCategories((categoryResponse.data ?? []) as ExamCategory[]);
+      setWeek((weekResponse.data ?? []) as CalendarDay[]);
+      setNotice(noticeResponse.data ?? "");
+      setError("");
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [classId, date, students, supabase]);
+
+  const update = (id: string, patch: Partial<Row>) => setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  const updateExam = (studentId: string, patch: Partial<ExamDraft>) => setRows((current) => current.map((row) => (row.id === studentId ? { ...row, exams: [{ ...row.exams[0], ...patch }] } : row)));
+
+  const saveAttendance = async (row: Row, status: Status) => {
+    setSaving(row.id);
+    setError("");
+    if (row.status === status) {
+      const { error: clearError } = await supabase.rpc("staff_clear_class_attendance", { p_class_id: classId, p_date: date, p_student_id: row.id });
+      if (clearError) setError(clearError.message);
+      else {
+        update(row.id, {
+          status: null,
+          lateMinutes: null,
+          absenceReason: null,
+        });
+        await loadWeek();
+      }
+      setSaving("");
+      return;
+    }
+    let late: number | null = null,
+      reason: string | null = null;
+    if (status === "late") {
+      const value = prompt(`${row.name} 학생은 몇 분 지각했나요?`, String(row.lateMinutes ?? 10));
+      if (value === null) {
+        setSaving("");
+        return;
+      }
+      late = Number(value);
+      if (!Number.isFinite(late) || late < 1) {
+        setSaving("");
+        setError("지각 시간을 숫자로 입력해 주세요.");
+        return;
+      }
+    }
+    if (status === "absent") {
+      const value = prompt(`${row.name} 학생의 결석 사유`, row.absenceReason ?? "");
+      if (value === null) {
+        setSaving("");
+        return;
+      }
+      reason = value.trim();
+      if (!reason) {
+        setSaving("");
+        setError("결석 사유를 입력해 주세요.");
+        return;
+      }
+    }
+    const { error: saveError } = await supabase.rpc("staff_save_class_attendance", {
+      p_class_id: classId,
+      p_date: date,
+      p_student_id: row.id,
+      p_status: status,
+      p_late_minutes: late,
+      p_absence_reason: reason,
+      p_note: row.note,
+    });
+    if (saveError) setError(saveError.message);
+    else {
+      update(row.id, { status, lateMinutes: late, absenceReason: reason });
+      await loadWeek();
+      if (status === "absent") {
+        const now = confirm("결석이 저장되었습니다. 보강 학생을 지금 등록하시겠습니까?\n\n확인: 지금 등록 / 취소: 나중에 등록");
+        if (now) setMakeupOpen(true);
+        else alert("보강·추가수업 메뉴의 ‘날짜 미정’에서 나중에 일정을 정해 주세요.");
+      }
+    }
+    setSaving("");
+  };
+
+  const save = async () => {
+    for (const row of rows) {
+      const exam = row.exams[0];
+      if (exam.score !== "" && (!Number.isFinite(+exam.score) || +exam.score < 0 || +exam.score > +exam.maxScore)) {
+        setError(`${row.name} 학생의 점수를 확인해 주세요.`);
+        return;
+      }
+    }
+    setSaving("all");
+    setError("");
+    const examPayload = rows.map((row) => ({
+      studentId: row.id,
+      exams: [
+        {
+          ...row.exams[0],
+          id: row.exams[0].id || null,
+          examType: row.exams[0].examType || null,
+          examTitle: row.exams[0].examTitle.trim() || null,
+          score: row.exams[0].score === "" ? null : +row.exams[0].score,
+          maxScore: +row.exams[0].maxScore,
+          evaluation: row.exams[0].evaluation.trim() || null,
+        },
+      ],
+    }));
+    const homeworkPayload = rows.map((row) => ({
+      studentId: row.id,
+      assignedHomework: row.assignedHomework.trim() || null,
+      inspectionStatus: row.inspectionStatus || null,
+      inspectionNote: row.inspectionNote.trim() || null,
+    }));
+    const [examResponse, homeworkResponse, noticeResponse] = await Promise.all([
+      supabase.rpc("staff_save_class_exam_results", {
+        p_class_id: classId,
+        p_date: date,
+        p_results: examPayload,
+      }),
+      supabase.rpc("staff_save_class_homework_results", {
+        p_class_id: classId,
+        p_date: date,
+        p_results: homeworkPayload,
+      }),
+      supabase.rpc("staff_save_class_daily_notice", {
+        p_class_id: classId,
+        p_date: date,
+        p_content: notice,
+      }),
+    ]);
+    if (examResponse.error || homeworkResponse.error || noticeResponse.error) setError(examResponse.error?.message ?? homeworkResponse.error?.message ?? noticeResponse.error?.message ?? "저장하지 못했습니다.");
+    else await onReload();
+    setSaving("");
+  };
+
+  return (
+    <section className="class-learning-board">
+      <header>
+        <div>
+          <h3>이번 주 출석부</h3>
+          <p>학생별 출석·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</p>
+        </div>
+        <div className="learning-header-actions">
+          <button className="secondary-button" onClick={() => setMakeupOpen(true)}>
+            ＋ 보충 학생
+          </button>
+          <button className="secondary-button" onClick={() => setMonthOpen(true)}>
+            전체 출석 캘린더
+          </button>
+        </div>
+      </header>
+      <div className="class-week-strip">
+        {week.map((day, index) => (
+          <button key={day.date} className={`${day.date === date ? "active" : ""} ${day.scheduled ? "scheduled" : ""}`} onClick={() => onDate(day.date)}>
+            <span>{weekdays[index]}</span>
+            <b>{+day.date.slice(8)}</b>
+            <div>
+              {day.students.slice(0, 4).map((student) => (
+                <em className={student.status === "excused" ? "absent" : student.status} key={student.id}>
+                  {student.name}
+                </em>
+              ))}
+              {!day.students.length ? <small>{day.scheduled ? "출석 전" : "수업 없음"}</small> : null}
+            </div>
+          </button>
+        ))}
+      </div>
+      <label className="class-daily-notice">
+        <b>반 전체 공지사항</b>
+        <textarea value={notice} onChange={(event) => setNotice(event.target.value)} placeholder="준비물·일정·반 전체 안내" rows={2} />
+      </label>
+      <div className="learning-board-heading">
+        <span>학생·출결</span>
+        <span>개인별 시험</span>
+        <span>지난 숙제 검사</span>
+        <span>오늘 내줄 숙제</span>
+      </div>
+      {loading ? (
+        <p className="settings-empty">불러오는 중이에요…</p>
+      ) : (
+        <div className="learning-board-rows">
+          {rows.map((row) => {
+            const exam = row.exams[0],
+              score = Number(exam.score),
+              max = Number(exam.maxScore);
+            const converted = exam.score !== "" && Number.isFinite(score) && Number.isFinite(max) && max > 0 ? Math.round((score / max) * 1000) / 10 : null;
+            return (
+              <article key={row.id}>
+                <div className="learning-person-attendance">
+                  <span className="learning-student">
+                    <i>{row.name[0]}</i>
+                    <b>{row.name}</b>
+                    <small>{[row.school, row.grade].filter(Boolean).join(" · ")}</small>
+                  </span>
+                  <div className="learning-attendance">
+                    {attendance.map(([status, label]) => (
+                      <button key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving === row.id} onClick={() => void saveAttendance(row, status)}>
+                        {label}
+                      </button>
+                    ))}
+                    {row.status === "late" ? <small>{row.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small> : null}
+                    {row.status === "absent" ? <small>{row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}
+                    {row.status === "present" ? <small>같은 버튼을 다시 누르면 취소</small> : null}
+                  </div>
+                </div>
+                <div className="learning-exam-list">
+                  <div className="learning-exam-card">
+                    <div className="learning-exam-card-actions">
+                      <b>개인별 시험</b>
+                      <button type="button" onClick={() => setCategoryOpen(true)}>
+                        카테고리 관리
+                      </button>
+                    </div>
+                    <div className="learning-exam individual">
+                      <select value={exam.examType} onChange={(event) => updateExam(row.id, { examType: event.target.value })}>
+                        <option value="">종류 선택</option>
+                        {categories
+                          .filter((category) => category.isActive || category.name === exam.examType)
+                          .map((category) => (
+                            <option value={category.name} key={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                      </select>
+                      <input value={exam.examTitle} onChange={(event) => updateExam(row.id, { examTitle: event.target.value })} placeholder="시험명·범위" />
+                      <span>
+                        <input inputMode="decimal" value={exam.score} onChange={(event) => updateExam(row.id, { score: event.target.value })} placeholder="원점수" />
+                        <em>/</em>
+                        <input inputMode="decimal" value={exam.maxScore} onChange={(event) => updateExam(row.id, { maxScore: event.target.value })} placeholder="만점" />
+                      </span>
+                      <input value={exam.evaluation} onChange={(event) => updateExam(row.id, { evaluation: event.target.value })} placeholder="평가·피드백" />
+                    </div>
+                    <small className="exam-percent">{converted === null ? "점수를 입력하면 100점 환산점수가 표시됩니다." : `원점수 ${exam.score}/${exam.maxScore} · 환산 ${converted}점`}</small>
+                  </div>
+                </div>
+                <div className="learning-homework previous">
+                  <p>{row.previousHomework || "지난 숙제 없음"}</p>
+                  <select value={row.inspectionStatus} onChange={(event) => update(row.id, { inspectionStatus: event.target.value })}>
+                    {homework.map(([value, label]) => (
+                      <option value={value} key={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <input value={row.inspectionNote} onChange={(event) => update(row.id, { inspectionNote: event.target.value })} placeholder="검사 메모" />
+                </div>
+                <div className="learning-homework assigned">
+                  <textarea value={row.assignedHomework} onChange={(event) => update(row.id, { assignedHomework: event.target.value })} placeholder="교재·페이지·문제 번호·제출일" rows={4} />
+                </div>
+              </article>
+            );
+          })}
+          {!rows.length ? (
+            <div className="makeup-empty">
+              <p>이 날짜에 학생이 없습니다.</p>
+              <button className="secondary-button" onClick={() => setMakeupOpen(true)}>
+                보충 학생 추가
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
+      {error ? <p className="form-error learning-board-error">{error}</p> : null}
+      <footer>
+        <span>출결은 즉시 저장되며, 지난 숙제는 이전 수업 기록에서 자동으로 이어집니다.</span>
+        <button className="primary" disabled={saving === "all" || !rows.length} onClick={() => void save()}>
+          {saving === "all" ? "저장 중…" : "개인별 기록 저장"}
+        </button>
+      </footer>
+      {monthOpen ? (
+        <Month
+          supabase={supabase}
+          classId={classId}
+          anchor={date}
+          onDate={(value) => {
+            onDate(value);
+            setMonthOpen(false);
+          }}
+          onClose={() => setMonthOpen(false)}
+        />
+      ) : null}
+      {makeupOpen ? (
+        <MakeupModal
+          supabase={supabase}
+          classId={classId}
+          date={date}
+          onClose={() => setMakeupOpen(false)}
+          onSaved={async () => {
+            setMakeupOpen(false);
+            await onReload();
+            await loadWeek();
+          }}
+        />
+      ) : null}
+      {categoryOpen ? <ExamCategoryModal supabase={supabase} categories={categories} onClose={() => setCategoryOpen(false)} onChanged={loadCategories} /> : null}
+    </section>
+  );
 }
-function MakeupModal({supabase,classId,date,onClose,onSaved}:{supabase:SupabaseClient;classId:string;date:string;onClose:()=>void;onSaved:()=>Promise<void>}){const[items,setItems]=useState<Makeup[]>([]),[saving,setSaving]=useState(false),[error,setError]=useState("");useEffect(()=>{void supabase.rpc("staff_class_makeup_options",{p_class_id:classId,p_date:date}).then(({data,error:e})=>e?setError(e.message):setItems(data??[]));},[classId,date,supabase]);const save=async()=>{setSaving(true);const{error:e}=await supabase.rpc("staff_save_class_makeup_students",{p_class_id:classId,p_date:date,p_student_ids:items.filter(x=>x.selected).map(x=>x.id)});if(e){setError(e.message);setSaving(false);}else await onSaved();};return <div className="modal-backdrop nested"><section className="student-modal makeup-student-modal"><header><div><p className="eyebrow">다른 요일 보충</p><h2>보충 학생 선택</h2><span>{date} · 보충 출석도 동일하게 기록됩니다.</span></div><button onClick={onClose}>×</button></header><div className="makeup-student-list">{items.map(x=><button key={x.id} className={x.selected?"active":""} onClick={()=>setItems(v=>v.map(y=>y.id===x.id?{...y,selected:!y.selected}:y))}><i>{x.name[0]}</i><span><b>{x.name}</b><small>{[x.school,x.grade].filter(Boolean).join(" · ")}</small></span><em>{x.selected?"보충 예정":"추가"}</em></button>)}</div>{error?<p className="form-error">{error}</p>:null}<footer><button className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving} onClick={()=>void save()}>{saving?"저장 중…":"보충 학생 저장"}</button></footer></section></div>}
-function Month({supabase,classId,anchor,onDate,onClose}:{supabase:SupabaseClient;classId:string;anchor:string;onDate:(v:string)=>void;onClose:()=>void}){const[month,setMonth]=useState(anchor.slice(0,7)),[days,setDays]=useState<CalendarDay[]>([]);useEffect(()=>{void supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:`${month}-01`,p_view:"month"}).then(({data})=>setDays(data??[]));},[classId,month,supabase]);const offset=days.length?isoWeekday(days[0].date)-1:0;return <div className="modal-backdrop nested"><section className="student-modal class-month-modal"><header><div><p className="eyebrow">전체 출결 현황</p><h2>출석 캘린더</h2></div><button onClick={onClose}>×</button></header><label className="month-picker">조회 월<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label><div className="month-calendar"><div className="month-weekdays">{weekdays.map(x=><b key={x}>{x}</b>)}</div><div className="month-days" style={{"--first-offset":offset} as CSSProperties}>{days.map(d=><button key={d.date} className={d.scheduled?"scheduled":""} onClick={()=>onDate(d.date)}><b>{+d.date.slice(8)}</b><span>{d.students.map(s=><em className={s.status} key={s.id}>{s.name}</em>)}</span></button>)}</div></div></section></div>}
-function isoWeekday(v:string){const d=new Date(`${v}T00:00:00`).getDay();return d===0?7:d;}
+
+function ExamCategoryModal({ supabase, categories, onClose, onChanged }: { supabase: SupabaseClient; categories: ExamCategory[]; onClose: () => void; onChanged: () => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState("");
+  const [error, setError] = useState("");
+  const add = async () => {
+    if (!name.trim()) return;
+    setSaving("new");
+    const { error: addError } = await supabase.rpc("staff_add_exam_category", {
+      p_name: name.trim(),
+    });
+    if (addError) setError(addError.message);
+    else {
+      setName("");
+      await onChanged();
+    }
+    setSaving("");
+  };
+  const change = async (category: ExamCategory, mode: "rename" | "active") => {
+    let nextName = category.name;
+    if (mode === "rename") {
+      const value = prompt("시험 카테고리 이름", category.name);
+      if (value === null || !value.trim()) return;
+      nextName = value.trim();
+    }
+    setSaving(category.id);
+    const { error: changeError } = await supabase.rpc("staff_set_exam_category", {
+      p_id: category.id,
+      p_name: nextName,
+      p_active: mode === "active" ? !category.isActive : category.isActive,
+    });
+    if (changeError) setError(changeError.message);
+    else await onChanged();
+    setSaving("");
+  };
+  return (
+    <div className="modal-backdrop nested">
+      <section className="student-modal exam-category-modal">
+        <header>
+          <div>
+            <p className="eyebrow">개인 설정</p>
+            <h2>시험 카테고리 관리</h2>
+            <span>선생님별로 시험 종류를 추가하고 이름을 바꾸거나 사용 중지할 수 있습니다.</span>
+          </div>
+          <button onClick={onClose}>×</button>
+        </header>
+        <div className="exam-category-add">
+          <input
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void add();
+            }}
+            placeholder="새 시험 카테고리"
+          />
+          <button className="primary" disabled={saving === "new"} onClick={() => void add()}>
+            추가
+          </button>
+        </div>
+        <div className="exam-category-list">
+          {categories.map((category) => (
+            <article key={category.id} className={category.isActive ? "" : "inactive"}>
+              <b>{category.name}</b>
+              <span>
+                <button className="secondary-button" disabled={saving === category.id} onClick={() => void change(category, "rename")}>
+                  이름 변경
+                </button>
+                <button className="secondary-button" disabled={saving === category.id} onClick={() => void change(category, "active")}>
+                  {category.isActive ? "사용 중지" : "다시 사용"}
+                </button>
+              </span>
+            </article>
+          ))}
+        </div>
+        {error ? <p className="form-error">{error}</p> : null}
+        <footer>
+          <button className="primary" onClick={onClose}>
+            완료
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function MakeupModal({ supabase, classId, date, onClose, onSaved }: { supabase: SupabaseClient; classId: string; date: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [items, setItems] = useState<Makeup[]>([]);
+  const [query, setQuery] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void supabase.rpc("staff_class_makeup_options", { p_class_id: classId, p_date: date }).then(({ data, error: loadError }) => (loadError ? setError(loadError.message) : setItems(data ?? [])));
+  }, [classId, date, supabase]);
+  const visible = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return keyword ? items.filter((item) => [item.name, item.school, item.grade].some((value) => value?.toLowerCase().includes(keyword))) : items;
+  }, [items, query]);
+  const save = async () => {
+    setSaving(true);
+    const { error: saveError } = await supabase.rpc("staff_save_class_makeup_students", {
+      p_class_id: classId,
+      p_date: date,
+      p_student_ids: items.filter((item) => item.selected).map((item) => item.id),
+    });
+    if (saveError) {
+      setError(saveError.message);
+      setSaving(false);
+    } else await onSaved();
+  };
+  return (
+    <div className="modal-backdrop nested">
+      <section className="student-modal makeup-student-modal">
+        <header>
+          <div>
+            <p className="eyebrow">보강·추가수업</p>
+            <h2>학생 선택</h2>
+            <span>{date} · 현재 클래스 수강생은 요일과 관계없이 표시됩니다.</span>
+          </div>
+          <button onClick={onClose}>×</button>
+        </header>
+        <label className="makeup-search">
+          학생 검색
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름, 학교, 학년 검색" />
+        </label>
+        <div className="makeup-student-list">
+          {visible.map((item) => (
+            <button key={item.id} className={item.selected ? "active" : ""} onClick={() => setItems((current) => current.map((row) => (row.id === item.id ? { ...row, selected: !row.selected } : row)))}>
+              <i>{item.name[0]}</i>
+              <span>
+                <b>{item.name}</b>
+                <small>{[item.school, item.grade].filter(Boolean).join(" · ")}</small>
+              </span>
+              <em>{item.selected ? "추가됨" : "추가"}</em>
+            </button>
+          ))}
+          {!visible.length ? <p className="settings-empty">조건에 맞는 학생이 없습니다.</p> : null}
+        </div>
+        {error ? <p className="form-error">{error}</p> : null}
+        <footer>
+          <button className="secondary-button" onClick={onClose}>
+            취소
+          </button>
+          <button className="primary" disabled={saving} onClick={() => void save()}>
+            {saving ? "저장 중…" : "학생 저장"}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function Month({ supabase, classId, anchor, onDate, onClose }: { supabase: SupabaseClient; classId: string; anchor: string; onDate: (v: string) => void; onClose: () => void }) {
+  const [month, setMonth] = useState(anchor.slice(0, 7));
+  const [days, setDays] = useState<CalendarDay[]>([]);
+  useEffect(() => {
+    void supabase
+      .rpc("staff_class_attendance_calendar", {
+        p_class_id: classId,
+        p_anchor_date: `${month}-01`,
+        p_view: "month",
+      })
+      .then(({ data }) => setDays(data ?? []));
+  }, [classId, month, supabase]);
+  const offset = days.length ? isoWeekday(days[0].date) - 1 : 0;
+  return (
+    <div className="modal-backdrop nested">
+      <section className="student-modal class-month-modal">
+        <header>
+          <div>
+            <p className="eyebrow">전체 출결 현황</p>
+            <h2>출석 캘린더</h2>
+          </div>
+          <button onClick={onClose}>×</button>
+        </header>
+        <label className="month-picker">
+          조회 월
+          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+        </label>
+        <div className="month-calendar">
+          <div className="month-weekdays">
+            {weekdays.map((day) => (
+              <b key={day}>{day}</b>
+            ))}
+          </div>
+          <div className="month-days" style={{ "--first-offset": offset } as CSSProperties}>
+            {days.map((day) => (
+              <button key={day.date} className={day.scheduled ? "scheduled" : ""} onClick={() => onDate(day.date)}>
+                <b>{+day.date.slice(8)}</b>
+                <span>
+                  {day.students.map((student) => (
+                    <em className={student.status === "excused" ? "absent" : student.status} key={student.id}>
+                      {student.name}
+                    </em>
+                  ))}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function isoWeekday(value: string) {
+  const day = new Date(`${value}T00:00:00`).getDay();
+  return day === 0 ? 7 : day;
+}
