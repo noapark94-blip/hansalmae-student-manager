@@ -32,6 +32,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [anchorDate, setAnchorDate] = useState(today());
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }] = await Promise.all([
@@ -51,6 +52,12 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     const keyword = query.trim().toLocaleLowerCase("ko");
     return keyword ? students.filter((item) => [item.name, item.school, item.grade].some((value) => value?.toLocaleLowerCase("ko").includes(keyword))) : students;
   }, [query, students]);
+  const week = useMemo(() => weekDates(anchorDate), [anchorDate]);
+  const sessionsByDate = useMemo(() => {
+    const grouped = new Map<string, Session[]>();
+    sessions.forEach((session) => grouped.set(session.date, [...(grouped.get(session.date) ?? []), session]));
+    return grouped;
+  }, [sessions]);
   const edit = (session: Session) => setDraft({ id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -90,8 +97,18 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
         <button className="primary" onClick={() => { setError(""); setDraft(blank()); }}>＋ 일정 등록</button>
       </header>
       {error ? <p className="form-error special-lesson-error">{error}</p> : null}
+      <section className="special-week-calendar">
+        <header><div><h3>이번 주 출석부</h3><p>날짜를 누르면 일정을 등록하고, 등록된 수업을 누르면 출결·시험·숙제를 기록합니다.</p></div><div><button className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>이전 주</button><button className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button><button className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>다음 주</button></div></header>
+        <div className="class-week-strip special-week-strip">{week.map((date, index) => {
+          const daySessions = sessionsByDate.get(date) ?? [];
+          return <div key={date} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`}>
+            <button className="special-week-day" onClick={() => { setAnchorDate(date); if (!daySessions.length) setDraft({ ...blank(), date }); }}><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 등록"}</small></button>
+            {daySessions.map((session) => <button key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={() => { setAnchorDate(date); setActiveSession(session); }}><b>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</b><span>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
+          </div>;
+        })}</div>
+      </section>
       {loading ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
-        <div className="special-lesson-list">
+        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /> : <div className="special-lesson-list">
           {sessions.map((session) => <article key={session.id}>
             <i />
             <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
@@ -111,10 +128,12 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           {error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setDraft(null)}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
         </form>
       </section></div> : null}
-      {activeSession ? <div className="modal-backdrop nested"><SpecialLessonLearningBoard supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /></div> : null}
     </section>
   );
 }
 
 function today() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", weekday: "short" }).format(new Date(`${value}T00:00:00+09:00`)); }
+const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+function shiftDate(value: string, days: number) { const date = new Date(`${value}T00:00:00+09:00`); date.setDate(date.getDate() + days); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); }
+function weekDates(value: string) { const date = new Date(`${value}T00:00:00+09:00`); const mondayOffset = (date.getDay() + 6) % 7; date.setDate(date.getDate() - mondayOffset); return Array.from({ length: 7 }, (_, index) => { const current = new Date(date); current.setDate(date.getDate() + index); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(current); }); }
