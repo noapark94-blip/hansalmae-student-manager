@@ -7,6 +7,7 @@ import type { Profile } from "./supabase";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
+import { TeacherSpecialLessons } from "./teacher-special-lessons";
 
 type Subject = {
   id: string;
@@ -103,6 +104,7 @@ type StudentExamResult = {
   feedback: string;
 };
 const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+const specialLessonsId = "__teacher_special_lessons__";
 
 export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; onClassesChanged?: () => void | Promise<void> }) {
   const [data, setData] = useState<Workspace | null>(null);
@@ -141,7 +143,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
       return (ai < 0 ? 99999 : ai) - (bi < 0 ? 99999 : bi) || a.name.localeCompare(b.name, "ko");
     });
     setData(workspace);
-    setSelectedId((current) => (workspace.classes.some((item) => item.id === current) ? current : (workspace.classes[0]?.id ?? "")));
+    setSelectedId((current) => (current === specialLessonsId || workspace.classes.some((item) => item.id === current) ? current : (workspace.classes[0]?.id ?? specialLessonsId)));
     setLoading(false);
   }, [supabase]);
   useEffect(() => {
@@ -149,7 +151,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
   }, [load]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const loadDay = useCallback(async () => {
-    if (!selectedId) return setDay(null);
+    if (!selectedId || selectedId === specialLessonsId) return setDay(null);
     const { data: next, error: dayError } = await supabase.rpc("staff_class_day", { p_class_id: selectedId, p_date: date });
     if (dayError) setError("선택한 날짜의 출석부를 불러오지 못했습니다.");
     else setDay(next as DayData);
@@ -181,8 +183,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
       </div>
       {error && <p className="attendance-error">{error}</p>}
       <section className="teacher-class-cards">
-        {data?.classes.length ? (
-          data.classes.map((item) => (
+        {data?.classes.map((item) => (
             <button key={item.id} {...classSortable.itemProps(item.id)} data-drag-handle className={`${selectedId === item.id ? "active" : ""} ${classSortable.draggingId === item.id ? "dragging" : ""}`.trim()} onClick={() => setSelectedId(item.id)} style={{ "--class-color": item.color } as CSSProperties} aria-label={`${item.name}. 길게 눌러 순서 이동`}>
               <i />
               <span>
@@ -195,16 +196,15 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
               </span>
               <strong>{item.students.length}명</strong>
             </button>
-          ))
-        ) : (
-          <div className="panel teacher-workspace-empty">
-            아직 담당 클래스로 배정된 수업이 없습니다.
-            <br />
-            관리자에게 클래스 담당 배정을 요청해 주세요.
-          </div>
-        )}
+          ))}
+        <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
+          <i />
+          <span><small>{profile.role === "admin" ? "전체 선생님 통합" : "선생님 전용"}</small><b>개별 보강·추가수업</b><em>날짜·요일·시간 제한 없이 별도 일정 관리</em></span>
+          <strong>전용</strong>
+        </button>
       </section>
       {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} />}
+      {selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
       {subjectOpen && (
         <SubjectEditor
           supabase={supabase}
@@ -298,7 +298,7 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
           </button>
         </div>
       </header>
-      {!validDay && <p className="class-day-notice">선택한 날짜에는 정규 수업이 없습니다. 보충 학생을 추가하면 출석·시험·숙제를 기록할 수 있습니다.</p>}
+      {!validDay && <p className="class-day-notice">선택한 날짜에는 정규 수업이 없습니다. 보강·추가수업은 클래스 목록의 회색 전용 블록에서 등록해 주세요.</p>}
       <ClassLearningBoard
         key={`${classRoom.id}-${date}`}
         supabase={supabase}

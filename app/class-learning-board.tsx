@@ -36,13 +36,6 @@ type CalendarDay = {
   scheduled: boolean;
   students: { id: string; name: string; status: Status | "excused" }[];
 };
-type Makeup = {
-  id: string;
-  name: string;
-  school: string | null;
-  grade: string | null;
-  selected: boolean;
-};
 type ExamResult = {
   studentId: string;
   exams: {
@@ -100,7 +93,6 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
   const [monthOpen, setMonthOpen] = useState(false);
-  const [makeupOpen, setMakeupOpen] = useState(false);
 
   const loadWeek = useCallback(async () => {
     const { data } = await supabase.rpc("staff_class_attendance_calendar", {
@@ -247,9 +239,7 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
       update(row.id, { status, lateMinutes: late, absenceReason: reason });
       await loadWeek();
       if (status === "absent") {
-        const now = confirm("결석이 저장되었습니다. 보강 학생을 지금 등록하시겠습니까?\n\n확인: 지금 등록 / 취소: 나중에 등록");
-        if (now) setMakeupOpen(true);
-        else alert("보강·추가수업 메뉴의 ‘날짜 미정’에서 나중에 일정을 정해 주세요.");
+        alert("결석이 저장되었습니다. 보강이 필요하면 클래스 목록의 회색 ‘개별 보강·추가수업’ 블록에서 일정을 등록해 주세요.");
       }
     }
     setSaving("");
@@ -315,9 +305,6 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
           <p>학생별 출석·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</p>
         </div>
         <div className="learning-header-actions">
-          <button className="secondary-button" onClick={() => setMakeupOpen(true)}>
-            ＋ 보충 학생
-          </button>
           <button className="secondary-button" onClick={() => setMonthOpen(true)}>
             전체 출석 캘린더
           </button>
@@ -426,10 +413,7 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
           })}
           {!rows.length ? (
             <div className="makeup-empty">
-              <p>이 날짜에 학생이 없습니다.</p>
-              <button className="secondary-button" onClick={() => setMakeupOpen(true)}>
-                보충 학생 추가
-              </button>
+              <p>이 날짜에 등록된 정규 수강생이 없습니다.</p>
             </div>
           ) : null}
         </div>
@@ -451,19 +435,6 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
             setMonthOpen(false);
           }}
           onClose={() => setMonthOpen(false)}
-        />
-      ) : null}
-      {makeupOpen ? (
-        <MakeupModal
-          supabase={supabase}
-          classId={classId}
-          date={date}
-          onClose={() => setMakeupOpen(false)}
-          onSaved={async () => {
-            setMakeupOpen(false);
-            await onReload();
-            await loadWeek();
-          }}
         />
       ) : null}
       {categoryOpen ? <ExamCategoryModal supabase={supabase} categories={categories} onClose={() => setCategoryOpen(false)} onChanged={loadCategories} /> : null}
@@ -549,72 +520,6 @@ function ExamCategoryModal({ supabase, categories, onClose, onChanged }: { supab
         <footer>
           <button className="primary" onClick={onClose}>
             완료
-          </button>
-        </footer>
-      </section>
-    </div>
-  );
-}
-
-function MakeupModal({ supabase, classId, date, onClose, onSaved }: { supabase: SupabaseClient; classId: string; date: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [items, setItems] = useState<Makeup[]>([]);
-  const [query, setQuery] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    void supabase.rpc("staff_class_makeup_options", { p_class_id: classId, p_date: date }).then(({ data, error: loadError }) => (loadError ? setError(loadError.message) : setItems(data ?? [])));
-  }, [classId, date, supabase]);
-  const visible = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    return keyword ? items.filter((item) => [item.name, item.school, item.grade].some((value) => value?.toLowerCase().includes(keyword))) : items;
-  }, [items, query]);
-  const save = async () => {
-    setSaving(true);
-    const { error: saveError } = await supabase.rpc("staff_save_class_makeup_students", {
-      p_class_id: classId,
-      p_date: date,
-      p_student_ids: items.filter((item) => item.selected).map((item) => item.id),
-    });
-    if (saveError) {
-      setError(saveError.message);
-      setSaving(false);
-    } else await onSaved();
-  };
-  return (
-    <div className="modal-backdrop nested">
-      <section className="student-modal makeup-student-modal">
-        <header>
-          <div>
-            <p className="eyebrow">보강·추가수업</p>
-            <h2>학생 선택</h2>
-            <span>{date} · 현재 클래스 수강생은 요일과 관계없이 표시됩니다.</span>
-          </div>
-          <button onClick={onClose}>×</button>
-        </header>
-        <label className="makeup-search">
-          학생 검색
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름, 학교, 학년 검색" />
-        </label>
-        <div className="makeup-student-list">
-          {visible.map((item) => (
-            <button key={item.id} className={item.selected ? "active" : ""} onClick={() => setItems((current) => current.map((row) => (row.id === item.id ? { ...row, selected: !row.selected } : row)))}>
-              <i>{item.name[0]}</i>
-              <span>
-                <b>{item.name}</b>
-                <small>{[item.school, item.grade].filter(Boolean).join(" · ")}</small>
-              </span>
-              <em>{item.selected ? "추가됨" : "추가"}</em>
-            </button>
-          ))}
-          {!visible.length ? <p className="settings-empty">조건에 맞는 학생이 없습니다.</p> : null}
-        </div>
-        {error ? <p className="form-error">{error}</p> : null}
-        <footer>
-          <button className="secondary-button" onClick={onClose}>
-            취소
-          </button>
-          <button className="primary" disabled={saving} onClick={() => void save()}>
-            {saving ? "저장 중…" : "학생 저장"}
           </button>
         </footer>
       </section>
