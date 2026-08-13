@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
+import { SpecialLessonLearningBoard } from "./special-lesson-learning-board";
 
 type Student = { id: string; name: string; school: string | null; grade: string | null };
 type Session = {
@@ -26,6 +27,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,7 +96,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
             <i />
             <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
             {profile.role === "admin" ? <mark>{session.teacherName}</mark> : null}
-            <div>{session.teacherId === profile.id ? <button className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
+            <div><button className="primary compact" onClick={() => setActiveSession(session)}>수업 관리</button>{session.teacherId === profile.id ? <button className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
           </article>)}
           {!sessions.length ? <p className="settings-empty">등록된 보강·추가수업 일정이 없습니다.</p> : null}
         </div>
@@ -109,6 +111,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           {error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setDraft(null)}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
         </form>
       </section></div> : null}
+      {activeSession ? <div className="modal-backdrop nested"><SpecialLessonLearningBoard supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /></div> : null}
     </section>
   );
 }
