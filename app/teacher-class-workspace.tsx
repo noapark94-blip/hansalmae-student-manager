@@ -8,136 +8,1324 @@ import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
 
-type Subject={id:string;name:string;mainSubject:"국어"|"영어"|"수학";parentId:string|null};
-type Schedule={id:string;weekday:number;startTime:string;endTime:string};
-type Student={id:string;name:string;school:string|null;grade:string|null};
-type ClassRoom={id:string;name:string;subject:string;subjectId:string|null;room:string|null;color:string;schedules:Schedule[];students:Student[]};
-type Named={id:string;name:string};
-type ManagedClass={id:string;name:string;subject:string;subjectId:string|null;room:string|null;color:string;active:boolean;schedules:Schedule[];teachers:Named[];enrollmentCount:number;scheduleCount:number;lessonCount:number;assignmentCount:number};
-type Workspace={subjects:Subject[];classes:ClassRoom[]};
-type AttendanceStatus="present"|"late"|"absent"|"excused";
-type DayStudent=Student&{status:AttendanceStatus|null;lateMinutes:number|null;absenceReason:string|null;note:string|null};
-type DayData={lessonId:string|null;examContent:string|null;lessonContent:string|null;homeworkContent:string|null;students:DayStudent[]};
-type RosterStudent={id:string;name:string;school:string|null;grade:string|null;status:string;enrollments:{class_id:string;status:string;classes?:{name:string;subject:string}|null}[]};
-type LessonHistoryItem={id:string;lessonDate:string;startsAt:string;examContent:string|null;lessonContent:string|null;homeworkContent:string|null;teacherName:string;present:number;late:number;absent:number;excused:number;updatedAt:string};
-type StudentExamResult={studentId:string;studentName:string;school:string|null;grade:string|null;score:string;maxScore:string;evaluation:string;feedback:string};
-const weekdays=["월","화","수","목","금","토","일"];
+type Subject = {
+  id: string;
+  name: string;
+  mainSubject: "국어" | "영어" | "수학";
+  parentId: string | null;
+};
+type Schedule = {
+  id: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+};
+type Student = {
+  id: string;
+  name: string;
+  school: string | null;
+  grade: string | null;
+};
+type ClassRoom = {
+  id: string;
+  name: string;
+  subject: string;
+  subjectId: string | null;
+  room: string | null;
+  color: string;
+  schedules: Schedule[];
+  students: Student[];
+};
+type Named = { id: string; name: string };
+type ManagedClass = {
+  id: string;
+  name: string;
+  subject: string;
+  subjectId: string | null;
+  room: string | null;
+  color: string;
+  active: boolean;
+  schedules: Schedule[];
+  teachers: Named[];
+  enrollmentCount: number;
+  scheduleCount: number;
+  lessonCount: number;
+  assignmentCount: number;
+};
+type Workspace = { subjects: Subject[]; classes: ClassRoom[] };
+type AttendanceStatus = "present" | "late" | "absent";
+type DayStudent = Student & {
+  status: AttendanceStatus | null;
+  lateMinutes: number | null;
+  absenceReason: string | null;
+  note: string | null;
+};
+type DayData = {
+  lessonId: string | null;
+  examContent: string | null;
+  lessonContent: string | null;
+  homeworkContent: string | null;
+  students: DayStudent[];
+};
+type RosterStudent = {
+  id: string;
+  name: string;
+  school: string | null;
+  grade: string | null;
+  status: string;
+  enrollments: {
+    class_id: string;
+    status: string;
+    classes?: { name: string; subject: string } | null;
+  }[];
+};
+type LessonHistoryItem = {
+  id: string;
+  lessonDate: string;
+  startsAt: string;
+  examContent: string | null;
+  lessonContent: string | null;
+  homeworkContent: string | null;
+  teacherName: string;
+  present: number;
+  late: number;
+  absent: number;
+  updatedAt: string;
+};
+type StudentExamResult = {
+  studentId: string;
+  studentName: string;
+  school: string | null;
+  grade: string | null;
+  score: string;
+  maxScore: string;
+  evaluation: string;
+  feedback: string;
+};
+const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
 
-export function TeacherClassWorkspace({supabase,profile,manageOnly=false,onClassesChanged}:{supabase:SupabaseClient;profile:Profile;manageOnly?:boolean;onClassesChanged?:()=>void|Promise<void>}){
-  const[data,setData]=useState<Workspace|null>(null);const[selectedId,setSelectedId]=useState("");const[date,setDate]=useState(today());const[day,setDay]=useState<DayData|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[subjectOpen,setSubjectOpen]=useState(false);const[classOpen,setClassOpen]=useState(false);const[manageOpen,setManageOpen]=useState(false);
-  const classSortable=useSortableOrder((activeId,overId)=>setData((current)=>{if(!current)return current;const classes=reorderById(current.classes,activeId,overId);void supabase.rpc("save_user_class_order",{p_ids:classes.map((item)=>item.id)});return{...current,classes};}));
-  const load=useCallback(async()=>{setLoading(true);setError("");const[{data:next,error:loadError},{data:preferences}]=await Promise.all([supabase.rpc("teacher_class_workspace"),supabase.rpc("user_list_preferences")]);if(loadError||!next){setError("담당 클래스 정보를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");setLoading(false);return;}const workspace=next as Workspace;const order=((preferences as {classOrder?:string[]}|null)?.classOrder??[]);workspace.classes.sort((a,b)=>{const ai=order.indexOf(a.id),bi=order.indexOf(b.id);return(ai<0?99999:ai)-(bi<0?99999:bi)||a.name.localeCompare(b.name,"ko");});setData(workspace);setSelectedId((current)=>workspace.classes.some((item)=>item.id===current)?current:workspace.classes[0]?.id??"");setLoading(false);},[supabase]);
-  useEffect(()=>{void load();},[load]);
-  const selected=data?.classes.find((item)=>item.id===selectedId);
-  const loadDay=useCallback(async()=>{if(!selectedId)return setDay(null);const{data:next,error:dayError}=await supabase.rpc("staff_class_day",{p_class_id:selectedId,p_date:date});if(dayError)setError("선택한 날짜의 출석부를 불러오지 못했습니다.");else setDay(next as DayData);},[date,selectedId,supabase]);
-  useEffect(()=>{void loadDay();},[loadDay]);
-  if(loading)return <section className="panel teacher-workspace-empty">담당 클래스를 불러오는 중이에요…</section>;
-  if(error&&!data)return <section className="panel teacher-workspace-empty error">{error}</section>;
-  return <><div className="teacher-home-heading"><div><p className="eyebrow">{profile.role==="admin"?"전체 클래스 운영":"나의 수업 공간"}</p><h1>{profile.display_name} 선생님 클래스</h1><p>클래스를 선택하면 출석부와 수업 내용을 한 화면에서 기록할 수 있습니다.</p></div><div className="teacher-home-actions"><button className="secondary-button" onClick={()=>setManageOpen(true)}>{manageOnly?"전체 클래스 관리":"클래스 관리"}</button><button className="secondary-button" onClick={()=>setSubjectOpen(true)}>＋ 하위과목 추가</button><button className="primary" onClick={()=>setClassOpen(true)}>＋ 새 클래스</button></div></div>
-    {error&&<p className="attendance-error">{error}</p>}
-    <section className="teacher-class-cards">{data?.classes.length?data.classes.map((item)=><button key={item.id} {...classSortable.itemProps(item.id)} data-drag-handle className={`${selectedId===item.id?"active":""} ${classSortable.draggingId===item.id?"dragging":""}`.trim()} onClick={()=>setSelectedId(item.id)} style={{"--class-color":item.color} as CSSProperties} aria-label={`${item.name}. 길게 눌러 순서 이동`}><i/><span><small>{item.subject}</small><b>{item.name}</b><em>{scheduleText(item.schedules)}{item.room?` · ${item.room}`:""}</em></span><strong>{item.students.length}명</strong></button>):<div className="panel teacher-workspace-empty">아직 담당 클래스로 배정된 수업이 없습니다.<br/>관리자에게 클래스 담당 배정을 요청해 주세요.</div>}</section>
-    {selected&&<ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load}/>}
-    {subjectOpen&&<SubjectEditor supabase={supabase} subjects={data?.subjects??[]} onClose={()=>setSubjectOpen(false)} onSaved={async()=>{setSubjectOpen(false);await load();}}/>}
-    {classOpen&&<ClassCreator supabase={supabase} profile={profile} subjects={data?.subjects??[]} onClose={()=>setClassOpen(false)} onSaved={async()=>{setClassOpen(false);await load();await onClassesChanged?.();}}/>}
-    {manageOpen&&<ClassManager supabase={supabase} profile={profile} subjects={data?.subjects??[]} onClose={()=>setManageOpen(false)} onSaved={async()=>{await load();await onClassesChanged?.();}}/>}
-  </>;
+export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; onClassesChanged?: () => void | Promise<void> }) {
+  const [data, setData] = useState<Workspace | null>(null);
+  const [selectedId, setSelectedId] = useState("");
+  const [date, setDate] = useState(today());
+  const [day, setDay] = useState<DayData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [subjectOpen, setSubjectOpen] = useState(false);
+  const [classOpen, setClassOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const classSortable = useSortableOrder((activeId, overId) =>
+    setData((current) => {
+      if (!current) return current;
+      const classes = reorderById(current.classes, activeId, overId);
+      void supabase.rpc("save_user_class_order", {
+        p_ids: classes.map((item) => item.id),
+      });
+      return { ...current, classes };
+    }),
+  );
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const [{ data: next, error: loadError }, { data: preferences }] = await Promise.all([supabase.rpc("teacher_class_workspace"), supabase.rpc("user_list_preferences")]);
+    if (loadError || !next) {
+      setError("담당 클래스 정보를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
+      setLoading(false);
+      return;
+    }
+    const workspace = next as Workspace;
+    const order = (preferences as { classOrder?: string[] } | null)?.classOrder ?? [];
+    workspace.classes.sort((a, b) => {
+      const ai = order.indexOf(a.id),
+        bi = order.indexOf(b.id);
+      return (ai < 0 ? 99999 : ai) - (bi < 0 ? 99999 : bi) || a.name.localeCompare(b.name, "ko");
+    });
+    setData(workspace);
+    setSelectedId((current) => (workspace.classes.some((item) => item.id === current) ? current : (workspace.classes[0]?.id ?? "")));
+    setLoading(false);
+  }, [supabase]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const selected = data?.classes.find((item) => item.id === selectedId);
+  const loadDay = useCallback(async () => {
+    if (!selectedId) return setDay(null);
+    const { data: next, error: dayError } = await supabase.rpc("staff_class_day", { p_class_id: selectedId, p_date: date });
+    if (dayError) setError("선택한 날짜의 출석부를 불러오지 못했습니다.");
+    else setDay(next as DayData);
+  }, [date, selectedId, supabase]);
+  useEffect(() => {
+    void loadDay();
+  }, [loadDay]);
+  if (loading) return <section className="panel teacher-workspace-empty">담당 클래스를 불러오는 중이에요…</section>;
+  if (error && !data) return <section className="panel teacher-workspace-empty error">{error}</section>;
+  return (
+    <>
+      <div className="teacher-home-heading">
+        <div>
+          <p className="eyebrow">{profile.role === "admin" ? "전체 클래스 운영" : "나의 수업 공간"}</p>
+          <h1>{profile.display_name} 선생님 클래스</h1>
+          <p>클래스를 선택하면 출석부와 수업 내용을 한 화면에서 기록할 수 있습니다.</p>
+        </div>
+        <div className="teacher-home-actions">
+          <button className="secondary-button" onClick={() => setManageOpen(true)}>
+            {manageOnly ? "전체 클래스 관리" : "클래스 관리"}
+          </button>
+          <button className="secondary-button" onClick={() => setSubjectOpen(true)}>
+            ＋ 하위과목 추가
+          </button>
+          <button className="primary" onClick={() => setClassOpen(true)}>
+            ＋ 새 클래스
+          </button>
+        </div>
+      </div>
+      {error && <p className="attendance-error">{error}</p>}
+      <section className="teacher-class-cards">
+        {data?.classes.length ? (
+          data.classes.map((item) => (
+            <button key={item.id} {...classSortable.itemProps(item.id)} data-drag-handle className={`${selectedId === item.id ? "active" : ""} ${classSortable.draggingId === item.id ? "dragging" : ""}`.trim()} onClick={() => setSelectedId(item.id)} style={{ "--class-color": item.color } as CSSProperties} aria-label={`${item.name}. 길게 눌러 순서 이동`}>
+              <i />
+              <span>
+                <small>{item.subject}</small>
+                <b>{item.name}</b>
+                <em>
+                  {scheduleText(item.schedules)}
+                  {item.room ? ` · ${item.room}` : ""}
+                </em>
+              </span>
+              <strong>{item.students.length}명</strong>
+            </button>
+          ))
+        ) : (
+          <div className="panel teacher-workspace-empty">
+            아직 담당 클래스로 배정된 수업이 없습니다.
+            <br />
+            관리자에게 클래스 담당 배정을 요청해 주세요.
+          </div>
+        )}
+      </section>
+      {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} />}
+      {subjectOpen && (
+        <SubjectEditor
+          supabase={supabase}
+          subjects={data?.subjects ?? []}
+          onClose={() => setSubjectOpen(false)}
+          onSaved={async () => {
+            setSubjectOpen(false);
+            await load();
+          }}
+        />
+      )}
+      {classOpen && (
+        <ClassCreator
+          supabase={supabase}
+          profile={profile}
+          subjects={data?.subjects ?? []}
+          onClose={() => setClassOpen(false)}
+          onSaved={async () => {
+            setClassOpen(false);
+            await load();
+            await onClassesChanged?.();
+          }}
+        />
+      )}
+      {manageOpen && (
+        <ClassManager
+          supabase={supabase}
+          profile={profile}
+          subjects={data?.subjects ?? []}
+          onClose={() => setManageOpen(false)}
+          onSaved={async () => {
+            await load();
+            await onClassesChanged?.();
+          }}
+        />
+      )}
+    </>
+  );
 }
 
-function ClassDayPanel({supabase,classRoom,date,onDate,day,onReload,onWorkspaceReload}:{supabase:SupabaseClient;classRoom:ClassRoom;date:string;onDate:(value:string)=>void;day:DayData|null;onReload:()=>Promise<void>;onWorkspaceReload:()=>Promise<void>}){
-  const[saving,setSaving]=useState("");const[error,setError]=useState("");const[rosterOpen,setRosterOpen]=useState(false);
-  const validDay=useMemo(()=>classRoom.schedules.some((item)=>item.weekday===isoWeekday(date)),[classRoom.schedules,date]);
-  const archive=async()=>{if(!window.confirm(`${classRoom.name} 클래스를 운영 종료할까요?\n학생·출결·수업 기록은 보존됩니다.`))return;setSaving("archive");const{error:archiveError}=await supabase.rpc("staff_archive_class",{p_class_id:classRoom.id});if(archiveError){setError(archiveError.message);setSaving("");return;}window.location.reload();};
-  const remove=async()=>{if(!window.confirm(`${classRoom.name} 클래스를 완전히 삭제할까요?\n기록이 하나라도 있으면 삭제되지 않습니다.`))return;setSaving("delete");const{error:deleteError}=await supabase.rpc("admin_delete_empty_class",{p_class_id:classRoom.id});if(deleteError){setError(deleteError.message);setSaving("");return;}window.location.reload();};
-  return <section className="panel class-day-workspace"><header><div><p className="eyebrow">{classRoom.subject}</p><h2>{classRoom.name}</h2><span>{scheduleText(classRoom.schedules)}{classRoom.room?` · ${classRoom.room}`:""}</span></div><div className="class-header-actions"><label className="class-date-picker"><span>달력 출석부</span><input type="date" value={date} onChange={(event)=>onDate(event.target.value)}/></label><button type="button" className="secondary-button" disabled={!!saving} onClick={()=>void archive()}>운영 종료</button><button type="button" className="danger-button" disabled={!!saving} onClick={()=>void remove()}>완전 삭제</button></div></header>
-    {!validDay&&<p className="class-day-notice">선택한 날짜에는 정규 수업이 없습니다. 보충 학생을 추가하면 출석·시험·숙제를 기록할 수 있습니다.</p>}
-    <ClassLearningBoard key={`${classRoom.id}-${date}`} supabase={supabase} classId={classRoom.id} date={date} onDate={onDate} students={day?.students??classRoom.students.map(item=>({...item,status:null,lateMinutes:null,absenceReason:null,note:null}))} validDay={validDay} onReload={onReload}/>
-    <div className="class-workspace-grid class-log-grid"><section className="class-roster-shortcut"><div><h3>수강 학생 관리</h3><p>과목·학년에 맞는 학생이 먼저 표시됩니다. 추가·제외해도 이전 기록은 보존됩니다.</p></div><button type="button" className="secondary-button" onClick={()=>setRosterOpen(true)}>학생 추가·제외</button></section></div>
-    {error&&<p className="form-error">{error}</p>}
-    {rosterOpen&&<ClassRosterEditor supabase={supabase} classRoom={classRoom} onClose={()=>setRosterOpen(false)} onSaved={async()=>{setRosterOpen(false);await onWorkspaceReload();await onReload();}}/>}
-  </section>;
+function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWorkspaceReload }: { supabase: SupabaseClient; classRoom: ClassRoom; date: string; onDate: (value: string) => void; day: DayData | null; onReload: () => Promise<void>; onWorkspaceReload: () => Promise<void> }) {
+  const [saving, setSaving] = useState("");
+  const [error, setError] = useState("");
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const validDay = useMemo(() => classRoom.schedules.some((item) => item.weekday === isoWeekday(date)), [classRoom.schedules, date]);
+  const archive = async () => {
+    if (!window.confirm(`${classRoom.name} 클래스를 운영 종료할까요?\n학생·출결·수업 기록은 보존됩니다.`)) return;
+    setSaving("archive");
+    const { error: archiveError } = await supabase.rpc("staff_archive_class", {
+      p_class_id: classRoom.id,
+    });
+    if (archiveError) {
+      setError(archiveError.message);
+      setSaving("");
+      return;
+    }
+    window.location.reload();
+  };
+  const remove = async () => {
+    if (!window.confirm(`${classRoom.name} 클래스를 완전히 삭제할까요?\n기록이 하나라도 있으면 삭제되지 않습니다.`)) return;
+    setSaving("delete");
+    const { error: deleteError } = await supabase.rpc("admin_delete_empty_class", { p_class_id: classRoom.id });
+    if (deleteError) {
+      setError(deleteError.message);
+      setSaving("");
+      return;
+    }
+    window.location.reload();
+  };
+  return (
+    <section className="panel class-day-workspace">
+      <header>
+        <div>
+          <p className="eyebrow">{classRoom.subject}</p>
+          <h2>{classRoom.name}</h2>
+          <span>
+            {scheduleText(classRoom.schedules)}
+            {classRoom.room ? ` · ${classRoom.room}` : ""}
+          </span>
+        </div>
+        <div className="class-header-actions">
+          <label className="class-date-picker">
+            <span>달력 출석부</span>
+            <input type="date" value={date} onChange={(event) => onDate(event.target.value)} />
+          </label>
+          <button type="button" className="secondary-button" disabled={!!saving} onClick={() => void archive()}>
+            운영 종료
+          </button>
+          <button type="button" className="danger-button" disabled={!!saving} onClick={() => void remove()}>
+            완전 삭제
+          </button>
+        </div>
+      </header>
+      {!validDay && <p className="class-day-notice">선택한 날짜에는 정규 수업이 없습니다. 보충 학생을 추가하면 출석·시험·숙제를 기록할 수 있습니다.</p>}
+      <ClassLearningBoard
+        key={`${classRoom.id}-${date}`}
+        supabase={supabase}
+        classId={classRoom.id}
+        date={date}
+        onDate={onDate}
+        students={
+          day?.students ??
+          classRoom.students.map((item) => ({
+            ...item,
+            status: null,
+            lateMinutes: null,
+            absenceReason: null,
+            note: null,
+          }))
+        }
+        validDay={validDay}
+        onReload={onReload}
+      />
+      <div className="class-workspace-grid class-log-grid">
+        <section className="class-roster-shortcut">
+          <div>
+            <h3>수강 학생 관리</h3>
+            <p>과목·학년에 맞는 학생이 먼저 표시됩니다. 추가·제외해도 이전 기록은 보존됩니다.</p>
+          </div>
+          <button type="button" className="secondary-button" onClick={() => setRosterOpen(true)}>
+            학생 추가·제외
+          </button>
+        </section>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      {rosterOpen && (
+        <ClassRosterEditor
+          supabase={supabase}
+          classRoom={classRoom}
+          onClose={() => setRosterOpen(false)}
+          onSaved={async () => {
+            setRosterOpen(false);
+            await onWorkspaceReload();
+            await onReload();
+          }}
+        />
+      )}
+    </section>
+  );
 }
 
-function StudentExamResultEditor({supabase,classRoom,date,examTitle,onClose,onSaved}:{supabase:SupabaseClient;classRoom:ClassRoom;date:string;examTitle:string;onClose:()=>void;onSaved:()=>Promise<void>}){
-  const[results,setResults]=useState<StudentExamResult[]>([]);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState("");
-  useEffect(()=>{let active=true;void supabase.rpc("staff_class_exam_results",{p_class_id:classRoom.id,p_date:date}).then(({data,error:loadError})=>{if(!active)return;if(loadError)setError("학생별 시험 결과를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");else setResults(((data??[]) as Array<Omit<StudentExamResult,"score"|"maxScore">&{score:number|null;maxScore:number|null}>).map((item)=>({...item,score:item.score===null?"":String(item.score),maxScore:String(item.maxScore??100)})));setLoading(false);});return()=>{active=false;};},[classRoom.id,date,supabase]);
-  const update=(studentId:string,key:"score"|"maxScore"|"evaluation"|"feedback",value:string)=>setResults((current)=>current.map((item)=>item.studentId===studentId?{...item,[key]:value}:item));
-  const submit=async(event:FormEvent)=>{event.preventDefault();for(const item of results){if(item.score!==""&&(!Number.isFinite(Number(item.score))||Number(item.score)<0))return setError(`${item.studentName} 학생의 점수를 0 이상의 숫자로 입력해 주세요.`);if(!Number.isFinite(Number(item.maxScore))||Number(item.maxScore)<=0)return setError(`${item.studentName} 학생의 만점을 0보다 큰 숫자로 입력해 주세요.`);if(item.score!==""&&Number(item.score)>Number(item.maxScore))return setError(`${item.studentName} 학생의 점수가 만점보다 큽니다.`);}setSaving(true);setError("");const payload=results.map((item)=>({studentId:item.studentId,score:item.score===""?null:Number(item.score),maxScore:Number(item.maxScore),evaluation:item.evaluation.trim()||null,feedback:item.feedback.trim()||null}));const{error:saveError}=await supabase.rpc("staff_save_class_exam_results",{p_class_id:classRoom.id,p_date:date,p_results:payload});if(saveError){setError(saveError.message.includes("점수")||saveError.message.includes("담당")?saveError.message:"시험 결과를 저장하지 못했습니다.");setSaving(false);return;}await onSaved();};
-  return <div className="modal-backdrop nested" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal exam-result-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">학생별 시험 기록</p><h2>{classRoom.name}</h2><span>{formatLessonDate(date)} · {examTitle.trim()||"시험명을 수업 기록에 입력해 주세요."}</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}>{loading?<p className="settings-empty">학생 목록과 시험 결과를 불러오는 중이에요…</p>:<div className="exam-result-list"><div className="exam-result-head"><span>학생</span><span>점수</span><span>평가</span><span>개별 피드백</span></div>{results.map((item)=><article key={item.studentId}><span className="exam-student"><i>{item.studentName.slice(0,1)}</i><b>{item.studentName}</b><small>{[item.school,item.grade].filter(Boolean).join(" · ")}</small></span><span className="exam-score"><input inputMode="decimal" aria-label={`${item.studentName} 점수`} value={item.score} onChange={(event)=>update(item.studentId,"score",event.target.value)} placeholder="점수"/><em>/</em><input inputMode="decimal" aria-label={`${item.studentName} 만점`} value={item.maxScore} onChange={(event)=>update(item.studentId,"maxScore",event.target.value)} placeholder="만점"/></span><input aria-label={`${item.studentName} 평가`} value={item.evaluation} onChange={(event)=>update(item.studentId,"evaluation",event.target.value)} placeholder="예: 우수, 보완 필요"/><textarea aria-label={`${item.studentName} 피드백`} value={item.feedback} onChange={(event)=>update(item.studentId,"feedback",event.target.value)} placeholder="잘한 점과 보완할 내용을 입력하세요." rows={2}/></article>)}{!results.length&&<p className="settings-empty">이 날짜에 등록된 수강생이 없습니다.</p>}</div>}{error&&<p className="form-error exam-result-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={loading||saving||!results.length}>{saving?"저장 중…":"시험 결과 저장"}</button></footer></form></section></div>;
+function StudentExamResultEditor({ supabase, classRoom, date, examTitle, onClose, onSaved }: { supabase: SupabaseClient; classRoom: ClassRoom; date: string; examTitle: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [results, setResults] = useState<StudentExamResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void supabase
+      .rpc("staff_class_exam_results", {
+        p_class_id: classRoom.id,
+        p_date: date,
+      })
+      .then(({ data, error: loadError }) => {
+        if (!active) return;
+        if (loadError) setError("학생별 시험 결과를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
+        else
+          setResults(
+            (
+              (data ?? []) as Array<
+                Omit<StudentExamResult, "score" | "maxScore"> & {
+                  score: number | null;
+                  maxScore: number | null;
+                }
+              >
+            ).map((item) => ({
+              ...item,
+              score: item.score === null ? "" : String(item.score),
+              maxScore: String(item.maxScore ?? 100),
+            })),
+          );
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [classRoom.id, date, supabase]);
+  const update = (studentId: string, key: "score" | "maxScore" | "evaluation" | "feedback", value: string) => setResults((current) => current.map((item) => (item.studentId === studentId ? { ...item, [key]: value } : item)));
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    for (const item of results) {
+      if (item.score !== "" && (!Number.isFinite(Number(item.score)) || Number(item.score) < 0)) return setError(`${item.studentName} 학생의 점수를 0 이상의 숫자로 입력해 주세요.`);
+      if (!Number.isFinite(Number(item.maxScore)) || Number(item.maxScore) <= 0) return setError(`${item.studentName} 학생의 만점을 0보다 큰 숫자로 입력해 주세요.`);
+      if (item.score !== "" && Number(item.score) > Number(item.maxScore)) return setError(`${item.studentName} 학생의 점수가 만점보다 큽니다.`);
+    }
+    setSaving(true);
+    setError("");
+    const payload = results.map((item) => ({
+      studentId: item.studentId,
+      score: item.score === "" ? null : Number(item.score),
+      maxScore: Number(item.maxScore),
+      evaluation: item.evaluation.trim() || null,
+      feedback: item.feedback.trim() || null,
+    }));
+    const { error: saveError } = await supabase.rpc("staff_save_class_exam_results", { p_class_id: classRoom.id, p_date: date, p_results: payload });
+    if (saveError) {
+      setError(saveError.message.includes("점수") || saveError.message.includes("담당") ? saveError.message : "시험 결과를 저장하지 못했습니다.");
+      setSaving(false);
+      return;
+    }
+    await onSaved();
+  };
+  return (
+    <div
+      className="modal-backdrop nested"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="student-modal exam-result-modal" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="eyebrow">학생별 시험 기록</p>
+            <h2>{classRoom.name}</h2>
+            <span>
+              {formatLessonDate(date)} · {examTitle.trim() || "시험명을 수업 기록에 입력해 주세요."}
+            </span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <form onSubmit={submit}>
+          {loading ? (
+            <p className="settings-empty">학생 목록과 시험 결과를 불러오는 중이에요…</p>
+          ) : (
+            <div className="exam-result-list">
+              <div className="exam-result-head">
+                <span>학생</span>
+                <span>점수</span>
+                <span>평가</span>
+                <span>개별 피드백</span>
+              </div>
+              {results.map((item) => (
+                <article key={item.studentId}>
+                  <span className="exam-student">
+                    <i>{item.studentName.slice(0, 1)}</i>
+                    <b>{item.studentName}</b>
+                    <small>{[item.school, item.grade].filter(Boolean).join(" · ")}</small>
+                  </span>
+                  <span className="exam-score">
+                    <input inputMode="decimal" aria-label={`${item.studentName} 점수`} value={item.score} onChange={(event) => update(item.studentId, "score", event.target.value)} placeholder="점수" />
+                    <em>/</em>
+                    <input inputMode="decimal" aria-label={`${item.studentName} 만점`} value={item.maxScore} onChange={(event) => update(item.studentId, "maxScore", event.target.value)} placeholder="만점" />
+                  </span>
+                  <input aria-label={`${item.studentName} 평가`} value={item.evaluation} onChange={(event) => update(item.studentId, "evaluation", event.target.value)} placeholder="예: 우수, 보완 필요" />
+                  <textarea aria-label={`${item.studentName} 피드백`} value={item.feedback} onChange={(event) => update(item.studentId, "feedback", event.target.value)} placeholder="잘한 점과 보완할 내용을 입력하세요." rows={2} />
+                </article>
+              ))}
+              {!results.length && <p className="settings-empty">이 날짜에 등록된 수강생이 없습니다.</p>}
+            </div>
+          )}
+          {error && <p className="form-error exam-result-error">{error}</p>}
+          <footer>
+            <button type="button" className="secondary-button" onClick={onClose}>
+              취소
+            </button>
+            <button className="primary" disabled={loading || saving || !results.length}>
+              {saving ? "저장 중…" : "시험 결과 저장"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function ClassLessonHistory({supabase,classRoom,onClose,onOpenDate}:{supabase:SupabaseClient;classRoom:ClassRoom;onClose:()=>void;onOpenDate:(date:string)=>void}){
-  const[items,setItems]=useState<LessonHistoryItem[]>([]);const[query,setQuery]=useState("");const[loading,setLoading]=useState(true);const[error,setError]=useState("");
-  useEffect(()=>{let active=true;void supabase.rpc("staff_class_lesson_history",{p_class_id:classRoom.id,p_limit:150}).then(({data,error:loadError})=>{if(!active)return;if(loadError)setError("수업일지를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");else setItems((data??[]) as LessonHistoryItem[]);setLoading(false);});return()=>{active=false;};},[classRoom.id,supabase]);
-  const visible=useMemo(()=>{const keyword=query.trim().toLocaleLowerCase("ko");if(!keyword)return items;return items.filter((item)=>`${item.lessonDate} ${item.teacherName} ${item.examContent??""} ${item.lessonContent??""} ${item.homeworkContent??""}`.toLocaleLowerCase("ko").includes(keyword));},[items,query]);
-  return <div className="modal-backdrop nested" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal lesson-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">날짜별 수업 기록</p><h2>{classRoom.name} 수업일지</h2><span>시험·수업 내용·숙제와 출결 현황을 모아 보고, 원하는 날짜의 기록을 다시 열 수 있습니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><div className="lesson-history-toolbar"><label><span>기록 검색</span><input autoFocus value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="날짜, 시험, 수업 내용, 숙제 검색"/></label><b>전체 {items.length}회</b></div>{loading?<p className="settings-empty">수업일지를 불러오는 중이에요…</p>:error?<p className="form-error lesson-history-error">{error}</p>:<div className="lesson-history-list">{visible.map((item)=><article key={item.id}><header><span><b>{formatLessonDate(item.lessonDate)}</b><small>{item.startsAt.slice(0,5)} · {item.teacherName}</small></span><button type="button" className="secondary-button" onClick={()=>onOpenDate(item.lessonDate)}>이 날짜 열기</button></header><div><LessonHistorySection title="시험" value={item.examContent}/><LessonHistorySection title="수업 내용" value={item.lessonContent}/><LessonHistorySection title="숙제" value={item.homeworkContent}/></div><footer><span className="present">출석 {item.present}</span><span className="late">지각 {item.late}</span><span className="absent">결석 {item.absent}</span><span>공결 {item.excused}</span></footer></article>)}{!visible.length&&<p className="settings-empty">조건에 맞는 수업 기록이 없습니다.</p>}</div>}</section></div>;
+function ClassLessonHistory({ supabase, classRoom, onClose, onOpenDate }: { supabase: SupabaseClient; classRoom: ClassRoom; onClose: () => void; onOpenDate: (date: string) => void }) {
+  const [items, setItems] = useState<LessonHistoryItem[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void supabase
+      .rpc("staff_class_lesson_history", {
+        p_class_id: classRoom.id,
+        p_limit: 150,
+      })
+      .then(({ data, error: loadError }) => {
+        if (!active) return;
+        if (loadError) setError("수업일지를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
+        else setItems((data ?? []) as LessonHistoryItem[]);
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [classRoom.id, supabase]);
+  const visible = useMemo(() => {
+    const keyword = query.trim().toLocaleLowerCase("ko");
+    if (!keyword) return items;
+    return items.filter((item) => `${item.lessonDate} ${item.teacherName} ${item.examContent ?? ""} ${item.lessonContent ?? ""} ${item.homeworkContent ?? ""}`.toLocaleLowerCase("ko").includes(keyword));
+  }, [items, query]);
+  return (
+    <div
+      className="modal-backdrop nested"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="student-modal lesson-history-modal" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="eyebrow">날짜별 수업 기록</p>
+            <h2>{classRoom.name} 수업일지</h2>
+            <span>시험·수업 내용·숙제와 출결 현황을 모아 보고, 원하는 날짜의 기록을 다시 열 수 있습니다.</span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <div className="lesson-history-toolbar">
+          <label>
+            <span>기록 검색</span>
+            <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="날짜, 시험, 수업 내용, 숙제 검색" />
+          </label>
+          <b>전체 {items.length}회</b>
+        </div>
+        {loading ? (
+          <p className="settings-empty">수업일지를 불러오는 중이에요…</p>
+        ) : error ? (
+          <p className="form-error lesson-history-error">{error}</p>
+        ) : (
+          <div className="lesson-history-list">
+            {visible.map((item) => (
+              <article key={item.id}>
+                <header>
+                  <span>
+                    <b>{formatLessonDate(item.lessonDate)}</b>
+                    <small>
+                      {item.startsAt.slice(0, 5)} · {item.teacherName}
+                    </small>
+                  </span>
+                  <button type="button" className="secondary-button" onClick={() => onOpenDate(item.lessonDate)}>
+                    이 날짜 열기
+                  </button>
+                </header>
+                <div>
+                  <LessonHistorySection title="시험" value={item.examContent} />
+                  <LessonHistorySection title="수업 내용" value={item.lessonContent} />
+                  <LessonHistorySection title="숙제" value={item.homeworkContent} />
+                </div>
+                <footer>
+                  <span className="present">출석 {item.present}</span>
+                  <span className="late">지각 {item.late}</span>
+                  <span className="absent">결석 {item.absent}</span>
+                </footer>
+              </article>
+            ))}
+            {!visible.length && <p className="settings-empty">조건에 맞는 수업 기록이 없습니다.</p>}
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
-function LessonHistorySection({title,value}:{title:string;value:string|null}){return <section><b>{title}</b><p className={value?.trim()?"":"empty"}>{value?.trim()||"미입력"}</p></section>}
-
-function formatLessonDate(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date(`${value}T12:00:00+09:00`));}
-
-function ClassRosterEditor({supabase,classRoom,onClose,onSaved}:{supabase:SupabaseClient;classRoom:ClassRoom;onClose:()=>void;onSaved:()=>Promise<void>}){
-  const[students,setStudents]=useState<RosterStudent[]>([]);const[selectedIds,setSelectedIds]=useState<string[]>(classRoom.students.map((item)=>item.id));const[query,setQuery]=useState("");const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState("");
-  useEffect(()=>{let active=true;void supabase.rpc("staff_student_roster").then(({data,error:loadError})=>{if(!active)return;if(loadError)setError("학생 목록을 불러오지 못했습니다.");else setStudents((data??[]) as RosterStudent[]);setLoading(false);});return()=>{active=false;};},[supabase]);
-  const visible=useMemo(()=>{const keyword=query.trim().toLocaleLowerCase("ko");const classGrade=(classRoom.name.match(/(?:초6|중[1-3]|고[1-3]|재수|검정고시)/)?.[0]??"").replace(/\s/g,"");const score=(student:RosterStudent)=>{const grade=(student.grade??"").replace(/\s/g,"");const subjectMatch=student.enrollments.some((item)=>item.status==="active"&&item.classes?.subject===classRoom.subject);return(selectedIds.includes(student.id)?100:0)+(classGrade&&grade===classGrade?20:0)+(subjectMatch?10:0);};return students.filter((student)=>(student.status==="active"||student.status==="재원")&&(!keyword||`${student.name} ${student.school??""} ${student.grade??""}`.toLocaleLowerCase("ko").includes(keyword))).sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name,"ko"));},[classRoom.name,classRoom.subject,query,selectedIds,students]);
-  const toggle=(id:string)=>setSelectedIds((current)=>current.includes(id)?current.filter((item)=>item!==id):[...current,id]);
-  const submit=async(event:FormEvent)=>{event.preventDefault();setSaving(true);setError("");const{error:saveError}=await supabase.rpc("staff_sync_class_roster",{p_class_id:classRoom.id,p_student_ids:selectedIds});if(saveError){setError(saveError.message.includes("담당")?saveError.message:"학생 배정을 저장하지 못했습니다.");setSaving(false);return;}await onSaved();};
-  return <div className="modal-backdrop nested" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal class-roster-editor" role="dialog" aria-modal="true"><header><div><p className="eyebrow">클래스 학생 관리</p><h2>{classRoom.name}</h2><span>검색 전에는 이 반의 과목·학년에 맞는 학생이 먼저 표시됩니다. 제외해도 이전 출결 기록은 보존됩니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><label className="class-roster-search"><span>학생 검색</span><input autoFocus value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="이름, 학교, 학년 검색"/></label><div className="class-roster-summary"><b>수강 예정 {selectedIds.length}명</b><span>추가·제외 후 아래 저장을 눌러 주세요.</span></div>{loading?<p className="settings-empty">학생 목록을 불러오는 중이에요…</p>:<div className="class-roster-picker">{visible.map((student)=>{const selected=selectedIds.includes(student.id);return <div key={student.id} className={selected?"selected":""}><button type="button" className="class-roster-person" onClick={()=>toggle(student.id)} aria-pressed={selected}><i>{student.name.slice(0,1)}</i><span><b>{student.name}</b><small>{[student.school,student.grade].filter(Boolean).join(" · ")||"학교·학년 미입력"}</small></span><em>{selected?"수강":"미배정"}</em></button><button type="button" className={selected?"class-roster-remove":"class-roster-add"} onClick={()=>toggle(student.id)}>{selected?"제외":"추가"}</button></div>})}{!visible.length&&<p className="settings-empty">검색되는 재원생이 없습니다.</p>}</div>}{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={loading||saving}>{saving?"저장 중…":"학생 배정 저장"}</button></footer></form></section></div>;
+function LessonHistorySection({ title, value }: { title: string; value: string | null }) {
+  return (
+    <section>
+      <b>{title}</b>
+      <p className={value?.trim() ? "" : "empty"}>{value?.trim() || "미입력"}</p>
+    </section>
+  );
 }
 
-function SubjectEditor({supabase,subjects,onClose,onSaved}:{supabase:SupabaseClient;subjects:Subject[];onClose:()=>void;onSaved:()=>Promise<void>}){const[main,setMain]=useState<"국어"|"영어"|"수학">("국어");const[name,setName]=useState("");const[saving,setSaving]=useState(false);const[error,setError]=useState("");const submit=async(event:FormEvent)=>{event.preventDefault();setSaving(true);setError("");const{error:saveError}=await supabase.rpc("staff_create_subject",{p_main_subject:main,p_name:name});if(saveError){setError("하위과목을 추가하지 못했습니다. 같은 이름이 있는지 확인해 주세요.");setSaving(false);}else await onSaved();};return <div className="modal-backdrop"><section className="student-modal subject-editor"><header><div><p className="eyebrow">담당 선생님 설정</p><h2>하위과목 추가</h2><span>기본 국어·영어·수학 아래에 세부 과목을 추가합니다.</span></div><button onClick={onClose}>×</button></header><form onSubmit={submit}><div className="subject-main-options">{(["국어","영어","수학"] as const).map((item)=><button type="button" className={main===item?"active":""} key={item} onClick={()=>setMain(item)}>{item}</button>)}</div><label className="editor-field"><b>하위과목 이름</b><input autoFocus value={name} onChange={(event)=>setName(event.target.value)} placeholder={main==="수학"?"예: 미적분, 기하, 확률과 통계":"예: 독서, 문학"} required/></label><div className="existing-subjects"><b>현재 {main} 과목</b><span>{subjects.filter((item)=>item.mainSubject===main).map((item)=>item.name).join(" · ")}</span></div>{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"저장 중…":"과목 추가"}</button></footer></form></section></div>}
-
-type ClassScheduleDraft={key:number;weekdays:number[];startTime:string;endTime:string};
-function ClassCreator({supabase,profile,subjects,onClose,onSaved}:{supabase:SupabaseClient;profile:Profile;subjects:Subject[];onClose:()=>void;onSaved:()=>Promise<void>}){
-  const first=subjects[0];const[name,setName]=useState("");const[subjectId,setSubjectId]=useState(first?.id??"");const[room,setRoom]=useState("");const[color,setColor]=useState("#922D61");const[schedules,setSchedules]=useState<ClassScheduleDraft[]>([{key:0,weekdays:[],startTime:"18:00",endTime:"20:00"}]);const[teachers,setTeachers]=useState<Named[]>([]);const[teacherIds,setTeacherIds]=useState<string[]>([profile.id]);const[saving,setSaving]=useState(false);const[error,setError]=useState("");
-  useEffect(()=>{void supabase.rpc("staff_class_teacher_options").then(({data})=>{const next=(data??[]) as Named[];setTeachers(next);setTeacherIds((current)=>current.filter(id=>next.some(item=>item.id===id)).length?current:[profile.id]);});},[profile.id,supabase]);
-  const updateSchedule=(key:number,patch:Partial<Omit<ClassScheduleDraft,"key">>)=>setSchedules((current)=>current.map((item)=>item.key===key?{...item,...patch}:item));
-  const toggleWeekday=(key:number,weekday:number)=>setSchedules((current)=>current.map((item)=>item.key===key?{...item,weekdays:item.weekdays.includes(weekday)?item.weekdays.filter((day)=>day!==weekday):[...item.weekdays,weekday].sort()}:item));
-  const addSchedule=()=>setSchedules((current)=>[...current,{key:Math.max(...current.map((item)=>item.key),0)+1,weekdays:[],startTime:"18:00",endTime:"20:00"}]);
-  const submit=async(event:FormEvent)=>{event.preventDefault();const subject=subjects.find((item)=>item.id===subjectId);if(!subject)return setError("과목을 선택해 주세요.");if(!teacherIds.length)return setError("담당 선생님을 한 명 이상 선택해 주세요.");if(schedules.some((item)=>item.weekdays.length===0))return setError("각 시간 묶음에서 수업 요일을 한 개 이상 선택해 주세요.");if(schedules.some((item)=>!isMilitaryTime(item.startTime)||!isMilitaryTime(item.endTime)||item.startTime>=item.endTime))return setError("시간을 24시간제 네 자리로 정확히 입력해 주세요. 예: 1730");setSaving(true);setError("");const{data:conflict,error:checkError}=await supabase.rpc("staff_class_name_conflict",{p_name:name});if(checkError){setError(`클래스 이름을 확인하지 못했습니다. ${checkError.message}`);setSaving(false);return;}if(conflict){setError("같은 이름의 클래스가 이미 있습니다. 클래스 관리에서 기존 반을 확인하거나 다른 이름을 입력해 주세요.");setSaving(false);return;}const schedulePayload=schedules.flatMap((item)=>item.weekdays.map((weekday)=>({weekday,startTime:item.startTime,endTime:item.endTime})));const{error:createError}=await supabase.rpc("staff_create_class_with_teachers",{p_name:name,p_subject_id:subject.id,p_room:room||null,p_color:color,p_schedules:schedulePayload,p_teacher_ids:teacherIds});if(createError){const duplicate=createError.code==="23505"||/(같은 이름|duplicate|unique|already exists)/i.test(createError.message);setError(duplicate?"같은 이름의 클래스가 이미 있습니다. 클래스 관리에서 기존 반을 확인해 주세요.":`클래스를 만들지 못했습니다. ${createError.message}`);setSaving(false);return;}await onSaved();};
-  return <div className="modal-backdrop"><section className="student-modal subject-editor class-creator-modal"><header><div><p className="eyebrow">나의 수업 공간</p><h2>새 클래스</h2><span>같은 시간의 요일은 함께 고르고, 시간이 다르면 묶음을 추가하세요.</span></div><button onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>클래스 이름 <b>*</b><input autoFocus required value={name} onChange={(event)=>setName(event.target.value)} placeholder="예: 고2 영어 서해"/></label><label>과목 <b>*</b><select required value={subjectId} onChange={(event)=>setSubjectId(event.target.value)}>{(["국어","영어","수학"] as const).map((main)=><optgroup label={main} key={main}>{subjects.filter((item)=>item.mainSubject===main).map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label><label>강의실<input value={room} onChange={(event)=>setRoom(event.target.value)} placeholder="예: A 강의실"/></label><label>표시 색상<ClassColorPicker value={color} onChange={setColor}/></label><TeacherPicker teachers={teachers} selected={teacherIds} onChange={setTeacherIds}/><fieldset className="class-schedule-builder full"><legend>수업 요일·시간 <b>*</b></legend>{schedules.map((item,index)=><div className="class-schedule-draft" key={item.key}><div className="class-weekday-picker">{weekdays.map((label,dayIndex)=><button type="button" className={item.weekdays.includes(dayIndex+1)?"active":""} aria-pressed={item.weekdays.includes(dayIndex+1)} onClick={()=>toggleWeekday(item.key,dayIndex+1)} key={label}>{label}</button>)}</div><div className="class-time-range"><MilitaryTimeInput label="시작" value={item.startTime} onChange={(value)=>updateSchedule(item.key,{startTime:value})}/><i>–</i><MilitaryTimeInput label="종료" value={item.endTime} onChange={(value)=>updateSchedule(item.key,{endTime:value})}/>{schedules.length>1&&<button type="button" aria-label={`${index+1}번째 시간 삭제`} onClick={()=>setSchedules((current)=>current.filter((row)=>row.key!==item.key))}>삭제</button>}</div></div>)}<button type="button" className="add-schedule-row" onClick={addSchedule}>＋ 다른 시간 추가</button><small>예: 월·수 1800–2000 / 금 1900–2100</small></fieldset></div><p className="class-create-hint">저장한 요일·시간·과목·담당자는 전체 및 학생 시간표에 즉시 연결됩니다.</p>{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"생성 중…":"클래스 만들기"}</button></footer></form></section></div>;
+function formatLessonDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date(`${value}T12:00:00+09:00`));
 }
 
-function ClassManager({supabase,profile,subjects,onClose,onSaved}:{supabase:SupabaseClient;profile:Profile;subjects:Subject[];onClose:()=>void;onSaved:()=>Promise<void>}){
-  const[classes,setClasses]=useState<ManagedClass[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[editing,setEditing]=useState<ManagedClass|null>(null);const[working,setWorking]=useState("");
-  const load=useCallback(async()=>{setLoading(true);const[{data,error:loadError},{data:preferences}]=await Promise.all([supabase.rpc("staff_class_management_board"),supabase.rpc("user_list_preferences")]);if(loadError)setError("클래스 목록을 불러오지 못했습니다.");else{const order=((preferences as {classOrder?:string[]}|null)?.classOrder??[]);const next=((data??[]) as ManagedClass[]).sort((a,b)=>{const ai=order.indexOf(a.id),bi=order.indexOf(b.id);return(ai<0?99999:ai)-(bi<0?99999:bi)||a.name.localeCompare(b.name,"ko");});setClasses(next);}setLoading(false);},[supabase]);
-  useEffect(()=>{void load();},[load]);
-  const sortable=useSortableOrder((activeId,overId)=>setClasses((current)=>{const next=reorderById(current,activeId,overId);void supabase.rpc("save_user_class_order",{p_ids:next.map((item)=>item.id)});return next;}));
-  const toggleActive=async(item:ManagedClass)=>{const action=item.active?"운영 종료":"다시 운영";if(!window.confirm(`${item.name} 클래스를 ${action}할까요?`))return;setWorking(item.id);setError("");const{error:saveError}=await supabase.rpc("staff_set_class_active",{p_class_id:item.id,p_active:!item.active});if(saveError)setError(saveError.message);else{await load();await onSaved();}setWorking("");};
-  const remove=async(item:ManagedClass)=>{if(!window.confirm(`${item.name} 클래스를 완전히 삭제할까요?\n수강생·시간표·수업·과제 기록이 하나라도 있으면 삭제되지 않습니다.`))return;setWorking(item.id);setError("");const{error:deleteError}=await supabase.rpc("admin_delete_empty_class",{p_class_id:item.id});if(deleteError)setError(deleteError.message);else{await load();await onSaved();}setWorking("");};
-  return <div className="modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal class-manager-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">클래스 운영 관리</p><h2>클래스 목록</h2><span>끌어서 내 순서를 바꾸고, 수정·운영 종료·재개·안전 삭제를 관리합니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>{error&&<p className="form-error">{error}</p>}{loading?<p className="settings-empty">클래스 목록을 불러오는 중이에요…</p>:<div className="class-manager-list">{classes.length===0?<p className="settings-empty">관리할 클래스가 없습니다.</p>:classes.map((item)=>{const hasRecords=item.enrollmentCount+item.scheduleCount+item.lessonCount+item.assignmentCount>0;return <article key={item.id} {...sortable.itemProps(item.id)} className={`${item.active?"":"archived"} ${sortable.draggingId===item.id?"dragging":""}`.trim()}><button type="button" data-drag-handle className="drag-handle" aria-label={`${item.name} 순서 이동`}>☷</button><i style={{background:item.color}}/><span><b>{item.name}</b><small>{item.subject}{item.room?` · ${item.room}`:""} · 수강생 {item.enrollmentCount} · 시간표 {item.scheduleCount} · 수업 기록 {item.lessonCount}</small></span><em>{item.active?"운영 중":"운영 종료"}</em><div><button type="button" onClick={()=>setEditing(item)}>수정</button><button type="button" disabled={working===item.id} onClick={()=>void toggleActive(item)}>{item.active?"운영 종료":"운영 재개"}</button>{profile.role==="admin"&&<button type="button" className="class-delete" disabled={working===item.id||hasRecords} title={hasRecords?"운영 기록이 있어 삭제할 수 없습니다.":""} onClick={()=>void remove(item)}>완전 삭제</button>}</div></article>;})}</div>}{editing&&<ClassEditor supabase={supabase} subjects={subjects} classRoom={editing} onClose={()=>setEditing(null)} onSaved={async()=>{setEditing(null);await load();await onSaved();}}/>}</section></div>;
+function ClassRosterEditor({ supabase, classRoom, onClose, onSaved }: { supabase: SupabaseClient; classRoom: ClassRoom; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [students, setStudents] = useState<RosterStudent[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(classRoom.students.map((item) => item.id));
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void supabase.rpc("staff_student_roster").then(({ data, error: loadError }) => {
+      if (!active) return;
+      if (loadError) setError("학생 목록을 불러오지 못했습니다.");
+      else setStudents((data ?? []) as RosterStudent[]);
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+  const visible = useMemo(() => {
+    const keyword = query.trim().toLocaleLowerCase("ko");
+    const classGrade = (classRoom.name.match(/(?:초6|중[1-3]|고[1-3]|재수|검정고시)/)?.[0] ?? "").replace(/\s/g, "");
+    const score = (student: RosterStudent) => {
+      const grade = (student.grade ?? "").replace(/\s/g, "");
+      const subjectMatch = student.enrollments.some((item) => item.status === "active" && item.classes?.subject === classRoom.subject);
+      return (selectedIds.includes(student.id) ? 100 : 0) + (classGrade && grade === classGrade ? 20 : 0) + (subjectMatch ? 10 : 0);
+    };
+    return students.filter((student) => (student.status === "active" || student.status === "재원") && (!keyword || `${student.name} ${student.school ?? ""} ${student.grade ?? ""}`.toLocaleLowerCase("ko").includes(keyword))).sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name, "ko"));
+  }, [classRoom.name, classRoom.subject, query, selectedIds, students]);
+  const toggle = (id: string) => setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const { error: saveError } = await supabase.rpc("staff_sync_class_roster", {
+      p_class_id: classRoom.id,
+      p_student_ids: selectedIds,
+    });
+    if (saveError) {
+      setError(saveError.message.includes("담당") ? saveError.message : "학생 배정을 저장하지 못했습니다.");
+      setSaving(false);
+      return;
+    }
+    await onSaved();
+  };
+  return (
+    <div
+      className="modal-backdrop nested"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="student-modal class-roster-editor" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="eyebrow">클래스 학생 관리</p>
+            <h2>{classRoom.name}</h2>
+            <span>검색 전에는 이 반의 과목·학년에 맞는 학생이 먼저 표시됩니다. 제외해도 이전 출결 기록은 보존됩니다.</span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <form onSubmit={submit}>
+          <label className="class-roster-search">
+            <span>학생 검색</span>
+            <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름, 학교, 학년 검색" />
+          </label>
+          <div className="class-roster-summary">
+            <b>수강 예정 {selectedIds.length}명</b>
+            <span>추가·제외 후 아래 저장을 눌러 주세요.</span>
+          </div>
+          {loading ? (
+            <p className="settings-empty">학생 목록을 불러오는 중이에요…</p>
+          ) : (
+            <div className="class-roster-picker">
+              {visible.map((student) => {
+                const selected = selectedIds.includes(student.id);
+                return (
+                  <div key={student.id} className={selected ? "selected" : ""}>
+                    <button type="button" className="class-roster-person" onClick={() => toggle(student.id)} aria-pressed={selected}>
+                      <i>{student.name.slice(0, 1)}</i>
+                      <span>
+                        <b>{student.name}</b>
+                        <small>{[student.school, student.grade].filter(Boolean).join(" · ") || "학교·학년 미입력"}</small>
+                      </span>
+                      <em>{selected ? "수강" : "미배정"}</em>
+                    </button>
+                    <button type="button" className={selected ? "class-roster-remove" : "class-roster-add"} onClick={() => toggle(student.id)}>
+                      {selected ? "제외" : "추가"}
+                    </button>
+                  </div>
+                );
+              })}
+              {!visible.length && <p className="settings-empty">검색되는 재원생이 없습니다.</p>}
+            </div>
+          )}
+          {error && <p className="form-error">{error}</p>}
+          <footer>
+            <button type="button" className="secondary-button" onClick={onClose}>
+              취소
+            </button>
+            <button className="primary" disabled={loading || saving}>
+              {saving ? "저장 중…" : "학생 배정 저장"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function ClassEditor({supabase,subjects,classRoom,onClose,onSaved}:{supabase:SupabaseClient;subjects:Subject[];classRoom:ManagedClass;onClose:()=>void;onSaved:()=>Promise<void>}){
-  const[name,setName]=useState(classRoom.name);const[subjectId,setSubjectId]=useState(classRoom.subjectId??"");const[room,setRoom]=useState(classRoom.room??"");const[color,setColor]=useState(classRoom.color);const[schedules,setSchedules]=useState<ClassScheduleDraft[]>(()=>groupSchedules(classRoom.schedules));const[teachers,setTeachers]=useState<Named[]>([]);const[teacherIds,setTeacherIds]=useState<string[]>(classRoom.teachers?.map(item=>item.id)??[]);const[saving,setSaving]=useState(false);const[error,setError]=useState("");
-  useEffect(()=>{void supabase.rpc("staff_class_teacher_options").then(({data})=>setTeachers((data??[]) as Named[]));},[supabase]);
-  const updateSchedule=(key:number,patch:Partial<Omit<ClassScheduleDraft,"key">>)=>setSchedules((current)=>current.map((item)=>item.key===key?{...item,...patch}:item));
-  const toggleWeekday=(key:number,weekday:number)=>setSchedules((current)=>current.map((item)=>item.key===key?{...item,weekdays:item.weekdays.includes(weekday)?item.weekdays.filter((day)=>day!==weekday):[...item.weekdays,weekday].sort()}:item));
-  const addSchedule=()=>setSchedules((current)=>[...current,{key:Math.max(...current.map((item)=>item.key),0)+1,weekdays:[],startTime:"18:00",endTime:"20:00"}]);
-  const submit=async(event:FormEvent)=>{event.preventDefault();if(!subjectId)return setError("과목을 선택해 주세요.");if(!teacherIds.length)return setError("담당 선생님을 한 명 이상 선택해 주세요.");if(schedules.some((item)=>item.weekdays.length===0))return setError("각 시간 묶음에서 수업 요일을 한 개 이상 선택해 주세요.");if(schedules.some((item)=>!isMilitaryTime(item.startTime)||!isMilitaryTime(item.endTime)||item.startTime>=item.endTime))return setError("시간을 24시간제 네 자리로 정확히 입력해 주세요. 예: 1730");setSaving(true);setError("");const schedulePayload=schedules.flatMap((item)=>item.weekdays.map((weekday)=>({weekday,startTime:item.startTime,endTime:item.endTime})));const{error:saveError}=await supabase.rpc("staff_update_class_with_teachers",{p_class_id:classRoom.id,p_name:name,p_subject_id:subjectId,p_room:room||null,p_color:color,p_schedules:schedulePayload,p_teacher_ids:teacherIds});if(saveError){setError(saveError.message.includes("같은 이름")?"같은 이름의 클래스가 이미 있습니다.":saveError.message);setSaving(false);return;}await onSaved();};
-  return <div className="modal-backdrop nested" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal subject-editor class-creator-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">클래스 수정</p><h2>{classRoom.name}</h2><span>기본 정보·담당 선생님·정규 수업 시간을 함께 수정합니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>클래스 이름 <b>*</b><input required autoFocus value={name} onChange={(event)=>setName(event.target.value)}/></label><label>과목 <b>*</b><select required value={subjectId} onChange={(event)=>setSubjectId(event.target.value)}>{(["국어","영어","수학"] as const).map((main)=><optgroup label={main} key={main}>{subjects.filter((item)=>item.mainSubject===main).map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label><label>강의실<input value={room} onChange={(event)=>setRoom(event.target.value)} placeholder="예: A 강의실"/></label><label>표시 색상<ClassColorPicker value={color} onChange={setColor}/></label><TeacherPicker teachers={teachers} selected={teacherIds} onChange={setTeacherIds}/><fieldset className="class-schedule-builder full"><legend>수업 요일·시간 <b>*</b></legend>{schedules.map((item,index)=><div className="class-schedule-draft" key={item.key}><div className="class-weekday-picker">{weekdays.map((label,dayIndex)=><button type="button" className={item.weekdays.includes(dayIndex+1)?"active":""} aria-pressed={item.weekdays.includes(dayIndex+1)} onClick={()=>toggleWeekday(item.key,dayIndex+1)} key={label}>{label}</button>)}</div><div className="class-time-range"><MilitaryTimeInput label="시작" value={item.startTime} onChange={(value)=>updateSchedule(item.key,{startTime:value})}/><i>–</i><MilitaryTimeInput label="종료" value={item.endTime} onChange={(value)=>updateSchedule(item.key,{endTime:value})}/>{schedules.length>1&&<button type="button" aria-label={`${index+1}번째 시간 삭제`} onClick={()=>setSchedules((current)=>current.filter((row)=>row.key!==item.key))}>삭제</button>}</div></div>)}<button type="button" className="add-schedule-row" onClick={addSchedule}>＋ 다른 시간 추가</button><small>24시간제로 숫자 네 자리를 입력하세요.</small></fieldset></div>{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"저장 중…":"수정 저장"}</button></footer></form></section></div>;
+function SubjectEditor({ supabase, subjects, onClose, onSaved }: { supabase: SupabaseClient; subjects: Subject[]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [main, setMain] = useState<"국어" | "영어" | "수학">("국어");
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const { error: saveError } = await supabase.rpc("staff_create_subject", {
+      p_main_subject: main,
+      p_name: name,
+    });
+    if (saveError) {
+      setError("하위과목을 추가하지 못했습니다. 같은 이름이 있는지 확인해 주세요.");
+      setSaving(false);
+    } else await onSaved();
+  };
+  return (
+    <div className="modal-backdrop">
+      <section className="student-modal subject-editor">
+        <header>
+          <div>
+            <p className="eyebrow">담당 선생님 설정</p>
+            <h2>하위과목 추가</h2>
+            <span>기본 국어·영어·수학 아래에 세부 과목을 추가합니다.</span>
+          </div>
+          <button onClick={onClose}>×</button>
+        </header>
+        <form onSubmit={submit}>
+          <div className="subject-main-options">
+            {(["국어", "영어", "수학"] as const).map((item) => (
+              <button type="button" className={main === item ? "active" : ""} key={item} onClick={() => setMain(item)}>
+                {item}
+              </button>
+            ))}
+          </div>
+          <label className="editor-field">
+            <b>하위과목 이름</b>
+            <input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={main === "수학" ? "예: 미적분, 기하, 확률과 통계" : "예: 독서, 문학"} required />
+          </label>
+          <div className="existing-subjects">
+            <b>현재 {main} 과목</b>
+            <span>
+              {subjects
+                .filter((item) => item.mainSubject === main)
+                .map((item) => item.name)
+                .join(" · ")}
+            </span>
+          </div>
+          {error && <p className="form-error">{error}</p>}
+          <footer>
+            <button type="button" className="secondary-button" onClick={onClose}>
+              취소
+            </button>
+            <button className="primary" disabled={saving}>
+              {saving ? "저장 중…" : "과목 추가"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function TeacherPicker({teachers,selected,onChange}:{teachers:Named[];selected:string[];onChange:(ids:string[])=>void}){
-  return <fieldset className="teacher-picker full"><legend>담당 선생님 <b>*</b> <small>공동 담당 가능</small></legend><div>{teachers.map(teacher=><button type="button" key={teacher.id} className={selected.includes(teacher.id)?"active":""} onClick={()=>onChange(selected.includes(teacher.id)?selected.filter(id=>id!==teacher.id):[...selected,teacher.id])}><i>{teacher.name.slice(0,1)}</i><span>{teacher.name}</span></button>)}</div></fieldset>;
+type ClassScheduleDraft = {
+  key: number;
+  weekdays: number[];
+  startTime: string;
+  endTime: string;
+};
+function ClassCreator({ supabase, profile, subjects, onClose, onSaved }: { supabase: SupabaseClient; profile: Profile; subjects: Subject[]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const first = subjects[0];
+  const [name, setName] = useState("");
+  const [subjectId, setSubjectId] = useState(first?.id ?? "");
+  const [room, setRoom] = useState("");
+  const [color, setColor] = useState("#922D61");
+  const [schedules, setSchedules] = useState<ClassScheduleDraft[]>([{ key: 0, weekdays: [], startTime: "18:00", endTime: "20:00" }]);
+  const [teachers, setTeachers] = useState<Named[]>([]);
+  const [teacherIds, setTeacherIds] = useState<string[]>([profile.id]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void supabase.rpc("staff_class_teacher_options").then(({ data }) => {
+      const next = (data ?? []) as Named[];
+      setTeachers(next);
+      setTeacherIds((current) => (current.filter((id) => next.some((item) => item.id === id)).length ? current : [profile.id]));
+    });
+  }, [profile.id, supabase]);
+  const updateSchedule = (key: number, patch: Partial<Omit<ClassScheduleDraft, "key">>) => setSchedules((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  const toggleWeekday = (key: number, weekday: number) =>
+    setSchedules((current) =>
+      current.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              weekdays: item.weekdays.includes(weekday) ? item.weekdays.filter((day) => day !== weekday) : [...item.weekdays, weekday].sort(),
+            }
+          : item,
+      ),
+    );
+  const addSchedule = () =>
+    setSchedules((current) => [
+      ...current,
+      {
+        key: Math.max(...current.map((item) => item.key), 0) + 1,
+        weekdays: [],
+        startTime: "18:00",
+        endTime: "20:00",
+      },
+    ]);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const subject = subjects.find((item) => item.id === subjectId);
+    if (!subject) return setError("과목을 선택해 주세요.");
+    if (!teacherIds.length) return setError("담당 선생님을 한 명 이상 선택해 주세요.");
+    if (schedules.some((item) => item.weekdays.length === 0)) return setError("각 시간 묶음에서 수업 요일을 한 개 이상 선택해 주세요.");
+    if (schedules.some((item) => !isMilitaryTime(item.startTime) || !isMilitaryTime(item.endTime) || item.startTime >= item.endTime)) return setError("시간을 24시간제 네 자리로 정확히 입력해 주세요. 예: 1730");
+    setSaving(true);
+    setError("");
+    const { data: conflict, error: checkError } = await supabase.rpc("staff_class_name_conflict", { p_name: name });
+    if (checkError) {
+      setError(`클래스 이름을 확인하지 못했습니다. ${checkError.message}`);
+      setSaving(false);
+      return;
+    }
+    if (conflict) {
+      setError("같은 이름의 클래스가 이미 있습니다. 클래스 관리에서 기존 반을 확인하거나 다른 이름을 입력해 주세요.");
+      setSaving(false);
+      return;
+    }
+    const schedulePayload = schedules.flatMap((item) =>
+      item.weekdays.map((weekday) => ({
+        weekday,
+        startTime: item.startTime,
+        endTime: item.endTime,
+      })),
+    );
+    const { error: createError } = await supabase.rpc("staff_create_class_with_teachers", {
+      p_name: name,
+      p_subject_id: subject.id,
+      p_room: room || null,
+      p_color: color,
+      p_schedules: schedulePayload,
+      p_teacher_ids: teacherIds,
+    });
+    if (createError) {
+      const duplicate = createError.code === "23505" || /(같은 이름|duplicate|unique|already exists)/i.test(createError.message);
+      setError(duplicate ? "같은 이름의 클래스가 이미 있습니다. 클래스 관리에서 기존 반을 확인해 주세요." : `클래스를 만들지 못했습니다. ${createError.message}`);
+      setSaving(false);
+      return;
+    }
+    await onSaved();
+  };
+  return (
+    <div className="modal-backdrop">
+      <section className="student-modal subject-editor class-creator-modal">
+        <header>
+          <div>
+            <p className="eyebrow">나의 수업 공간</p>
+            <h2>새 클래스</h2>
+            <span>같은 시간의 요일은 함께 고르고, 시간이 다르면 묶음을 추가하세요.</span>
+          </div>
+          <button onClick={onClose}>×</button>
+        </header>
+        <form onSubmit={submit}>
+          <div className="form-grid">
+            <label>
+              클래스 이름 <b>*</b>
+              <input autoFocus required value={name} onChange={(event) => setName(event.target.value)} placeholder="예: 고2 영어 서해" />
+            </label>
+            <label>
+              과목 <b>*</b>
+              <select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+                {(["국어", "영어", "수학"] as const).map((main) => (
+                  <optgroup label={main} key={main}>
+                    {subjects
+                      .filter((item) => item.mainSubject === main)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label>
+              강의실
+              <input value={room} onChange={(event) => setRoom(event.target.value)} placeholder="예: A 강의실" />
+            </label>
+            <label>
+              표시 색상
+              <ClassColorPicker value={color} onChange={setColor} />
+            </label>
+            <TeacherPicker teachers={teachers} selected={teacherIds} onChange={setTeacherIds} />
+            <fieldset className="class-schedule-builder full">
+              <legend>
+                수업 요일·시간 <b>*</b>
+              </legend>
+              {schedules.map((item, index) => (
+                <div className="class-schedule-draft" key={item.key}>
+                  <div className="class-weekday-picker">
+                    {weekdays.map((label, dayIndex) => (
+                      <button type="button" className={item.weekdays.includes(dayIndex + 1) ? "active" : ""} aria-pressed={item.weekdays.includes(dayIndex + 1)} onClick={() => toggleWeekday(item.key, dayIndex + 1)} key={label}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="class-time-range">
+                    <MilitaryTimeInput label="시작" value={item.startTime} onChange={(value) => updateSchedule(item.key, { startTime: value })} />
+                    <i>–</i>
+                    <MilitaryTimeInput label="종료" value={item.endTime} onChange={(value) => updateSchedule(item.key, { endTime: value })} />
+                    {schedules.length > 1 && (
+                      <button type="button" aria-label={`${index + 1}번째 시간 삭제`} onClick={() => setSchedules((current) => current.filter((row) => row.key !== item.key))}>
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="add-schedule-row" onClick={addSchedule}>
+                ＋ 다른 시간 추가
+              </button>
+              <small>예: 월·수 1800–2000 / 금 1900–2100</small>
+            </fieldset>
+          </div>
+          <p className="class-create-hint">저장한 요일·시간·과목·담당자는 전체 및 학생 시간표에 즉시 연결됩니다.</p>
+          {error && <p className="form-error">{error}</p>}
+          <footer>
+            <button type="button" className="secondary-button" onClick={onClose}>
+              취소
+            </button>
+            <button className="primary" disabled={saving}>
+              {saving ? "생성 중…" : "클래스 만들기"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function groupSchedules(rows:Schedule[]=[]):ClassScheduleDraft[]{
-  const groups=new Map<string,ClassScheduleDraft>();
-  rows.forEach((row)=>{const startTime=row.startTime.slice(0,5);const endTime=row.endTime.slice(0,5);const id=`${startTime}-${endTime}`;const saved=groups.get(id);if(saved)saved.weekdays.push(row.weekday);else groups.set(id,{key:groups.size,weekdays:[row.weekday],startTime,endTime});});
-  return groups.size?[...groups.values()].map((item)=>({...item,weekdays:item.weekdays.sort()})):[{key:0,weekdays:[],startTime:"18:00",endTime:"20:00"}];
+function ClassManager({ supabase, profile, subjects, onClose, onSaved }: { supabase: SupabaseClient; profile: Profile; subjects: Subject[]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [classes, setClasses] = useState<ManagedClass[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<ManagedClass | null>(null);
+  const [working, setWorking] = useState("");
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data, error: loadError }, { data: preferences }] = await Promise.all([supabase.rpc("staff_class_management_board"), supabase.rpc("user_list_preferences")]);
+    if (loadError) setError("클래스 목록을 불러오지 못했습니다.");
+    else {
+      const order = (preferences as { classOrder?: string[] } | null)?.classOrder ?? [];
+      const next = ((data ?? []) as ManagedClass[]).sort((a, b) => {
+        const ai = order.indexOf(a.id),
+          bi = order.indexOf(b.id);
+        return (ai < 0 ? 99999 : ai) - (bi < 0 ? 99999 : bi) || a.name.localeCompare(b.name, "ko");
+      });
+      setClasses(next);
+    }
+    setLoading(false);
+  }, [supabase]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const sortable = useSortableOrder((activeId, overId) =>
+    setClasses((current) => {
+      const next = reorderById(current, activeId, overId);
+      void supabase.rpc("save_user_class_order", {
+        p_ids: next.map((item) => item.id),
+      });
+      return next;
+    }),
+  );
+  const toggleActive = async (item: ManagedClass) => {
+    const action = item.active ? "운영 종료" : "다시 운영";
+    if (!window.confirm(`${item.name} 클래스를 ${action}할까요?`)) return;
+    setWorking(item.id);
+    setError("");
+    const { error: saveError } = await supabase.rpc("staff_set_class_active", {
+      p_class_id: item.id,
+      p_active: !item.active,
+    });
+    if (saveError) setError(saveError.message);
+    else {
+      await load();
+      await onSaved();
+    }
+    setWorking("");
+  };
+  const remove = async (item: ManagedClass) => {
+    if (!window.confirm(`${item.name} 클래스를 완전히 삭제할까요?\n수강생·시간표·수업·과제 기록이 하나라도 있으면 삭제되지 않습니다.`)) return;
+    setWorking(item.id);
+    setError("");
+    const { error: deleteError } = await supabase.rpc("admin_delete_empty_class", { p_class_id: item.id });
+    if (deleteError) setError(deleteError.message);
+    else {
+      await load();
+      await onSaved();
+    }
+    setWorking("");
+  };
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="student-modal class-manager-modal" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="eyebrow">클래스 운영 관리</p>
+            <h2>클래스 목록</h2>
+            <span>끌어서 내 순서를 바꾸고, 수정·운영 종료·재개·안전 삭제를 관리합니다.</span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        {error && <p className="form-error">{error}</p>}
+        {loading ? (
+          <p className="settings-empty">클래스 목록을 불러오는 중이에요…</p>
+        ) : (
+          <div className="class-manager-list">
+            {classes.length === 0 ? (
+              <p className="settings-empty">관리할 클래스가 없습니다.</p>
+            ) : (
+              classes.map((item) => {
+                const hasRecords = item.enrollmentCount + item.scheduleCount + item.lessonCount + item.assignmentCount > 0;
+                return (
+                  <article key={item.id} {...sortable.itemProps(item.id)} className={`${item.active ? "" : "archived"} ${sortable.draggingId === item.id ? "dragging" : ""}`.trim()}>
+                    <button type="button" data-drag-handle className="drag-handle" aria-label={`${item.name} 순서 이동`}>
+                      ☷
+                    </button>
+                    <i style={{ background: item.color }} />
+                    <span>
+                      <b>{item.name}</b>
+                      <small>
+                        {item.subject}
+                        {item.room ? ` · ${item.room}` : ""} · 수강생 {item.enrollmentCount} · 시간표 {item.scheduleCount} · 수업 기록 {item.lessonCount}
+                      </small>
+                    </span>
+                    <em>{item.active ? "운영 중" : "운영 종료"}</em>
+                    <div>
+                      <button type="button" onClick={() => setEditing(item)}>
+                        수정
+                      </button>
+                      <button type="button" disabled={working === item.id} onClick={() => void toggleActive(item)}>
+                        {item.active ? "운영 종료" : "운영 재개"}
+                      </button>
+                      {profile.role === "admin" && (
+                        <button type="button" className="class-delete" disabled={working === item.id || hasRecords} title={hasRecords ? "운영 기록이 있어 삭제할 수 없습니다." : ""} onClick={() => void remove(item)}>
+                          완전 삭제
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        )}
+        {editing && (
+          <ClassEditor
+            supabase={supabase}
+            subjects={subjects}
+            classRoom={editing}
+            onClose={() => setEditing(null)}
+            onSaved={async () => {
+              setEditing(null);
+              await load();
+              await onSaved();
+            }}
+          />
+        )}
+      </section>
+    </div>
+  );
 }
 
-const classColorPresets=["#922D61","#C45A7A","#D9875F","#C49A3A","#5E8C6A","#4F7FA3","#6C63A8","#5F6670"];
-const recentClassColorKey="hansalmae-recent-class-colors";
-function ClassColorPicker({value,onChange}:{value:string;onChange:(value:string)=>void}){
-  const[recent,setRecent]=useState<string[]>([]);
-  useEffect(()=>{try{const saved=JSON.parse(window.localStorage.getItem(recentClassColorKey)??"[]");if(Array.isArray(saved))setRecent(saved.filter((item):item is string=>typeof item==="string"));}catch{}},[]);
-  const colors=Array.from(new Set([value,...recent,...classColorPresets])).slice(0,12);
-  const choose=(next:string)=>{onChange(next);const updated=[next,...recent.filter((item)=>item!==next)].slice(0,8);setRecent(updated);try{window.localStorage.setItem(recentClassColorKey,JSON.stringify(updated));}catch{}};
-  return <div className="class-color-picker"><div>{colors.map((color)=><button type="button" key={color} className={color===value?"active":""} style={{background:color}} aria-label={`${color} 색상 선택`} aria-pressed={color===value} onClick={()=>choose(color)}/>)}</div><label><input type="color" value={value} onChange={(event)=>choose(event.target.value)}/><span>다른 색</span></label></div>;
+function ClassEditor({ supabase, subjects, classRoom, onClose, onSaved }: { supabase: SupabaseClient; subjects: Subject[]; classRoom: ManagedClass; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [name, setName] = useState(classRoom.name);
+  const [subjectId, setSubjectId] = useState(classRoom.subjectId ?? "");
+  const [room, setRoom] = useState(classRoom.room ?? "");
+  const [color, setColor] = useState(classRoom.color);
+  const [schedules, setSchedules] = useState<ClassScheduleDraft[]>(() => groupSchedules(classRoom.schedules));
+  const [teachers, setTeachers] = useState<Named[]>([]);
+  const [teacherIds, setTeacherIds] = useState<string[]>(classRoom.teachers?.map((item) => item.id) ?? []);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void supabase.rpc("staff_class_teacher_options").then(({ data }) => setTeachers((data ?? []) as Named[]));
+  }, [supabase]);
+  const updateSchedule = (key: number, patch: Partial<Omit<ClassScheduleDraft, "key">>) => setSchedules((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  const toggleWeekday = (key: number, weekday: number) =>
+    setSchedules((current) =>
+      current.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              weekdays: item.weekdays.includes(weekday) ? item.weekdays.filter((day) => day !== weekday) : [...item.weekdays, weekday].sort(),
+            }
+          : item,
+      ),
+    );
+  const addSchedule = () =>
+    setSchedules((current) => [
+      ...current,
+      {
+        key: Math.max(...current.map((item) => item.key), 0) + 1,
+        weekdays: [],
+        startTime: "18:00",
+        endTime: "20:00",
+      },
+    ]);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!subjectId) return setError("과목을 선택해 주세요.");
+    if (!teacherIds.length) return setError("담당 선생님을 한 명 이상 선택해 주세요.");
+    if (schedules.some((item) => item.weekdays.length === 0)) return setError("각 시간 묶음에서 수업 요일을 한 개 이상 선택해 주세요.");
+    if (schedules.some((item) => !isMilitaryTime(item.startTime) || !isMilitaryTime(item.endTime) || item.startTime >= item.endTime)) return setError("시간을 24시간제 네 자리로 정확히 입력해 주세요. 예: 1730");
+    setSaving(true);
+    setError("");
+    const schedulePayload = schedules.flatMap((item) =>
+      item.weekdays.map((weekday) => ({
+        weekday,
+        startTime: item.startTime,
+        endTime: item.endTime,
+      })),
+    );
+    const { error: saveError } = await supabase.rpc("staff_update_class_with_teachers", {
+      p_class_id: classRoom.id,
+      p_name: name,
+      p_subject_id: subjectId,
+      p_room: room || null,
+      p_color: color,
+      p_schedules: schedulePayload,
+      p_teacher_ids: teacherIds,
+    });
+    if (saveError) {
+      setError(saveError.message.includes("같은 이름") ? "같은 이름의 클래스가 이미 있습니다." : saveError.message);
+      setSaving(false);
+      return;
+    }
+    await onSaved();
+  };
+  return (
+    <div
+      className="modal-backdrop nested"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className="student-modal subject-editor class-creator-modal" role="dialog" aria-modal="true">
+        <header>
+          <div>
+            <p className="eyebrow">클래스 수정</p>
+            <h2>{classRoom.name}</h2>
+            <span>기본 정보·담당 선생님·정규 수업 시간을 함께 수정합니다.</span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <form onSubmit={submit}>
+          <div className="form-grid">
+            <label>
+              클래스 이름 <b>*</b>
+              <input required autoFocus value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label>
+              과목 <b>*</b>
+              <select required value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+                {(["국어", "영어", "수학"] as const).map((main) => (
+                  <optgroup label={main} key={main}>
+                    {subjects
+                      .filter((item) => item.mainSubject === main)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label>
+              강의실
+              <input value={room} onChange={(event) => setRoom(event.target.value)} placeholder="예: A 강의실" />
+            </label>
+            <label>
+              표시 색상
+              <ClassColorPicker value={color} onChange={setColor} />
+            </label>
+            <TeacherPicker teachers={teachers} selected={teacherIds} onChange={setTeacherIds} />
+            <fieldset className="class-schedule-builder full">
+              <legend>
+                수업 요일·시간 <b>*</b>
+              </legend>
+              {schedules.map((item, index) => (
+                <div className="class-schedule-draft" key={item.key}>
+                  <div className="class-weekday-picker">
+                    {weekdays.map((label, dayIndex) => (
+                      <button type="button" className={item.weekdays.includes(dayIndex + 1) ? "active" : ""} aria-pressed={item.weekdays.includes(dayIndex + 1)} onClick={() => toggleWeekday(item.key, dayIndex + 1)} key={label}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="class-time-range">
+                    <MilitaryTimeInput label="시작" value={item.startTime} onChange={(value) => updateSchedule(item.key, { startTime: value })} />
+                    <i>–</i>
+                    <MilitaryTimeInput label="종료" value={item.endTime} onChange={(value) => updateSchedule(item.key, { endTime: value })} />
+                    {schedules.length > 1 && (
+                      <button type="button" aria-label={`${index + 1}번째 시간 삭제`} onClick={() => setSchedules((current) => current.filter((row) => row.key !== item.key))}>
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="add-schedule-row" onClick={addSchedule}>
+                ＋ 다른 시간 추가
+              </button>
+              <small>24시간제로 숫자 네 자리를 입력하세요.</small>
+            </fieldset>
+          </div>
+          {error && <p className="form-error">{error}</p>}
+          <footer>
+            <button type="button" className="secondary-button" onClick={onClose}>
+              취소
+            </button>
+            <button className="primary" disabled={saving}>
+              {saving ? "저장 중…" : "수정 저장"}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function scheduleText(rows:Schedule[]){return rows.length?rows.map((row)=>`${weekdays[row.weekday-1]} ${row.startTime.slice(0,5)}–${row.endTime.slice(0,5)}`).join(" · "):"시간 미배정"}
-function isoWeekday(value:string){const day=new Date(`${value}T00:00:00`).getDay();return day===0?7:day}
-function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
+function TeacherPicker({ teachers, selected, onChange }: { teachers: Named[]; selected: string[]; onChange: (ids: string[]) => void }) {
+  return (
+    <fieldset className="teacher-picker full">
+      <legend>
+        담당 선생님 <b>*</b> <small>공동 담당 가능</small>
+      </legend>
+      <div>
+        {teachers.map((teacher) => (
+          <button type="button" key={teacher.id} className={selected.includes(teacher.id) ? "active" : ""} onClick={() => onChange(selected.includes(teacher.id) ? selected.filter((id) => id !== teacher.id) : [...selected, teacher.id])}>
+            <i>{teacher.name.slice(0, 1)}</i>
+            <span>{teacher.name}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function groupSchedules(rows: Schedule[] = []): ClassScheduleDraft[] {
+  const groups = new Map<string, ClassScheduleDraft>();
+  rows.forEach((row) => {
+    const startTime = row.startTime.slice(0, 5);
+    const endTime = row.endTime.slice(0, 5);
+    const id = `${startTime}-${endTime}`;
+    const saved = groups.get(id);
+    if (saved) saved.weekdays.push(row.weekday);
+    else
+      groups.set(id, {
+        key: groups.size,
+        weekdays: [row.weekday],
+        startTime,
+        endTime,
+      });
+  });
+  return groups.size
+    ? [...groups.values()].map((item) => ({
+        ...item,
+        weekdays: item.weekdays.sort(),
+      }))
+    : [{ key: 0, weekdays: [], startTime: "18:00", endTime: "20:00" }];
+}
+
+const classColorPresets = ["#922D61", "#C45A7A", "#D9875F", "#C49A3A", "#5E8C6A", "#4F7FA3", "#6C63A8", "#5F6670"];
+const recentClassColorKey = "hansalmae-recent-class-colors";
+function ClassColorPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(recentClassColorKey) ?? "[]");
+      if (Array.isArray(saved)) setRecent(saved.filter((item): item is string => typeof item === "string"));
+    } catch {}
+  }, []);
+  const colors = Array.from(new Set([value, ...recent, ...classColorPresets])).slice(0, 12);
+  const choose = (next: string) => {
+    onChange(next);
+    const updated = [next, ...recent.filter((item) => item !== next)].slice(0, 8);
+    setRecent(updated);
+    try {
+      window.localStorage.setItem(recentClassColorKey, JSON.stringify(updated));
+    } catch {}
+  };
+  return (
+    <div className="class-color-picker">
+      <div>
+        {colors.map((color) => (
+          <button type="button" key={color} className={color === value ? "active" : ""} style={{ background: color }} aria-label={`${color} 색상 선택`} aria-pressed={color === value} onClick={() => choose(color)} />
+        ))}
+      </div>
+      <label>
+        <input type="color" value={value} onChange={(event) => choose(event.target.value)} />
+        <span>다른 색</span>
+      </label>
+    </div>
+  );
+}
+
+function scheduleText(rows: Schedule[]) {
+  return rows.length ? rows.map((row) => `${weekdays[row.weekday - 1]} ${row.startTime.slice(0, 5)}–${row.endTime.slice(0, 5)}`).join(" · ") : "시간 미배정";
+}
+function isoWeekday(value: string) {
+  const day = new Date(`${value}T00:00:00`).getDay();
+  return day === 0 ? 7 : day;
+}
+function today() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
