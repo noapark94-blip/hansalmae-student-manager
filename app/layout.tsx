@@ -5,6 +5,7 @@ import "./analytics.css";
 import "./backup.css";
 import "./bulk-import.css";
 import "./bulk-account.css";
+import "./continuation-polish.css";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
