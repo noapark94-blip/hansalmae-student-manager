@@ -107,8 +107,8 @@
   font-size: 14px;
 }
 
-/* 클래스 운영 종료·삭제는 클래스 관리 화면에서만 처리합니다. */
-.class-day-workspace > header .class-header-actions > button {
+/* 클래스 운영 종료·삭제와 날짜 선택은 클래스 상세에서 중복 노출하지 않습니다. */
+.class-day-workspace > header .class-header-actions {
   display: none !important;
 }
 
