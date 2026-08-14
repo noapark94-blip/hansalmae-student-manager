@@ -57,16 +57,10 @@ function formatPhoneNumber(value:string){
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "홈", icon: "⌂" },
   { id: "students", label: "학생", icon: "人" },
-  { id: "bulk-import", label: "학생 일괄 등록", icon: "＋" },
-  { id: "bulk-accounts", label: "계정 일괄 생성", icon: "♙" },
-  { id: "guide", label: "일괄 등록 설명서", icon: "?" },
   { id: "class-management", label: "클래스 관리", icon: "▤" },
   { id: "schedule", label: "전과목 시간표", icon: "▦" },
   { id: "corrections", label: "첨삭 시간표", icon: "✎" },
   { id: "transport", label: "차량 운행표", icon: "◇" },
-  { id: "attendance", label: "출결 입력", icon: "✓" },
-  { id: "makeups", label: "보강 일정", icon: "↻" },
-  { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
   { id: "tuition", label: "수납·미납", icon: "₩" },
@@ -86,8 +80,8 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
+  admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
 };
