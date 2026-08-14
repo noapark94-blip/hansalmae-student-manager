@@ -23,6 +23,9 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdi
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
+  const [categoryManager, setCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categorySaving, setCategorySaving] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     const [boardResponse, categoryResponse] = await Promise.all([
@@ -44,6 +47,36 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdi
     setLoading(false);
   }, [sessionId, supabase]);
   useEffect(() => void load(), [load]);
+  useEffect(() => {
+    const closeTopLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (categoryManager) setCategoryManager(false);
+      else onClose();
+    };
+    document.addEventListener("keydown", closeTopLayer);
+    return () => document.removeEventListener("keydown", closeTopLayer);
+  }, [categoryManager, onClose]);
+  const refreshCategories = async () => {
+    const { data, error: categoryError } = await supabase.rpc("staff_exam_categories");
+    if (categoryError) setError(categoryError.message);
+    else setCategories((data ?? []) as ExamCategory[]);
+  };
+  const addCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return setError("추가할 시험 종류 이름을 입력해 주세요.");
+    setCategorySaving(true); setError("");
+    const { error: categoryError } = await supabase.rpc("staff_add_exam_category", { p_name: name });
+    if (categoryError) setError(categoryError.message);
+    else { setNewCategoryName(""); await refreshCategories(); }
+    setCategorySaving(false);
+  };
+  const removeCategory = async (category: ExamCategory) => {
+    if (!confirm(`시험 종류 '${category.name}'을 목록에서 삭제할까요? 기존 시험 기록은 유지됩니다.`)) return;
+    setCategorySaving(true); setError("");
+    const { error: categoryError } = await supabase.rpc("staff_set_exam_category", { p_id: category.id, p_name: category.name, p_active: false });
+    if (categoryError) setError(categoryError.message); else await refreshCategories();
+    setCategorySaving(false);
+  };
   const update = (id: string, patch: Partial<Row>) => setRows((current) => current.map((row) => row.id === id ? { ...row, ...patch } : row));
   const updateExam = (id: string, patch: Partial<Exam>) => setRows((current) => current.map((row) => row.id === id ? { ...row, exam: { ...row.exam, ...patch } } : row));
   const saveAttendance = async (row: Row, status: Status) => {
@@ -64,20 +97,21 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdi
     setSaving("");
   };
   return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`}>
-    <header><div><p className="eyebrow">개별 보강·추가수업</p><h2>수업 기록</h2><span>학생별 출결·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</span></div><button className="secondary-button" onClick={onClose}>{embedded ? "일정 목록" : "×"}</button></header>
-    <div className="special-board-toolbar"><button className="secondary-button" onClick={onEdit}>학생·시간 수정</button></div>
+    <header><div><p className="eyebrow">개별 보강·추가수업</p><h2>수업 기록</h2><span>학생별 출결·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</span></div><button type="button" className="secondary-button" onClick={onClose}>{embedded ? "일정 목록" : "×"}</button></header>
+    <div className="special-board-toolbar"><button type="button" className="secondary-button" onClick={() => setCategoryManager(true)}>시험 종류 관리</button><button type="button" className="secondary-button" onClick={onEdit}>학생·시간 수정</button></div>
     <label className="class-daily-notice"><b>수업 공지사항</b><textarea value={notice} onChange={(event) => setNotice(event.target.value)} placeholder="준비물·수업 안내" rows={2} /></label>
-    <div className="learning-board-heading"><span>학생·출결</span><span>개인별 시험</span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
+    <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 시험</span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
       return <article key={row.id}>
-        <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label]) => <button key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status === "late" ? <small>{row.lateMinutes}분 지각</small> : null}{row.status === "absent" ? <small>{row.absenceReason}</small> : null}</div></div>
+        <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status === "late" ? <small>{row.lateMinutes}분 지각</small> : null}{row.status === "absent" ? <small>{row.absenceReason}</small> : null}</div></div>
         <div className="learning-exam individual"><select value={row.exam.examType} onChange={(event) => updateExam(row.id,{examType:event.target.value})}><option value="">종류 선택</option>{categories.filter((item)=>item.isActive).map((item)=><option key={item.id}>{item.name}</option>)}</select><input value={row.exam.examTitle} onChange={(event)=>updateExam(row.id,{examTitle:event.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={row.exam.score} onChange={(event)=>updateExam(row.id,{score:event.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={row.exam.maxScore} onChange={(event)=>updateExam(row.id,{maxScore:event.target.value})}/></span><input value={row.exam.evaluation} onChange={(event)=>updateExam(row.id,{evaluation:event.target.value})} placeholder="평가·피드백"/>{converted == null ? null : <small>환산 {converted}점</small>}</div>
         <div className="learning-homework previous"><p>{row.previousHomework || "지난 숙제 없음"}</p><select value={row.inspectionStatus} onChange={(event)=>update(row.id,{inspectionStatus:event.target.value})}>{homework.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><input value={row.inspectionNote} onChange={(event)=>update(row.id,{inspectionNote:event.target.value})} placeholder="검사 메모"/></div>
         <div className="learning-homework assigned"><input value={row.assignedHomework} onChange={(event)=>update(row.id,{assignedHomework:event.target.value})} placeholder="교재·페이지·문제 번호·제출일"/></div>
       </article>;
-    })}{!rows.length ? <p className="settings-empty">배정된 학생이 없습니다. 학생·시간 수정에서 학생을 추가해 주세요.</p> : null}</div>}
+    })}{!rows.length ? <p className="settings-empty">배정된 학생이 없습니다. 학생·시간 수정에서 학생을 추가해 주세요.</p> : null}</div>}</div></div>
     {error ? <p className="form-error learning-board-error">{error}</p> : null}
-    <footer><span>출결은 즉시 저장되고 시험·숙제·공지는 아래 버튼으로 저장됩니다.</span><button className="primary" disabled={saving==="all"} onClick={() => void save()}>{saving==="all" ? "저장 중…" : "시험·숙제 한 번에 저장"}</button></footer>
+    <footer><span>출결은 즉시 저장되고 시험·숙제·공지는 아래 버튼으로 저장됩니다.</span><button type="button" className="primary" disabled={saving==="all"} onClick={() => void save()}>{saving==="all" ? "저장 중…" : "시험·숙제 한 번에 저장"}</button></footer>
+    {categoryManager ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label="시험 종류 관리" className="student-modal exam-category-modal"><header><div><p className="eyebrow">개인별 시험</p><h2>시험 종류 관리</h2><span>선택 목록에 사용할 종류를 추가하거나 숨깁니다. 기존 기록은 삭제되지 않습니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCategoryManager(false)}>×</button></header><div className="exam-category-add"><input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void addCategory(); }} placeholder="예: 영단어, 중간고사" /><button type="button" className="primary" disabled={categorySaving} onClick={() => void addCategory()}>＋ 종류 추가</button></div><div className="exam-category-list">{categories.filter((item) => item.isActive).map((category) => <article key={category.id}><span><b>{category.name}</b><small>시험 입력 목록에 표시 중</small></span><button type="button" className="danger-button" disabled={categorySaving} onClick={() => void removeCategory(category)}>삭제</button></article>)}{!categories.some((item) => item.isActive) ? <p className="settings-empty">등록된 시험 종류가 없습니다.</p> : null}</div>{error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setCategoryManager(false)}>닫기</button></footer></section></div> : null}
   </section>;
 }
