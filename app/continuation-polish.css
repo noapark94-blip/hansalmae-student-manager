@@ -89,6 +89,24 @@
   min-height: 38px;
 }
 
+.exam-category-modal > header div > span {
+  font-size: 0;
+}
+
+.exam-category-modal > header div > span::after {
+  content: "선생님별로 시험 종류를 추가하고 이름을 바꾸거나 영구 삭제할 수 있습니다.";
+  font-size: 14px;
+}
+
+.exam-category-list article > span > button:last-child {
+  font-size: 0 !important;
+}
+
+.exam-category-list article > span > button:last-child::after {
+  content: "영구 삭제";
+  font-size: 14px;
+}
+
 @media (max-width: 900px) {
   .learning-board-heading {
     display: none !important;
