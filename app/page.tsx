@@ -31,6 +31,10 @@ import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+
+const VIEW_STORAGE_KEY = "hansalmae:last-view";
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"];
+const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string; classIds:string[] };
 type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
 type ClassFormValues = { name: string; subject: string; subjectId:string; room: string; color: string };
@@ -101,6 +105,7 @@ export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authError, setAuthError] = useState("");
   const [view, setView] = useState<View>("dashboard");
+  const [viewRestored, setViewRestored] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen,setSearchOpen]=useState(false);
   const [adminHomeMode,setAdminHomeMode]=useState<"operations"|"classes">("operations");
@@ -118,6 +123,16 @@ export default function Home() {
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
+
+  useEffect(() => {
+    const savedView = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (savedView && isView(savedView)) setView(savedView);
+    setViewRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (viewRestored) window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view, viewRestored]);
 
   useEffect(() => {
     if (!supabase) {
