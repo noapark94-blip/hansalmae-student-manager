@@ -1,11 +1,7 @@
 .class-day-workspace {
   display: flex;
   flex-direction: column;
-}
-
-.class-day-workspace > .class-workspace-grid.class-log-grid {
-  order: 2;
-  margin: 14px 0 4px;
+  position: relative;
 }
 
 .class-day-workspace > .class-learning-board {
@@ -14,22 +10,6 @@
 
 .class-day-workspace > .form-error {
   order: 4;
-}
-
-.class-roster-shortcut {
-  align-items: center;
-  padding: 14px 16px;
-}
-
-.class-roster-shortcut h3 {
-  margin-bottom: 3px;
-  font-size: 16px;
-}
-
-.class-roster-shortcut p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
 }
 
 .class-learning-board {
@@ -107,9 +87,38 @@
   font-size: 14px;
 }
 
-/* 클래스 운영 종료·삭제와 날짜 선택은 클래스 상세에서 중복 노출하지 않습니다. */
+/* 클래스 상세에서는 운영 종료·삭제 컨트롤을 노출하지 않습니다. */
 .class-day-workspace > header .class-header-actions {
   display: none !important;
+}
+
+/* 별도 수강 학생 관리 박스는 없애고, 기존 버튼만 클래스 헤더 우측으로 이동합니다. */
+.class-day-workspace > header {
+  padding-right: 150px;
+}
+
+.class-day-workspace > .class-workspace-grid.class-log-grid,
+.class-day-workspace .class-roster-shortcut {
+  display: contents !important;
+}
+
+.class-day-workspace .class-roster-shortcut > div {
+  display: none !important;
+}
+
+.class-day-workspace .class-roster-shortcut > button {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
+  min-width: 104px;
+  font-size: 0 !important;
+  white-space: nowrap;
+}
+
+.class-day-workspace .class-roster-shortcut > button::after {
+  content: "학생 추가";
+  font-size: 14px;
 }
 
 @media (max-width: 900px) {
@@ -128,7 +137,13 @@
     min-width: 0;
   }
 
-  .class-roster-shortcut {
-    align-items: stretch;
+  .class-day-workspace > header {
+    padding-right: 122px;
+  }
+
+  .class-day-workspace .class-roster-shortcut > button {
+    top: 18px;
+    right: 18px;
+    min-width: 96px;
   }
 }
