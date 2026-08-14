@@ -16,7 +16,7 @@ type Board = { notice: string; students: Array<Omit<Row, "exam"> & { exam?: Part
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdit }: { supabase: SupabaseClient; sessionId: string; onClose: () => void; onEdit: () => void }) {
+export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdit, embedded = false }: { supabase: SupabaseClient; sessionId: string; onClose: () => void; onEdit: () => void; embedded?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
   const [categories, setCategories] = useState<ExamCategory[]>([]);
@@ -63,8 +63,8 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onEdi
     if (saveError) setError(saveError.message); else await load();
     setSaving("");
   };
-  return <section className="student-modal special-board-modal">
-    <header><div><p className="eyebrow">개별 보강·추가수업</p><h2>수업 기록</h2><span>학생별 출결·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</span></div><button onClick={onClose}>×</button></header>
+  return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`}>
+    <header><div><p className="eyebrow">개별 보강·추가수업</p><h2>수업 기록</h2><span>학생별 출결·시험·지난 숙제 검사·오늘 숙제를 한 화면에서 기록합니다.</span></div><button className="secondary-button" onClick={onClose}>{embedded ? "일정 목록" : "×"}</button></header>
     <div className="special-board-toolbar"><button className="secondary-button" onClick={onEdit}>학생·시간 수정</button></div>
     <label className="class-daily-notice"><b>수업 공지사항</b><textarea value={notice} onChange={(event) => setNotice(event.target.value)} placeholder="준비물·수업 안내" rows={2} /></label>
     <div className="learning-board-heading"><span>학생·출결</span><span>개인별 시험</span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
