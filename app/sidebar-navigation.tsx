@@ -10,18 +10,21 @@ type MenuItem = { id: View; label: string; icon: string };
 type MenuFolder = { id: string; name: string; itemIds: View[] };
 type MenuLayout = { folders: MenuFolder[] };
 
+const hiddenStandaloneViews = new Set<View>(["bulk-import", "bulk-accounts", "guide", "attendance", "makeups", "assignments"]);
+
 const defaultLayout: MenuLayout = {
   folders: [
     { id: "main", name: "바로가기", itemIds: ["dashboard"] },
-    { id: "students", name: "학생 관리", itemIds: ["students", "bulk-import", "bulk-accounts", "guide"] },
+    { id: "students", name: "학생 관리", itemIds: ["students"] },
     { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
-    { id: "classes", name: "수업 관리", itemIds: ["class-management", "attendance", "makeups", "assignments", "consultations"] },
+    { id: "classes", name: "수업 관리", itemIds: ["class-management", "consultations"] },
     { id: "operations", name: "학원 운영", itemIds: ["communications", "tuition", "tuition-settings", "analytics", "backup", "audit"] },
     { id: "accounts", name: "계정 설정", itemIds: ["settings", "my-account"] },
   ],
 };
 
-export function SidebarNavigation({ supabase, role, items, activeView, onSelect }: { supabase: SupabaseClient; role: UserRole; items: MenuItem[]; activeView: View; onSelect: (view: View) => void }) {
+export function SidebarNavigation({ supabase, role: _role, items, activeView, onSelect }: { supabase: SupabaseClient; role: UserRole; items: MenuItem[]; activeView: View; onSelect: (view: View) => void }) {
+  const usableItems = useMemo(() => items.filter((item) => !hiddenStandaloneViews.has(item.id)), [items]);
   const [layout, setLayout] = useState<MenuLayout>(defaultLayout);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
@@ -29,13 +32,13 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   useEffect(() => {
     let active = true;
     void supabase.rpc("get_app_menu_layout").then(({ data }) => {
-      if (active && isMenuLayout(data)) setLayout(mergeMissingItems(data, items));
+      if (active && isMenuLayout(data)) setLayout(mergeMissingItems(data, usableItems));
     });
     return () => { active = false; };
-  }, [supabase, items]);
+  }, [supabase, usableItems]);
 
-  const visible = useMemo(() => new Set(items.map((item) => item.id)), [items]);
-  const itemMap = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const visible = useMemo(() => new Set(usableItems.map((item) => item.id)), [usableItems]);
+  const itemMap = useMemo(() => new Map(usableItems.map((item) => [item.id, item])), [usableItems]);
   const folders = layout.folders.map((folder) => ({ ...folder, itemIds: folder.itemIds.filter((id) => visible.has(id)) })).filter((folder) => folder.itemIds.length);
 
   return <>
@@ -48,7 +51,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
         {!collapsed[folder.id] && <div className="nav-folder-items">{folder.itemIds.map((id) => { const item = itemMap.get(id); return item ? <button type="button" key={id} className={activeView === id ? "active" : ""} onClick={() => onSelect(id)}><span className="nav-icon">{item.icon}</span>{item.label}</button> : null; })}</div>}
       </section>)}
     </nav>
-    {editing && <MenuLayoutEditor supabase={supabase} items={items} value={layout} onClose={() => setEditing(false)} onSaved={(next) => { setLayout(next); setEditing(false); }} />}
+    {editing && <MenuLayoutEditor supabase={supabase} items={usableItems} value={layout} onClose={() => setEditing(false)} onSaved={(next) => { setLayout(next); setEditing(false); }} />}
   </>;
 }
 
