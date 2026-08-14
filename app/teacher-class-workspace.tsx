@@ -285,20 +285,19 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
             {classRoom.room ? ` · ${classRoom.room}` : ""}
           </span>
         </div>
-        <div className="class-header-actions">
-          <label className="class-date-picker">
-            <span>달력 출석부</span>
-            <input type="date" value={date} onChange={(event) => onDate(event.target.value)} />
-          </label>
-          <button type="button" className="secondary-button" disabled={!!saving} onClick={() => void archive()}>
-            운영 종료
-          </button>
-          <button type="button" className="danger-button" disabled={!!saving} onClick={() => void remove()}>
-            완전 삭제
-          </button>
-        </div>
       </header>
       {!validDay && <p className="class-day-notice">선택한 날짜에는 정규 수업이 없습니다. 보강·추가수업은 클래스 목록의 회색 전용 블록에서 등록해 주세요.</p>}
+      <div className="class-workspace-grid class-log-grid">
+        <section className="class-roster-shortcut">
+          <div>
+            <h3>수강 학생 관리</h3>
+            <p>과목·학년에 맞는 학생이 먼저 표시됩니다. 추가·제외해도 이전 기록은 보존됩니다.</p>
+          </div>
+          <button type="button" className="secondary-button" onClick={() => setRosterOpen(true)}>
+            학생 추가·제외
+          </button>
+        </section>
+      </div>
       <ClassLearningBoard
         key={`${classRoom.id}-${date}`}
         supabase={supabase}
@@ -318,17 +317,6 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
         validDay={validDay}
         onReload={onReload}
       />
-      <div className="class-workspace-grid class-log-grid">
-        <section className="class-roster-shortcut">
-          <div>
-            <h3>수강 학생 관리</h3>
-            <p>과목·학년에 맞는 학생이 먼저 표시됩니다. 추가·제외해도 이전 기록은 보존됩니다.</p>
-          </div>
-          <button type="button" className="secondary-button" onClick={() => setRosterOpen(true)}>
-            학생 추가·제외
-          </button>
-        </section>
-      </div>
       {error && <p className="form-error">{error}</p>}
       {rosterOpen && (
         <ClassRosterEditor
