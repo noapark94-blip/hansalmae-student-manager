@@ -48,6 +48,15 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     setLoading(false);
   }, [profile.id, supabase]);
   useEffect(() => void load(), [load]);
+  useEffect(() => {
+    const closeTopLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (draft) setDraft(null);
+      else if (activeSession) setActiveSession(null);
+    };
+    document.addEventListener("keydown", closeTopLayer);
+    return () => document.removeEventListener("keydown", closeTopLayer);
+  }, [activeSession, draft]);
   const visibleStudents = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase("ko");
     return keyword ? students.filter((item) => [item.name, item.school, item.grade].some((value) => value?.toLocaleLowerCase("ko").includes(keyword))) : students;
@@ -58,6 +67,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     sessions.forEach((session) => grouped.set(session.date, [...(grouped.get(session.date) ?? []), session]));
     return grouped;
   }, [sessions]);
+  const selectedDaySessions = sessionsByDate.get(anchorDate) ?? [];
   const edit = (session: Session) => setDraft({ id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -88,37 +98,41 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     if (!confirm(`${session.date} ${session.startTime.slice(0, 5)} 일정을 삭제할까요?`)) return;
     const { error: removeError } = await supabase.rpc("staff_delete_teacher_special_lesson", { p_id: session.id });
     if (removeError) setError(removeError.message);
-    else await load();
+    else {
+      if (activeSession?.id === session.id) setActiveSession(null);
+      await load();
+    }
   };
   return (
     <section className="panel teacher-special-workspace">
       <header>
         <div><p className="eyebrow">{profile.role === "admin" ? "관리자 전체 조회" : "선생님 전용"}</p><h2>개별 보강·추가수업</h2><span>정규 클래스와 분리하여 원하는 날짜와 시간에 학생을 배정합니다.</span></div>
-        <button className="primary" onClick={() => { setError(""); setDraft(blank()); }}>＋ 일정 등록</button>
+        <button type="button" className="primary" onClick={() => { setError(""); setDraft({ ...blank(), date: anchorDate }); }}>＋ 일정 등록</button>
       </header>
       {error ? <p className="form-error special-lesson-error">{error}</p> : null}
       <section className="special-week-calendar">
-        <header><div><h3>이번 주 출석부</h3><p>날짜를 누르면 일정을 등록하고, 등록된 수업을 누르면 출결·시험·숙제를 기록합니다.</p></div><div><button className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>이전 주</button><button className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button><button className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>다음 주</button></div></header>
+        <header><div><h3>이번 주 출석부</h3><p>요일 칸을 누르면 그날의 일정 수정·삭제가, 안쪽 수업을 누르면 수업 관리 화면이 열립니다.</p></div><div><button type="button" className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>이전 주</button><button type="button" className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button><button type="button" className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>다음 주</button></div></header>
         <div className="class-week-strip special-week-strip">{week.map((date, index) => {
           const daySessions = sessionsByDate.get(date) ?? [];
-          return <div key={date} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`}>
-            <button className="special-week-day" onClick={() => { setAnchorDate(date); if (!daySessions.length) setDraft({ ...blank(), date }); }}><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 등록"}</small></button>
-            {daySessions.map((session) => <button key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={() => { setAnchorDate(date); setActiveSession(session); }}><b>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</b><span>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
-          </div>;
+          const selectDay = () => { setAnchorDate(date); setActiveSession(null); };
+          return <article key={date} role="button" tabIndex={0} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={selectDay} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectDay(); }}>
+            <div className="special-week-day"><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 없음"}</small></div>
+            {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</b><span>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
+          </article>;
         })}</div>
       </section>
       {loading ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
-        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /> : <div className="special-lesson-list">
-          {sessions.map((session) => <article key={session.id}>
+        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /> : <section className="special-day-agenda">
+          <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div><button type="button" className="primary compact" onClick={() => setDraft({ ...blank(), date: anchorDate })}>＋ 일정 등록</button></header>
+          <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />
             <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
             {profile.role === "admin" ? <mark>{session.teacherName}</mark> : null}
-            <div><button className="primary compact" onClick={() => setActiveSession(session)}>수업 관리</button>{session.teacherId === profile.id ? <button className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
-          </article>)}
-          {!sessions.length ? <p className="settings-empty">등록된 보강·추가수업 일정이 없습니다.</p> : null}
-        </div>
+            <div><button type="button" className="primary compact" onClick={() => setActiveSession(session)}>수업 관리</button>{session.teacherId === profile.id ? <button type="button" className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button type="button" className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
+          </article>)}{!selectedDaySessions.length ? <p className="settings-empty">이 날짜에는 일정이 없습니다. 위 버튼으로 새 일정을 등록해 주세요.</p> : null}</div>
+        </section>
       )}
-      {draft ? <div className="modal-backdrop nested"><section className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>요일 제한 없이 날짜·시간·학생을 직접 선택합니다.</span></div><button onClick={() => setDraft(null)}>×</button></header>
+      {draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>날짜와 시간, 학생을 순서대로 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={() => setDraft(null)}>×</button></header>
         <form onSubmit={(event) => void save(event)}>
           <div className="form-pair"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label></div>
           <div className="form-pair special-time-fields"><MilitaryTimeInput label="시작 시간" value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} /><MilitaryTimeInput label="종료 시간" value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} /></div>
