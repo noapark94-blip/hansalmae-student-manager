@@ -107,6 +107,11 @@
   font-size: 14px;
 }
 
+/* 클래스 운영 종료·삭제는 클래스 관리 화면에서만 처리합니다. */
+.class-day-workspace > header .class-header-actions > button {
+  display: none !important;
+}
+
 @media (max-width: 900px) {
   .learning-board-heading {
     display: none !important;
