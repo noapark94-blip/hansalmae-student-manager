@@ -8,6 +8,7 @@ import "./bulk-account.css";
 import "./continuation-polish.css";
 import "./class-home-polish.css";
 import "./family-kidsnote.css";
+import "./family-learning-note.css";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
