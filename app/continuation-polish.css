@@ -64,6 +64,20 @@
 .stat-card,.panel { border-color:var(--hm-border); box-shadow:0 5px 24px rgba(55,35,45,.04); }
 .primary { box-shadow:0 5px 16px rgba(146,45,97,.14); }
 
+/* 홈 대시보드도 같은 한살매 아이콘/카드 언어를 사용합니다. */
+.stats-grid .stat-icon,.teacher-schedule-shortcuts>button>span { position:relative; overflow:hidden; font-size:0!important; }
+.stats-grid .stat-icon::before,.teacher-schedule-shortcuts>button>span::before { content:""; width:22px; height:22px; display:block; background:currentColor; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain; }
+.stats-grid .stat-card:nth-child(1) .stat-icon::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M4 19c.4-3.6 2-5.3 5-5.3s4.6 1.7 5 5.3'/%3E%3Ccircle cx='17' cy='9' r='2.2'/%3E%3Cpath d='M15.5 14.3c2.8-.4 4.3 1.1 4.5 3.8'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M4 19c.4-3.6 2-5.3 5-5.3s4.6 1.7 5 5.3'/%3E%3Ccircle cx='17' cy='9' r='2.2'/%3E%3Cpath d='M15.5 14.3c2.8-.4 4.3 1.1 4.5 3.8'/%3E%3C/svg%3E"); }
+.stats-grid .stat-card:nth-child(2) .stat-icon::before,.teacher-schedule-shortcuts>button:nth-child(1)>span::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M4 9h16M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M4 9h16M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01'/%3E%3C/svg%3E"); }
+.stats-grid .stat-card:nth-child(3) .stat-icon::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4.2 4.2L19 6.8'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4.2 4.2L19 6.8'/%3E%3C/svg%3E"); }
+.stats-grid .stat-card:nth-child(4) .stat-icon::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3Cpath d='M12 7.5v5M12 16.5h.01'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3Cpath d='M12 7.5v5M12 16.5h.01'/%3E%3C/svg%3E"); }
+.teacher-schedule-shortcuts>button:nth-child(2)>span::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 16.5-.8 3.3 3.3-.8L18.8 7.7a2 2 0 0 0-2.8-2.8Z'/%3E%3Cpath d='m14.8 6.1 3 3'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 16.5-.8 3.3 3.3-.8L18.8 7.7a2 2 0 0 0-2.8-2.8Z'/%3E%3Cpath d='m14.8 6.1 3 3'/%3E%3C/svg%3E"); }
+.teacher-schedule-shortcuts>button:nth-child(3)>span::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='14' rx='3'/%3E%3Cpath d='M7 8h10M7 12h10M7.5 18v2M16.5 18v2'/%3E%3Ccircle cx='8' cy='15' r='.8'/%3E%3Ccircle cx='16' cy='15' r='.8'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='14' rx='3'/%3E%3Cpath d='M7 8h10M7 12h10M7.5 18v2M16.5 18v2'/%3E%3Ccircle cx='8' cy='15' r='.8'/%3E%3Ccircle cx='16' cy='15' r='.8'/%3E%3C/svg%3E"); }
+.teacher-schedule-shortcuts>button { border-color:var(--hm-border)!important; box-shadow:0 5px 20px rgba(55,35,45,.035)!important; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
+.teacher-schedule-shortcuts>button:active { transform:scale(.985); }
+.teacher-schedule-shortcuts>button>b { color:var(--hm-ink); }
+.teacher-schedule-shortcuts>button>small { color:var(--hm-sub); }
+
 @media (max-width:1100px) {
   .learning-board-heading,.learning-board-rows > article { grid-template-columns:minmax(205px,.9fr) minmax(300px,1.35fr) minmax(230px,1fr) minmax(250px,1.05fr)!important; }
 }
@@ -79,4 +93,28 @@
   .class-day-workspace .class-roster-shortcut > button { top:18px; right:18px; min-width:96px; }
   .sidebar { width:min(86vw,300px); }
   .workspace { margin-left:0; width:100%; }
+
+  /* 모바일 홈: 세로 공간을 줄이고 앱다운 정보 밀도로 정리 */
+  .content { padding:22px 16px 28px; }
+  .page-heading { margin-bottom:18px; }
+  .page-heading>div>.eyebrow,.page-heading>div>h1 { display:none; }
+  .page-heading p { margin:0; font-size:15px; line-height:1.45; }
+  .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:10px!important; margin-bottom:14px!important; }
+  .stats-grid .stat-card { min-height:116px; padding:16px!important; border-radius:17px!important; gap:12px!important; }
+  .stats-grid .stat-icon { width:40px!important; height:40px!important; border-radius:12px!important; }
+  .stats-grid .stat-icon::before { width:20px; height:20px; }
+  .stats-grid .stat-card span { font-size:12px!important; }
+  .stats-grid .stat-card strong { font-size:27px!important; letter-spacing:-.6px; }
+  .stats-grid .stat-card small { font-size:10.5px!important; line-height:1.35; }
+  .teacher-schedule-shortcuts { grid-template-columns:1fr!important; gap:9px!important; margin-top:8px!important; }
+  .teacher-schedule-shortcuts>button { min-height:84px!important; padding:15px 16px!important; border-radius:16px!important; display:grid!important; grid-template-columns:44px 1fr!important; grid-template-rows:auto auto!important; column-gap:12px!important; text-align:left!important; align-items:center!important; }
+  .teacher-schedule-shortcuts>button>span { grid-row:1/3; width:42px!important; height:42px!important; border-radius:12px!important; display:grid!important; place-items:center!important; }
+  .teacher-schedule-shortcuts>button>span::before { width:21px; height:21px; }
+  .teacher-schedule-shortcuts>button>b { align-self:end; font-size:14px!important; line-height:1.25; }
+  .teacher-schedule-shortcuts>button>small { align-self:start; margin-top:4px; font-size:11px!important; line-height:1.35; }
+  .dashboard-grid { gap:12px!important; }
+  .topbar { padding-left:14px!important; padding-right:14px!important; gap:9px!important; }
+  .search-wrap { border:1px solid #eee8ea; background:#f8f6f5!important; }
+  .primary.small { min-width:48px; width:48px; padding:0!important; font-size:0!important; border-radius:13px!important; }
+  .primary.small::after { content:"+"; font-size:25px; font-weight:500; line-height:1; }
 }
