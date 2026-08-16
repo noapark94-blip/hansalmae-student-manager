@@ -1,0 +1,187 @@
+/* 한살매 내 수업 클래스 홈 정리 */
+.teacher-home-heading {
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  margin-bottom:18px;
+}
+.teacher-home-heading > div:first-child { min-width:0; }
+.teacher-home-heading .eyebrow { margin-bottom:7px; color:var(--hm-accent); font-size:11px; font-weight:800; letter-spacing:.06em; }
+.teacher-home-heading h1 { margin:0; color:var(--hm-ink); font-size:29px; line-height:1.2; letter-spacing:-.8px; }
+.teacher-home-heading p { margin:8px 0 0; color:var(--hm-sub); font-size:14px; line-height:1.5; }
+.teacher-home-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.teacher-home-actions button { min-height:42px; border-radius:11px; padding:0 15px; font-size:13px; font-weight:750; }
+.teacher-home-actions button:nth-child(2) { order:-1; padding:0 12px; border-color:#eee5e9; color:#7c7076; background:#fff; box-shadow:none; font-size:0; }
+.teacher-home-actions button:nth-child(2)::after { content:"과목 설정"; font-size:12px; }
+
+.teacher-class-cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:12px;
+  margin:0 0 18px;
+}
+.teacher-class-cards > button {
+  position:relative;
+  min-height:122px;
+  padding:17px 17px 16px 20px;
+  border:1px solid var(--hm-border);
+  border-radius:17px;
+  background:#fff;
+  box-shadow:0 4px 18px rgba(55,35,45,.035);
+  display:grid;
+  grid-template-columns:4px minmax(0,1fr) auto;
+  align-items:stretch;
+  gap:13px;
+  text-align:left;
+  color:var(--hm-ink);
+  overflow:hidden;
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease,background .16s ease;
+}
+.teacher-class-cards > button:hover { transform:translateY(-1px); border-color:#ddcbd3; box-shadow:0 8px 24px rgba(55,35,45,.055); }
+.teacher-class-cards > button > i {
+  width:4px;
+  height:100%;
+  min-height:72px;
+  border-radius:999px;
+  background:var(--class-color,var(--hm-accent));
+  opacity:.78;
+}
+.teacher-class-cards > button > span { display:flex; flex-direction:column; min-width:0; }
+.teacher-class-cards > button > span > small {
+  width:max-content;
+  max-width:100%;
+  margin-bottom:7px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f8f3f5;
+  color:var(--hm-accent);
+  font-size:10.5px;
+  line-height:1;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.teacher-class-cards > button > span > b { font-size:17px; line-height:1.28; letter-spacing:-.35px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.teacher-class-cards > button > span > em { margin-top:auto; padding-top:10px; color:#7f757a; font-size:12px; line-height:1.45; font-style:normal; white-space:normal; }
+.teacher-class-cards > button > strong {
+  align-self:start;
+  min-width:44px;
+  padding:6px 8px;
+  border-radius:9px;
+  background:#faf8f8;
+  color:#665e62;
+  font-size:11px;
+  font-weight:800;
+  text-align:center;
+}
+.teacher-class-cards > button.active {
+  border-color:#d7b4c4;
+  background:linear-gradient(180deg,#fff 0%,#fdf9fb 100%);
+  box-shadow:0 8px 26px rgba(146,45,97,.09);
+}
+.teacher-class-cards > button.active::after {
+  content:"선택됨";
+  position:absolute;
+  right:14px;
+  bottom:12px;
+  color:var(--hm-accent);
+  font-size:10px;
+  font-weight:800;
+}
+.teacher-class-cards > .teacher-special-card { --class-color:#8b8588; }
+.teacher-class-cards > .teacher-special-card > span > small { background:#f3f1f2; color:#6f696c; }
+.teacher-class-cards > .teacher-special-card > strong { color:#6f696c; }
+
+.class-day-workspace {
+  border-radius:20px!important;
+  overflow:hidden;
+}
+.class-day-workspace > header {
+  min-height:102px;
+  padding-top:20px!important;
+  padding-bottom:18px!important;
+  border-bottom:1px solid #f1ecee;
+  background:linear-gradient(180deg,#fff,#fdfbfb);
+}
+.class-day-workspace > header .eyebrow { margin-bottom:6px; font-size:10.5px; letter-spacing:.05em; }
+.class-day-workspace > header h2 { font-size:24px; letter-spacing:-.55px; }
+.class-day-workspace > header span { margin-top:6px; color:#81777c; font-size:12.5px; }
+.class-day-workspace .class-roster-shortcut > button {
+  border-color:#dfc6d1!important;
+  color:var(--hm-accent)!important;
+  background:#fff!important;
+  box-shadow:0 4px 14px rgba(146,45,97,.07)!important;
+}
+.class-day-workspace .class-roster-shortcut > button::before {
+  content:"+";
+  margin-right:6px;
+  font-size:17px;
+  font-weight:600;
+  vertical-align:-1px;
+}
+
+/* 홈의 의미 불명 기호를 텍스트 중심의 명확한 액션으로 정리 */
+.page-heading > .primary { font-size:0; }
+.page-heading > .primary::after { content:"공지 작성"; font-size:13px; font-weight:800; }
+.notification-button { color:#5f565b!important; }
+.notification-button .hansalmae-icon { width:21px; height:21px; }
+.notification-list article > i { display:grid!important; place-items:center; }
+.notification-list article > i .hansalmae-icon { width:18px; height:18px; }
+
+@media (max-width:900px) {
+  .teacher-home-heading { align-items:flex-start; gap:14px; margin:0 0 14px; }
+  .teacher-home-heading .eyebrow { display:block!important; margin-bottom:5px; font-size:10px; }
+  .teacher-home-heading h1 { display:block!important; font-size:22px; letter-spacing:-.55px; }
+  .teacher-home-heading p { display:none; }
+  .teacher-home-actions { gap:6px; }
+  .teacher-home-actions button { min-height:38px; padding:0 11px; border-radius:10px; font-size:0; }
+  .teacher-home-actions button:first-child::after { content:"관리"; font-size:12px; }
+  .teacher-home-actions button:nth-child(2) { display:none; }
+  .teacher-home-actions button:last-child::after { content:"새 클래스"; font-size:12px; }
+  .teacher-home-actions button:last-child { font-size:0; }
+
+  .teacher-class-cards {
+    display:flex!important;
+    grid-template-columns:none!important;
+    gap:10px;
+    margin:0 -16px 16px;
+    padding:0 16px 3px;
+    overflow-x:auto;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+  }
+  .teacher-class-cards::-webkit-scrollbar { display:none; }
+  .teacher-class-cards > button {
+    flex:0 0 min(78vw,286px);
+    min-height:112px;
+    padding:15px 14px 14px 16px;
+    border-radius:16px;
+    grid-template-columns:4px minmax(0,1fr) auto;
+    gap:11px;
+    scroll-snap-align:start;
+  }
+  .teacher-class-cards > button > span > b { font-size:16px; }
+  .teacher-class-cards > button > span > em { padding-top:8px; font-size:11px; }
+  .teacher-class-cards > button > strong { min-width:40px; padding:5px 7px; font-size:10.5px; }
+  .teacher-class-cards > button.active::after { right:12px; bottom:9px; font-size:9px; }
+
+  .class-day-workspace { border-radius:17px!important; }
+  .class-day-workspace > header { min-height:88px; padding:16px 116px 14px 16px!important; }
+  .class-day-workspace > header h2 { font-size:20px; }
+  .class-day-workspace > header span { font-size:11.5px; line-height:1.4; }
+  .class-day-workspace .class-roster-shortcut > button { top:16px!important; right:14px!important; min-width:92px!important; height:38px; padding:0 11px!important; }
+  .class-day-workspace .class-roster-shortcut > button::before { font-size:15px; margin-right:4px; }
+  .class-day-workspace .class-roster-shortcut > button::after { font-size:12px!important; }
+
+  .page-heading > .primary {
+    min-width:auto!important;
+    width:auto!important;
+    height:40px!important;
+    padding:0 13px!important;
+    border-radius:11px!important;
+  }
+  .page-heading > .primary::after { content:"공지"; font-size:12px; }
+  .notification-button { border-radius:11px!important; }
+}
