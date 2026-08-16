@@ -1,0 +1,68 @@
+/* 한살매 중·고등용 키즈노트: 학생·학부모 홈 */
+.family-heading{margin-bottom:18px!important;padding:24px 28px;border:1px solid #eee5e9;border-radius:22px;background:linear-gradient(135deg,#fff 0%,#fcf7f9 100%);box-shadow:0 8px 28px rgba(72,45,58,.045)}
+.family-heading .eyebrow{color:#922d61!important;font-weight:800!important;letter-spacing:.02em}
+.family-heading h1{font-size:28px!important;letter-spacing:-.8px}
+.family-heading p{margin-top:7px!important;color:#746a70!important}
+.child-selector{min-width:190px;padding:9px 12px;border:1px solid #eadde3;border-radius:13px;background:#fff;color:#75666d;font-size:12px;font-weight:700}
+.child-selector select{margin-top:6px;border:0;background:transparent;color:#30282c;font-weight:800}
+
+.family-stats{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;margin-bottom:18px!important}
+.family-stats .stat-card{min-height:126px!important;padding:18px!important;border-radius:18px!important;background:#fff!important;box-shadow:0 6px 22px rgba(61,39,49,.035)!important}
+.family-stats .stat-card strong{font-size:25px!important}
+.family-stats .stat-card small{font-size:11.5px!important;line-height:1.4!important}
+
+.family-exam-progress{border-radius:22px!important;margin-bottom:18px!important;overflow:hidden}
+.family-exam-progress>header{padding:23px 25px 18px!important;border-bottom:1px solid #f1eaed}
+.family-exam-progress>header h2{font-size:20px!important;letter-spacing:-.45px}
+.family-exam-progress>header nav button{border-radius:999px!important;padding:7px 13px!important}
+.family-exam-body{padding:20px 24px 24px!important}
+.family-exam-records article{border-radius:14px!important}
+
+.family-dashboard-grid{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;gap:16px!important;align-items:start}
+.family-dashboard-grid>.panel{border-radius:22px!important;box-shadow:0 6px 24px rgba(61,39,49,.035)!important;overflow:hidden}
+.family-dashboard-grid>.panel>header{padding:20px 22px 14px!important;border-bottom:1px solid #f1ecee}
+.family-dashboard-grid>.panel>header h2{font-size:18px!important;letter-spacing:-.35px}
+.family-dashboard-grid>.panel>header button{color:#922d61!important;font-weight:750!important}
+.family-upcoming{grid-column:1}
+.family-notices{grid-column:2}
+.family-week{grid-column:1}
+.family-progress{grid-column:2}
+
+.family-upcoming>div,.family-notices>div,.family-week>div,.family-progress-list{padding:8px 14px 16px!important}
+.family-upcoming article{min-height:72px!important;margin-top:7px;padding:12px!important;border:1px solid #f1ebed;border-radius:15px;background:#fff}
+.family-upcoming article time{font-size:11px!important;color:#81747b!important}
+.family-upcoming article span>b{font-size:14px!important}
+.family-notices article{margin-top:7px;padding:14px!important;border:1px solid #f1ebed;border-radius:15px;background:#fff}
+.family-notices article b{font-size:14px!important}
+.family-notices article p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#766a70!important;line-height:1.5!important}
+.family-progress-list button{margin-top:7px!important;border:1px solid #f1ebed!important;border-radius:15px!important;background:#fff!important}
+.family-progress-list button>i{border-radius:11px!important}
+.family-progress-list button span>b{font-size:14px!important}
+.family-progress-list button span>small{font-size:11.5px!important;color:#7b7076!important}
+
+/* 관리 대시보드보다 '학습 노트'처럼 보이도록 통계보다 콘텐츠를 강조 */
+.family-list-empty{padding:28px 18px!important;color:#8b7f85!important}
+
+@media(max-width:900px){
+  .family-heading{margin:0 0 14px!important;padding:18px!important;border-radius:18px!important;display:flex!important;align-items:flex-start!important;gap:12px!important}
+  .family-heading>div>.eyebrow{display:block!important;font-size:10px!important;margin-bottom:5px!important}
+  .family-heading>div>h1{display:block!important;font-size:21px!important;line-height:1.25!important;margin:0!important}
+  .family-heading>div>p{display:block!important;font-size:12px!important;line-height:1.45!important;margin-top:5px!important}
+  .child-selector{width:100%;min-width:0;margin-top:10px}
+  .family-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-bottom:13px!important}
+  .family-stats .stat-card{min-height:108px!important;padding:14px!important;border-radius:16px!important}
+  .family-stats .stat-card strong{font-size:23px!important}
+  .family-stats .stat-card small{font-size:10.5px!important}
+  .family-exam-progress{border-radius:18px!important;margin-bottom:13px!important}
+  .family-exam-progress>header{padding:18px 16px 13px!important}
+  .family-exam-progress>header h2{font-size:17px!important}
+  .family-exam-progress>header nav{display:flex!important;overflow-x:auto!important;gap:6px!important;padding-bottom:2px}
+  .family-exam-body{padding:15px!important}
+  .family-dashboard-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .family-upcoming,.family-notices,.family-week,.family-progress{grid-column:1!important}
+  .family-dashboard-grid>.panel{border-radius:18px!important}
+  .family-dashboard-grid>.panel>header{padding:17px 16px 12px!important}
+  .family-dashboard-grid>.panel>header h2{font-size:16px!important}
+  .family-upcoming>div,.family-notices>div,.family-week>div,.family-progress-list{padding:7px 10px 13px!important}
+  .family-upcoming article,.family-notices article,.family-progress-list button{border-radius:14px!important}
+}
