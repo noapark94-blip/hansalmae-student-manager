@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionWorkBoard } from "./correction-work-board";
+import "./correction-management-followup.css";
 
 export function AssignmentBoard({ supabase }: { supabase: SupabaseClient }) {
   return <div className="correction-management-workspace">
