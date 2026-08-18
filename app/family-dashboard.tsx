@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { FamilyLearningNote } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
+import { FamilyExamGrowth } from "./family-exam-growth";
 import { HansalmaeIcon } from "./hansalmae-icons";
 
 type FamilyView = "schedule" | "attendance" | "makeups" | "assignments" | "consultations" | "communications";
@@ -66,6 +67,7 @@ export function FamilyLiveDashboard({supabase,profile,onNavigate}:{supabase:Supa
         <FamilyStat label="확인할 과제" value={String(data?.assignments.filter(x=>x.status!=="reviewed").length??0)} unit="건" detail="제출 전·첨삭 대기" icon="edit" tone="amber"/>
         <FamilyStat label="예정 보강" value={String(data?.makeups.filter(x=>x.status==="scheduled").length??0)} unit="건" detail="앞으로 진행할 보강" icon="refresh" tone="wine"/>
       </section>
+      <FamilyExamGrowth supabase={supabase} studentId={selected.id}/>
       <FamilyExamProgress supabase={supabase} studentId={selected.id}/>
       <div className="family-dashboard-grid">
         <section className="panel family-upcoming"><PanelTitle title="다가오는 수업" action="주간 시간표" onClick={()=>onNavigate("schedule")}/>{data?.upcomingClasses.length?<div>{data.upcomingClasses.map(item=><article key={`${item.id}-${item.classDate}`}><time>{formatClassDate(item.classDate)}<b>{item.startTime.slice(0,5)}</b></time><i style={{background:item.color}}/><span><b>{item.name}</b><small>{item.teachers||"담당 선생님"}{item.room?` · ${item.room}`:""}</small></span></article>)}</div>:<Empty text="다가오는 수업이 없습니다."/>}</section>
