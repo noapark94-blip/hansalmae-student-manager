@@ -1,0 +1,43 @@
+/* 시험 카테고리 관리를 개인별 시험 헤더 오른쪽에 작게 배치 */
+.class-learning-board .learning-board-heading>span:nth-child(2){
+  position:relative;
+  padding-right:132px!important;
+  anchor-name:--exam-column-heading;
+}
+.class-learning-board .learning-bulk-bottom>button:first-child{
+  position:absolute!important;
+  position-anchor:--exam-column-heading;
+  top:anchor(top)!important;
+  right:anchor(right)!important;
+  transform:translate(-10px,7px)!important;
+  z-index:4!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:0 10px!important;
+  border:1px solid #dfc9d3!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#922d61!important;
+  box-shadow:none!important;
+  font-size:10.5px!important;
+  line-height:1!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+}
+.class-learning-board .learning-bulk-bottom>button:first-child:hover{
+  background:#fbf3f7!important;
+  border-color:#cfa9bb!important;
+}
+.class-learning-board .learning-bulk-bottom{
+  min-height:32px;
+}
+@media(max-width:980px){
+  .class-learning-board .learning-bulk-bottom>button:first-child{
+    position:static!important;
+    transform:none!important;
+    height:auto!important;
+    min-height:36px!important;
+    padding:0 11px!important;
+    font-size:11px!important;
+  }
+}
