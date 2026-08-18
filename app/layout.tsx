@@ -15,6 +15,7 @@ import "./learning-efficiency.css";
 import "./learning-board-four-columns.css";
 import "./exam-category-header.css";
 import "./exam-category-modal-polish.css";
+import "./menu-editor-polish.css";
 import "./kidsnote-final-polish.css";
 import "./correction-management.css";
 import "./correction-report.css";
