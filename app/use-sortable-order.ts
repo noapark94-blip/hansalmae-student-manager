@@ -25,15 +25,66 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     const node=preview.current;const target=source.current;
     preview.current=null;source.current=null;
     if(!node)return;
-    if(animate&&target){const rect=target.getBoundingClientRect();node.animate([{left:node.style.left,top:node.style.top,transform:"scale(1.02)"},{left:`${rect.left}px`,top:`${rect.top}px`,transform:"scale(.98)",opacity:.35}],{duration:170,easing:"cubic-bezier(.2,.8,.2,1)"}).finished.finally(()=>node.remove());}
+    if(animate&&target){const rect=target.getBoundingClientRect();node.animate([{left:node.style.left,top:node.style.top,transform:"scale(1)"},{left:`${rect.left}px`,top:`${rect.top}px`,transform:"scale(.96)",opacity:.25}],{duration:150,easing:"cubic-bezier(.2,.8,.2,1)"}).finished.finally(()=>node.remove());}
     else node.remove();
   }, []);
 
   const createPreview=useCallback((element:HTMLElement,clientX:number,clientY:number)=>{
-    removePreview();const rect=element.getBoundingClientRect();const clone=element.cloneNode(true) as HTMLElement;
-    offset.current={x:clientX-rect.left,y:clientY-rect.top};source.current=element;
-    Object.assign(clone.style,{position:"fixed",left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`,margin:"0",zIndex:"10000",pointerEvents:"none"});
-    clone.classList.add("sortable-drag-preview");document.body.appendChild(clone);preview.current=clone;
+    removePreview();
+    const rect=element.getBoundingClientRect();
+    const style=getComputedStyle(element);
+    const accent=style.getPropertyValue("--class-color").trim()||"#922d61";
+    const subject=element.querySelector("small")?.textContent?.trim()||"";
+    const title=element.querySelector("b,h3,h4")?.textContent?.trim()||element.innerText.trim().split("\n").filter(Boolean)[0]||"이동 중";
+    const count=element.querySelector("strong")?.textContent?.trim()||"";
+    const detail=element.querySelector("em")?.textContent?.trim()||"";
+
+    const card=document.createElement("div");
+    card.className="sortable-drag-preview";
+    card.innerHTML=`<i></i><div><span>${escapeHtml(subject)}</span><b>${escapeHtml(title)}</b>${detail?`<small>${escapeHtml(detail)}</small>`:""}</div>${count?`<strong>${escapeHtml(count)}</strong>`:""}`;
+    Object.assign(card.style,{
+      position:"fixed",
+      left:`${rect.left}px`,
+      top:`${rect.top}px`,
+      width:`${Math.min(Math.max(rect.width*.78,220),300)}px`,
+      minHeight:"88px",
+      height:"auto",
+      margin:"0",
+      padding:"13px 14px",
+      zIndex:"10000",
+      pointerEvents:"none",
+      display:"grid",
+      gridTemplateColumns:"4px minmax(0,1fr) auto",
+      gap:"11px",
+      alignItems:"stretch",
+      border:"1px solid rgba(146,45,97,.20)",
+      borderRadius:"16px",
+      background:"rgba(255,255,255,.97)",
+      boxShadow:"0 16px 38px rgba(55,35,45,.16)",
+      color:"#2d2629",
+      overflow:"hidden",
+      opacity:".96",
+      transform:"scale(.98)",
+      backdropFilter:"blur(10px)",
+      boxSizing:"border-box",
+    });
+    const bar=card.querySelector("i") as HTMLElement|null;
+    if(bar)Object.assign(bar.style,{width:"4px",height:"100%",minHeight:"60px",borderRadius:"999px",background:accent,opacity:".82"});
+    const body=card.querySelector("div") as HTMLElement|null;
+    if(body)Object.assign(body.style,{display:"flex",flexDirection:"column",minWidth:"0",gap:"4px"});
+    const badge=card.querySelector("span") as HTMLElement|null;
+    if(badge)Object.assign(badge.style,{width:"max-content",maxWidth:"100%",padding:"3px 7px",borderRadius:"999px",background:"#f8f1f5",color:"#922d61",fontSize:"10px",fontWeight:"800",lineHeight:"1.1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const titleNode=card.querySelector("b") as HTMLElement|null;
+    if(titleNode)Object.assign(titleNode.style,{fontSize:"15px",fontWeight:"900",lineHeight:"1.25",letterSpacing:"-.3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const detailNode=card.querySelector("small") as HTMLElement|null;
+    if(detailNode)Object.assign(detailNode.style,{marginTop:"auto",paddingTop:"4px",color:"#857980",fontSize:"10.5px",lineHeight:"1.35",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const countNode=card.querySelector("strong") as HTMLElement|null;
+    if(countNode)Object.assign(countNode.style,{alignSelf:"start",padding:"5px 7px",borderRadius:"9px",background:"#faf7f8",color:"#655a60",fontSize:"10.5px",fontWeight:"800",whiteSpace:"nowrap"});
+
+    offset.current={x:Math.min(clientX-rect.left,Number.parseFloat(card.style.width)*.7),y:Math.min(clientY-rect.top,70)};
+    source.current=element;
+    document.body.appendChild(card);
+    preview.current=card;
   },[removePreview]);
 
   const clear = useCallback(() => {
@@ -83,4 +134,8 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       onPointerCancel: end,
     }),
   };
+}
+
+function escapeHtml(value:string){
+  return value.replace(/[&<>'"]/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]??char));
 }
