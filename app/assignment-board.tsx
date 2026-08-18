@@ -1,45 +1,12 @@
 "use client";
 
-import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-type SubmissionStatus = "pending" | "submitted" | "reviewed";
-type Named = { id:string; name:string };
-type AssignmentStudent = { studentId:string; studentName:string; status:SubmissionStatus; submittedAt:string|null; feedback:string|null; reviewedAt:string|null };
-type Assignment = { id:string; classId:string; className:string; title:string; description:string|null; dueAt:string; createdAt:string; students:AssignmentStudent[] };
-type BoardData = { isStaff:boolean; classes:Named[]; assignments:Assignment[] };
-const statusText:Record<SubmissionStatus,string> = { pending:"미제출",submitted:"첨삭 대기",reviewed:"첨삭 완료" };
+import { CorrectionManagementBoard } from "./correction-management-board";
+import { CorrectionWorkBoard } from "./correction-work-board";
 
 export function AssignmentBoard({ supabase }: { supabase:SupabaseClient }) {
-  const [data,setData] = useState<BoardData>({ isStaff:false,classes:[],assignments:[] });
-  const [loading,setLoading] = useState(true); const [error,setError] = useState(""); const [creating,setCreating] = useState(false); const [selected,setSelected] = useState<Assignment|null>(null);
-  const load = useCallback(async () => { setLoading(true); setError(""); const { data:next,error:loadError } = await supabase.rpc("assignment_board"); if (loadError) setError("과제 목록을 불러오지 못했습니다."); else { const board = next as BoardData; setData(board); setSelected((current) => board.assignments.find((item) => item.id === current?.id) ?? board.assignments[0] ?? null); } setLoading(false); },[supabase]);
-  useEffect(() => { void load(); },[load]);
-  const totals = useMemo(() => data.assignments.flatMap((item) => item.students).reduce((result,item) => { result[item.status] += 1; return result; },{ pending:0,submitted:0,reviewed:0 }),[data.assignments]);
-  const remove = async (assignment:Assignment) => { if (!confirm(`“${assignment.title}” 과제와 학생별 기록을 모두 삭제할까요?`)) return; const { error:deleteError } = await supabase.rpc("staff_delete_assignment",{ p_assignment_id:assignment.id }); if (deleteError) setError("과제를 삭제하지 못했습니다."); else { setSelected(null); await load(); } };
-  if (loading) return <section className="panel assignment-empty">과제 목록을 불러오는 중이에요…</section>;
-  return <><div className="page-heading compact"><div><p className="eyebrow">클래스별 제출·피드백</p><h1>과제·첨삭</h1><p>{data.isStaff ? "과제를 등록하고 학생별 제출과 첨삭 상태를 관리합니다." : "내 과제의 마감일, 제출 상태와 선생님 피드백을 확인합니다."}</p></div>{data.isStaff && <button className="primary" onClick={() => setCreating(true)}>＋ 과제 등록</button>}</div>
-    {error && <p className="attendance-error">{error}</p>}{data.isStaff && <div className="makeup-summary"><span>미제출 <b>{totals.pending}</b></span><span>첨삭 대기 <b>{totals.submitted}</b></span><span>첨삭 완료 <b>{totals.reviewed}</b></span></div>}
-    <section className="assignment-grid"><div className="panel assignment-list">{data.assignments.length === 0 ? <p className="assignment-empty">{data.isStaff ? "아직 등록된 과제가 없습니다." : "확인할 과제가 없습니다."}</p> : data.assignments.map((item) => { const itemTotals = item.students.reduce((result,student) => { result[student.status] += 1; return result; },{ pending:0,submitted:0,reviewed:0 }); return <button key={item.id} className={selected?.id === item.id ? "active" : ""} onClick={() => setSelected(item)}><span><em>{item.className}</em><b>{item.title}</b><small>마감 {formatDateTime(item.dueAt)}</small></span><i className={isPast(item.dueAt) ? "late" : ""}>{isPast(item.dueAt) ? "마감" : "진행"}</i><strong>{data.isStaff ? `${itemTotals.submitted}건 대기` : statusText[item.students[0]?.status ?? "pending"]}</strong></button>; })}</div>
-      <section className="panel assignment-detail">{selected ? <><header><div><em>{selected.className}</em><h2>{selected.title}</h2><span>마감 {formatDateTime(selected.dueAt)}</span></div>{data.isStaff && <button className="danger-link" onClick={() => void remove(selected)}>과제 삭제</button>}</header>{selected.description && <p className="assignment-description">{selected.description}</p>}<div className="assignment-students">{selected.students.length === 0 ? <p className="assignment-empty">이 클래스에 배정된 재원생이 없습니다.</p> : selected.students.map((student) => <StudentSubmission key={student.studentId} assignmentId={selected.id} student={student} isStaff={data.isStaff} supabase={supabase} onSaved={load} />)}</div></> : <p className="assignment-empty">과제를 선택하면 학생별 현황을 볼 수 있습니다.</p>}</section>
-    </section>{creating && <AssignmentEditor classes={data.classes} supabase={supabase} onClose={() => setCreating(false)} onSaved={async () => { setCreating(false); await load(); }} />}</>;
+  return <div className="correction-management-workspace">
+    <CorrectionManagementBoard supabase={supabase} />
+    <CorrectionWorkBoard supabase={supabase} />
+  </div>;
 }
-
-function StudentSubmission({ assignmentId,student,isStaff,supabase,onSaved }: { assignmentId:string; student:AssignmentStudent; isStaff:boolean; supabase:SupabaseClient; onSaved:()=>Promise<void> }) {
-  const [feedback,setFeedback] = useState(student.feedback ?? ""); const [saving,setSaving] = useState(false); const [error,setError] = useState("");
-  useEffect(() => setFeedback(student.feedback ?? ""),[student.feedback]);
-  const save = async (status:SubmissionStatus) => { setSaving(true); setError(""); const { error:saveError } = await supabase.rpc("staff_set_assignment_submission",{ p_assignment_id:assignmentId,p_student_id:student.studentId,p_status:status,p_feedback:status === "reviewed" ? feedback : null }); if (saveError) { setError("상태를 저장하지 못했습니다."); setSaving(false); } else await onSaved(); };
-  return <article><div className="assignment-student-name"><i>{student.studentName.slice(0,1)}</i><span><b>{student.studentName}</b><small>{student.submittedAt ? `${formatDateTime(student.submittedAt)} 제출` : "제출 기록 없음"}</small></span></div><span className={`submission-status ${student.status}`}>{statusText[student.status]}</span>{isStaff ? <><div className="submission-actions"><button disabled={saving} className={student.status === "pending" ? "active" : ""} onClick={() => void save("pending")}>미제출</button><button disabled={saving} className={student.status === "submitted" ? "active" : ""} onClick={() => void save("submitted")}>제출</button></div><div className="feedback-editor"><input value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="첨삭 피드백 입력" /><button disabled={saving} className="primary" onClick={() => void save("reviewed")}>첨삭 완료</button></div></> : student.feedback ? <p className="family-feedback"><b>선생님 피드백</b>{student.feedback}</p> : <p className="family-feedback muted">아직 등록된 피드백이 없습니다.</p>}{error && <small className="submission-error">{error}</small>}</article>;
-}
-
-function AssignmentEditor({ classes,supabase,onClose,onSaved }: { classes:Named[]; supabase:SupabaseClient; onClose:()=>void; onSaved:()=>Promise<void> }) {
-  const [classId,setClassId] = useState(classes[0]?.id ?? ""); const [title,setTitle] = useState(""); const [description,setDescription] = useState(""); const [dueAt,setDueAt] = useState(`${koreaToday()}T22:00`); const [saving,setSaving] = useState(false); const [error,setError] = useState("");
-  const submit = async (event:FormEvent) => { event.preventDefault(); setSaving(true); setError(""); const { error:saveError } = await supabase.rpc("staff_create_assignment",{ p_class_id:classId,p_title:title,p_description:description || null,p_due_at:`${dueAt}:00+09:00` }); if (saveError) { setError(readError(saveError.message)); setSaving(false); } else await onSaved(); };
-  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="student-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">SUPABASE 과제 관리</p><h2>과제 등록</h2><span>클래스의 현재 재원생에게 제출 항목이 자동으로 연결됩니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>클래스 <b>*</b><select required value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">선택해 주세요</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>마감 일시 <b>*</b><input required type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label><label className="full">과제 제목 <b>*</b><input autoFocus required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 교재 32~35쪽 풀기" /></label><label className="full">설명<textarea rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="범위, 제출 방법, 준비물 등을 입력하세요." /></label></div>{error && <p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving || !classId}>{saving ? "등록 중…" : "과제 등록"}</button></footer></form></section></div>;
-}
-
-function koreaToday() { const parts = new Intl.DateTimeFormat("en",{ timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit" }).formatToParts(new Date()); const item = Object.fromEntries(parts.map((part) => [part.type,part.value])); return `${item.year}-${item.month}-${item.day}`; }
-function formatDateTime(value:string) { return new Intl.DateTimeFormat("ko-KR",{ timeZone:"Asia/Seoul",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false }).format(new Date(value)); }
-function isPast(value:string) { return new Date(value).getTime() < Date.now(); }
-function readError(message:string) { return ["입력해","선택해","교직원"].some((word) => message.includes(word)) ? message : "과제를 등록하지 못했습니다. 입력 내용을 확인해 주세요."; }
