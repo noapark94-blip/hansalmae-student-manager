@@ -94,25 +94,26 @@ function MenuLayoutEditor({ supabase, items, value, onClose, onSaved }: { supaba
 
 function normalizeLayout(layout:MenuLayout,items:MenuItem[]):MenuLayout{
   const next=mergeMissingItems(layout,items);
-  const assignments=next.folders.flatMap(folder=>folder.itemIds).includes("assignments");
+  const assignments=next.folders.some(folder=>folder.itemIds.includes("assignments"));
   if(!assignments)return next;
-  const folders=next.folders.map(folder=>({...folder,itemIds:folder.itemIds.filter(id=>id!=="assignments")}));
+  const folders:MenuFolder[]=next.folders.map(folder=>({...folder,itemIds:folder.itemIds.filter(id=>id!=="assignments")}));
   let classIndex=folders.findIndex(folder=>folder.id==="classes");
   if(classIndex<0){folders.splice(Math.min(1,folders.length),0,{id:"classes",name:"클래스 관리",itemIds:[]});classIndex=folders.findIndex(folder=>folder.id==="classes");}
-  const classItems=folders[classIndex].itemIds.filter(id=>id!=="class-management");
-  folders[classIndex]={...folders[classIndex],name:"클래스 관리",itemIds:["class-management",...classItems,"assignments"].filter((id,index,array)=>array.indexOf(id)===index) as View[]};
+  const classItems:View[]=folders[classIndex].itemIds.filter(id=>id!=="class-management");
+  const itemIds:View[]=["class-management",...classItems,"assignments"].filter((id,index,array)=>array.indexOf(id)===index) as View[];
+  folders[classIndex]={...folders[classIndex],name:"클래스 관리",itemIds};
   return{folders};
 }
 
 function mergeMissingItems(layout: MenuLayout, items: MenuItem[]): MenuLayout {
   const validIds = new Set(items.map((item) => item.id));
   const used = new Set<View>();
-  const folders = layout.folders.map((folder) => ({ ...folder, itemIds: folder.itemIds.filter((id) => {
+  const folders:MenuFolder[] = layout.folders.map((folder) => ({ ...folder, itemIds: folder.itemIds.filter((id) => {
     if (!validIds.has(id) || used.has(id)) return false;
     used.add(id);
     return true;
   }) }));
-  const missing = items.map((item) => item.id).filter((id) => !used.has(id));
+  const missing:View[] = items.map((item) => item.id).filter((id) => !used.has(id));
   if (!folders.length) return defaultLayout;
   if (missing.length) folders[0] = { ...folders[0], itemIds:[...folders[0].itemIds,...missing] };
   return { folders };
