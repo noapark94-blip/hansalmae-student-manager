@@ -60,6 +60,25 @@ type ExamCategory = {
   isActive: boolean;
   sortOrder: number;
 };
+type FamilyReadStudent = {
+  studentId: string;
+  studentName: string;
+  school: string | null;
+  grade: string | null;
+  guardianCount: number;
+  readCount: number;
+  status: "confirmed" | "unconfirmed" | "unlinked";
+  viewedAt: string | null;
+};
+type FamilyReadStatus = {
+  lessonId: string | null;
+  totalStudents: number;
+  linkedStudents: number;
+  confirmedStudents: number;
+  unconfirmedStudents: number;
+  unlinkedStudents: number;
+  students: FamilyReadStudent[];
+};
 
 const attendance: [Status, string][] = [
   ["present", "출석"],
@@ -330,6 +349,7 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
         <b>반 전체 공지사항</b>
         <textarea value={notice} onChange={(event) => setNotice(event.target.value)} placeholder="준비물·일정·반 전체 안내" rows={2} />
       </label>
+      <FamilyReportReadStatus supabase={supabase} classId={classId} date={date} />
       <div className="learning-board-heading">
         <span>학생·출결</span>
         <span>개인별 시험</span>
@@ -438,6 +458,75 @@ export function ClassLearningBoard({ supabase, classId, date, students, onDate, 
         />
       ) : null}
       {categoryOpen ? <ExamCategoryModal supabase={supabase} categories={categories} onClose={() => setCategoryOpen(false)} onChanged={loadCategories} /> : null}
+    </section>
+  );
+}
+
+function FamilyReportReadStatus({ supabase, classId, date }: { supabase: SupabaseClient; classId: string; date: string }) {
+  const [data, setData] = useState<FamilyReadStatus | null>(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [available, setAvailable] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: next, error } = await supabase.rpc("staff_class_family_report_read_status", {
+      p_class_id: classId,
+      p_date: date,
+    });
+    if (error) {
+      setAvailable(false);
+      setData(null);
+    } else {
+      setAvailable(true);
+      setData(next as FamilyReadStatus);
+    }
+    setLoading(false);
+  }, [classId, date, supabase]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (!available) return null;
+  const confirmed = data?.confirmedStudents ?? 0;
+  const unconfirmed = data?.unconfirmedStudents ?? 0;
+  const unlinked = data?.unlinkedStudents ?? 0;
+  return (
+    <section className="family-read-status">
+      <button type="button" className="family-read-summary" onClick={() => setOpen((value) => !value)} disabled={loading}>
+        <span>
+          <small>학부모 학습리포트</small>
+          <b>{!data?.lessonId ? "리포트 생성 전" : `확인 ${confirmed}명 · 미확인 ${unconfirmed}명`}</b>
+        </span>
+        <span className="family-read-pills">
+          {data?.lessonId ? <em className="confirmed">확인 {confirmed}</em> : null}
+          {data?.lessonId && unconfirmed ? <em className="unconfirmed">미확인 {unconfirmed}</em> : null}
+          {unlinked ? <em className="unlinked">학부모 미연결 {unlinked}</em> : null}
+          <strong>{open ? "접기" : "학생별 보기"}</strong>
+        </span>
+      </button>
+      {open && data ? (
+        <div className="family-read-details">
+          {data.students.map((student) => (
+            <article key={student.studentId}>
+              <span>
+                <b>{student.studentName}</b>
+                <small>{[student.school, student.grade].filter(Boolean).join(" · ") || "학생 정보"}</small>
+              </span>
+              <span className={`family-read-state ${student.status}`}>
+                {student.status === "confirmed" ? "학부모 확인" : student.status === "unconfirmed" ? "미확인" : "학부모 계정 미연결"}
+                {student.status === "confirmed" && student.viewedAt ? <small>{formatReadTime(student.viewedAt)}</small> : null}
+              </span>
+            </article>
+          ))}
+          {!data.students.length ? <p>이 날짜의 수강 학생이 없습니다.</p> : null}
+          <footer>
+            <span>학부모 또는 보호자 계정 중 한 명이라도 확인하면 ‘학부모 확인’으로 표시됩니다.</span>
+            <button type="button" onClick={() => void load()}>새로고침</button>
+          </footer>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -578,6 +667,10 @@ function Month({ supabase, classId, anchor, onDate, onClose }: { supabase: Supab
       </section>
     </div>
   );
+}
+
+function formatReadTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value));
 }
 
 function isoWeekday(value: string) {
