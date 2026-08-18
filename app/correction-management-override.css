@@ -3,3 +3,13 @@
 .correction-management-workspace .page-heading [data-action="announcement"] {
   display: none !important;
 }
+
+/* 첨삭 시간표는 고정 요일/시간 중심으로 사용하므로 날짜 숫자는 표시하지 않습니다. */
+.correction-week-board .correction-day > header small {
+  display: none !important;
+}
+
+/* 첨삭 관리는 당일 운영 화면으로 사용하므로 별도 날짜 선택기를 노출하지 않습니다. */
+.correction-management-workspace .correction-work-heading > label {
+  display: none !important;
+}
