@@ -11,17 +11,39 @@ type MessageLog = { id:string; studentName:string|null; recipientName:string; re
 type Recipient = { studentId:string; studentName:string; recipientName:string; phone:string; kind:"student"|"guardian" };
 type BoardData = { isStaff:boolean; classes:Named[]; students:Named[]; announcements:Announcement[]; messageLogs:MessageLog[] };
 type ApprovalData = { pending:number; approved:number; sent:number; failed:number; items:MessageLog[] };
+type ReadReceipt={announcementId:string;viewedAt:string};
+type StaffRead={announcementId:string;recipientCount:number;readCount:number;unreadCount:number};
 const audienceLabels = { all:"전체",class:"클래스",student:"개별 학생" };
 
 export function CommunicationBoard({ supabase }: { supabase:SupabaseClient }) {
-  const [data,setData] = useState<BoardData>({ isStaff:false,classes:[],students:[],announcements:[],messageLogs:[] }); const [approval,setApproval]=useState<ApprovalData>({pending:0,approved:0,sent:0,failed:0,items:[]}); const [loading,setLoading] = useState(true); const [error,setError] = useState(""); const [tab,setTab] = useState<"notice"|"message">("notice"); const [editor,setEditor] = useState<Announcement|"new"|null>(null); const [composer,setComposer] = useState(false);
-  const load = useCallback(async () => { setLoading(true); setError(""); const [{data:next,error:loadError},{data:approvalNext,error:approvalError}] = await Promise.all([supabase.rpc("communication_board"),supabase.rpc("staff_message_approval_board")]); if (loadError||approvalError) setError("공지·문자 내역을 불러오지 못했습니다."); else {setData(next as BoardData);if(approvalNext)setApproval(approvalNext as ApprovalData);} setLoading(false); },[supabase]);
+  const [data,setData] = useState<BoardData>({ isStaff:false,classes:[],students:[],announcements:[],messageLogs:[] });
+  const [approval,setApproval]=useState<ApprovalData>({pending:0,approved:0,sent:0,failed:0,items:[]});
+  const [reads,setReads]=useState<Record<string,string>>({});
+  const [readOverview,setReadOverview]=useState<Record<string,StaffRead>>({});
+  const [confirming,setConfirming]=useState("");
+  const [loading,setLoading] = useState(true); const [error,setError] = useState(""); const [tab,setTab] = useState<"notice"|"message">("notice"); const [editor,setEditor] = useState<Announcement|"new"|null>(null); const [composer,setComposer] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);setError("");
+    const {data:next,error:loadError}=await supabase.rpc("communication_board");
+    if(loadError||!next){setError("공지·문자 내역을 불러오지 못했습니다.");setLoading(false);return;}
+    const board=next as BoardData;setData(board);
+    if(board.isStaff){
+      const [{data:approvalNext,error:approvalError},{data:overviewNext}]=await Promise.all([supabase.rpc("staff_message_approval_board"),supabase.rpc("staff_announcement_read_overview")]);
+      if(approvalError)setError("문자 대기 내역 일부를 불러오지 못했습니다.");
+      if(approvalNext)setApproval(approvalNext as ApprovalData);
+      const map:Record<string,StaffRead>={};for(const item of (overviewNext??[]) as StaffRead[])map[item.announcementId]=item;setReadOverview(map);setReads({});
+    }else{
+      const {data:readNext}=await supabase.rpc("family_announcement_reads");const map:Record<string,string>={};for(const item of (readNext??[]) as ReadReceipt[])map[item.announcementId]=item.viewedAt;setReads(map);setReadOverview({});
+    }
+    setLoading(false);
+  },[supabase]);
   useEffect(() => { void load(); },[load]);
   const remove = async (row:Announcement) => { if (!confirm(`“${row.title}” 공지를 삭제할까요?`)) return; const { error:deleteError } = await supabase.rpc("staff_delete_announcement",{ p_announcement_id:row.id }); if (deleteError) setError("공지를 삭제하지 못했습니다."); else await load(); };
+  const markRead=async(row:Announcement)=>{if(data.isStaff||reads[row.id]||confirming)return;setConfirming(row.id);const{data:viewed,error:readError}=await supabase.rpc("mark_family_announcement_read",{p_announcement_id:row.id});if(readError)setError("공지 확인 상태를 저장하지 못했습니다.");else setReads(current=>({...current,[row.id]:String(viewed??new Date().toISOString())}));setConfirming("");};
   if (loading) return <section className="panel communication-empty">공지·문자 내역을 불러오는 중이에요…</section>;
-  return <><div className="page-heading compact"><div><p className="eyebrow">대상별 안내 관리</p><h1>{data.isStaff ? "공지·문자" : "공지"}</h1><p>{data.isStaff ? "대상별 공지를 게시하고 문자 발송 대기 내역을 관리합니다." : "나에게 공개된 학원 공지를 확인합니다."}</p></div>{data.isStaff && <button className="primary" onClick={() => tab === "notice" ? setEditor("new") : setComposer(true)}>{tab === "notice" ? "＋ 공지 작성" : "＋ 문자 작성"}</button>}</div>
+  return <><div className="page-heading compact"><div><p className="eyebrow">대상별 안내 관리</p><h1>{data.isStaff ? "공지·문자" : "공지"}</h1><p>{data.isStaff ? "대상별 공지를 게시하고 학생·학부모 확인 여부까지 관리합니다." : "나에게 공개된 학원 공지를 확인합니다."}</p></div>{data.isStaff && <button className="primary" onClick={() => tab === "notice" ? setEditor("new") : setComposer(true)}>{tab === "notice" ? "＋ 공지 작성" : "＋ 문자 작성"}</button>}</div>
     {error && <p className="attendance-error">{error}</p>}{data.isStaff && <div className="communication-tabs"><button className={tab === "notice" ? "active" : ""} onClick={() => setTab("notice")}>공지 관리</button><button className={tab === "message" ? "active" : ""} onClick={() => setTab("message")}>문자 대기열</button></div>}
-    {(!data.isStaff || tab === "notice") ? <section className="communication-notices">{data.announcements.length === 0 ? <div className="panel communication-empty">{data.isStaff ? "아직 작성된 공지가 없습니다." : "현재 확인할 공지가 없습니다."}</div> : data.announcements.map((row) => <article className="panel" key={row.id}><header><div><span className="communication-audience">{audienceLabels[row.audience]}{row.className ? ` · ${row.className}` : row.studentName ? ` · ${row.studentName}` : ""}</span><h2>{row.title}</h2><small>{row.authorName} · {formatDateTime(row.publishedAt ?? row.createdAt)}</small></div><span className={`announcement-state ${announcementState(row)}`}>{announcementStateLabel(row)}</span></header><p>{row.body}</p>{row.expiresAt && <footer>공개 종료 {formatDateTime(row.expiresAt)}</footer>}{data.isStaff && <div className="announcement-actions"><button className="secondary-button" onClick={() => setEditor(row)}>수정</button><button className="danger-link" onClick={() => void remove(row)}>삭제</button></div>}</article>)}</section> : <MessageLogBoard data={approval} supabase={supabase} onChanged={load} />}
+    {(!data.isStaff || tab === "notice") ? <section className="communication-notices">{data.announcements.length === 0 ? <div className="panel communication-empty">{data.isStaff ? "아직 작성된 공지가 없습니다." : "현재 확인할 공지가 없습니다."}</div> : data.announcements.map((row) => {const overview=readOverview[row.id];const readAt=reads[row.id];return <article className={`panel ${!data.isStaff&&!readAt?"announcement-unread":""}`} key={row.id}><header><div><span className="communication-audience">{audienceLabels[row.audience]}{row.className ? ` · ${row.className}` : row.studentName ? ` · ${row.studentName}` : ""}</span><h2>{row.title}</h2><small>{row.authorName} · {formatDateTime(row.publishedAt ?? row.createdAt)}</small></div><span className={`announcement-state ${announcementState(row)}`}>{announcementStateLabel(row)}</span></header><p>{row.body}</p>{row.expiresAt && <footer>공개 종료 {formatDateTime(row.expiresAt)}</footer>}{data.isStaff?<div className="announcement-actions"><span className="announcement-read-overview">{row.publishedAt&&overview?<>확인 <b>{overview.readCount}</b> / {overview.recipientCount}{overview.unreadCount>0&&<em>미확인 {overview.unreadCount}</em>}</>:row.publishedAt?"확인 현황 준비 중":"게시 전"}</span><button className="secondary-button" onClick={() => setEditor(row)}>수정</button><button className="danger-link" onClick={() => void remove(row)}>삭제</button></div>:<div className="announcement-family-read"><span>{readAt?`확인 완료 · ${formatShortDateTime(readAt)}`:"아직 확인하지 않은 공지입니다."}</span>{!readAt&&<button disabled={confirming===row.id} onClick={()=>void markRead(row)}>{confirming===row.id?"처리 중…":"확인했어요"}</button>}</div>}</article>})}</section> : <MessageLogBoard data={approval} supabase={supabase} onChanged={load} />}
     {editor && <AnnouncementEditor row={editor === "new" ? undefined : editor} data={data} supabase={supabase} onClose={() => setEditor(null)} onSaved={async () => { setEditor(null); await load(); }} />}{composer && <MessageComposer data={data} supabase={supabase} onClose={() => setComposer(false)} onSaved={async (count) => { setComposer(false); await load(); setError(`${count}건을 발송 대기열에 등록했습니다. 외부 문자업체 연결 후 실제 발송됩니다.`); }} />}</>;
 }
 
@@ -56,4 +78,5 @@ function dateParts(value:Date) { const parts = new Intl.DateTimeFormat("en",{ ti
 function koreaToday() { const item=dateParts(new Date()); return `${item.year}-${item.month}-${item.day}`; }
 function koreaDateTime(value:string) { const item=dateParts(new Date(value)); return `${item.year}-${item.month}-${item.day}T${item.hour === "24" ? "00" : item.hour}:${item.minute}`; }
 function formatDateTime(value:string) { return new Intl.DateTimeFormat("ko-KR",{ timeZone:"Asia/Seoul",year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false }).format(new Date(value)); }
+function formatShortDateTime(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value));}
 function readError(message:string,fallback:string) { return ["입력해","선택해","늦어야","교직원","찾을 수"].some((word) => message.includes(word)) ? message : fallback; }
