@@ -1,0 +1,5 @@
+.correction-management-workspace .page-heading > button.primary,
+.correction-management-workspace .correction-heading > button,
+.correction-management-workspace .page-heading [data-action="announcement"] {
+  display: none !important;
+}
