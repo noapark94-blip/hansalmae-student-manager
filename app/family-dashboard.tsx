@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { FamilyLearningNote } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
+import { FamilyCorrectionReportFeed } from "./family-correction-report-feed";
 import { FamilyExamGrowth } from "./family-exam-growth";
 import { HansalmaeIcon } from "./hansalmae-icons";
 
@@ -54,13 +55,14 @@ export function FamilyLiveDashboard({supabase,profile,onNavigate}:{supabase:Supa
   if(error&&!data)return <section className="panel hub-message error">{error}</section>;
   return <>
     <div className="page-heading family-heading">
-      <div><p className="eyebrow">{profile.role==="student"?"나의 학습":"자녀 학습"}</p><h1>{profile.role==="student"?`${profile.display_name}님의 한살매`:`${selected?.name??"자녀"}의 한살매`}</h1><p>수업·출결·시험·숙제를 한곳에서 확인하세요.</p></div>
+      <div><p className="eyebrow">{profile.role==="student"?"나의 학습":"자녀 학습"}</p><h1>{profile.role==="student"?`${profile.display_name}님의 한살매`:`${selected?.name??"자녀"}의 한살매`}</h1><p>수업·첨삭·출결·시험·숙제를 한곳에서 확인하세요.</p></div>
       {profile.role==="guardian"&&(data?.children.length??0)>1&&<label className="child-selector">자녀 선택<select disabled={loading} value={selectedId??""} onChange={e=>void load(e.target.value)}>{data?.children.map(child=><option key={child.id} value={child.id}>{child.name} · {[child.school,child.grade].filter(Boolean).join(" ")}</option>)}</select></label>}
     </div>
     {error&&<p className="attendance-error">{error}</p>}
     {!selected?<section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b><span>학원 관리자에게 학생 또는 자녀 계정 연결을 요청해 주세요.</span></section>:<>
       <FamilyLearningNote studentName={selected.name} attendance={data?.recentAttendance??[]} assignments={data?.assignments??[]} announcements={data?.announcements??[]} onNavigate={onNavigate}/>
       <FamilyLearningReportFeed supabase={supabase} studentId={selected.id}/>
+      <FamilyCorrectionReportFeed supabase={supabase} studentId={selected.id}/>
       <section className="stats-grid family-stats">
         <FamilyStat label="주간 수업" value={String(data?.weekClasses.length??0)} unit="개" detail={data?.upcomingClasses[0]?`다음 ${formatUpcoming(data.upcomingClasses[0])}`:"예정 수업 없음"} icon="calendar" tone="blue"/>
         <FamilyStat label="이번 달 출석률" value={rate===null?"–":String(rate)} unit={rate===null?"":"%"} detail={`출석 ${data?.attendanceSummary.present??0} · 지각 ${data?.attendanceSummary.late??0} · 결석 ${data?.attendanceSummary.absent??0}`} icon="check" tone="green"/>
