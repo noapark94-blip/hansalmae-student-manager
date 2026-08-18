@@ -11,15 +11,44 @@
 .menu-folder-editor-list>article>div>p select,
 .menu-folder-editor-list>article>div>p button{pointer-events:auto!important}
 
-/* 목록 전체만 스크롤되고, 각 폴더 카드는 내용 높이만큼 자연스럽게 늘어남 */
+/* 모달 자체를 뷰포트 안에 고정하고 중앙 목록만 스크롤 */
+.menu-editor-backdrop{overflow:hidden!important}
+.menu-editor{
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(1120px,calc(100vw - 32px))!important;
+  height:min(90dvh,860px)!important;
+  max-height:min(90dvh,860px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.menu-editor>header,
+.menu-editor>.menu-editor-toolbar,
+.menu-editor>footer{flex:0 0 auto!important}
+.menu-editor>.menu-folder-editor-list{
+  flex:1 1 0!important;
+  min-height:0!important;
+  height:0!important;
+  max-height:none!important;
+  overflow-y:scroll!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.menu-editor>.menu-folder-editor-list::-webkit-scrollbar{width:9px!important}
+.menu-editor>.menu-folder-editor-list::-webkit-scrollbar-thumb{background:#cfc3c8!important;border-radius:999px!important;border:2px solid #fff!important}
+.menu-editor>.menu-folder-editor-list::-webkit-scrollbar-track{background:transparent!important}
+
+/* 각 폴더 카드는 내용 높이만큼 자연스럽게 늘어남 */
 .menu-folder-editor-list{
   display:grid!important;
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:18px 18px!important;
   align-items:start!important;
   align-content:start!important;
-  padding:2px 0 24px!important;
-  overflow:visible!important;
+  padding:14px 12px 28px!important;
+  box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article{
   position:relative!important;
@@ -28,9 +57,9 @@
   min-width:0!important;
   width:100%!important;
   height:auto!important;
-  min-height:max-content!important;
+  min-height:0!important;
   max-height:none!important;
-  overflow:visible!important;
+  overflow:hidden!important;
   align-self:start!important;
   border-radius:15px!important;
   box-sizing:border-box!important;
@@ -82,42 +111,12 @@
   overflow:visible!important;
 }
 .menu-folder-editor-list>article>div>p>.nav-icon{width:28px!important}
-.menu-folder-editor-list>article>div>p>b{
-  min-width:0!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  white-space:nowrap!important;
-}
-.menu-folder-editor-list>article>div>p>select{
-  min-width:0!important;
-  width:100%!important;
-  height:38px!important;
-}
-.menu-folder-editor-list>article>div>p>button{
-  width:38px!important;
-  height:38px!important;
-  min-width:38px!important;
-  padding:0!important;
-}
-
-/* 모달 본문이 스크롤을 담당하고 footer는 고정 영역으로 유지 */
-.menu-editor{
-  display:flex!important;
-  flex-direction:column!important;
-  max-height:92dvh!important;
-  overflow:hidden!important;
-}
-.menu-editor>.menu-editor-toolbar{flex:0 0 auto!important}
-.menu-editor>.menu-folder-editor-list{
-  flex:1 1 auto!important;
-  min-height:0!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  scrollbar-gutter:stable!important;
-}
-.menu-editor>footer{flex:0 0 auto!important}
+.menu-folder-editor-list>article>div>p>b{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.menu-folder-editor-list>article>div>p>select{min-width:0!important;width:100%!important;height:38px!important}
+.menu-folder-editor-list>article>div>p>button{width:38px!important;height:38px!important;min-width:38px!important;padding:0!important}
 
 @media(max-width:900px){
-  .menu-folder-editor-list{grid-template-columns:1fr!important;gap:14px!important}
+  .menu-editor{width:calc(100vw - 16px)!important;height:92dvh!important;max-height:92dvh!important}
+  .menu-folder-editor-list{grid-template-columns:1fr!important;gap:14px!important;padding:12px 8px 24px!important}
   .menu-folder-editor-list>article>div>p{grid-template-columns:26px minmax(80px,1fr) minmax(105px,128px) 36px 36px!important;gap:6px!important}
 }
