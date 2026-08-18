@@ -1,0 +1,92 @@
+/* 내 메뉴 폴더 편집: 드래그 이동을 제거하고 화살표/폴더 선택만 사용 */
+.menu-editor-toolbar small{display:none!important}
+.menu-folder-editor-list [data-drag-handle]{display:none!important}
+
+/* sortable pointer handlers가 남아 있어도 메뉴 편집에서는 드래그가 시작되지 않도록 차단 */
+.menu-folder-editor-list>article,
+.menu-folder-editor-list>article>div,
+.menu-folder-editor-list>article>div>p{pointer-events:none!important}
+.menu-folder-editor-list>article>header input,
+.menu-folder-editor-list>article>header button,
+.menu-folder-editor-list>article>div>p select,
+.menu-folder-editor-list>article>div>p button{pointer-events:auto!important}
+
+/* 폴더 카드끼리 겹치지 않도록 독립된 카드로 배치 */
+.menu-folder-editor-list{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:18px 16px!important;
+  align-items:start!important;
+  padding:2px 0 18px!important;
+}
+.menu-folder-editor-list>article{
+  position:relative!important;
+  margin:0!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  align-self:start!important;
+  border-radius:15px!important;
+}
+.menu-folder-editor-list>article>header{
+  min-height:62px!important;
+  padding:10px 12px!important;
+  gap:8px!important;
+}
+.menu-folder-editor-list>article>header>input{
+  min-width:0!important;
+  height:42px!important;
+  font-size:16px!important;
+  font-weight:800!important;
+}
+.menu-folder-editor-list>article>header>span{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  flex:0 0 auto!important;
+}
+.menu-folder-editor-list>article>div{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:6px!important;
+  padding:8px 12px 12px!important;
+  min-height:0!important;
+}
+.menu-folder-editor-list>article>div>p{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:28px minmax(90px,1fr) minmax(116px,132px) 38px 38px!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:48px!important;
+  margin:0!important;
+  padding:6px 8px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.menu-folder-editor-list>article>div>p>.nav-icon{width:28px!important}
+.menu-folder-editor-list>article>div>p>b{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.menu-folder-editor-list>article>div>p>select{
+  min-width:0!important;
+  width:100%!important;
+  height:38px!important;
+}
+.menu-folder-editor-list>article>div>p>button{
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  padding:0!important;
+}
+
+@media(max-width:900px){
+  .menu-folder-editor-list{grid-template-columns:1fr!important;gap:14px!important}
+  .menu-folder-editor-list>article>div>p{grid-template-columns:26px minmax(80px,1fr) minmax(105px,128px) 36px 36px!important;gap:6px!important}
+}
