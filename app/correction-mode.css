@@ -5,14 +5,16 @@
 .correction-timetable-mode .correction-slot{contain:layout paint!important}
 .correction-timetable-mode .correction-slot-content{width:100%!important;grid-template-columns:minmax(0,1fr)!important}
 .correction-timetable-mode .correction-subject{width:100%!important;contain:layout paint!important}
-.correction-timetable-mode .correction-subject>div{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;gap:5px!important}
-.correction-timetable-mode button.correction-student{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;float:none!important;display:flex!important;flex:0 0 auto!important;align-self:stretch!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;margin:0!important;box-sizing:border-box!important;overflow:hidden!important;flex-wrap:wrap!important}
+/* Two students per row on desktop/tablet. */
+.correction-timetable-mode .correction-subject>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:stretch!important;width:100%!important;gap:6px!important}
+.correction-timetable-mode button.correction-student{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;float:none!important;display:flex!important;align-items:center!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:46px!important;margin:0!important;padding:8px 10px!important;box-sizing:border-box!important;overflow:hidden!important}
 .correction-timetable-mode button.correction-student>span{display:block!important;flex:1 1 auto!important;min-width:0!important;max-width:100%!important;overflow:hidden!important}
 .correction-timetable-mode button.correction-student b,.correction-timetable-mode button.correction-student small{display:block!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.correction-timetable-mode button.correction-student>i{flex:1 0 100%!important;max-width:100%!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+/* Legacy notes are not shown on the timetable card. */
+.correction-timetable-mode button.correction-student>i{display:none!important}
 .correction-timetable-mode .correction-slot-add{position:static!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
 
-/* Fixed timetable assignment only needs student / subject / weekday / time / note. */
-.correction-editor .form-grid>label:nth-child(5),.correction-editor .form-grid>label:nth-child(6){display:none!important}
+/* Fixed timetable assignment only needs student / subject / weekday / time. */
+.correction-editor .form-grid>label:nth-child(5),.correction-editor .form-grid>label:nth-child(6),.correction-editor .form-grid>label:nth-child(7){display:none!important}
 
-@media(max-width:720px){.correction-attendance-buttons{display:grid;grid-template-columns:repeat(3,1fr)}.correction-attendance-buttons button{min-width:0;padding:11px 8px}}
+@media(max-width:720px){.correction-attendance-buttons{display:grid;grid-template-columns:repeat(3,1fr)}.correction-attendance-buttons button{min-width:0;padding:11px 8px}.correction-timetable-mode .correction-subject>div{grid-template-columns:minmax(0,1fr)!important}}
