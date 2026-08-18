@@ -12,6 +12,7 @@ import "./family-learning-note.css";
 import "./family-learning-report-feed.css";
 import "./staff-report-read-status.css";
 import "./learning-efficiency.css";
+import "./kidsnote-final-polish.css";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
