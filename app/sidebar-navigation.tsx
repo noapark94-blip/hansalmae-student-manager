@@ -31,6 +31,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   const [layout, setLayout] = useState<MenuLayout>(defaultLayout);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
+  const [correctionMode,setCorrectionMode]=useState<"timetable"|"management">(()=>typeof window!=="undefined"&&window.sessionStorage.getItem("hansalmae:correction-mode")==="timetable"?"timetable":"management");
 
   useEffect(() => {
     let active = true;
@@ -44,6 +45,19 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   const itemMap = useMemo(() => new Map(usableItems.map((item) => [item.id, item])), [usableItems]);
   const folders = layout.folders.map((folder) => ({ ...folder, itemIds: folder.itemIds.filter((id) => visible.has(id)) })).filter((folder) => folder.itemIds.length);
 
+  const selectItem=(id:View)=>{
+    if(id==="corrections"||id==="assignments"){
+      const mode=id==="corrections"?"timetable":"management";
+      setCorrectionMode(mode);
+      window.sessionStorage.setItem("hansalmae:correction-mode",mode);
+      window.dispatchEvent(new Event("hansalmae-correction-mode"));
+      onSelect("assignments");
+      return;
+    }
+    onSelect(id);
+  };
+  const isActive=(id:View)=>id==="corrections"?activeView==="assignments"&&correctionMode==="timetable":id==="assignments"?activeView==="assignments"&&correctionMode==="management":activeView===id;
+
   return <>
     <nav aria-label="주요 메뉴" className="folder-navigation">
       <button type="button" className="menu-customize-button" onClick={() => setEditing(true)}><span className="nav-icon"><HansalmaeIcon name="menu" /></span>내 메뉴 편집</button>
@@ -51,7 +65,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
         <button type="button" className="nav-folder-title" aria-expanded={!collapsed[folder.id]} onClick={() => setCollapsed((current) => ({ ...current, [folder.id]: !current[folder.id] }))}>
           <span>{folder.name}</span><i>{collapsed[folder.id] ? "＋" : "－"}</i>
         </button>
-        {!collapsed[folder.id] && <div className="nav-folder-items">{folder.itemIds.map((id) => { const item = itemMap.get(id); return item ? <button type="button" key={id} className={activeView === id ? "active" : ""} onClick={() => onSelect(id)}><span className="nav-icon"><HansalmaeIcon name={viewIcon[id]} /></span>{menuLabel(item)}</button> : null; })}</div>}
+        {!collapsed[folder.id] && <div className="nav-folder-items">{folder.itemIds.map((id) => { const item = itemMap.get(id); return item ? <button type="button" key={id} className={isActive(id)?"active":""} onClick={() => selectItem(id)}><span className="nav-icon"><HansalmaeIcon name={viewIcon[id]} /></span>{menuLabel(item)}</button> : null; })}</div>}
       </section>)}
     </nav>
     {editing && <MenuLayoutEditor supabase={supabase} items={usableItems} value={layout} onClose={() => setEditing(false)} onSaved={(next) => { setLayout(next); setEditing(false); }} />}
