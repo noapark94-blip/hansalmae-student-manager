@@ -111,6 +111,7 @@ begin
  return ts;
 end $$;
 
-revoke all on function public.staff_save_correction_report(uuid,date,time,time,text,integer,text,text,text,numeric,numeric,text,text,text,text,text,text,text,text,boolean),public.staff_correction_report(uuid,date,time),public.family_correction_reports(uuid,integer),public.family_correction_report_reads(uuid),public.mark_family_correction_report_read(uuid,uuid) from public;
-grant execute on function public.staff_save_correction_report(uuid,date,time,time,text,integer,text,text,text,numeric,numeric,text,text,text,text,text,text,text,text,boolean),public.staff_correction_report(uuid,date,time),public.family_correction_reports(uuid,integer),public.family_correction_report_reads(uuid),public.mark_family_correction_report_read(uuid,uuid) to authenticated;
+-- staff_save_correction_report 실제 인자는 19개입니다.
+revoke all on function public.staff_save_correction_report(uuid,date,time,time,text,integer,text,text,text,numeric,numeric,text,text,text,text,text,text,text,boolean),public.staff_correction_report(uuid,date,time),public.family_correction_reports(uuid,integer),public.family_correction_report_reads(uuid),public.mark_family_correction_report_read(uuid,uuid) from public;
+grant execute on function public.staff_save_correction_report(uuid,date,time,time,text,integer,text,text,text,numeric,numeric,text,text,text,text,text,text,text,boolean),public.staff_correction_report(uuid,date,time),public.family_correction_reports(uuid,integer),public.family_correction_report_reads(uuid),public.mark_family_correction_report_read(uuid,uuid) to authenticated;
 notify pgrst,'reload schema';
