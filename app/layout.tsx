@@ -15,6 +15,7 @@ import "./learning-efficiency.css";
 import "./kidsnote-final-polish.css";
 import "./correction-management.css";
 import "./correction-report.css";
+import "./correction-management-override.css";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
