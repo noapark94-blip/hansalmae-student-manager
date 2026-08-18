@@ -132,7 +132,7 @@ begin
 end $$;
 
 create or replace function public.staff_delete_correction_exception(p_id uuid)
-returns void language plpgsql security definer set search_path=public as $$;
+returns void language plpgsql security definer set search_path=public as $$
 begin
   if not public.is_staff() then raise exception '교직원만 첨삭 일정 변경을 삭제할 수 있습니다.'; end if;
   delete from public.correction_schedule_exceptions where id=p_id;
