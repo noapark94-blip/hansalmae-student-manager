@@ -11,28 +11,35 @@
 .menu-folder-editor-list>article>div>p select,
 .menu-folder-editor-list>article>div>p button{pointer-events:auto!important}
 
-/* 폴더 카드끼리 겹치지 않도록 독립된 카드로 배치 */
+/* 목록 전체만 스크롤되고, 각 폴더 카드는 내용 높이만큼 자연스럽게 늘어남 */
 .menu-folder-editor-list{
   display:grid!important;
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:18px 16px!important;
+  gap:18px 18px!important;
   align-items:start!important;
-  padding:2px 0 18px!important;
+  align-content:start!important;
+  padding:2px 0 24px!important;
+  overflow:visible!important;
 }
 .menu-folder-editor-list>article{
   position:relative!important;
+  display:block!important;
   margin:0!important;
   min-width:0!important;
+  width:100%!important;
   height:auto!important;
-  min-height:0!important;
-  overflow:hidden!important;
+  min-height:max-content!important;
+  max-height:none!important;
+  overflow:visible!important;
   align-self:start!important;
   border-radius:15px!important;
+  box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>header{
   min-height:62px!important;
   padding:10px 12px!important;
   gap:8px!important;
+  box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>header>input{
   min-width:0!important;
@@ -47,11 +54,17 @@
   flex:0 0 auto!important;
 }
 .menu-folder-editor-list>article>div{
+  position:static!important;
   display:flex!important;
   flex-direction:column!important;
   gap:6px!important;
-  padding:8px 12px 12px!important;
+  width:100%!important;
+  height:auto!important;
   min-height:0!important;
+  max-height:none!important;
+  padding:8px 12px 12px!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>div>p{
   position:relative!important;
@@ -62,10 +75,11 @@
   width:100%!important;
   min-width:0!important;
   min-height:48px!important;
+  height:auto!important;
   margin:0!important;
   padding:6px 8px!important;
   box-sizing:border-box!important;
-  overflow:hidden!important;
+  overflow:visible!important;
 }
 .menu-folder-editor-list>article>div>p>.nav-icon{width:28px!important}
 .menu-folder-editor-list>article>div>p>b{
@@ -85,6 +99,23 @@
   min-width:38px!important;
   padding:0!important;
 }
+
+/* 모달 본문이 스크롤을 담당하고 footer는 고정 영역으로 유지 */
+.menu-editor{
+  display:flex!important;
+  flex-direction:column!important;
+  max-height:92dvh!important;
+  overflow:hidden!important;
+}
+.menu-editor>.menu-editor-toolbar{flex:0 0 auto!important}
+.menu-editor>.menu-folder-editor-list{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable!important;
+}
+.menu-editor>footer{flex:0 0 auto!important}
 
 @media(max-width:900px){
   .menu-folder-editor-list{grid-template-columns:1fr!important;gap:14px!important}
