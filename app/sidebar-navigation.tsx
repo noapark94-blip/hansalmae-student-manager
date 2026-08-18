@@ -17,9 +17,10 @@ const menuLabel = (item:MenuItem) => item.id === "assignments" ? "첨삭 관리"
 const defaultLayout: MenuLayout = {
   folders: [
     { id: "main", name: "바로가기", itemIds: ["dashboard"] },
+    { id: "classes", name: "클래스 관리", itemIds: ["class-management", "assignments"] },
     { id: "students", name: "학생 관리", itemIds: ["students"] },
-    { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "assignments", "transport"] },
-    { id: "classes", name: "수업 관리", itemIds: ["class-management", "consultations"] },
+    { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
+    { id: "lessons", name: "수업 관리", itemIds: ["consultations"] },
     { id: "operations", name: "학원 운영", itemIds: ["communications", "tuition", "tuition-settings", "analytics", "backup", "audit"] },
     { id: "accounts", name: "계정 설정", itemIds: ["settings", "my-account"] },
   ],
@@ -34,7 +35,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   useEffect(() => {
     let active = true;
     void supabase.rpc("get_app_menu_layout").then(({ data }) => {
-      if (active && isMenuLayout(data)) setLayout(mergeMissingItems(data, usableItems));
+      if (active && isMenuLayout(data)) setLayout(normalizeLayout(data, usableItems));
     });
     return () => { active = false; };
   }, [supabase, usableItems]);
@@ -91,6 +92,18 @@ function MenuLayoutEditor({ supabase, items, value, onClose, onSaved }: { supaba
   </section></div>;
 }
 
+function normalizeLayout(layout:MenuLayout,items:MenuItem[]):MenuLayout{
+  const next=mergeMissingItems(layout,items);
+  const assignments=next.folders.flatMap(folder=>folder.itemIds).includes("assignments");
+  if(!assignments)return next;
+  const folders=next.folders.map(folder=>({...folder,itemIds:folder.itemIds.filter(id=>id!=="assignments")}));
+  let classIndex=folders.findIndex(folder=>folder.id==="classes");
+  if(classIndex<0){folders.splice(Math.min(1,folders.length),0,{id:"classes",name:"클래스 관리",itemIds:[]});classIndex=folders.findIndex(folder=>folder.id==="classes");}
+  const classItems=folders[classIndex].itemIds.filter(id=>id!=="class-management");
+  folders[classIndex]={...folders[classIndex],name:"클래스 관리",itemIds:["class-management",...classItems,"assignments"].filter((id,index,array)=>array.indexOf(id)===index) as View[]};
+  return{folders};
+}
+
 function mergeMissingItems(layout: MenuLayout, items: MenuItem[]): MenuLayout {
   const validIds = new Set(items.map((item) => item.id));
   const used = new Set<View>();
@@ -101,16 +114,7 @@ function mergeMissingItems(layout: MenuLayout, items: MenuItem[]): MenuLayout {
   }) }));
   const missing = items.map((item) => item.id).filter((id) => !used.has(id));
   if (!folders.length) return defaultLayout;
-  if (missing.length) {
-    const scheduleMissing = missing.filter((id) => id === "assignments");
-    const otherMissing = missing.filter((id) => id !== "assignments");
-    if (scheduleMissing.length) {
-      const scheduleIndex = folders.findIndex((folder) => folder.id === "schedules");
-      if (scheduleIndex >= 0) folders[scheduleIndex] = { ...folders[scheduleIndex], itemIds:[...folders[scheduleIndex].itemIds, ...scheduleMissing] };
-      else folders[0] = { ...folders[0], itemIds:[...folders[0].itemIds, ...scheduleMissing] };
-    }
-    if (otherMissing.length) folders[0] = { ...folders[0], itemIds:[...folders[0].itemIds, ...otherMissing] };
-  }
+  if (missing.length) folders[0] = { ...folders[0], itemIds:[...folders[0].itemIds,...missing] };
   return { folders };
 }
 
