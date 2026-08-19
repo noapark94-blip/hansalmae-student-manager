@@ -23,6 +23,7 @@ import "./kidsnote-final-polish.css";
 import "./correction-management.css";
 import "./correction-report.css";
 import "./correction-management-override.css";
+import "./weekly-timetable-compact.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 
 export const metadata: Metadata = {
