@@ -17,6 +17,7 @@ import "./exam-category-header.css";
 import "./exam-category-modal-polish.css";
 import "./menu-editor-polish.css";
 import "./sidebar-inline-editor.css";
+import "./class-creator-polish.css";
 import "./kidsnote-final-polish.css";
 import "./correction-management.css";
 import "./correction-report.css";
