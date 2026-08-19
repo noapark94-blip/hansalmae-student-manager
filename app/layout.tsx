@@ -23,6 +23,7 @@ import "./kidsnote-final-polish.css";
 import "./correction-management.css";
 import "./correction-report.css";
 import "./correction-management-override.css";
+import { EscapeModalCloser } from "./escape-modal-closer";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
@@ -52,5 +53,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body>{children}</body></html>;
+  return <html lang="ko"><body><EscapeModalCloser />{children}</body></html>;
 }
