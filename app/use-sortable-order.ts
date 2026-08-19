@@ -13,10 +13,18 @@ export function reorderById<T extends { id: string }>(items: T[], activeId: stri
 }
 
 type SortableOptions = {
-  /** Delay before drag mode starts. Touch keeps the legacy 420ms default; mouse starts on movement unless requireHoldForMouse is true. */
   activationDelayMs?: number;
-  /** When true, mouse must also stay pressed for activationDelayMs before dragging can begin. */
   requireHoldForMouse?: boolean;
+};
+
+type PendingDrag = {
+  id: string;
+  element: HTMLElement;
+  x: number;
+  y: number;
+  pointerType: string;
+  holdToDrag: boolean;
+  delayMs: number;
 };
 
 export function useSortableOrder(onMove: (activeId: string, overId: string) => void, options: SortableOptions = {}) {
@@ -24,7 +32,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
   const [draggingId, setDraggingId] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = useRef("");
-  const pending = useRef<{ id: string; element: HTMLElement; x: number; y: number; pointerType: string } | null>(null);
+  const pending = useRef<PendingDrag | null>(null);
   const lastOver = useRef("");
   const preview = useRef<HTMLElement | null>(null);
   const source = useRef<HTMLElement | null>(null);
@@ -109,6 +117,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     lastOver.current = "";
     createPreview(element, clientX, clientY);
     setDraggingId(id);
+    if (element.closest(".teacher-class-cards") && "vibrate" in navigator) navigator.vibrate?.(18);
   }, [createPreview]);
 
   const move = useCallback((clientX: number, clientY: number) => {
@@ -138,10 +147,9 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     const p = pending.current;
     if (!active.current && p) {
       const distance = Math.hypot(event.clientX - p.x, event.clientY - p.y);
-      if (p.pointerType === "mouse" && !requireHoldForMouse) {
+      if (p.pointerType === "mouse" && !p.holdToDrag) {
         if (distance >= 7) startDrag(p.id, p.element, event.clientX, event.clientY);
       } else if (distance >= 12) {
-        // A press-and-hold should stay mostly still until reorder mode activates.
         clear();
         pending.current = null;
         return;
@@ -151,7 +159,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       event.preventDefault();
       move(event.clientX, event.clientY);
     }
-  }, [clear, move, requireHoldForMouse, startDrag]);
+  }, [clear, move, startDrag]);
 
   useEffect(() => {
     window.addEventListener("pointermove", handleWindowMove, { passive: false });
@@ -173,20 +181,24 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       "data-sort-id": id,
       onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
         if ((event.target as HTMLElement).closest("button,input,select,textarea,a") && !(event.target as HTMLElement).closest("[data-drag-handle]")) return;
+        const isClassCard = Boolean(event.currentTarget.closest(".teacher-class-cards"));
+        const holdToDrag = isClassCard || event.pointerType !== "mouse" || requireHoldForMouse;
+        const delayMs = isClassCard ? 1900 : activationDelayMs;
         pending.current = {
           id,
           element: event.currentTarget,
           x: event.clientX,
           y: event.clientY,
           pointerType: event.pointerType,
+          holdToDrag,
+          delayMs,
         };
         clear();
-        const shouldDelay = event.pointerType !== "mouse" || requireHoldForMouse;
-        if (shouldDelay) {
+        if (holdToDrag) {
           timer.current = setTimeout(() => {
             const p = pending.current;
             if (p && !active.current) startDrag(p.id, p.element, p.x, p.y);
-          }, activationDelayMs);
+          }, delayMs);
         }
       },
     }),
