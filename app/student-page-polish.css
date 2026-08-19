@@ -1,1 +1,5 @@
 .page-heading.compact:has(+ .table-panel .student-table) > .primary{display:none!important}
+
+/* Student registration modal: keep the heading clean and remove the unused guardian-name field. */
+.student-modal > header .eyebrow{display:none!important}
+.student-modal .form-grid > label:nth-of-type(5){display:none!important}
