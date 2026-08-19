@@ -1,0 +1,1 @@
+.page-heading.compact:has(+ .table-panel .student-table) > .primary{display:none!important}
