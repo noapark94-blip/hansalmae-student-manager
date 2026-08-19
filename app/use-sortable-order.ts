@@ -21,12 +21,12 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
   const source = useRef<HTMLElement | null>(null);
   const offset = useRef({ x: 0, y: 0 });
 
-  const removePreview = useCallback((animate = false) => {
-    const node=preview.current;const target=source.current;
-    preview.current=null;source.current=null;
-    if(!node)return;
-    if(animate&&target){const rect=target.getBoundingClientRect();node.animate([{left:node.style.left,top:node.style.top,transform:"scale(1)"},{left:`${rect.left}px`,top:`${rect.top}px`,transform:"scale(.96)",opacity:.25}],{duration:150,easing:"cubic-bezier(.2,.8,.2,1)"}).finished.finally(()=>node.remove());}
-    else node.remove();
+  const removePreview = useCallback(() => {
+    const node = preview.current;
+    preview.current = null;
+    source.current = null;
+    if (node?.isConnected) node.remove();
+    document.querySelectorAll(".sortable-drag-preview").forEach((item) => item.remove());
   }, []);
 
   const createPreview=useCallback((element:HTMLElement,clientX:number,clientY:number)=>{
@@ -115,7 +115,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     active.current = "";
     lastOver.current = "";
     setDraggingId("");
-    removePreview(true);
+    removePreview();
   }, [clear,removePreview]);
 
   return {
@@ -132,6 +132,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       },
       onPointerUp: end,
       onPointerCancel: end,
+      onLostPointerCapture: end,
     }),
   };
 }
