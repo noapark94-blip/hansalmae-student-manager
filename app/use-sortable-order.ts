@@ -25,6 +25,7 @@ type PendingDrag = {
   pointerType: string;
   holdToDrag: boolean;
   delayMs: number;
+  isClassCard: boolean;
 };
 
 export function useSortableOrder(onMove: (activeId: string, overId: string) => void, options: SortableOptions = {}) {
@@ -149,10 +150,13 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       const distance = Math.hypot(event.clientX - p.x, event.clientY - p.y);
       if (p.pointerType === "mouse" && !p.holdToDrag) {
         if (distance >= 7) startDrag(p.id, p.element, event.clientX, event.clientY);
-      } else if (distance >= 12) {
-        clear();
-        pending.current = null;
-        return;
+      } else {
+        const cancelDistance = p.isClassCard && p.pointerType === "mouse" ? 44 : p.isClassCard ? 22 : 12;
+        if (distance >= cancelDistance) {
+          clear();
+          pending.current = null;
+          return;
+        }
       }
     }
     if (active.current) {
@@ -192,6 +196,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
           pointerType: event.pointerType,
           holdToDrag,
           delayMs,
+          isClassCard,
         };
         clear();
         if (holdToDrag) {
