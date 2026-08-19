@@ -1,0 +1,147 @@
+/* 정규수업 기록 화면을 하나의 연결된 작업 시트처럼 보이게 정리 */
+.class-day-workspace .class-learning-board{
+  margin:0!important;
+  border:1px solid #eadfe4!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+.class-day-workspace .class-learning-board>header{
+  margin:0!important;
+  padding:18px 20px!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .class-week-strip{
+  margin:0!important;
+  padding:14px 18px!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  background:#fcfafb!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .learning-common-record{
+  margin:0!important;
+  padding:18px 20px!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .learning-common-title{margin:0 0 10px!important}
+.class-day-workspace .learning-common-record textarea{
+  min-height:92px!important;
+  border:1px solid #e7dde1!important;
+  border-radius:10px!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .class-learning-board .class-daily-notice{
+  margin:0!important;
+  padding:15px 20px!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .class-learning-board .class-daily-notice>textarea{
+  min-height:64px!important;
+  border-radius:10px!important;
+}
+.class-day-workspace .learning-bulk-tools{
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+.class-day-workspace .learning-bulk-toggle{
+  min-height:58px!important;
+  padding:13px 20px!important;
+  background:#fff!important;
+}
+.class-day-workspace .learning-bulk-body{
+  padding:14px 20px 18px!important;
+  border-top:1px solid #f1e9ed!important;
+  background:#fdfbfc!important;
+}
+.class-day-workspace .family-read-status{
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #eee6e9!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:#fff!important;
+}
+.class-day-workspace .family-read-summary{
+  padding-left:20px!important;
+  padding-right:20px!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.class-day-workspace .learning-board-heading{
+  margin:0!important;
+  border-top:0!important;
+  border-bottom:1px solid #e9e0e4!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .learning-board-rows{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .learning-board-rows>article{
+  margin:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .class-learning-board>footer{
+  margin:0!important;
+  min-height:0!important;
+  padding:14px 20px!important;
+  border:0!important;
+  border-top:0!important;
+  border-radius:0!important;
+  background:#fcfafb!important;
+  box-shadow:none!important;
+}
+.class-day-workspace .class-learning-board>footer:empty{display:none!important}
+.class-day-workspace .class-learning-board+*{margin-top:14px!important}
+
+/* 수강 학생 관리까지 같은 페이지에서 과도한 카드 중첩이 느껴지지 않도록 */
+.class-day-workspace .class-workspace-grid.class-log-grid{
+  margin:14px 0 0!important;
+  border:0!important;
+  background:transparent!important;
+}
+.class-day-workspace .class-roster-shortcut{
+  margin:0!important;
+  border:1px solid #eadfe4!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+
+@media(max-width:900px){
+  .class-day-workspace .class-learning-board{border-radius:15px!important}
+  .class-day-workspace .class-learning-board>header,
+  .class-day-workspace .class-week-strip,
+  .class-day-workspace .learning-common-record,
+  .class-day-workspace .class-learning-board .class-daily-notice,
+  .class-day-workspace .learning-bulk-toggle,
+  .class-day-workspace .learning-bulk-body,
+  .class-day-workspace .family-read-summary,
+  .class-day-workspace .class-learning-board>footer{padding-left:14px!important;padding-right:14px!important}
+  .class-day-workspace .class-learning-board .class-daily-notice{gap:8px!important}
+}
