@@ -1,24 +1,24 @@
-/* 내 메뉴 폴더 편집: 드래그 이동을 제거하고 화살표/폴더 선택만 사용 */
+/* 내 메뉴 편집: 폴더 순서 + 메뉴 폴더 배정만 남긴 간결한 설정 UI */
 .menu-editor-toolbar small{display:none!important}
+.menu-editor-toolbar::after{content:"폴더 순서는 ▲▼로, 메뉴는 원하는 폴더만 선택하면 됩니다.";margin-left:auto;color:#8d8186;font-size:12px;font-weight:600}
 .menu-folder-editor-list [data-drag-handle]{display:none!important}
 
-/* sortable pointer handlers가 남아 있어도 메뉴 편집에서는 드래그가 시작되지 않도록 차단 */
+/* sortable 포인터 핸들러가 남아 있어도 실제 드래그는 시작되지 않도록 차단 */
 .menu-folder-editor-list>article,
 .menu-folder-editor-list>article>div,
 .menu-folder-editor-list>article>div>p{pointer-events:none!important}
 .menu-folder-editor-list>article>header input,
 .menu-folder-editor-list>article>header button,
-.menu-folder-editor-list>article>div>p select,
-.menu-folder-editor-list>article>div>p button{pointer-events:auto!important}
+.menu-folder-editor-list>article>div>p select{pointer-events:auto!important}
 
-/* 모달 자체를 뷰포트 안에 고정하고 중앙 목록만 스크롤 */
+/* 모달: 상단/하단 고정, 가운데 목록만 스크롤 */
 .menu-editor-backdrop{overflow:hidden!important}
 .menu-editor{
   display:flex!important;
   flex-direction:column!important;
-  width:min(1120px,calc(100vw - 32px))!important;
-  height:min(90dvh,860px)!important;
-  max-height:min(90dvh,860px)!important;
+  width:min(1080px,calc(100vw - 32px))!important;
+  height:min(88dvh,820px)!important;
+  max-height:min(88dvh,820px)!important;
   min-height:0!important;
   overflow:hidden!important;
 }
@@ -29,94 +29,108 @@
   flex:1 1 0!important;
   min-height:0!important;
   height:0!important;
-  max-height:none!important;
-  overflow-y:scroll!important;
+  overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
   scrollbar-gutter:stable!important;
   -webkit-overflow-scrolling:touch!important;
 }
-.menu-editor>.menu-folder-editor-list::-webkit-scrollbar{width:9px!important}
-.menu-editor>.menu-folder-editor-list::-webkit-scrollbar-thumb{background:#cfc3c8!important;border-radius:999px!important;border:2px solid #fff!important}
+.menu-editor>.menu-folder-editor-list::-webkit-scrollbar{width:8px!important}
+.menu-editor>.menu-folder-editor-list::-webkit-scrollbar-thumb{background:#d5cbd0!important;border-radius:999px!important;border:2px solid #fff!important}
 .menu-editor>.menu-folder-editor-list::-webkit-scrollbar-track{background:transparent!important}
 
-/* 각 폴더 카드는 내용 높이만큼 자연스럽게 늘어남 */
+/* 폴더 카드 */
 .menu-folder-editor-list{
   display:grid!important;
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:18px 18px!important;
+  gap:16px!important;
   align-items:start!important;
   align-content:start!important;
-  padding:14px 12px 28px!important;
+  padding:14px 14px 26px!important;
   box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article{
-  position:relative!important;
   display:block!important;
   margin:0!important;
   min-width:0!important;
   width:100%!important;
   height:auto!important;
-  min-height:0!important;
   max-height:none!important;
   overflow:hidden!important;
-  align-self:start!important;
-  border-radius:15px!important;
+  border-radius:16px!important;
+  border:1px solid #eadfe4!important;
+  background:#fff!important;
   box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>header{
-  min-height:62px!important;
-  padding:10px 12px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  min-height:58px!important;
+  padding:9px 10px!important;
   gap:8px!important;
+  background:#fcf9fa!important;
+  border-bottom:1px solid #f0e7eb!important;
   box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>header>input{
   min-width:0!important;
-  height:42px!important;
+  width:100%!important;
+  height:40px!important;
+  padding:0 12px!important;
+  border-radius:10px!important;
   font-size:16px!important;
   font-weight:800!important;
+  box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>header>span{
   display:flex!important;
   align-items:center!important;
-  gap:6px!important;
-  flex:0 0 auto!important;
+  gap:5px!important;
 }
+.menu-folder-editor-list>article>header>span>button{
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  padding:0!important;
+  border-radius:9px!important;
+  font-size:11px!important;
+}
+
+/* 메뉴 행: 아이콘 + 이름 + 소속 폴더 선택만 표시 */
 .menu-folder-editor-list>article>div{
-  position:static!important;
   display:flex!important;
   flex-direction:column!important;
-  gap:6px!important;
+  gap:0!important;
   width:100%!important;
   height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  padding:8px 12px 12px!important;
-  overflow:visible!important;
+  padding:4px 12px 8px!important;
   box-sizing:border-box!important;
 }
 .menu-folder-editor-list>article>div>p{
-  position:relative!important;
   display:grid!important;
-  grid-template-columns:28px minmax(90px,1fr) minmax(116px,132px) 38px 38px!important;
+  grid-template-columns:28px minmax(0,1fr) minmax(130px,160px)!important;
   align-items:center!important;
-  gap:8px!important;
+  gap:10px!important;
   width:100%!important;
   min-width:0!important;
-  min-height:48px!important;
-  height:auto!important;
+  min-height:54px!important;
   margin:0!important;
-  padding:6px 8px!important;
+  padding:7px 4px!important;
+  border-bottom:1px solid #f3edef!important;
   box-sizing:border-box!important;
-  overflow:visible!important;
 }
-.menu-folder-editor-list>article>div>p>.nav-icon{width:28px!important}
-.menu-folder-editor-list>article>div>p>b{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-.menu-folder-editor-list>article>div>p>select{min-width:0!important;width:100%!important;height:38px!important}
-.menu-folder-editor-list>article>div>p>button{width:38px!important;height:38px!important;min-width:38px!important;padding:0!important}
+.menu-folder-editor-list>article>div>p:last-child{border-bottom:0!important}
+.menu-folder-editor-list>article>div>p>.nav-icon{width:28px!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.menu-folder-editor-list>article>div>p>b{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;font-weight:750!important}
+.menu-folder-editor-list>article>div>p>select{min-width:0!important;width:100%!important;height:38px!important;padding:0 34px 0 11px!important;border-radius:9px!important;font-size:12px!important;box-sizing:border-box!important}
+/* 메뉴별 ▲▼ 버튼 제거 */
+.menu-folder-editor-list>article>div>p>button{display:none!important}
+.menu-folder-editor-list>article>div>em{display:block!important;padding:18px 8px!important;text-align:center!important;color:#a09298!important;font-size:12px!important}
 
 @media(max-width:900px){
   .menu-editor{width:calc(100vw - 16px)!important;height:92dvh!important;max-height:92dvh!important}
-  .menu-folder-editor-list{grid-template-columns:1fr!important;gap:14px!important;padding:12px 8px 24px!important}
-  .menu-folder-editor-list>article>div>p{grid-template-columns:26px minmax(80px,1fr) minmax(105px,128px) 36px 36px!important;gap:6px!important}
+  .menu-editor-toolbar::after{display:none!important}
+  .menu-folder-editor-list{grid-template-columns:1fr!important;gap:12px!important;padding:12px 8px 22px!important}
+  .menu-folder-editor-list>article>div>p{grid-template-columns:26px minmax(0,1fr) minmax(112px,138px)!important;gap:8px!important}
 }
