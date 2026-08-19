@@ -5,7 +5,7 @@ type IconName = "home" | "students" | "classes" | "calendar" | "edit" | "bus" | 
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="M3.5 10.5 12 3.8l8.5 6.7"/><path d="M5.8 9.3v10h12.4v-10"/><path d="M9.4 19.3v-5.8h5.2v5.8"/></>,
-  students: <><circle cx="9" cy="8" r="3.1"/><path d="M3.8 19c.4-3.6 2.2-5.4 5.2-5.4s4.8 1.8 5.2 5.4"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.2c2.9-.5 4.5 1.1 4.8 4"/></>,
+  students: <><circle cx="8.2" cy="8.2" r="2.8"/><circle cx="15.8" cy="8.2" r="2.8"/><path d="M2.8 19c.25-3.7 2.05-5.55 5.4-5.55 1.55 0 2.8.4 3.8 1.2"/><path d="M21.2 19c-.25-3.7-2.05-5.55-5.4-5.55-1.55 0-2.8.4-3.8 1.2"/></>,
   classes: <><rect x="4" y="4.5" width="16" height="15" rx="2.2"/><path d="M8 8.5h8M8 12h8M8 15.5h5"/></>,
   calendar: <><rect x="3.8" y="5.5" width="16.4" height="14.2" rx="2.2"/><path d="M7.5 3.5v4M16.5 3.5v4M4 9.5h16"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01"/></>,
   edit: <><path d="m5 16.5-.8 3.3 3.3-.8L18.8 7.7a2 2 0 0 0-2.8-2.8Z"/><path d="m14.8 6.1 3 3"/></>,
