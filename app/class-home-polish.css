@@ -155,6 +155,23 @@
 .notification-list article > i { display:grid!important; place-items:center; }
 .notification-list article > i .hansalmae-icon { width:18px; height:18px; }
 
+/* iOS 스타일 클래스 재배치 모드 */
+@keyframes class-card-jiggle {
+  0%,100% { transform:rotate(-.45deg) translateY(0); }
+  50% { transform:rotate(.45deg) translateY(-1px); }
+}
+.teacher-class-cards.reorder-mode > button:not(.teacher-special-card) {
+  animation:class-card-jiggle .24s ease-in-out infinite;
+  cursor:grabbing;
+  user-select:none;
+}
+.teacher-class-cards.reorder-mode > button:not(.teacher-special-card):nth-child(even) { animation-delay:-.12s; }
+.teacher-class-cards.reorder-mode > button.dragging {
+  opacity:.42;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--class-color) 28%,transparent),0 12px 28px rgba(73,44,56,.10);
+}
+.teacher-class-cards.reorder-mode > button.teacher-special-card { animation:none; }
+
 @media (max-width:900px) {
   .teacher-home-heading { align-items:flex-start; gap:14px; margin:0 0 14px; }
   .teacher-home-heading .eyebrow { display:block!important; margin-bottom:5px; font-size:10px; }
