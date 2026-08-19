@@ -12,64 +12,250 @@ export function reorderById<T extends { id: string }>(items: T[], activeId: stri
   return next;
 }
 
-type SortableOptions = { activationDelayMs?: number; requireHoldForMouse?: boolean };
-type PendingDrag = { id:string; element:HTMLElement; x:number; y:number; currentX:number; currentY:number; pointerType:string; holdToDrag:boolean; delayMs:number; isClassCard:boolean; pointerId:number };
+type SortableOptions = {
+  activationDelayMs?: number;
+  requireHoldForMouse?: boolean;
+};
 
-export function useSortableOrder(onMove:(activeId:string,overId:string)=>void, options:SortableOptions={}) {
-  const { activationDelayMs=420, requireHoldForMouse=false }=options;
-  const [draggingId,setDraggingId]=useState("");
-  const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
-  const active=useRef(""); const pending=useRef<PendingDrag|null>(null); const lastOver=useRef("");
-  const preview=useRef<HTMLElement|null>(null); const offset=useRef({x:0,y:0}); const didLongPress=useRef(false);
+type PendingDrag = {
+  id: string;
+  element: HTMLElement;
+  x: number;
+  y: number;
+  pointerType: string;
+  isClassCard: boolean;
+};
 
-  const clear=useCallback(()=>{ if(timer.current) clearTimeout(timer.current); timer.current=null; },[]);
-  const removePreview=useCallback(()=>{ const n=preview.current; preview.current=null; if(n?.isConnected)n.remove(); document.querySelectorAll(".sortable-drag-preview").forEach(n=>n.remove()); },[]);
-  const createPreview=useCallback((element:HTMLElement,x:number,y:number)=>{
-    removePreview(); const r=element.getBoundingClientRect(); const card=element.cloneNode(true) as HTMLElement;
-    card.className="sortable-drag-preview"; card.removeAttribute("data-sort-id");
-    Object.assign(card.style,{position:"fixed",left:`${r.left}px`,top:`${r.top}px`,width:`${r.width}px`,height:`${r.height}px`,margin:"0",zIndex:"10000",pointerEvents:"none",opacity:".94",transform:"scale(.98)",boxShadow:"0 18px 42px rgba(55,35,45,.18)",background:"#fff",boxSizing:"border-box"});
-    offset.current={x:x-r.left,y:y-r.top}; document.body.appendChild(card); preview.current=card;
-  },[removePreview]);
-  const startDrag=useCallback((p:PendingDrag)=>{
-    active.current=p.id; lastOver.current=""; didLongPress.current=p.isClassCard; createPreview(p.element,p.currentX,p.currentY); setDraggingId(p.id);
-    if(p.isClassCard && typeof navigator!=="undefined" && "vibrate" in navigator) navigator.vibrate?.(18);
-  },[createPreview]);
-  const move=useCallback((x:number,y:number)=>{
-    if(!active.current)return; if(preview.current){preview.current.style.left=`${x-offset.current.x}px`;preview.current.style.top=`${y-offset.current.y}px`;}
-    const target=document.elementFromPoint(x,y)?.closest<HTMLElement>("[data-sort-id]"); const overId=target?.dataset.sortId;
-    if(overId&&overId!==active.current&&overId!==lastOver.current){onMove(active.current,overId);lastOver.current=overId;}
-  },[onMove]);
-  const end=useCallback(()=>{clear(); pending.current=null; active.current=""; lastOver.current=""; setDraggingId(""); removePreview(); setTimeout(()=>{didLongPress.current=false},0);},[clear,removePreview]);
-  const handleMove=useCallback((e:PointerEvent)=>{
-    const p=pending.current;
-    if(p){ p.currentX=e.clientX; p.currentY=e.clientY; }
-    if(!active.current&&p){
-      const d=Math.hypot(e.clientX-p.x,e.clientY-p.y);
-      if(p.pointerType==="mouse"&&!p.holdToDrag){if(d>=7)startDrag(p);}
-      else if(!p.isClassCard&&d>=12){clear();pending.current=null;return;}
-      /* Class cards deliberately do not cancel a long press for small movement. */
+const REORDER_MODE_ID = "__class_reorder_mode__";
+
+export function useSortableOrder(onMove: (activeId: string, overId: string) => void, options: SortableOptions = {}) {
+  const { activationDelayMs = 420, requireHoldForMouse = false } = options;
+  const [draggingId, setDraggingId] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const active = useRef("");
+  const pending = useRef<PendingDrag | null>(null);
+  const lastOver = useRef("");
+  const preview = useRef<HTMLElement | null>(null);
+  const offset = useRef({ x: 0, y: 0 });
+  const classReorderMode = useRef(false);
+  const pointerStart = useRef({ x: 0, y: 0 });
+
+  const clearTimer = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  }, []);
+
+  const removePreview = useCallback(() => {
+    const node = preview.current;
+    preview.current = null;
+    if (node?.isConnected) node.remove();
+    document.querySelectorAll(".sortable-drag-preview").forEach((item) => item.remove());
+  }, []);
+
+  const leaveClassReorderMode = useCallback(() => {
+    clearTimer();
+    classReorderMode.current = false;
+    pending.current = null;
+    active.current = "";
+    lastOver.current = "";
+    setDraggingId("");
+    removePreview();
+  }, [clearTimer, removePreview]);
+
+  const enterClassReorderMode = useCallback((element: HTMLElement) => {
+    classReorderMode.current = true;
+    pending.current = null;
+    active.current = "";
+    lastOver.current = "";
+    setDraggingId(REORDER_MODE_ID);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(24);
+    element.blur();
+  }, []);
+
+  const createPreview = useCallback((element: HTMLElement, clientX: number, clientY: number) => {
+    removePreview();
+    const rect = element.getBoundingClientRect();
+    const card = element.cloneNode(true) as HTMLElement;
+    card.className = "sortable-drag-preview";
+    card.removeAttribute("data-sort-id");
+    card.removeAttribute("data-drag-handle");
+    Object.assign(card.style, {
+      position: "fixed",
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      margin: "0",
+      zIndex: "10000",
+      pointerEvents: "none",
+      opacity: ".96",
+      transform: "scale(1.02)",
+      boxShadow: "0 18px 44px rgba(55,35,45,.20)",
+      background: "#fff",
+      boxSizing: "border-box",
+    });
+    offset.current = {
+      x: Math.min(Math.max(clientX - rect.left, 18), rect.width - 18),
+      y: Math.min(Math.max(clientY - rect.top, 18), rect.height - 18),
+    };
+    document.body.appendChild(card);
+    preview.current = card;
+  }, [removePreview]);
+
+  const startDrag = useCallback((id: string, element: HTMLElement, clientX: number, clientY: number) => {
+    clearTimer();
+    pending.current = null;
+    active.current = id;
+    lastOver.current = "";
+    pointerStart.current = { x: clientX, y: clientY };
+    createPreview(element, clientX, clientY);
+    setDraggingId(id);
+  }, [clearTimer, createPreview]);
+
+  const move = useCallback((clientX: number, clientY: number) => {
+    if (!active.current) return;
+    if (preview.current) {
+      preview.current.style.left = `${clientX - offset.current.x}px`;
+      preview.current.style.top = `${clientY - offset.current.y}px`;
     }
-    if(active.current){e.preventDefault();move(e.clientX,e.clientY);}
-  },[clear,move,startDrag]);
-  useEffect(()=>{
-    window.addEventListener("pointermove",handleMove,{passive:false}); window.addEventListener("pointerup",end); window.addEventListener("pointercancel",end); window.addEventListener("blur",end);
-    return()=>{window.removeEventListener("pointermove",handleMove);window.removeEventListener("pointerup",end);window.removeEventListener("pointercancel",end);window.removeEventListener("blur",end);end();};
-  },[end,handleMove]);
+    const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-sort-id]");
+    const overId = target?.dataset.sortId;
+    if (overId && overId !== active.current && overId !== lastOver.current) {
+      onMove(active.current, overId);
+      lastOver.current = overId;
+    }
+  }, [onMove]);
 
-  return { draggingId,
-    itemProps:(id:string)=>({
-      "data-sort-id":id,
-      onContextMenu:(e:React.MouseEvent<HTMLElement>)=>e.preventDefault(),
-      onClickCapture:(e:React.MouseEvent<HTMLElement>)=>{if(didLongPress.current){e.preventDefault();e.stopPropagation();}},
-      onPointerDown:(e:ReactPointerEvent<HTMLElement>)=>{
-        if((e.target as HTMLElement).closest("input,select,textarea,a"))return;
-        const isClassCard=Boolean(e.currentTarget.closest(".teacher-class-cards")); const holdToDrag=isClassCard||e.pointerType!=="mouse"||requireHoldForMouse; const delayMs=isClassCard?1800:activationDelayMs;
-        didLongPress.current=false;
-        pending.current={id,element:e.currentTarget,x:e.clientX,y:e.clientY,currentX:e.clientX,currentY:e.clientY,pointerType:e.pointerType,holdToDrag,delayMs,isClassCard,pointerId:e.pointerId};
-        clear();
-        try{e.currentTarget.setPointerCapture(e.pointerId);}catch{}
-        if(holdToDrag) timer.current=setTimeout(()=>{const p=pending.current;if(p&&!active.current)startDrag(p);},delayMs);
+  const finishPointer = useCallback(() => {
+    clearTimer();
+    pending.current = null;
+    lastOver.current = "";
+    active.current = "";
+    removePreview();
+    if (classReorderMode.current) setDraggingId(REORDER_MODE_ID);
+    else setDraggingId("");
+  }, [clearTimer, removePreview]);
+
+  const handleWindowMove = useCallback((event: PointerEvent) => {
+    const p = pending.current;
+    if (!active.current && p) {
+      const distance = Math.hypot(event.clientX - p.x, event.clientY - p.y);
+      if (p.isClassCard && !classReorderMode.current) {
+        const cancelDistance = p.pointerType === "mouse" ? 60 : 32;
+        if (distance >= cancelDistance) {
+          clearTimer();
+          pending.current = null;
+        }
+      } else if (!p.isClassCard) {
+        if (p.pointerType === "mouse" && !requireHoldForMouse) {
+          if (distance >= 7) startDrag(p.id, p.element, event.clientX, event.clientY);
+        } else if (distance >= 12) {
+          clearTimer();
+          pending.current = null;
+        }
       }
-    })
+    }
+    if (active.current) {
+      event.preventDefault();
+      move(event.clientX, event.clientY);
+    }
+  }, [clearTimer, move, requireHoldForMouse, startDrag]);
+
+  useEffect(() => {
+    const onPointerUp = () => finishPointer();
+    const onPointerCancel = () => {
+      if (active.current) finishPointer();
+      else {
+        clearTimer();
+        pending.current = null;
+      }
+    };
+    const onContextMenu = (event: MouseEvent) => {
+      if ((event.target as HTMLElement | null)?.closest(".teacher-class-cards")) event.preventDefault();
+    };
+    const onClickCapture = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (classReorderMode.current && target?.closest(".teacher-class-cards")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    const onOutsidePointer = (event: PointerEvent) => {
+      if (!classReorderMode.current || active.current) return;
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest(".teacher-class-cards") && !target?.closest(".sortable-drag-preview")) leaveClassReorderMode();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && classReorderMode.current) leaveClassReorderMode();
+    };
+
+    window.addEventListener("pointermove", handleWindowMove, { passive: false });
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("click", onClickCapture, true);
+    document.addEventListener("pointerdown", onOutsidePointer, true);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointermove", handleWindowMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("click", onClickCapture, true);
+      document.removeEventListener("pointerdown", onOutsidePointer, true);
+      document.removeEventListener("keydown", onKeyDown);
+      clearTimer();
+      removePreview();
+    };
+  }, [clearTimer, finishPointer, handleWindowMove, leaveClassReorderMode, removePreview]);
+
+  return {
+    draggingId,
+    itemProps: (id: string) => ({
+      "data-sort-id": id,
+      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+        const target = event.target as HTMLElement;
+        if (target.closest("input,select,textarea,a")) return;
+        const isClassCard = Boolean(event.currentTarget.closest(".teacher-class-cards"));
+
+        if (isClassCard) {
+          if (classReorderMode.current) {
+            event.preventDefault();
+            startDrag(id, event.currentTarget, event.clientX, event.clientY);
+            return;
+          }
+          pending.current = {
+            id,
+            element: event.currentTarget,
+            x: event.clientX,
+            y: event.clientY,
+            pointerType: event.pointerType,
+            isClassCard: true,
+          };
+          clearTimer();
+          timer.current = setTimeout(() => {
+            const p = pending.current;
+            if (p && !classReorderMode.current && !active.current) enterClassReorderMode(p.element);
+          }, 1600);
+          return;
+        }
+
+        pending.current = {
+          id,
+          element: event.currentTarget,
+          x: event.clientX,
+          y: event.clientY,
+          pointerType: event.pointerType,
+          isClassCard: false,
+        };
+        clearTimer();
+        if (event.pointerType !== "mouse" || requireHoldForMouse) {
+          timer.current = setTimeout(() => {
+            const p = pending.current;
+            if (p && !active.current) startDrag(p.id, p.element, p.x, p.y);
+          }, activationDelayMs);
+        }
+      },
+    }),
   };
 }
