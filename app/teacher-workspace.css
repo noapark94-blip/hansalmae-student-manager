@@ -13,3 +13,20 @@
 .teacher-class-cards:has(>button.dragging)>button:not(.teacher-special-card):nth-child(even){animation-delay:-.09s}
 .teacher-class-cards>button.dragging{opacity:.32;box-shadow:none!important}
 @media(prefers-reduced-motion:reduce){.teacher-class-cards:has(>button.dragging)>button:not(.teacher-special-card){animation:none}}
+
+/* While iOS-style reorder mode is active, scrolling must not steal the touch gesture. */
+.teacher-class-cards.reorder-mode{
+  overflow-x:hidden!important;
+  scroll-snap-type:none!important;
+  overscroll-behavior:contain;
+  touch-action:none!important;
+}
+.teacher-class-cards.reorder-mode>button[data-drag-handle]{
+  touch-action:none!important;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+@media(max-width:900px){
+  .teacher-class-cards.reorder-mode{overflow:hidden!important;}
+}
