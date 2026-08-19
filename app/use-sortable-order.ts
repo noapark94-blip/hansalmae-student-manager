@@ -12,204 +12,64 @@ export function reorderById<T extends { id: string }>(items: T[], activeId: stri
   return next;
 }
 
-type SortableOptions = {
-  activationDelayMs?: number;
-  requireHoldForMouse?: boolean;
-};
+type SortableOptions = { activationDelayMs?: number; requireHoldForMouse?: boolean };
+type PendingDrag = { id:string; element:HTMLElement; x:number; y:number; currentX:number; currentY:number; pointerType:string; holdToDrag:boolean; delayMs:number; isClassCard:boolean; pointerId:number };
 
-type PendingDrag = {
-  id: string;
-  element: HTMLElement;
-  x: number;
-  y: number;
-  pointerType: string;
-  holdToDrag: boolean;
-  delayMs: number;
-  isClassCard: boolean;
-};
+export function useSortableOrder(onMove:(activeId:string,overId:string)=>void, options:SortableOptions={}) {
+  const { activationDelayMs=420, requireHoldForMouse=false }=options;
+  const [draggingId,setDraggingId]=useState("");
+  const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const active=useRef(""); const pending=useRef<PendingDrag|null>(null); const lastOver=useRef("");
+  const preview=useRef<HTMLElement|null>(null); const offset=useRef({x:0,y:0}); const didLongPress=useRef(false);
 
-export function useSortableOrder(onMove: (activeId: string, overId: string) => void, options: SortableOptions = {}) {
-  const { activationDelayMs = 420, requireHoldForMouse = false } = options;
-  const [draggingId, setDraggingId] = useState("");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const active = useRef("");
-  const pending = useRef<PendingDrag | null>(null);
-  const lastOver = useRef("");
-  const preview = useRef<HTMLElement | null>(null);
-  const source = useRef<HTMLElement | null>(null);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const removePreview = useCallback(() => {
-    const node = preview.current;
-    preview.current = null;
-    source.current = null;
-    if (node?.isConnected) node.remove();
-    document.querySelectorAll(".sortable-drag-preview").forEach((item) => item.remove());
-  }, []);
-
-  const createPreview = useCallback((element: HTMLElement, clientX: number, clientY: number) => {
-    removePreview();
-    const rect = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    const accent = style.getPropertyValue("--class-color").trim() || "#922d61";
-    const subject = element.querySelector("small")?.textContent?.trim() || "";
-    const title = element.querySelector("b,h3,h4")?.textContent?.trim() || element.innerText.trim().split("\n").filter(Boolean)[0] || "이동 중";
-    const count = element.querySelector("strong")?.textContent?.trim() || "";
-    const detail = element.querySelector("em")?.textContent?.trim() || "";
-
-    const card = document.createElement("div");
-    card.className = "sortable-drag-preview";
-    card.innerHTML = `<i></i><div><span>${escapeHtml(subject)}</span><b>${escapeHtml(title)}</b>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</div>${count ? `<strong>${escapeHtml(count)}</strong>` : ""}`;
-    Object.assign(card.style, {
-      position: "fixed",
-      left: `${rect.left}px`,
-      top: `${rect.top}px`,
-      width: `${Math.min(Math.max(rect.width * .78, 220), 300)}px`,
-      minHeight: "88px",
-      height: "auto",
-      margin: "0",
-      padding: "13px 14px",
-      zIndex: "10000",
-      pointerEvents: "none",
-      display: "grid",
-      gridTemplateColumns: "4px minmax(0,1fr) auto",
-      gap: "11px",
-      alignItems: "stretch",
-      border: "1px solid rgba(146,45,97,.20)",
-      borderRadius: "16px",
-      background: "rgba(255,255,255,.97)",
-      boxShadow: "0 16px 38px rgba(55,35,45,.16)",
-      color: "#2d2629",
-      overflow: "hidden",
-      opacity: ".96",
-      transform: "scale(.98)",
-      backdropFilter: "blur(10px)",
-      boxSizing: "border-box",
-    });
-    const bar = card.querySelector("i") as HTMLElement | null;
-    if (bar) Object.assign(bar.style, { width: "4px", height: "100%", minHeight: "60px", borderRadius: "999px", background: accent, opacity: ".82" });
-    const body = card.querySelector("div") as HTMLElement | null;
-    if (body) Object.assign(body.style, { display: "flex", flexDirection: "column", minWidth: "0", gap: "4px" });
-    const badge = card.querySelector("span") as HTMLElement | null;
-    if (badge) Object.assign(badge.style, { width: "max-content", maxWidth: "100%", padding: "3px 7px", borderRadius: "999px", background: "#f8f1f5", color: "#922d61", fontSize: "10px", fontWeight: "800", lineHeight: "1.1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
-    const titleNode = card.querySelector("b") as HTMLElement | null;
-    if (titleNode) Object.assign(titleNode.style, { fontSize: "15px", fontWeight: "900", lineHeight: "1.25", letterSpacing: "-.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
-    const detailNode = card.querySelector("small") as HTMLElement | null;
-    if (detailNode) Object.assign(detailNode.style, { marginTop: "auto", paddingTop: "4px", color: "#857980", fontSize: "10.5px", lineHeight: "1.35", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
-    const countNode = card.querySelector("strong") as HTMLElement | null;
-    if (countNode) Object.assign(countNode.style, { alignSelf: "start", padding: "5px 7px", borderRadius: "9px", background: "#faf7f8", color: "#655a60", fontSize: "10.5px", fontWeight: "800", whiteSpace: "nowrap" });
-
-    offset.current = {
-      x: Math.min(clientX - rect.left, Number.parseFloat(card.style.width) * .7),
-      y: Math.min(clientY - rect.top, 70),
-    };
-    source.current = element;
-    document.body.appendChild(card);
-    preview.current = card;
-  }, [removePreview]);
-
-  const clear = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  }, []);
-
-  const startDrag = useCallback((id: string, element: HTMLElement, clientX: number, clientY: number) => {
-    active.current = id;
-    lastOver.current = "";
-    createPreview(element, clientX, clientY);
-    setDraggingId(id);
-    if (element.closest(".teacher-class-cards") && "vibrate" in navigator) navigator.vibrate?.(18);
-  }, [createPreview]);
-
-  const move = useCallback((clientX: number, clientY: number) => {
-    if (!active.current) return;
-    if (preview.current) {
-      preview.current.style.left = `${clientX - offset.current.x}px`;
-      preview.current.style.top = `${clientY - offset.current.y}px`;
+  const clear=useCallback(()=>{ if(timer.current) clearTimeout(timer.current); timer.current=null; },[]);
+  const removePreview=useCallback(()=>{ const n=preview.current; preview.current=null; if(n?.isConnected)n.remove(); document.querySelectorAll(".sortable-drag-preview").forEach(n=>n.remove()); },[]);
+  const createPreview=useCallback((element:HTMLElement,x:number,y:number)=>{
+    removePreview(); const r=element.getBoundingClientRect(); const card=element.cloneNode(true) as HTMLElement;
+    card.className="sortable-drag-preview"; card.removeAttribute("data-sort-id");
+    Object.assign(card.style,{position:"fixed",left:`${r.left}px`,top:`${r.top}px`,width:`${r.width}px`,height:`${r.height}px`,margin:"0",zIndex:"10000",pointerEvents:"none",opacity:".94",transform:"scale(.98)",boxShadow:"0 18px 42px rgba(55,35,45,.18)",background:"#fff",boxSizing:"border-box"});
+    offset.current={x:x-r.left,y:y-r.top}; document.body.appendChild(card); preview.current=card;
+  },[removePreview]);
+  const startDrag=useCallback((p:PendingDrag)=>{
+    active.current=p.id; lastOver.current=""; didLongPress.current=p.isClassCard; createPreview(p.element,p.currentX,p.currentY); setDraggingId(p.id);
+    if(p.isClassCard && typeof navigator!=="undefined" && "vibrate" in navigator) navigator.vibrate?.(18);
+  },[createPreview]);
+  const move=useCallback((x:number,y:number)=>{
+    if(!active.current)return; if(preview.current){preview.current.style.left=`${x-offset.current.x}px`;preview.current.style.top=`${y-offset.current.y}px`;}
+    const target=document.elementFromPoint(x,y)?.closest<HTMLElement>("[data-sort-id]"); const overId=target?.dataset.sortId;
+    if(overId&&overId!==active.current&&overId!==lastOver.current){onMove(active.current,overId);lastOver.current=overId;}
+  },[onMove]);
+  const end=useCallback(()=>{clear(); pending.current=null; active.current=""; lastOver.current=""; setDraggingId(""); removePreview(); setTimeout(()=>{didLongPress.current=false},0);},[clear,removePreview]);
+  const handleMove=useCallback((e:PointerEvent)=>{
+    const p=pending.current;
+    if(p){ p.currentX=e.clientX; p.currentY=e.clientY; }
+    if(!active.current&&p){
+      const d=Math.hypot(e.clientX-p.x,e.clientY-p.y);
+      if(p.pointerType==="mouse"&&!p.holdToDrag){if(d>=7)startDrag(p);}
+      else if(!p.isClassCard&&d>=12){clear();pending.current=null;return;}
+      /* Class cards deliberately do not cancel a long press for small movement. */
     }
-    const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-sort-id]");
-    const overId = target?.dataset.sortId;
-    if (overId && overId !== active.current && overId !== lastOver.current) {
-      onMove(active.current, overId);
-      lastOver.current = overId;
-    }
-  }, [onMove]);
+    if(active.current){e.preventDefault();move(e.clientX,e.clientY);}
+  },[clear,move,startDrag]);
+  useEffect(()=>{
+    window.addEventListener("pointermove",handleMove,{passive:false}); window.addEventListener("pointerup",end); window.addEventListener("pointercancel",end); window.addEventListener("blur",end);
+    return()=>{window.removeEventListener("pointermove",handleMove);window.removeEventListener("pointerup",end);window.removeEventListener("pointercancel",end);window.removeEventListener("blur",end);end();};
+  },[end,handleMove]);
 
-  const end = useCallback(() => {
-    clear();
-    pending.current = null;
-    active.current = "";
-    lastOver.current = "";
-    setDraggingId("");
-    removePreview();
-  }, [clear, removePreview]);
-
-  const handleWindowMove = useCallback((event: PointerEvent) => {
-    const p = pending.current;
-    if (!active.current && p) {
-      const distance = Math.hypot(event.clientX - p.x, event.clientY - p.y);
-      if (p.pointerType === "mouse" && !p.holdToDrag) {
-        if (distance >= 7) startDrag(p.id, p.element, event.clientX, event.clientY);
-      } else {
-        const cancelDistance = p.isClassCard && p.pointerType === "mouse" ? 44 : p.isClassCard ? 22 : 12;
-        if (distance >= cancelDistance) {
-          clear();
-          pending.current = null;
-          return;
-        }
-      }
-    }
-    if (active.current) {
-      event.preventDefault();
-      move(event.clientX, event.clientY);
-    }
-  }, [clear, move, startDrag]);
-
-  useEffect(() => {
-    window.addEventListener("pointermove", handleWindowMove, { passive: false });
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
-    window.addEventListener("blur", end);
-    return () => {
-      window.removeEventListener("pointermove", handleWindowMove);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
-      window.removeEventListener("blur", end);
-      end();
-    };
-  }, [end, handleWindowMove]);
-
-  return {
-    draggingId,
-    itemProps: (id: string) => ({
-      "data-sort-id": id,
-      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-        if ((event.target as HTMLElement).closest("button,input,select,textarea,a") && !(event.target as HTMLElement).closest("[data-drag-handle]")) return;
-        const isClassCard = Boolean(event.currentTarget.closest(".teacher-class-cards"));
-        const holdToDrag = isClassCard || event.pointerType !== "mouse" || requireHoldForMouse;
-        const delayMs = isClassCard ? 1900 : activationDelayMs;
-        pending.current = {
-          id,
-          element: event.currentTarget,
-          x: event.clientX,
-          y: event.clientY,
-          pointerType: event.pointerType,
-          holdToDrag,
-          delayMs,
-          isClassCard,
-        };
+  return { draggingId,
+    itemProps:(id:string)=>({
+      "data-sort-id":id,
+      onContextMenu:(e:React.MouseEvent<HTMLElement>)=>e.preventDefault(),
+      onClickCapture:(e:React.MouseEvent<HTMLElement>)=>{if(didLongPress.current){e.preventDefault();e.stopPropagation();}},
+      onPointerDown:(e:ReactPointerEvent<HTMLElement>)=>{
+        if((e.target as HTMLElement).closest("input,select,textarea,a"))return;
+        const isClassCard=Boolean(e.currentTarget.closest(".teacher-class-cards")); const holdToDrag=isClassCard||e.pointerType!=="mouse"||requireHoldForMouse; const delayMs=isClassCard?1800:activationDelayMs;
+        didLongPress.current=false;
+        pending.current={id,element:e.currentTarget,x:e.clientX,y:e.clientY,currentX:e.clientX,currentY:e.clientY,pointerType:e.pointerType,holdToDrag,delayMs,isClassCard,pointerId:e.pointerId};
         clear();
-        if (holdToDrag) {
-          timer.current = setTimeout(() => {
-            const p = pending.current;
-            if (p && !active.current) startDrag(p.id, p.element, p.x, p.y);
-          }, delayMs);
-        }
-      },
-    }),
+        try{e.currentTarget.setPointerCapture(e.pointerId);}catch{}
+        if(holdToDrag) timer.current=setTimeout(()=>{const p=pending.current;if(p&&!active.current)startDrag(p);},delayMs);
+      }
+    })
   };
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '\"': "&quot;" }[char] ?? char));
 }
