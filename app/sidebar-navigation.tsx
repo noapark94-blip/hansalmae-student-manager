@@ -32,7 +32,6 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<MenuLayout>(defaultLayout);
-  const [selectedEditItem, setSelectedEditItem] = useState<View | null>(null);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [correctionMode,setCorrectionMode]=useState<"timetable"|"management">(()=>typeof window!=="undefined"&&window.sessionStorage.getItem("hansalmae:correction-mode")==="timetable"?"timetable":"management");
@@ -65,32 +64,47 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
 
   const beginEditing = () => {
     setDraft(mergeMissingItems(layout, usableItems));
-    setSelectedEditItem(null);
+    setCollapsed({});
     setEditError("");
     setEditing(true);
   };
-  const cancelEditing = () => {
-    setEditing(false);
-    setSelectedEditItem(null);
-    setEditError("");
-  };
+  const cancelEditing = () => { setEditing(false); setEditError(""); };
   const addFolder = () => setDraft((current) => ({ ...current, folders: [...current.folders, { id: crypto.randomUUID(), name: "새 폴더", itemIds: [] }] }));
   const renameFolder = (id: string, name: string) => setDraft((current) => ({ ...current, folders: current.folders.map((folder) => folder.id === id ? { ...folder, name } : folder) }));
   const moveFolder = (index: number, direction: -1 | 1) => setDraft((current) => ({ ...current, folders: move(current.folders, index, direction) }));
   const deleteFolder = (id: string) => setDraft((current) => {
     if (current.folders.length <= 1) return current;
-    const target = current.folders.find((folder) => folder.id === id);
-    const rest = current.folders.filter((folder) => folder.id !== id);
-    if (!target) return current;
-    return { ...current, folders: rest.map((folder, index) => index === 0 ? { ...folder, itemIds: [...folder.itemIds, ...target.itemIds.filter((itemId) => !folder.itemIds.includes(itemId))] } : folder) };
+    const index = current.folders.findIndex((folder) => folder.id === id);
+    if (index < 0) return current;
+    const target = current.folders[index];
+    const destinationIndex = index > 0 ? index - 1 : 1;
+    const destinationId = current.folders[destinationIndex]?.id;
+    return {
+      ...current,
+      folders: current.folders
+        .filter((folder) => folder.id !== id)
+        .map((folder) => folder.id === destinationId ? { ...folder, itemIds: [...folder.itemIds, ...target.itemIds.filter((itemId) => !folder.itemIds.includes(itemId))] } : folder),
+    };
   });
   const renameItem = (itemId: View, name: string) => setDraft((current) => ({ ...current, labels: { ...(current.labels ?? {}), [itemId]: name } }));
-  const assignItem = (itemId: View, folderId: string) => setDraft((current) => ({ ...current, folders: current.folders.map((folder) => ({ ...folder, itemIds: folder.id === folderId ? [...folder.itemIds.filter((id) => id !== itemId), itemId] : folder.itemIds.filter((id) => id !== itemId) })) }));
-  const moveItem = (itemId: View, direction: -1 | 1) => setDraft((current) => {
-    const owner = current.folders.find((folder) => folder.itemIds.includes(itemId));
-    if (!owner) return current;
-    const index = owner.itemIds.indexOf(itemId);
-    return { ...current, folders: current.folders.map((folder) => folder.id === owner.id ? { ...folder, itemIds: move(folder.itemIds, index, direction) } : folder) };
+  const moveItemSmart = (folderIndex: number, itemIndex: number, direction: -1 | 1) => setDraft((current) => {
+    const folders = current.folders.map((folder) => ({ ...folder, itemIds: [...folder.itemIds] }));
+    const source = folders[folderIndex];
+    if (!source) return current;
+    const itemId = source.itemIds[itemIndex];
+    if (!itemId) return current;
+    const targetIndex = itemIndex + direction;
+    if (targetIndex >= 0 && targetIndex < source.itemIds.length) {
+      [source.itemIds[itemIndex], source.itemIds[targetIndex]] = [source.itemIds[targetIndex], source.itemIds[itemIndex]];
+      return { ...current, folders };
+    }
+    const nextFolderIndex = folderIndex + direction;
+    const nextFolder = folders[nextFolderIndex];
+    if (!nextFolder) return current;
+    source.itemIds.splice(itemIndex, 1);
+    if (direction < 0) nextFolder.itemIds.push(itemId);
+    else nextFolder.itemIds.unshift(itemId);
+    return { ...current, folders };
   });
   const saveEditing = async () => {
     setSaving(true);
@@ -100,56 +114,43 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
       labels: Object.fromEntries(Object.entries(draft.labels ?? {}).map(([key, value]) => [key, String(value ?? "").trim()])) as Partial<Record<View, string>>,
     };
     const { error } = await supabase.rpc("save_app_menu_layout", { p_layout: cleaned });
-    if (error) {
-      setEditError("메뉴 구성을 저장하지 못했습니다.");
-      setSaving(false);
-      return;
-    }
+    if (error) { setEditError("메뉴 구성을 저장하지 못했습니다."); setSaving(false); return; }
     setLayout(cleaned);
     setSaving(false);
     setEditing(false);
-    setSelectedEditItem(null);
   };
 
   if (editing) {
-    return <nav aria-label="메뉴 편집" className="folder-navigation sidebar-inline-editor">
-      <div className="sidebar-edit-topbar">
-        <div><strong>메뉴 편집</strong><span>이름·폴더·순서를 바로 바꿀 수 있어요.</span></div>
-        <button type="button" className="sidebar-edit-add" onClick={addFolder}>＋ 폴더</button>
+    return <nav aria-label="메뉴 편집" className="folder-navigation sidebar-direct-editor">
+      <div className="sidebar-direct-toolbar">
+        <strong>메뉴 편집</strong>
+        <div><button type="button" onClick={addFolder}>＋ 폴더</button><button type="button" onClick={cancelEditing}>취소</button><button type="button" className="save" onClick={() => void saveEditing()} disabled={saving}>{saving ? "저장 중" : "완료"}</button></div>
       </div>
-      {draft.folders.map((folder, folderIndex) => <section className="sidebar-edit-folder" key={folder.id}>
-        <div className="sidebar-edit-folder-head">
+      {draft.folders.map((folder, folderIndex) => <section className="nav-folder nav-folder-edit" key={folder.id}>
+        <div className="nav-folder-title nav-folder-title-edit">
           <input aria-label="폴더 이름" value={folder.name} onChange={(event) => renameFolder(folder.id, event.target.value)} />
-          <div className="sidebar-folder-actions">
+          <span className="folder-order-actions">
             <button type="button" aria-label="폴더 위로" onClick={() => moveFolder(folderIndex, -1)} disabled={folderIndex === 0}>↑</button>
             <button type="button" aria-label="폴더 아래로" onClick={() => moveFolder(folderIndex, 1)} disabled={folderIndex === draft.folders.length - 1}>↓</button>
-            <button type="button" className="danger" aria-label="폴더 삭제" onClick={() => deleteFolder(folder.id)} disabled={draft.folders.length === 1}>삭제</button>
-          </div>
+            <button type="button" className="delete" aria-label="폴더 삭제" onClick={() => deleteFolder(folder.id)} disabled={draft.folders.length === 1}>×</button>
+          </span>
         </div>
-        <div className="sidebar-edit-items">
-          {folder.itemIds.map((itemId) => {
-            const item = itemMap.get(itemId);
+        <div className="nav-folder-items nav-folder-items-edit">
+          {folder.itemIds.map((id, itemIndex) => {
+            const item = itemMap.get(id);
             if (!item) return null;
-            const selected = selectedEditItem === itemId;
-            const ownerIndex = folder.itemIds.indexOf(itemId);
-            return <div className={`sidebar-edit-item ${selected ? "selected" : ""}`} key={itemId}>
-              <button type="button" className="sidebar-edit-item-summary" onClick={() => setSelectedEditItem(selected ? null : itemId)}>
-                <span className="nav-icon"><HansalmaeIcon name={viewIcon[item.id]} /></span>
-                <b>{displayLabel(draft, item)}</b>
-                <i>{selected ? "−" : "편집"}</i>
-              </button>
-              {selected && <div className="sidebar-edit-item-panel">
-                <label><span>메뉴 이름</span><input value={draft.labels?.[itemId] ?? defaultMenuLabel(item)} onChange={(event) => renameItem(itemId, event.target.value)} /></label>
-                <label><span>폴더</span><select value={folder.id} onChange={(event) => assignItem(itemId, event.target.value)}>{draft.folders.map((option) => <option key={option.id} value={option.id}>{option.name || "이름 없는 폴더"}</option>)}</select></label>
-                <div className="sidebar-edit-position"><span>위치</span><div><button type="button" onClick={() => moveItem(itemId, -1)} disabled={ownerIndex === 0}>↑ 위로</button><button type="button" onClick={() => moveItem(itemId, 1)} disabled={ownerIndex === folder.itemIds.length - 1}>↓ 아래로</button></div></div>
-              </div>}
+            const canUp = !(folderIndex === 0 && itemIndex === 0);
+            const canDown = !(folderIndex === draft.folders.length - 1 && itemIndex === folder.itemIds.length - 1);
+            return <div className="nav-edit-row" key={id}>
+              <span className="nav-icon"><HansalmaeIcon name={viewIcon[id]} /></span>
+              <input aria-label={`${defaultMenuLabel(item)} 이름`} value={draft.labels?.[id] ?? defaultMenuLabel(item)} onChange={(event) => renameItem(id, event.target.value)} />
+              <span className="nav-edit-row-arrows"><button type="button" aria-label="위로" onClick={() => moveItemSmart(folderIndex, itemIndex, -1)} disabled={!canUp}>↑</button><button type="button" aria-label="아래로" onClick={() => moveItemSmart(folderIndex, itemIndex, 1)} disabled={!canDown}>↓</button></span>
             </div>;
           })}
-          {folder.itemIds.length === 0 && <p className="sidebar-edit-empty">메뉴가 없는 폴더예요.</p>}
+          {folder.itemIds.length === 0 && <p className="nav-edit-empty">비어 있는 폴더</p>}
         </div>
       </section>)}
       {editError && <p className="sidebar-edit-error">{editError}</p>}
-      <div className="sidebar-edit-footer"><button type="button" className="secondary-button" onClick={cancelEditing}>취소</button><button type="button" className="primary" onClick={() => void saveEditing()} disabled={saving}>{saving ? "저장 중…" : "완료"}</button></div>
     </nav>;
   }
 
