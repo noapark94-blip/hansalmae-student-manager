@@ -12,7 +12,15 @@ export function reorderById<T extends { id: string }>(items: T[], activeId: stri
   return next;
 }
 
-export function useSortableOrder(onMove: (activeId: string, overId: string) => void) {
+type SortableOptions = {
+  /** Delay before drag mode starts. Touch keeps the legacy 420ms default; mouse starts on movement unless requireHoldForMouse is true. */
+  activationDelayMs?: number;
+  /** When true, mouse must also stay pressed for activationDelayMs before dragging can begin. */
+  requireHoldForMouse?: boolean;
+};
+
+export function useSortableOrder(onMove: (activeId: string, overId: string) => void, options: SortableOptions = {}) {
+  const { activationDelayMs = 420, requireHoldForMouse = false } = options;
   const [draggingId, setDraggingId] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = useRef("");
@@ -130,9 +138,10 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     const p = pending.current;
     if (!active.current && p) {
       const distance = Math.hypot(event.clientX - p.x, event.clientY - p.y);
-      if (p.pointerType === "mouse") {
+      if (p.pointerType === "mouse" && !requireHoldForMouse) {
         if (distance >= 7) startDrag(p.id, p.element, event.clientX, event.clientY);
       } else if (distance >= 12) {
+        // A press-and-hold should stay mostly still until reorder mode activates.
         clear();
         pending.current = null;
         return;
@@ -142,7 +151,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       event.preventDefault();
       move(event.clientX, event.clientY);
     }
-  }, [clear, move, startDrag]);
+  }, [clear, move, requireHoldForMouse, startDrag]);
 
   useEffect(() => {
     window.addEventListener("pointermove", handleWindowMove, { passive: false });
@@ -172,11 +181,12 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
           pointerType: event.pointerType,
         };
         clear();
-        if (event.pointerType !== "mouse") {
+        const shouldDelay = event.pointerType !== "mouse" || requireHoldForMouse;
+        if (shouldDelay) {
           timer.current = setTimeout(() => {
             const p = pending.current;
             if (p && !active.current) startDrag(p.id, p.element, p.x, p.y);
-          }, 420);
+          }, activationDelayMs);
         }
       },
     }),
