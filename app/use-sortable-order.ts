@@ -16,6 +16,7 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
   const [draggingId, setDraggingId] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = useRef("");
+  const pending = useRef<{ id: string; element: HTMLElement; x: number; y: number; pointerType: string } | null>(null);
   const lastOver = useRef("");
   const preview = useRef<HTMLElement | null>(null);
   const source = useRef<HTMLElement | null>(null);
@@ -43,79 +44,31 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
     card.className="sortable-drag-preview";
     card.innerHTML=`<i></i><div><span>${escapeHtml(subject)}</span><b>${escapeHtml(title)}</b>${detail?`<small>${escapeHtml(detail)}</small>`:""}</div>${count?`<strong>${escapeHtml(count)}</strong>`:""}`;
     Object.assign(card.style,{
-      position:"fixed",
-      left:`${rect.left}px`,
-      top:`${rect.top}px`,
-      width:`${Math.min(Math.max(rect.width*.78,220),300)}px`,
-      minHeight:"88px",
-      height:"auto",
-      margin:"0",
-      padding:"13px 14px",
-      zIndex:"10000",
-      pointerEvents:"none",
-      display:"grid",
-      gridTemplateColumns:"4px minmax(0,1fr) auto",
-      gap:"11px",
-      alignItems:"stretch",
-      border:"1px solid rgba(146,45,97,.20)",
-      borderRadius:"16px",
-      background:"rgba(255,255,255,.97)",
-      boxShadow:"0 16px 38px rgba(55,35,45,.16)",
-      color:"#2d2629",
-      overflow:"hidden",
-      opacity:".96",
-      transform:"scale(.98)",
-      backdropFilter:"blur(10px)",
-      boxSizing:"border-box",
+      position:"fixed",left:`${rect.left}px`,top:`${rect.top}px`,width:`${Math.min(Math.max(rect.width*.78,220),300)}px`,minHeight:"88px",height:"auto",margin:"0",padding:"13px 14px",zIndex:"10000",pointerEvents:"none",display:"grid",gridTemplateColumns:"4px minmax(0,1fr) auto",gap:"11px",alignItems:"stretch",border:"1px solid rgba(146,45,97,.20)",borderRadius:"16px",background:"rgba(255,255,255,.97)",boxShadow:"0 16px 38px rgba(55,35,45,.16)",color:"#2d2629",overflow:"hidden",opacity:".96",transform:"scale(.98)",backdropFilter:"blur(10px)",boxSizing:"border-box",
     });
-    const bar=card.querySelector("i") as HTMLElement|null;
-    if(bar)Object.assign(bar.style,{width:"4px",height:"100%",minHeight:"60px",borderRadius:"999px",background:accent,opacity:".82"});
-    const body=card.querySelector("div") as HTMLElement|null;
-    if(body)Object.assign(body.style,{display:"flex",flexDirection:"column",minWidth:"0",gap:"4px"});
-    const badge=card.querySelector("span") as HTMLElement|null;
-    if(badge)Object.assign(badge.style,{width:"max-content",maxWidth:"100%",padding:"3px 7px",borderRadius:"999px",background:"#f8f1f5",color:"#922d61",fontSize:"10px",fontWeight:"800",lineHeight:"1.1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
-    const titleNode=card.querySelector("b") as HTMLElement|null;
-    if(titleNode)Object.assign(titleNode.style,{fontSize:"15px",fontWeight:"900",lineHeight:"1.25",letterSpacing:"-.3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
-    const detailNode=card.querySelector("small") as HTMLElement|null;
-    if(detailNode)Object.assign(detailNode.style,{marginTop:"auto",paddingTop:"4px",color:"#857980",fontSize:"10.5px",lineHeight:"1.35",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
-    const countNode=card.querySelector("strong") as HTMLElement|null;
-    if(countNode)Object.assign(countNode.style,{alignSelf:"start",padding:"5px 7px",borderRadius:"9px",background:"#faf7f8",color:"#655a60",fontSize:"10.5px",fontWeight:"800",whiteSpace:"nowrap"});
-
+    const bar=card.querySelector("i") as HTMLElement|null;if(bar)Object.assign(bar.style,{width:"4px",height:"100%",minHeight:"60px",borderRadius:"999px",background:accent,opacity:".82"});
+    const body=card.querySelector("div") as HTMLElement|null;if(body)Object.assign(body.style,{display:"flex",flexDirection:"column",minWidth:"0",gap:"4px"});
+    const badge=card.querySelector("span") as HTMLElement|null;if(badge)Object.assign(badge.style,{width:"max-content",maxWidth:"100%",padding:"3px 7px",borderRadius:"999px",background:"#f8f1f5",color:"#922d61",fontSize:"10px",fontWeight:"800",lineHeight:"1.1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const titleNode=card.querySelector("b") as HTMLElement|null;if(titleNode)Object.assign(titleNode.style,{fontSize:"15px",fontWeight:"900",lineHeight:"1.25",letterSpacing:"-.3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const detailNode=card.querySelector("small") as HTMLElement|null;if(detailNode)Object.assign(detailNode.style,{marginTop:"auto",paddingTop:"4px",color:"#857980",fontSize:"10.5px",lineHeight:"1.35",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+    const countNode=card.querySelector("strong") as HTMLElement|null;if(countNode)Object.assign(countNode.style,{alignSelf:"start",padding:"5px 7px",borderRadius:"9px",background:"#faf7f8",color:"#655a60",fontSize:"10.5px",fontWeight:"800",whiteSpace:"nowrap"});
     offset.current={x:Math.min(clientX-rect.left,Number.parseFloat(card.style.width)*.7),y:Math.min(clientY-rect.top,70)};
-    source.current=element;
-    document.body.appendChild(card);
-    preview.current=card;
+    source.current=element;document.body.appendChild(card);preview.current=card;
   },[removePreview]);
 
-  const clear = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  }, []);
-
-  const begin = useCallback((id: string, element:HTMLElement,clientX:number,clientY:number, immediate = false) => {
-    clear();
-    const start = () => { active.current = id; lastOver.current = "";createPreview(element,clientX,clientY);setDraggingId(id); };
-    if (immediate) start();
-    else timer.current = setTimeout(start, 420);
-  }, [clear,createPreview]);
+  const clear = useCallback(() => { if (timer.current) clearTimeout(timer.current); timer.current = null; }, []);
+  const startDrag = useCallback((id:string,element:HTMLElement,clientX:number,clientY:number)=>{active.current=id;lastOver.current="";createPreview(element,clientX,clientY);setDraggingId(id);},[createPreview]);
 
   const move = useCallback((clientX: number, clientY: number) => {
     if (!active.current) return;
     if(preview.current){preview.current.style.left=`${clientX-offset.current.x}px`;preview.current.style.top=`${clientY-offset.current.y}px`;}
     const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-sort-id]");
     const overId = target?.dataset.sortId;
-    if (overId && overId !== active.current && overId !== lastOver.current) {
-      onMove(active.current, overId);
-      lastOver.current = overId;
-    }
+    if (overId && overId !== active.current && overId !== lastOver.current) { onMove(active.current, overId); lastOver.current = overId; }
   }, [onMove]);
 
   const end = useCallback(() => {
-    clear();
-    active.current = "";
-    lastOver.current = "";
-    setDraggingId("");
-    removePreview();
+    clear(); pending.current=null; active.current=""; lastOver.current=""; setDraggingId(""); removePreview();
   }, [clear,removePreview]);
 
   return {
@@ -124,10 +77,17 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       "data-sort-id": id,
       onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
         if ((event.target as HTMLElement).closest("button,input,select,textarea,a") && !(event.target as HTMLElement).closest("[data-drag-handle]")) return;
-        begin(id,event.currentTarget,event.clientX,event.clientY,event.pointerType === "mouse");
+        pending.current={id,element:event.currentTarget,x:event.clientX,y:event.clientY,pointerType:event.pointerType};
+        clear();
+        if(event.pointerType!=="mouse") timer.current=setTimeout(()=>{const p=pending.current;if(p&&!active.current)startDrag(p.id,p.element,p.x,p.y);},420);
         event.currentTarget.setPointerCapture(event.pointerId);
       },
       onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+        const p=pending.current;
+        if(!active.current&&p&&p.pointerType==="mouse"){
+          const dx=event.clientX-p.x,dy=event.clientY-p.y;
+          if(Math.hypot(dx,dy)>=7) startDrag(p.id,p.element,event.clientX,event.clientY);
+        }
         if (active.current) { event.preventDefault(); move(event.clientX, event.clientY); }
       },
       onPointerUp: end,
@@ -137,6 +97,4 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
   };
 }
 
-function escapeHtml(value:string){
-  return value.replace(/[&<>'"]/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]??char));
-}
+function escapeHtml(value:string){return value.replace(/[&<>'\"]/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'\"':"&quot;"}[char]??char));}
