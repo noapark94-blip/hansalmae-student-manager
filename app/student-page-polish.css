@@ -3,3 +3,13 @@
 /* Student registration modal: keep the heading clean and remove the unused guardian-name field. */
 .student-modal > header .eyebrow{display:none!important}
 .student-modal .form-grid > label:nth-of-type(5){display:none!important}
+
+/* Sidebar brand: remove the old calligraphic feel and tighten the hierarchy. */
+.sidebar .brand{gap:11px!important;padding:2px 10px 25px!important;align-items:center!important}
+.sidebar .brand-mark{width:42px!important;height:42px!important;flex:0 0 42px!important}
+.sidebar .brand div:last-child{gap:2px!important;justify-content:center!important;min-width:0!important}
+.sidebar .brand strong{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif!important;font-size:20px!important;font-weight:800!important;line-height:1.18!important;letter-spacing:-.055em!important;color:#2d2629!important}
+.sidebar .brand span{margin:0!important;font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif!important;font-size:10.5px!important;font-weight:550!important;line-height:1.35!important;letter-spacing:-.025em!important;color:#8a8085!important}
+
+/* Keep the student navigation glyph consistent with the two-person outline icon. */
+.sidebar .hansalmae-icon{display:block;flex:none}
