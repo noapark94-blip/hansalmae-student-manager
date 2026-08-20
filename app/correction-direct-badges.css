@@ -10,31 +10,31 @@
 .learning-student{position:relative}.learning-student>.correction-direct-badge{display:none!important}
 .learning-student:has(>.correction-direct-badge.move) .correction-history-trigger b,.learning-student:has(>.correction-direct-badge.extra) .correction-history-trigger b{color:inherit!important}
 
-/* 학교 / 변경 일정 / 변경 사유: 세 줄 폰트와 세로 리듬 완전 통일 */
+/* 학교 / 변경 일정 / 변경 사유: 같은 폰트, 같은 줄높이, 같은 4px 간격 */
 .learning-student>.correction-direct-badge+small,
 .correction-direct-origin,
 .correction-change-reason{box-sizing:border-box!important;margin:4px 0 0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;font-family:inherit!important;font-size:11px!important;font-weight:400!important;line-height:1.4!important;letter-spacing:-.01em!important}
 .learning-student>.correction-direct-badge+small{display:block!important;color:#85767c!important;white-space:nowrap!important}
 
-/* 변경 일정 / 변경 사유는 동일한 한 줄 flex 구조 */
+/* 변경 일정 / 변경 사유: 아이콘 없이 동일한 한 줄 flex 구조 */
 .correction-direct-origin,
 .correction-change-reason{display:flex!important;flex-flow:row nowrap!important;align-items:center!important;width:100%!important;max-width:100%!important;color:#74666c!important;white-space:nowrap!important;word-break:keep-all!important;overflow:visible!important}
 
-/* 라벨 영역은 양쪽 모두 정확히 90px. | 대신 같은 위치의 border-right 사용 */
+/* 라벨 폭을 줄여 칸막이와 내용이 왼쪽에 붙도록 조정 */
 .correction-direct-origin:before,
-.correction-change-reason:before{display:inline-flex!important;align-items:center!important;flex:0 0 90px!important;width:90px!important;height:15px!important;box-sizing:border-box!important;margin:0 10px 0 0!important;padding:0 9px 0 0!important;border:0!important;border-right:1px solid #ddd2d6!important;font-family:inherit!important;font-size:11px!important;font-weight:600!important;line-height:15px!important;white-space:nowrap!important}
-.correction-direct-origin:before{content:"◷  변경 일정";color:#a52d61!important}
-.correction-change-reason:before{content:"✎  변경 사유";color:#d36a2f!important}
+.correction-change-reason:before{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;flex:0 0 64px!important;width:64px!important;height:15px!important;box-sizing:border-box!important;margin:0 7px 0 0!important;padding:0 6px 0 0!important;border:0!important;border-right:1px solid #ddd2d6!important;font-family:inherit!important;font-size:11px!important;font-weight:600!important;line-height:15px!important;white-space:nowrap!important}
+.correction-direct-origin:before{content:"변경 일정";color:#a52d61!important}
+.correction-change-reason:before{content:"변경 사유";color:#d36a2f!important}
 
-/* 기존 JSX의 b 라벨은 숨기고 부모 before 하나로 구조 통일 */
+/* 기존 JSX의 라벨은 숨기고 부모 before 하나로 구조 통일 */
 .correction-change-reason>b{display:none!important}
 
 .learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin{color:#607268!important}
-.learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin:before{content:"＋  추가 일정";color:#2f7651!important}
-.learning-student:has(>.correction-direct-badge.extra) .correction-change-reason:before{content:"＋  추가 사유";color:#2f7651!important}
+.learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin:before{content:"추가 일정";color:#2f7651!important}
+.learning-student:has(>.correction-direct-badge.extra) .correction-change-reason:before{content:"추가 사유";color:#2f7651!important}
 
 @media(max-width:720px){
   .correction-learning-board .correction-week-strip em{font-size:10px!important}
   .learning-student>.correction-direct-badge+small,.correction-direct-origin,.correction-change-reason,.correction-direct-origin:before,.correction-change-reason:before{font-size:11px!important}
-  .correction-direct-origin:before,.correction-change-reason:before{flex-basis:90px!important;width:90px!important}
+  .correction-direct-origin:before,.correction-change-reason:before{flex-basis:64px!important;width:64px!important;margin-right:7px!important;padding-right:6px!important}
 }
