@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { StudentLearningHistory } from "./student-learning-history";
 
 type Status="present"|"late"|"absent";
 type Student={id:string;name:string;school:string|null;grade:string|null;status:Status|"excused"|null;lateMinutes:number|null;absenceReason:string|null;note:string|null};
@@ -32,6 +33,7 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
   const [saving,setSaving]=useState("");
   const [error,setError]=useState("");
   const [monthOpen,setMonthOpen]=useState(false);
+  const [historyStudent,setHistoryStudent]=useState<Row|null>(null);
   const [bulkOpen,setBulkOpen]=useState(true);
   const [commonHomework,setCommonHomework]=useState("");
   const [commonExamType,setCommonExamType]=useState("");
@@ -126,7 +128,7 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
     <FamilyReportReadStatus supabase={supabase} classId={classId} date={date}/>
     <div className="learning-board-heading"><span>학생·출결</span><span>개인별 시험</span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading?<p className="settings-empty">불러오는 중이에요…</p>:<div className="learning-board-rows">{rows.map(row=>{const exam=row.exams[0],score=Number(exam.score),max=Number(exam.maxScore);const converted=exam.score!==""&&Number.isFinite(score)&&Number.isFinite(max)&&max>0?Math.round(score/max*1000)/10:null;return <article key={row.id}>
-      <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label])=><button key={status} className={`${status} ${row.status===status?"active":""}`} disabled={saving===row.id} onClick={()=>void saveAttendance(row,status)}>{label}</button>)}{row.status==="late"?<small>{row.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:null}{row.status==="absent"?<small>{row.absenceReason?`${row.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:null}{row.status==="present"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
+      <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="learning-student-history-button" onClick={()=>setHistoryStudent(row)} title={`${row.name} 학생 누적 수업 기록 보기`}><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></button></span><div className="learning-attendance">{attendance.map(([status,label])=><button key={status} className={`${status} ${row.status===status?"active":""}`} disabled={saving===row.id} onClick={()=>void saveAttendance(row,status)}>{label}</button>)}{row.status==="late"?<small>{row.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:null}{row.status==="absent"?<small>{row.absenceReason?`${row.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:null}{row.status==="present"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
       <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam-card-actions"><b>개인별 시험</b></div><div className="learning-exam individual"><select value={exam.examType} onChange={e=>updateExam(row.id,{examType:e.target.value})}><option value="">종류 선택</option>{categories.map(category=><option value={category.name} key={category.id}>{category.name}</option>)}</select><input value={exam.examTitle} onChange={e=>updateExam(row.id,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={exam.score} onChange={e=>updateExam(row.id,{score:e.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={exam.maxScore} onChange={e=>updateExam(row.id,{maxScore:e.target.value})} placeholder="만점"/></span><input value={exam.evaluation} onChange={e=>updateExam(row.id,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${exam.score}/${exam.maxScore} · 환산 ${converted}점`}</small></div></div>
       <div className="learning-homework previous"><p>{row.previousHomework||"지난 숙제 없음"}</p><select value={row.inspectionStatus} onChange={e=>update(row.id,{inspectionStatus:e.target.value})}>{homework.map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><input value={row.inspectionNote} onChange={e=>update(row.id,{inspectionNote:e.target.value})} placeholder="검사 메모"/></div>
       <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={e=>update(row.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
@@ -135,6 +137,7 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
     <footer><span>출결은 즉시 저장되고, 기록 저장 시 학생·학부모 학습리포트와 알림으로 연결됩니다.</span><button className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save()}>{saving==="all"?"저장 중…":"수업 기록 저장"}</button></footer>
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
+    {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">누적 수업 기록</p><h2>{historyStudent.name}</h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id}/></section></div>:null}
   </section>;
 }
 
