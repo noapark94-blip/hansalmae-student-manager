@@ -24,6 +24,7 @@ import "./correction-management.css";
 import "./correction-report.css";
 import "./correction-management-override.css";
 import "./correction-calendar-polish.css";
+import "./correction-history-filter-polish.css";
 import "./weekly-timetable-compact.css";
 import "./student-page-polish.css";
 import "./class-modal-repair.css";
