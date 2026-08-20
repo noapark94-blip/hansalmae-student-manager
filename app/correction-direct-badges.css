@@ -6,19 +6,20 @@
 .correction-learning-board .correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important}
 .correction-week-strip em>.correction-direct-badge.compact{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;font-size:0!important;line-height:0!important}
 
-/* 학생 상세: 상태 배지는 숨기고 학교 → 변경 일정 → 변경 사유를 같은 리듬으로 정렬 */
+/* 학생 상세 */
 .learning-student{position:relative}.learning-student>.correction-direct-badge{display:none!important}
 .learning-student:has(>.correction-direct-badge.move) .correction-history-trigger b,.learning-student:has(>.correction-direct-badge.extra) .correction-history-trigger b{color:inherit!important}
-.learning-student>small:not(.correction-direct-origin){margin-top:2px!important}
-.correction-direct-origin,.correction-change-reason{display:flex!important;align-items:center!important;width:100%;max-width:none;box-sizing:border-box;margin:5px 0 0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:8px!important;font-weight:600!important;line-height:1.35!important;letter-spacing:-.01em}
-.correction-direct-origin{gap:7px!important;color:#74666c!important}
-.correction-direct-origin:before{content:"◷  변경 일정  |";display:inline-block;padding:0!important;border:0!important;color:#a52d61!important;font-size:8px!important;font-weight:700!important;line-height:1.35!important;white-space:nowrap}
+.learning-student>.correction-direct-badge+small{margin-top:4px!important}
+
+/* 변경 일정 / 변경 사유는 완전히 같은 2열 구조: 라벨 | 내용 */
+.correction-direct-origin,.correction-change-reason{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;align-items:center!important;column-gap:8px!important;width:100%;max-width:none;box-sizing:border-box;margin:5px 0 0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#74666c!important;font-size:9px!important;font-weight:500!important;line-height:1.45!important;letter-spacing:-.01em}
+.correction-direct-origin:before{content:"◷  변경 일정  |";display:block!important;width:72px!important;padding:0!important;border:0!important;color:#a52d61!important;font-size:9px!important;font-weight:700!important;line-height:1.45!important;white-space:nowrap!important}
+.correction-change-reason{word-break:break-word!important}
+.correction-change-reason b{display:flex!important;align-items:center!important;width:72px!important;margin:0!important;padding:0!important;border:0!important;color:#d36a2f!important;font-size:9px!important;font-weight:700!important;line-height:1.45!important;white-space:nowrap!important}
+.correction-change-reason b:before{content:"✎";display:inline-block;margin-right:5px;font-family:Arial,sans-serif;font-size:9px!important;font-weight:400!important;line-height:1!important}
+.correction-change-reason b:after{content:"|";display:inline-block;margin-left:auto;padding-left:6px;color:#c8bec2!important;font-size:9px!important;font-weight:500!important}
 .learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin{color:#607268!important}
 .learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin:before{content:"＋  추가 일정  |";color:#2f7651!important}
-.correction-change-reason{gap:7px!important;color:#74666c!important;word-break:break-word}
-.correction-change-reason b{display:inline-block;margin:0!important;padding:0!important;border:0!important;color:#d36a2f!important;font-size:8px!important;font-weight:700!important;line-height:1.35!important;white-space:nowrap}
-.correction-change-reason b:before{content:"✎  ";font-weight:600}
-.correction-change-reason b:after{content:"  |";margin-left:5px;color:#c8bec2;font-weight:500}
 .learning-student:has(>.correction-direct-badge.extra) .correction-change-reason b{color:#2f7651!important}
 
-@media(max-width:720px){.correction-learning-board .correction-week-strip em{font-size:10px!important}.correction-direct-origin,.correction-change-reason,.correction-direct-origin:before,.correction-change-reason b{font-size:8px!important}.correction-direct-origin,.correction-change-reason{gap:6px!important}}
+@media(max-width:720px){.correction-learning-board .correction-week-strip em{font-size:10px!important}.correction-direct-origin,.correction-change-reason,.correction-direct-origin:before,.correction-change-reason b{font-size:9px!important}.correction-direct-origin,.correction-change-reason{grid-template-columns:72px minmax(0,1fr)!important;column-gap:7px!important}}
