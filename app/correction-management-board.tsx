@@ -58,16 +58,13 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
           const fixedMoved=(data.assignments??[]).filter(item=>item.weekday===weekday&&item.startTime.slice(0,5)===start).map(item=>({item,exception:movedFrom.get(`${item.id}-${date}`)})).filter(row=>row.exception);
           return <article className="correction-slot correction-slot-clickable" key={start} role="button" tabIndex={0} aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setEditor({weekday,slot:start});}}}>
             <div className="correction-slot-time"><b>{start}</b><span>– {end}</span></div>
-            <div className="correction-slot-content">{(["국어","영어","수학"] as const).map(subject=>{
-              const subjectRows=inSlot.filter(row=>row.assignment.subject===subject);
-              const movedRows=fixedMoved.filter(row=>row.item.subject===subject);
-              if(!subjectRows.length&&!movedRows.length)return null;
-              const first=subjectRows[0]?.assignment??movedRows[0]?.item;
-              return <section className={`correction-subject ${subject}`} key={subject} onClick={event=>event.stopPropagation()}>
-                <header><b>{subject} 첨삭</b><span>{first?.tutorName?`첨삭 ${first.tutorName}`:"담당 미정"}{first?.supervisorName?` · 감독 ${first.supervisorName}`:""}</span></header>
-                <div>{subjectRows.map(row=><button key={row.key} className={`correction-student ${row.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:row.assignment,date:row.state==="moved"&&row.exception?row.exception.originalDate:date});}}><span><b>{row.assignment.studentName}</b><small>{row.assignment.grade??row.assignment.school??"학생"}</small></span>{row.state!=="fixed"&&<em>{row.state==="moved"?"변경":"추가"}</em>}{row.assignment.note&&<i>{row.assignment.note}</i>}</button>)}{movedRows.map(row=><button key={`ghost-${row.item.id}`} className="correction-student ghost" onClick={event=>{event.stopPropagation();setAction({assignment:row.item,date});}}><span><b>{row.item.studentName}</b><small>{row.exception?.kind==="cancel"?"이번 주 취소":`${formatDayTime(row.exception?.targetDate,row.exception?.targetStartTime)}로 변경`}</small></span><em>{row.exception?.kind==="cancel"?"취소":"이동"}</em></button>)}</div>
-              </section>;
-            })}{!inSlot.length&&!fixedMoved.length?<p className="correction-slot-empty">＋ 눌러서 학생 추가</p>:<button type="button" className="correction-slot-add" onClick={event=>{event.stopPropagation();setEditor({weekday,slot:start});}}>＋ 학생 추가</button>}</div>
+            <div className="correction-slot-content">
+              {(inSlot.length||fixedMoved.length)?<div className="correction-slot-students" onClick={event=>event.stopPropagation()}>
+                {inSlot.map(row=><button key={row.key} className={`correction-student ${row.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:row.assignment,date:row.state==="moved"&&row.exception?row.exception.originalDate:date});}}><span><b>{row.assignment.studentName}</b><small>{row.assignment.grade??"학생"}</small></span>{row.state!=="fixed"&&<em>{row.state==="moved"?"변경":"추가"}</em>}</button>)}
+                {fixedMoved.map(row=><button key={`ghost-${row.item.id}`} className="correction-student ghost" onClick={event=>{event.stopPropagation();setAction({assignment:row.item,date});}}><span><b>{row.item.studentName}</b><small>{row.item.grade??"학생"}</small></span><em>{row.exception?.kind==="cancel"?"취소":"이동"}</em></button>)}
+              </div>:<p className="correction-slot-empty">＋ 눌러서 학생 추가</p>}
+              {(inSlot.length||fixedMoved.length)?<button type="button" className="correction-slot-add" onClick={event=>{event.stopPropagation();setEditor({weekday,slot:start});}}>＋ 학생 추가</button>:null}
+            </div>
           </article>;
         })}</div>
       </section>;
