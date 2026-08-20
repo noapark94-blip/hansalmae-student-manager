@@ -1,15 +1,19 @@
 .correction-direct-badge{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin:0;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;line-height:1;letter-spacing:-.02em;white-space:nowrap}.correction-direct-badge.move{background:#fbe9ef;color:#9f2d63;border:1px solid #efd2dd}.correction-direct-badge.extra{background:#eaf7ef;color:#28724b;border:1px solid #c7e4d2}.correction-direct-badge.compact{display:none!important}
 
-/* 주간 캘린더: 별도 변경 글자 없이 이름 자체로 상태 구분 */
-.correction-week-strip em:has(.correction-direct-badge.move){background:#fcecef!important;color:#9a3158!important;border:1px solid #f1d5df!important;border-radius:7px!important;padding:4px 7px!important;font-weight:700!important}
-.correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important;border:1px solid #d1e9da!important;border-radius:7px!important;padding:4px 7px!important;font-weight:700!important}
+/* 주간 캘린더: 별도 '변경' 글자 없이 이름 자체만 상태색으로 표시 */
+.correction-week-strip em:has(.correction-direct-badge.move){background:#fcecef!important;color:#9a3158!important;border:1px solid #f1d5df!important;border-radius:8px!important;padding:5px 8px!important;font-weight:750!important}
+.correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important;border:1px solid #d1e9da!important;border-radius:8px!important;padding:5px 8px!important;font-weight:750!important}
 
-/* 학생 상세: 이름 아래 변경 정보를 하나의 정돈된 묶음처럼 표시 */
-.learning-student{position:relative}.learning-student>.correction-direct-badge{margin:8px 0 0;padding:4px 8px}.learning-student>.correction-direct-badge.move:before{content:"일정 변경"}.learning-student>.correction-direct-badge.extra:before{content:"추가 첨삭"}.learning-student>.correction-direct-badge{font-size:0}.learning-student>.correction-direct-badge:before{font-size:10px;font-weight:800}
-.correction-direct-origin{display:flex!important;align-items:center;justify-content:flex-start;gap:8px;width:100%;max-width:245px;box-sizing:border-box;margin-top:6px!important;padding:9px 11px!important;border-radius:10px;background:#fff7f9;color:#704653!important;border:1px solid #f0dde4;font-size:11px!important;font-weight:700!important;line-height:1.35!important}.correction-direct-origin:before{content:"변경 일정";flex:0 0 auto;padding-right:8px;border-right:1px solid #ead5dd;color:#a52d61;font-size:9px;font-weight:800;letter-spacing:-.02em}
-.correction-change-reason{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:8px;width:100%;max-width:245px;box-sizing:border-box;margin-top:5px;padding:9px 11px;border-radius:10px;background:#faf8f8;border:1px solid #ebe3e6;color:#5e5156;font-size:11px;line-height:1.45;word-break:keep-all}.correction-change-reason b{display:block;margin:0;padding-right:8px;border-right:1px solid #e5dce0;color:#9f2d63;font-size:9px;font-weight:800;white-space:nowrap}.correction-change-reason:not(:has(b)){display:block}
+/* 학생 상세: 독립 배지는 숨기고 이름 아래에 변경 정보 카드만 표시 */
+.learning-student{position:relative}.learning-student>.correction-direct-badge{display:none!important}
+.learning-student:has(>.correction-direct-badge.move) .correction-history-trigger b{color:#9f3159!important}
+.learning-student:has(>.correction-direct-badge.extra) .correction-history-trigger b{color:#2f7651!important}
+.correction-direct-origin{display:grid!important;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;width:100%;max-width:255px;box-sizing:border-box;margin-top:9px!important;padding:10px 12px!important;border-radius:11px;background:#fff7f9;color:#644853!important;border:1px solid #efdce3;font-size:11px!important;font-weight:700!important;line-height:1.35!important;box-shadow:0 1px 2px rgba(82,40,57,.03)}
+.correction-direct-origin:before{content:"변경 일정";display:block;padding-right:10px;border-right:1px solid #ead5dd;color:#a52d61;font-size:10px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin{background:#f4faf6;border-color:#d6e9dd;color:#426252!important}
+.learning-student:has(>.correction-direct-badge.extra) .correction-direct-origin:before{content:"추가 일정";color:#2f7651;border-right-color:#d4e7dc}
+.correction-change-reason{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:start;gap:10px;width:100%;max-width:255px;box-sizing:border-box;margin-top:6px;padding:10px 12px;border-radius:11px;background:#faf8f9;border:1px solid #eae1e5;color:#554b50;font-size:11px;line-height:1.45;word-break:break-word;box-shadow:0 1px 2px rgba(82,40,57,.02)}
+.correction-change-reason b{display:block;margin:0;padding-right:10px;border-right:1px solid #e3d9de;color:#9f2d63;font-size:10px;font-weight:800;white-space:nowrap}
+.learning-student:has(>.correction-direct-badge.extra) .correction-change-reason b{color:#2f7651;border-right-color:#dbe7df}
 
-/* 추가 첨삭 상세는 초록 계열 */
-.learning-student>.correction-direct-badge.extra+.correction-direct-origin{background:#f3faf6;border-color:#d7eadf;color:#3f6651!important}.learning-student>.correction-direct-badge.extra~.correction-change-reason b{color:#2f7651}
-
-@media(max-width:720px){.correction-direct-origin,.correction-change-reason{max-width:none;font-size:10px!important}.correction-week-strip em:has(.correction-direct-badge.move),.correction-week-strip em:has(.correction-direct-badge.extra){padding:3px 6px!important}}
+@media(max-width:720px){.correction-direct-origin,.correction-change-reason{max-width:none;grid-template-columns:66px minmax(0,1fr);font-size:10px!important;padding:9px 10px!important}.correction-direct-origin:before,.correction-change-reason b{font-size:9px}.correction-week-strip em:has(.correction-direct-badge.move),.correction-week-strip em:has(.correction-direct-badge.extra){padding:4px 6px!important}}
