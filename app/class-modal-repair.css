@@ -14,13 +14,14 @@
 .subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{display:flex;justify-content:flex-end;gap:9px;padding:0 28px 27px;border:0}
 .subject-editor>footer button,.class-creator>footer button,.roster-editor>footer button,.class-manager-modal>footer button{min-width:92px}
 
-.subject-editor .subject-main-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.subject-editor .subject-main-options button{height:46px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:800}
+.subject-editor .modal-body>label{display:grid;gap:10px;color:#51484c;font-size:11px;font-weight:750}
+.subject-editor .modal-body>label>input{width:100%;height:46px;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;outline:none;background:#fff}
+.subject-editor .subject-main-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 22px}
+.subject-editor .subject-main-options button{height:48px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:800}
 .subject-editor .subject-main-options button.active{border-color:var(--wine);background:#f8edf2;color:var(--wine)}
-.subject-editor .modal-body>label{display:grid;gap:7px;color:#51484c;font-size:11px;font-weight:750}
-.subject-editor .modal-body>label>input{width:100%;height:43px;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;outline:none;background:#fff}
-.subject-editor .existing-subjects{margin-top:15px;padding:12px;border-radius:10px;background:#faf7f8;display:flex;flex-direction:column;gap:5px}
-.subject-editor .existing-subjects b{font-size:9px}.subject-editor .existing-subjects span{color:var(--muted);font-size:10px}
+.subject-editor .existing-subjects{margin-top:0;padding:15px 13px;border-radius:10px;background:#faf7f8;display:flex;flex-direction:column;gap:8px}
+.subject-editor .existing-subjects b{margin-bottom:2px;font-size:9px}.subject-editor .existing-subjects span{color:var(--muted);font-size:10px;line-height:1.45}
+.subject-editor>footer{padding-top:8px}
 
 .class-creator .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px 14px}
 .class-creator .form-grid>label{color:#51484c;font-size:11px;font-weight:750}
@@ -41,5 +42,5 @@
 .managed-class-list{padding:8px 18px 20px}.managed-class-list>button{width:100%;display:grid;grid-template-columns:12px minmax(190px,1fr) 75px;align-items:center;gap:12px;padding:14px 4px;border:0;border-bottom:1px solid var(--line);background:#fff;color:var(--text);text-align:left}.managed-class-list>button>i{width:10px;height:42px;border-radius:6px}.managed-class-list>button>span{display:grid;gap:5px}.managed-class-list b{font-size:14px}.managed-class-list small,.managed-class-list em{color:var(--muted);font-size:11px;font-style:normal}.managed-class-list>button>strong{font-size:10px;color:var(--wine);text-align:right}
 .nested-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(35,19,27,.42);backdrop-filter:blur(3px)}
 
-@media(max-width:760px){.subject-editor,.class-creator,.roster-editor{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.class-manager-modal{width:calc(100vw - 16px)}.subject-editor>header,.class-creator>header,.roster-editor>header,.class-manager-modal>header{padding:22px 20px 17px}.subject-editor>.modal-body,.class-creator>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:18px 20px}.subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{padding:0 20px 20px}.class-creator .form-grid{grid-template-columns:1fr}.class-creator .schedule-row{grid-template-columns:1fr 1fr 18px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>.danger-link{grid-column:1/-1;justify-self:end}.managed-class-list>button{grid-template-columns:10px 1fr}.managed-class-list>button>strong{grid-column:2;text-align:left}}
+@media(max-width:760px){.subject-editor,.class-creator,.roster-editor{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.class-manager-modal{width:calc(100vw - 16px)}.subject-editor>header,.class-creator>header,.roster-editor>header,.class-manager-modal>header{padding:22px 20px 17px}.subject-editor>.modal-body,.class-creator>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:18px 20px}.subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{padding:0 20px 20px}.subject-editor .subject-main-options{margin:16px 0 20px;gap:8px}.subject-editor .existing-subjects{padding:14px 12px}.class-creator .form-grid{grid-template-columns:1fr}.class-creator .schedule-row{grid-template-columns:1fr 1fr 18px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>.danger-link{grid-column:1/-1;justify-self:end}.managed-class-list>button{grid-template-columns:10px 1fr}.managed-class-list>button>strong{grid-column:2;text-align:left}}
 @media(max-width:560px){.class-creator .teacher-picker>div{display:grid;grid-template-columns:1fr 1fr}.class-creator .schedule-row{grid-template-columns:1fr 12px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>label:first-of-type{grid-column:1}.class-creator .schedule-row>span{grid-column:2}.class-creator .schedule-row>label:last-of-type{grid-column:3}}
