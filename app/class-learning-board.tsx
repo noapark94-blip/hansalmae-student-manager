@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
@@ -16,13 +16,15 @@ type ExamCategory={id:string;name:string;isActive:boolean;sortOrder:number};
 type FamilyReadStudent={studentId:string;studentName:string;school:string|null;grade:string|null;guardianCount:number;readCount:number;status:"confirmed"|"unconfirmed"|"unlinked";viewedAt:string|null};
 type FamilyReadStatus={lessonId:string|null;totalStudents:number;linkedStudents:number;confirmedStudents:number;unconfirmedStudents:number;unlinkedStudents:number;students:FamilyReadStudent[]};
 type PreviousTemplate={lessonDate:string;lessonContent:string;notice:string;assignedHomework:string;exam:{examType?:string;examTitle?:string;maxScore?:number;evaluation?:string}};
+type MakeupOption={id:string;name:string;school:string|null;grade:string|null;selected:boolean};
 
 const attendance:[Status,string][]=[["present","출석"],["late","지각"],["absent","결석"]];
 const homework=[["","미검사"],["complete","완료"],["partial","일부"],["missing","미제출"],["excused","면제"]];
 const weekdays=["월","화","수","목","금","토","일"];
 const emptyExam=():ExamDraft=>({id:"",examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""});
 
-export function ClassLearningBoard({supabase,classId,date,students,onDate,onReload}:{supabase:SupabaseClient;classId:string;date:string;students:Student[];validDay:boolean;onDate:(v:string)=>void;onReload:()=>Promise<void>}){
+export function ClassLearningBoard({supabase,classId,date,students,validDay,onDate,onReload}:{supabase:SupabaseClient;classId:string;date:string;students:Student[];validDay:boolean;onDate:(v:string)=>void;onReload:()=>Promise<void>}){
+  const rootRef=useRef<HTMLElement|null>(null);
   const [rows,setRows]=useState<Row[]>([]);
   const [week,setWeek]=useState<CalendarDay[]>([]);
   const [notice,setNotice]=useState("");
@@ -41,9 +43,34 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
   const [commonExamMax,setCommonExamMax]=useState("100");
   const [commonEvaluation,setCommonEvaluation]=useState("");
   const [templateLoading,setTemplateLoading]=useState(false);
+  const [makeupOptions,setMakeupOptions]=useState<MakeupOption[]>([]);
+  const [makeupLoading,setMakeupLoading]=useState(false);
+  const [makeupEnabled,setMakeupEnabled]=useState(validDay);
 
   const loadWeek=useCallback(async()=>{const{data}=await supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"});setWeek((data??[]) as CalendarDay[])},[classId,date,supabase]);
   const loadCategories=useCallback(async()=>{const{data,error:categoryError}=await supabase.rpc("staff_exam_categories");if(categoryError)setError(categoryError.message);else setCategories((data??[]) as ExamCategory[])},[supabase]);
+
+  useEffect(()=>{
+    const previous=rootRef.current?.previousElementSibling as HTMLElement|null;
+    if(previous?.classList.contains("class-day-notice")) previous.style.display="none";
+    return()=>{if(previous?.classList.contains("class-day-notice")) previous.style.display=""};
+  },[]);
+
+  useEffect(()=>{
+    let active=true;
+    if(validDay){setMakeupEnabled(true);setMakeupOptions([]);return()=>{active=false}};
+    setMakeupLoading(true);
+    void supabase.rpc("staff_class_makeup_options",{p_class_id:classId,p_date:date}).then(({data,error:makeupError})=>{
+      if(!active)return;
+      if(makeupError){setError(makeupError.message);setMakeupOptions([]);setMakeupEnabled(false)}else{
+        const options=((data??[]) as MakeupOption[]);
+        setMakeupOptions(options);
+        setMakeupEnabled(options.some(item=>item.selected));
+      }
+      setMakeupLoading(false);
+    });
+    return()=>{active=false};
+  },[classId,date,supabase,validDay]);
 
   useEffect(()=>{
     let active=true;setLoading(true);
@@ -71,6 +98,21 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
     return()=>{active=false};
   },[classId,date,students,supabase]);
 
+  const activateMakeupDay=async()=>{
+    if(validDay||makeupEnabled)return;
+    const ids=makeupOptions.map(item=>item.id);
+    if(!ids.length){setError("현재 등록된 수강생이 없어 보강 수업을 만들 수 없습니다.");return}
+    if(!confirm(`${date}을(를) 이 클래스의 보강 수업일로 등록할까요?\n현재 수강생 ${ids.length}명이 이 날짜 수업 기록 대상에 추가됩니다.`))return;
+    setMakeupLoading(true);setError("");
+    const{error:saveError}=await supabase.rpc("staff_save_class_makeup_students",{p_class_id:classId,p_date:date,p_student_ids:ids});
+    if(saveError){setError(saveError.message);setMakeupLoading(false);return}
+    setMakeupOptions(current=>current.map(item=>({...item,selected:true})));
+    setMakeupEnabled(true);
+    await onReload();
+    await loadWeek();
+    setMakeupLoading(false);
+  };
+
   const update=(id:string,patch:Partial<Row>)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row));
   const updateExam=(studentId:string,patch:Partial<ExamDraft>)=>setRows(current=>current.map(row=>row.id===studentId?{...row,exams:[{...row.exams[0],...patch}]}:row));
   const applyHomework=()=>{if(!commonHomework.trim())return;setRows(current=>current.map(row=>({...row,assignedHomework:commonHomework})));};
@@ -91,6 +133,7 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
   };
 
   const saveAttendance=async(row:Row,status:Status)=>{
+    if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
     setSaving(row.id);setError("");
     if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});await loadWeek()}setSaving("");return}
     let late:number|null=null,reason:string|null=null;
@@ -102,6 +145,7 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
   };
 
   const save=async()=>{
+    if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
     for(const row of rows){const exam=row.exams[0];if(exam.score!==""&&(!Number.isFinite(+exam.score)||+exam.score<0||+exam.score>+exam.maxScore)){setError(`${row.name} 학생의 점수를 확인해 주세요.`);return}}
     setSaving("all");setError("");
     const examPayload=rows.map(row=>({studentId:row.id,exams:[{...row.exams[0],id:row.exams[0].id||null,examType:row.exams[0].examType||null,examTitle:row.exams[0].examTitle.trim()||null,score:row.exams[0].score===""?null:+row.exams[0].score,maxScore:+row.exams[0].maxScore,evaluation:row.exams[0].evaluation.trim()||null}]}));
@@ -116,10 +160,12 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
     setSaving("");
   };
 
-  return <section className="class-learning-board">
+  return <section className="class-learning-board" ref={rootRef}>
     <header><div><h3>이번 주 수업 기록</h3><p>출결·수업내용·시험·숙제를 한 화면에서 기록하고 학부모 학습리포트로 연결합니다.</p></div><div className="learning-header-actions"><button className="secondary-button" onClick={()=>setMonthOpen(true)}>전체 출석 캘린더</button></div></header>
     <div className="class-week-strip">{week.map((day,index)=><button key={day.date} className={`${day.date===date?"active":""} ${day.scheduled?"scheduled":""}`} onClick={()=>onDate(day.date)}><span>{weekdays[index]}</span><b>{+day.date.slice(8)}</b><div>{day.students.slice(0,4).map(student=><em className={student.status==="excused"?"absent":student.status} key={student.id}>{student.name}</em>)}{!day.students.length?<small>{day.scheduled?"출석 전":"수업 없음"}</small>:null}</div></button>)}</div>
 
+    {!validDay&&!makeupEnabled?<section className="learning-common-record" style={{marginBottom:16}}><div className="learning-common-title"><div><small>정규 수업일 아님</small><b>{date} 보강 수업 기록</b></div><button type="button" className="primary" disabled={makeupLoading} onClick={()=>void activateMakeupDay()}>{makeupLoading?"등록 중…":"+ 보강 수업 기록"}</button></div><p style={{margin:0,color:"#6b6570",fontSize:14,lineHeight:1.6}}>이 날짜는 정규 수업 요일이 아닙니다. 보강 수업으로 등록하면 현재 수강생을 대상으로 출결·수업내용·숙제·시험을 평소와 똑같이 기록할 수 있습니다.</p>{error?<p className="form-error learning-board-error">{error}</p>:null}</section>:<>
+    {!validDay&&makeupEnabled?<p className="class-day-notice" style={{marginBottom:16}}>보강 수업일로 등록된 날짜입니다. 아래에서 평소 수업과 동일하게 기록할 수 있습니다.</p>:null}
     <section className="learning-common-record"><div className="learning-common-title"><div><small>반 공통 기록</small><b>오늘 수업 내용</b></div><button type="button" className="secondary-button" disabled={templateLoading} onClick={()=>void loadPreviousTemplate()}>{templateLoading?"불러오는 중…":"지난 수업 불러오기"}</button></div><textarea value={lessonContent} onChange={e=>setLessonContent(e.target.value)} placeholder="오늘 진행한 교재·단원·핵심 수업 내용을 입력하세요." rows={3}/></section>
     <label className="class-daily-notice"><b>반 전체 공지사항</b><textarea value={notice} onChange={e=>setNotice(e.target.value)} placeholder="준비물·일정·반 전체 안내" rows={2}/></label>
 
@@ -132,9 +178,10 @@ export function ClassLearningBoard({supabase,classId,date,students,onDate,onRelo
       <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam-card-actions"><b>개인별 시험</b></div><div className="learning-exam individual"><select value={exam.examType} onChange={e=>updateExam(row.id,{examType:e.target.value})}><option value="">종류 선택</option>{categories.map(category=><option value={category.name} key={category.id}>{category.name}</option>)}</select><input value={exam.examTitle} onChange={e=>updateExam(row.id,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={exam.score} onChange={e=>updateExam(row.id,{score:e.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={exam.maxScore} onChange={e=>updateExam(row.id,{maxScore:e.target.value})} placeholder="만점"/></span><input value={exam.evaluation} onChange={e=>updateExam(row.id,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${exam.score}/${exam.maxScore} · 환산 ${converted}점`}</small></div></div>
       <div className="learning-homework previous"><p>{row.previousHomework||"지난 숙제 없음"}</p><select value={row.inspectionStatus} onChange={e=>update(row.id,{inspectionStatus:e.target.value})}>{homework.map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><input value={row.inspectionNote} onChange={e=>update(row.id,{inspectionNote:e.target.value})} placeholder="검사 메모"/></div>
       <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={e=>update(row.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
-    </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 등록된 정규 수강생이 없습니다.</p></div>:null}</div>}
+    </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 등록된 수강생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
     <footer><span>출결은 즉시 저장되고, 기록 저장 시 학생·학부모 학습리포트와 알림으로 연결됩니다.</span><button className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save()}>{saving==="all"?"저장 중…":"수업 기록 저장"}</button></footer>
+    </>}
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
     {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">누적 수업 기록</p><h2>{historyStudent.name}</h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id}/></section></div>:null}
