@@ -63,3 +63,24 @@
  .correction-month-modal{width:96vw!important}.correction-month-grid{overflow-x:auto;grid-template-columns:repeat(7,minmax(105px,1fr))}.correction-month-weekdays{grid-template-columns:repeat(7,minmax(105px,1fr));overflow:hidden}.correction-month-grid>button{min-height:100px}
  .correction-history-backdrop{padding:8px}.correction-history-modal,.correction-history-modal.correction-history-calendar-modal{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:18px}.correction-history-modal>header{padding:20px 18px 16px}.correction-history-modal>header h2{font-size:24px}.correction-history-summary{padding:14px 18px 8px;gap:7px}.correction-history-summary>div{padding:11px}.correction-history-summary b{font-size:17px}.correction-history-filter{padding:4px 18px 12px}.correction-history-list{padding:0 18px 20px}.correction-history-list>article{padding:15px}.correction-history-calendar-wrap{padding:0 12px 18px;gap:12px}.correction-history-calendar{overflow-x:auto}.correction-history-weekdays,.correction-history-calendar-grid{min-width:650px}.correction-history-calendar-grid>button{min-height:76px}.correction-history-day-panel>header{padding:14px}.correction-history-day-list{padding:11px}
 }
+
+
+/* Match correction history calendar to the class-learning calendar. */
+.correction-history-calendar-grid>.blank{
+  min-height:72px;
+  border-top:1px solid #f0e9ec;
+  border-left:1px solid #f0e9ec;
+  background:#fcfbfb;
+}
+.correction-history-calendar-grid>.blank:nth-child(7n){border-right:1px solid #f0e9ec}
+.correction-history-calendar-grid>.blank:nth-last-child(-n+7){border-bottom:1px solid #f0e9ec}
+.correction-history-calendar-grid>button:not(.has-record){
+  background:#fcfbfb;
+  color:#d1c9cc;
+}
+.correction-history-calendar-grid>button>span{
+  display:block;
+  min-height:12px;
+  line-height:12px;
+}
+@media(max-width:800px){.correction-history-calendar-grid>.blank{min-height:76px}}
