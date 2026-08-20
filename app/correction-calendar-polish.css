@@ -167,3 +167,32 @@
 .correction-month-grid>button>div{
  margin-top:27px;
 }
+
+
+/* Let the full monthly calendar scroll inside the modal on short screens. */
+.correction-month-modal{
+ max-height:calc(100dvh - 24px)!important;
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ overscroll-behavior:contain;
+ scrollbar-gutter:stable;
+}
+.correction-month-modal::-webkit-scrollbar{
+ width:10px;
+}
+.correction-month-modal::-webkit-scrollbar-track{
+ background:#f7f2f4;
+}
+.correction-month-modal::-webkit-scrollbar-thumb{
+ border:2px solid #f7f2f4;
+ border-radius:999px;
+ background:#caa5b7;
+}
+.correction-month-modal::-webkit-scrollbar-thumb:hover{
+ background:#ad6e8d;
+}
+@media(max-width:800px){
+ .correction-month-modal{
+  max-height:calc(100dvh - 16px)!important;
+ }
+}
