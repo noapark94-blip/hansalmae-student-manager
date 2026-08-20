@@ -25,6 +25,8 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
     const response=await supabase.from("correction_reports")
       .select("id,correction_date,start_time,end_time,subject,attendance_status,late_minutes,exam_title,exam_range,exam_score,exam_max_score,evaluation,correction_content,recorded_by_name")
       .eq("student_id",student.studentId)
+      .eq("published",true)
+      .in("attendance_status",["present","late","absent"])
       .order("correction_date",{ascending:false})
       .order("start_time",{ascending:false})
       .limit(100);
