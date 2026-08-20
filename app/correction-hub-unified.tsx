@@ -15,6 +15,7 @@ export function CorrectionHubUnified(){
   const[host,setHost]=useState<HTMLElement|null>(null);
   const[data,setData]=useState<Board|null>(null);
   const[loading,setLoading]=useState(false);
+  const[selectedDay,setSelectedDay]=useState(1);
 
   useEffect(()=>{
     let original:HTMLElement|null=null;
@@ -23,7 +24,7 @@ export function CorrectionHubUnified(){
       const buttons=Array.from(document.querySelectorAll<HTMLButtonElement>(".schedule-tabs button"));
       const active=buttons.find(button=>button.classList.contains("active")&&button.textContent?.includes("첨삭 시간표"));
       const panels=Array.from(document.querySelectorAll<HTMLElement>("section.hub-panel"));
-      const panel=panels.find(item=>item.textContent?.includes("고정 첨삭 시간표"))??null;
+      const panel=panels.find(item=>item.textContent?.includes("고정 첨삭 시간표")&&!item.classList.contains("correction-hub-current"))??null;
       if(active&&panel){
         if(original!==panel){
           if(original)original.style.display="";
@@ -35,7 +36,7 @@ export function CorrectionHubUnified(){
           panel.insertAdjacentElement("afterend",mounted);
           setHost(mounted);
         }
-      }else{
+      }else if(!active){
         if(original)original.style.display="";
         if(mounted)mounted.remove();
         original=null;mounted=null;setHost(null);
@@ -51,23 +52,36 @@ export function CorrectionHubUnified(){
     if(!host||!supabase)return;
     let alive=true;
     setLoading(true);
-    void supabase.rpc("correction_management_board_v2",{p_anchor:koreaToday()}).then(({data:next})=>{
+    void supabase.rpc("correction_management_board_v2",{p_anchor:koreaToday()}).then(({data:next,error})=>{
       if(!alive)return;
-      setData((next??{assignments:[]}) as Board);setLoading(false);
+      setData(error?{assignments:[]}:(next??{assignments:[]}) as Board);
+      setLoading(false);
     });
     return()=>{alive=false};
   },[host,supabase]);
 
   if(!host)return null;
+  const assignments=data?.assignments??[];
+
   return createPortal(<section className="panel hub-panel correction-hub-current">
-    <div className="hub-toolbar"><div><h2>고정 첨삭 시간표</h2><p>현재 첨삭 관리에서 사용하는 정규 배정과 동일한 시간표입니다. 이번 주 변경·취소·추가는 여기에 반영하지 않습니다.</p></div><a className="primary hub-add" href="/corrections">첨삭 배정 관리</a></div>
+    <div className="hub-toolbar"><div><h2>고정 첨삭 시간표</h2><p>현재 첨삭 관리의 정규 배정과 동일한 시간표입니다. 이번 주 변경·취소·추가는 반영하지 않습니다.</p></div><a className="primary hub-add" href="/corrections">첨삭 배정 관리</a></div>
+    <nav className="correction-mobile-days">{days.map((day,index)=><button type="button" key={day} className={selectedDay===index+1?"active":""} onClick={()=>setSelectedDay(index+1)}>{day}</button>)}</nav>
     {loading?<p className="settings-empty">첨삭 시간표를 불러오는 중이에요…</p>:<div className="correction-week-board correction-hub-fixed-board">{days.map((day,index)=>{
-      const weekday=index+1;const slots=weekday<=5?weekdaySlots:weekendSlots;
-      const count=(data?.assignments??[]).filter(item=>item.weekday===weekday).length;
-      return <section key={day} className="correction-day mobile-active"><header><span><b>{day}요일</b></span><em>{count}명</em></header><div className="correction-slot-list">{slots.map(([start,end])=>{
-        const rows=(data?.assignments??[]).filter(item=>item.weekday===weekday&&item.startTime.slice(0,5)===start);
-        return <article className="correction-slot" key={start}><div className="correction-slot-time"><b>{start}</b><span>– {end}</span></div><div className="correction-slot-content">{rows.length?<div className="correction-slot-students">{rows.map(row=><div key={row.id} className={`correction-student subject-${row.subject}`}><span><b>{row.studentName}</b><small>{[row.grade,row.subject].filter(Boolean).join(" · ")}</small></span></div>)}</div>:<p className="correction-slot-empty">배정 없음</p>}</div></article>;
-      })}</div></section>;
+      const weekday=index+1;
+      const slots=weekday<=5?weekdaySlots:weekendSlots;
+      const dayRows=assignments.filter(item=>item.weekday===weekday);
+      return <section key={day} className={`correction-day ${selectedDay===weekday?"mobile-active":""}`}>
+        <header><span><b>{day}요일</b></span><em>{dayRows.length}명</em></header>
+        <div className="correction-slot-list">{slots.map(([start,end])=>{
+          const rows=dayRows.filter(item=>item.startTime.slice(0,5)===start);
+          return <article className="correction-slot" key={start}>
+            <div className="correction-slot-time"><b>{start}</b><span>– {end}</span></div>
+            <div className="correction-slot-content">
+              {rows.length?<div className="correction-slot-students">{rows.map(row=><div key={row.id} className={`correction-student subject-${row.subject}`}><span><b>{row.studentName}</b><small>{[row.grade,row.subject].filter(Boolean).join(" · ")}</small></span></div>)}</div>:<p className="correction-slot-empty">배정 없음</p>}
+            </div>
+          </article>;
+        })}</div>
+      </section>;
     })}</div>}
   </section>,host);
 }
