@@ -46,9 +46,12 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   const [makeupOptions,setMakeupOptions]=useState<MakeupOption[]>([]);
   const [makeupLoading,setMakeupLoading]=useState(false);
   const [makeupEnabled,setMakeupEnabled]=useState(validDay);
+  const [lessonState,setLessonState]=useState<"draft"|"completed">("draft");
 
   const loadWeek=useCallback(async()=>{const{data}=await supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"});setWeek((data??[]) as CalendarDay[])},[classId,date,supabase]);
   const loadCategories=useCallback(async()=>{const{data,error:categoryError}=await supabase.rpc("staff_exam_categories");if(categoryError)setError(categoryError.message);else setCategories((data??[]) as ExamCategory[])},[supabase]);
+
+  useEffect(()=>{let active=true;void supabase.rpc("staff_class_lesson_state",{p_class_id:classId,p_date:date}).then(({data})=>{if(active)setLessonState(data==="completed"?"completed":"draft")});return()=>{active=false}},[classId,date,supabase]);
 
   useEffect(()=>{
     const previous=rootRef.current?.previousElementSibling as HTMLElement|null;
@@ -148,7 +151,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   const saveAttendance=async(row:Row,status:Status)=>{
     if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
     setSaving(row.id);setError("");
-    if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});await loadWeek()}setSaving("");return}
+    if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});setLessonState("draft");await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:"draft"});await loadWeek()}setSaving("");return}
     let late:number|null=null,reason:string|null=null;
     if(status==="late"){const value=prompt(`${row.name} 학생은 몇 분 지각했나요?`,String(row.lateMinutes??10));if(value===null){setSaving("");return}late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 숫자로 입력해 주세요.");setSaving("");return}}
     if(status==="absent"){const value=prompt(`${row.name} 학생의 결석 사유`,row.absenceReason??"");if(value===null){setSaving("");return}reason=value.trim();if(!reason){setError("결석 사유를 입력해 주세요.");setSaving("");return}}
@@ -157,11 +160,12 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     setSaving("");
   };
 
-  const save=async()=>{
+  const save=async(complete:boolean)=>{
     if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
-    for(const row of rows){const exam=row.exams[0];if(exam.score!==""&&(!Number.isFinite(+exam.score)||+exam.score<0||+exam.score>+exam.maxScore)){setError(`${row.name} 학생의 점수를 확인해 주세요.`);return}}
+    if(complete){const missing=rows.filter(row=>!row.status).map(row=>row.name);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
+    for(const row of rows){const exam=row.exams[0];const max=exam.maxScore.trim()===""?100:+exam.maxScore;if(exam.score!==""&&(!Number.isFinite(+exam.score)||!Number.isFinite(max)||max<=0||+exam.score<0||+exam.score>max)){setError(`${row.name} 학생의 점수와 만점을 확인해 주세요.`);return}}
     setSaving("all");setError("");
-    const examPayload=rows.map(row=>({studentId:row.id,exams:[{...row.exams[0],id:row.exams[0].id||null,examType:row.exams[0].examType||null,examTitle:row.exams[0].examTitle.trim()||null,score:row.exams[0].score===""?null:+row.exams[0].score,maxScore:+row.exams[0].maxScore,evaluation:row.exams[0].evaluation.trim()||null}]}));
+    const examPayload=rows.map(row=>({studentId:row.id,exams:[{...row.exams[0],id:row.exams[0].id||null,examType:row.exams[0].examType||null,examTitle:row.exams[0].examTitle.trim()||null,score:row.exams[0].score===""?null:+row.exams[0].score,maxScore:row.exams[0].maxScore.trim()===""?null:+row.exams[0].maxScore,evaluation:row.exams[0].evaluation.trim()||null}]}));
     const homeworkPayload=rows.map(row=>({studentId:row.id,assignedHomework:row.assignedHomework.trim()||null,inspectionStatus:row.inspectionStatus||null,inspectionNote:row.inspectionNote.trim()||null}));
     const [examResponse,homeworkResponse,noticeResponse,lessonResponse]=await Promise.all([
       supabase.rpc("staff_save_class_exam_results",{p_class_id:classId,p_date:date,p_results:examPayload}),
@@ -169,7 +173,11 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
       supabase.rpc("staff_save_class_daily_notice",{p_class_id:classId,p_date:date,p_content:notice}),
       supabase.rpc("staff_save_class_lesson_content",{p_class_id:classId,p_date:date,p_content:lessonContent}),
     ]);
-    if(examResponse.error||homeworkResponse.error||noticeResponse.error||lessonResponse.error)setError(examResponse.error?.message??homeworkResponse.error?.message??noticeResponse.error?.message??lessonResponse.error?.message??"저장하지 못했습니다.");else await onReload();
+    if(examResponse.error||homeworkResponse.error||noticeResponse.error||lessonResponse.error){setError(examResponse.error?.message??homeworkResponse.error?.message??noticeResponse.error?.message??lessonResponse.error?.message??"저장하지 못했습니다.");setSaving("");return}
+    const{data:stateData,error:stateError}=await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:complete?"completed":"draft"});
+    if(stateError){setError(stateError.message);setSaving("");return}
+    setLessonState(stateData==="completed"?"completed":"draft");
+    await onReload();
     setSaving("");
   };
 
@@ -193,7 +201,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
       <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={e=>update(row.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
     </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 등록된 수강생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    <footer><span>출결은 즉시 저장되고, 기록 저장 시 학생·학부모 학습리포트와 알림으로 연결됩니다.</span><button className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save()}>{saving==="all"?"저장 중…":"수업 기록 저장"}</button></footer>
+    <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다.</span><span><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시 저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></span></footer>
     </>}
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
