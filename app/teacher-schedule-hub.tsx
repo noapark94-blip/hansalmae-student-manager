@@ -13,7 +13,9 @@ type Correction = { id: string; studentId: string; studentName: string; teacherI
 type CorrectionException = { id: string; assignmentId: string; weekStart: string; weekday: number; slotIndex: number; note: string | null };
 type VehicleRun = { id: string; managerId: string; managerName: string; weekday: number; pickupTime: string; pickupLocation: string; routeName:string;direction:"pickup"|"dropoff";stopOrder:number;students: Named[];changed?:boolean };
 type VehicleException={id:string;runId:string;serviceDate:string;kind:"changed"|"cancelled";pickupTime:string|null;pickupLocation:string|null;note:string|null};
-type AutoVehicleRow={studentId:string;studentName:string;school:string|null;grade:string|null;weekday:number;pickupTime:string|null;dropoffTime:string|null;sources:string[];pickupExcluded:boolean;dropoffExcluded:boolean};
+type VehicleGuardian={name:string;phone:string;relationship:string|null;isPrimary:boolean};
+type VehicleActivity={type:"class"|"correction";title:string;subject:string|null;startTime:string;endTime:string};
+type AutoVehicleRow={studentId:string;studentName:string;school:string|null;grade:string|null;studentPhone:string|null;residence:string|null;pickupLocation:string|null;dropoffLocation:string|null;guardians:VehicleGuardian[];activities:VehicleActivity[];weekday:number;pickupTime:string|null;dropoffTime:string|null;sources:string[];pickupExcluded:boolean;dropoffExcluded:boolean};
 type HubData = { teachers: Named[]; students: Named[]; classes: Named[]; classSchedules: ClassSchedule[]; corrections: Correction[]; correctionExceptions: CorrectionException[]; vehicles: VehicleRun[];vehicleExceptions:VehicleException[];todayVehicles:VehicleRun[];autoVehicles:AutoVehicleRow[] };
 type Editor = { kind: "class"; row?: ClassSchedule } | { kind: "correction"; row?: Correction } | { kind: "exception"; row: Correction } | { kind: "vehicle"; row?: VehicleRun }|{kind:"vehicleException";row:VehicleRun} | null;
 
@@ -84,6 +86,7 @@ function VehicleBoard({rows,supabase,onChanged}:{rows:AutoVehicleRow[];supabase:
   const today=new Date().getDay();
   const[selectedDay,setSelectedDay]=useState(today>=1&&today<=5?today:1);
   const[showExcluded,setShowExcluded]=useState(false);
+  const[selectedStudent,setSelectedStudent]=useState<AutoVehicleRow|null>(null);
   const[saving,setSaving]=useState("");
   const[error,setError]=useState("");
   const times=["16:00","17:30","19:00","20:30"];
@@ -102,7 +105,7 @@ function VehicleBoard({rows,supabase,onChanged}:{rows:AutoVehicleRow[];supabase:
   ]);
   const renderStudent=(row:AutoVehicleRow,direction:"pickup"|"dropoff")=>{
     const key=`${row.studentId}-${direction}`;
-    return <article className="auto-vehicle-student" key={key}><div><b>{row.studentName}</b><small>{[row.school,row.grade,row.sources.join("·")].filter(Boolean).join(" · ")}</small></div><button type="button" disabled={saving===key} onClick={()=>void setExcluded(row,direction,true)}>차량 제외</button></article>;
+    return <article className="auto-vehicle-student" key={key}><div><button type="button" className="auto-vehicle-student-name" onClick={()=>setSelectedStudent(row)}>{row.studentName}</button><small>{[row.school,row.grade,row.sources.join("·")].filter(Boolean).join(" · ")}</small></div><button type="button" disabled={saving===key} onClick={()=>void setExcluded(row,direction,true)}>차량 제외</button></article>;
   };
   return <section className="panel hub-panel auto-vehicle-board">
     <HubToolbar title="차량 운행표" description="정규수업과 첨삭 일정을 합쳐 첫 시작 시간은 등원, 마지막 종료 시간은 하원으로 자동 표시합니다."><button type="button" className={showExcluded?"secondary-button active":"secondary-button"} onClick={()=>setShowExcluded(value=>!value)}>제외 학생 {excludedCount}명</button></HubToolbar>
@@ -114,7 +117,15 @@ function VehicleBoard({rows,supabase,onChanged}:{rows:AutoVehicleRow[];supabase:
       {times.map(time=>{const pickup=students(time,"pickup"),dropoff=students(time,"dropoff");return <div className="auto-vehicle-grid-row" key={time}><strong>{time}</strong><section className="pickup">{pickup.length?pickup.map(row=>renderStudent(row,"pickup")):<p>등원 학생 없음</p>}</section><section className="dropoff">{dropoff.length?dropoff.map(row=>renderStudent(row,"dropoff")):<p>하원 학생 없음</p>}</section></div>})}
     </div>
     {showExcluded?<section className="auto-vehicle-excluded"><header><b>{weekdays[selectedDay-1]}요일 차량 제외 학생</b><span>수업·첨삭 일정은 유지됩니다.</span></header>{excluded.length?<div>{excluded.map(({row,direction,time})=>{const key=`${row.studentId}-${direction}`;return <article key={key}><span className={direction}>{direction==="pickup"?"등원":"하원"} · {time}</span><b>{row.studentName}</b><button type="button" disabled={saving===key} onClick={()=>void setExcluded(row,direction,false)}>다시 포함</button></article>})}</div>:<p>제외된 학생이 없습니다.</p>}</section>:null}
+    {selectedStudent?<VehicleStudentDetailModal row={selectedStudent} onClose={()=>setSelectedStudent(null)}/>:null}
   </section>;
+}
+
+function VehicleStudentDetailModal({row,onClose}:{row:AutoVehicleRow;onClose:()=>void}){
+  const guardians=row.guardians??[];
+  const activities=row.activities??[];
+  const value=(text:string|null|undefined)=>text?.trim()||"미입력";
+  return <div className="modal-backdrop nested" onMouseDown={(event)=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal vehicle-student-detail-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-student-detail-title"><header><div><p className="eyebrow">차량 학생 정보</p><h2 id="vehicle-student-detail-title">{row.studentName}</h2><span>{[row.school,row.grade].filter(Boolean).join(" · ")||"학교·학년 미입력"}</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><div className="vehicle-student-detail-body"><dl><div><dt>거주지</dt><dd>{value(row.residence)}</dd></div><div><dt>승차 위치</dt><dd>{value(row.pickupLocation)}</dd></div><div><dt>하차 위치</dt><dd>{value(row.dropoffLocation)}</dd></div><div><dt>학생 연락처</dt><dd>{value(row.studentPhone)}</dd></div><div className="full"><dt>보호자 연락처</dt><dd>{guardians.length?guardians.map((guardian)=><span key={`${guardian.name}-${guardian.phone}`}><b>{guardian.name}{guardian.isPrimary?" · 주 보호자":""}</b>{guardian.phone||"연락처 미입력"}{guardian.relationship?` · ${guardian.relationship}`:""}</span>):"미입력"}</dd></div></dl><section className="vehicle-student-schedule"><header><b>{weekdays[row.weekday-1]}요일 정규수업·첨삭</b></header>{activities.length?<div>{activities.map((activity,index)=><article key={`${activity.type}-${activity.startTime}-${index}`}><span className={activity.type}>{activity.type==="class"?"정규수업":"첨삭"}</span><div><b>{activity.title}</b><small>{activity.startTime.slice(0,5)}–{activity.endTime.slice(0,5)}{activity.subject?` · ${activity.subject}`:""}</small></div></article>)}</div>:<p>등록된 일정이 없습니다.</p>}</section></div></section></div>;
 }
 function ClassEditor({ supabase, data, row, onClose, onSaved }: EditorProps & { data: HubData; row?: ClassSchedule }) {
   const [classId, setClassId] = useState(row?.classId ?? data.classes[0]?.id ?? "");
