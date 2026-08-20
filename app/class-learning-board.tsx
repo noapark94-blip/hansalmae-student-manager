@@ -113,6 +113,19 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     setMakeupLoading(false);
   };
 
+  const deactivateMakeupDay=async()=>{
+    if(validDay||!makeupEnabled)return;
+    if(!confirm(`${date} 보강 수업 기록을 해제할까요?\\n출결·수업내용·숙제·시험 등 실제 기록이 있으면 해제되지 않습니다.`))return;
+    setMakeupLoading(true);setError("");
+    const{error:clearError}=await supabase.rpc("staff_clear_empty_class_makeup_day",{p_class_id:classId,p_date:date});
+    if(clearError){setError(clearError.message);setMakeupLoading(false);return}
+    setMakeupOptions(current=>current.map(item=>({...item,selected:false})));
+    setMakeupEnabled(false);
+    await onReload();
+    await loadWeek();
+    setMakeupLoading(false);
+  };
+
   const update=(id:string,patch:Partial<Row>)=>setRows(current=>current.map(row=>row.id===id?{...row,...patch}:row));
   const updateExam=(studentId:string,patch:Partial<ExamDraft>)=>setRows(current=>current.map(row=>row.id===studentId?{...row,exams:[{...row.exams[0],...patch}]}:row));
   const applyHomework=()=>{if(!commonHomework.trim())return;setRows(current=>current.map(row=>({...row,assignedHomework:commonHomework})));};
@@ -165,7 +178,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     <div className="class-week-strip">{week.map((day,index)=><button key={day.date} className={`${day.date===date?"active":""} ${day.scheduled?"scheduled":""}`} onClick={()=>onDate(day.date)}><span>{weekdays[index]}</span><b>{+day.date.slice(8)}</b><div>{day.students.slice(0,4).map(student=><em className={student.status==="excused"?"absent":student.status} key={student.id}>{student.name}</em>)}{!day.students.length?<small>{day.scheduled?"출석 전":"수업 없음"}</small>:null}</div></button>)}</div>
 
     {!validDay&&!makeupEnabled?<section className="learning-common-record" style={{marginBottom:16}}><div className="learning-common-title"><div><small>정규 수업일 아님</small><b>{date} 보강 수업 기록</b></div><button type="button" className="primary" disabled={makeupLoading} onClick={()=>void activateMakeupDay()}>{makeupLoading?"등록 중…":"+ 보강 수업 기록"}</button></div><p style={{margin:0,color:"#6b6570",fontSize:14,lineHeight:1.6}}>이 날짜는 정규 수업 요일이 아닙니다. 보강 수업으로 등록하면 현재 수강생을 대상으로 출결·수업내용·숙제·시험을 평소와 똑같이 기록할 수 있습니다.</p>{error?<p className="form-error learning-board-error">{error}</p>:null}</section>:<>
-    {!validDay&&makeupEnabled?<p className="class-day-notice" style={{marginBottom:16}}>보강 수업일로 등록된 날짜입니다. 아래에서 평소 수업과 동일하게 기록할 수 있습니다.</p>:null}
+    {!validDay&&makeupEnabled?<section className="class-day-notice" style={{marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}><span>보강 수업일로 등록된 날짜입니다. 아래에서 평소 수업과 동일하게 기록할 수 있습니다.</span><button type="button" className="danger-button" disabled={makeupLoading} onClick={()=>void deactivateMakeupDay()}>{makeupLoading?"해제 중…":"보강 수업 해제"}</button></section>:null}
     <section className="learning-common-record"><div className="learning-common-title"><div><small>반 공통 기록</small><b>오늘 수업 내용</b></div><button type="button" className="secondary-button" disabled={templateLoading} onClick={()=>void loadPreviousTemplate()}>{templateLoading?"불러오는 중…":"지난 수업 불러오기"}</button></div><textarea value={lessonContent} onChange={e=>setLessonContent(e.target.value)} placeholder="오늘 진행한 교재·단원·핵심 수업 내용을 입력하세요." rows={3}/></section>
     <label className="class-daily-notice"><b>반 전체 공지사항</b><textarea value={notice} onChange={e=>setNotice(e.target.value)} placeholder="준비물·일정·반 전체 안내" rows={2}/></label>
 
