@@ -1,0 +1,46 @@
+/* Final override for the correction timetable only.
+   Keep timetable cards compact: names fill horizontally before wrapping. */
+.correction-route .correction-subject > div{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:5px!important;
+  align-items:stretch!important;
+}
+.correction-route .correction-subject .correction-student{
+  width:100%!important;
+  min-width:0!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:6px 4px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:8px!important;
+  text-align:center!important;
+}
+.correction-route .correction-subject .correction-student > span{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.correction-route .correction-subject .correction-student b{
+  display:block!important;
+  margin:0!important;
+  font-size:9px!important;
+  line-height:1.25!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.correction-route .correction-subject .correction-student small,
+.correction-route .correction-subject .correction-student em,
+.correction-route .correction-subject .correction-student i{
+  display:none!important;
+}
+@media(max-width:900px){
+  .correction-route .correction-subject > div{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .correction-route .correction-subject .correction-student b{font-size:10px!important}
+}
+@media(max-width:420px){
+  .correction-route .correction-subject > div{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
