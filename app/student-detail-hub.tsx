@@ -12,6 +12,9 @@ type StudentValues = {
   school: string;
   grade: string;
   phone: string;
+  residence: string;
+  pickupLocation: string;
+  dropoffLocation: string;
   status: string;
   internalNote: string;
 };
@@ -236,6 +239,18 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
                   <label>
                     학생 연락처
                     <input value={values.phone} onChange={(event) => update("phone", event.target.value)} />
+                  </label>
+                  <label className="full">
+                    거주지
+                    <input value={values.residence} onChange={(event) => update("residence", event.target.value)} placeholder="예: 배곧동 한라비발디" />
+                  </label>
+                  <label>
+                    차량 승차 위치
+                    <input value={values.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} placeholder="예: 아파트 정문" />
+                  </label>
+                  <label>
+                    차량 하차 위치
+                    <input value={values.dropoffLocation} onChange={(event) => update("dropoffLocation", event.target.value)} placeholder="예: 아파트 후문" />
                   </label>
                   <label>
                     현재 상태
