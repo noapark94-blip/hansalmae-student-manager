@@ -201,7 +201,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
       <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={e=>update(row.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
     </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 등록된 수강생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다.</span><span><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시 저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></span></footer>
+    <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시 저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></span></footer>
     </>}
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
