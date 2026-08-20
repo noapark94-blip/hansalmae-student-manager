@@ -160,3 +160,19 @@
 }
 @media(max-width:980px){.learning-bulk-grid.exam{grid-template-columns:1fr 1.4fr 80px}.learning-bulk-grid.exam input:nth-of-type(3){grid-column:1/3}.learning-bulk-grid.exam button{grid-column:3;grid-row:2}}
 @media(max-width:720px){.learning-common-record{margin:12px 0 10px;padding:13px;border-radius:15px}.learning-common-title{align-items:flex-start}.learning-common-title .secondary-button{padding:8px 10px;font-size:10px}.learning-bulk-tools{margin:10px 0 13px;border-radius:15px}.learning-bulk-body{padding:12px}.learning-bulk-grid.exam{grid-template-columns:1fr 78px}.learning-bulk-grid.exam select,.learning-bulk-grid.exam input:nth-of-type(1),.learning-bulk-grid.exam input:nth-of-type(3){grid-column:1/-1}.learning-bulk-grid.exam input:nth-of-type(2){grid-column:1}.learning-bulk-grid.exam button{grid-column:2;grid-row:auto}.learning-bulk-grid.homework{grid-template-columns:1fr}.learning-bulk-grid.homework button{justify-self:end}.learning-bulk-bottom{justify-content:space-between}.learning-bulk-bottom button{flex:1;padding:9px 7px}.learning-common-record textarea,.learning-bulk-grid input,.learning-bulk-grid select,.learning-bulk-grid textarea{font-size:13px}.class-learning-board .learning-board-rows>article{grid-template-columns:1fr!important;padding:16px!important;gap:15px!important}.class-learning-board .learning-exam.individual{grid-template-columns:1fr 1fr!important}.class-learning-board .learning-exam.individual>select{grid-column:1!important}.class-learning-board .learning-exam.individual>input:nth-of-type(1){grid-column:2!important}.class-learning-board .learning-exam.individual>span{grid-column:1!important}.class-learning-board .learning-exam.individual>input:nth-of-type(2){grid-column:2!important}.class-learning-board .learning-student>b{font-size:15px!important}.class-learning-board .learning-attendance>button{min-height:40px!important}}
+
+
+/* Keep draft and completion actions visually separate. */
+.class-learning-board>footer>.learning-completion-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+}
+@media(max-width:600px){
+  .class-learning-board>footer>.learning-completion-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+  }
+}
