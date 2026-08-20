@@ -1,127 +1,45 @@
-/* Current teacher-class-workspace modal markup compatibility.
-   Keep these rules scoped to class management so correction/family screens are untouched. */
-.subject-editor,
-.class-creator,
-.roster-editor,
-.class-manager-modal{
-  width:min(760px,calc(100vw - 28px));
-  max-height:calc(100dvh - 28px);
-  overflow:auto;
-  border:1px solid var(--line);
-  border-radius:20px;
-  background:#fff;
-  box-shadow:0 28px 80px rgba(48,18,33,.24);
-}
-.subject-editor{width:min(570px,calc(100vw - 28px))}
-.roster-editor{width:min(720px,calc(100vw - 28px));overflow:hidden;display:flex;flex-direction:column}
-.class-manager-modal{width:min(980px,calc(100vw - 28px));overflow:hidden;display:flex;flex-direction:column}
+/* Compatibility layer for the current class-workspace markup.
+   Values mirror the original class/student modal layouts from the working roster UI. */
+.subject-editor,.class-creator,.roster-editor,.class-manager-modal{max-height:calc(100vh - 40px);overflow:auto;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(48,18,33,.25)}
+.subject-editor{width:min(100%,570px)}
+.class-creator{width:min(100%,700px)}
+.roster-editor{width:min(100%,680px);overflow:hidden;display:flex;flex-direction:column}
+.class-manager-modal{width:min(1040px,calc(100vw - 34px));max-height:min(780px,calc(100vh - 36px));overflow:auto}
+.subject-editor>header,.class-creator>header,.roster-editor>header,.class-manager-modal>header{display:flex;justify-content:space-between;gap:20px;padding:26px 28px 20px;border-bottom:1px solid var(--line)}
+.subject-editor>header h2,.class-creator>header h2,.roster-editor>header h2,.class-manager-modal>header h2{margin:0;font-family:Georgia,"Noto Serif KR",serif;font-size:25px}
+.subject-editor>header p:not(.eyebrow),.class-creator>header p:not(.eyebrow),.roster-editor>header p:not(.eyebrow),.class-manager-modal>header p:not(.eyebrow){display:block;margin:7px 0 0;color:var(--muted);font-size:11px;line-height:1.55}
+.modal-close{width:34px;height:34px;flex:0 0 auto;padding:0;border:0;border-radius:9px;background:#f7f3f4;color:#766b70;font-size:23px;line-height:1}
+.subject-editor>.modal-body,.class-creator>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:23px 28px 27px}
+.roster-editor>.modal-body{min-height:0;overflow:auto;flex:1}
+.subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{display:flex;justify-content:flex-end;gap:9px;padding:0 28px 27px;border:0}
+.subject-editor>footer button,.class-creator>footer button,.roster-editor>footer button,.class-manager-modal>footer button{min-width:92px}
 
-.subject-editor>header,
-.class-creator>header,
-.roster-editor>header,
-.class-manager-modal>header{
-  padding:22px 24px 18px;
-  border-bottom:1px solid var(--line);
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:18px;
-}
-.subject-editor>header h2,
-.class-creator>header h2,
-.roster-editor>header h2,
-.class-manager-modal>header h2{margin:0;font-size:24px}
-.subject-editor>header p:not(.eyebrow),
-.class-creator>header p:not(.eyebrow),
-.roster-editor>header p:not(.eyebrow),
-.class-manager-modal>header p:not(.eyebrow){margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
-.subject-editor>.modal-body,
-.class-creator>.modal-body,
-.roster-editor>.modal-body,
-.class-manager-modal>.modal-body{padding:20px 24px}
-.roster-editor>.modal-body,.class-manager-modal>.modal-body{min-height:0;overflow:auto;flex:1}
-.subject-editor>footer,
-.class-creator>footer,
-.roster-editor>footer,
-.class-manager-modal>footer{padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
-.modal-close{flex:0 0 auto;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:#f7f3f4;color:#766b70;font-size:23px;line-height:1}
-
+.subject-editor .subject-main-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.subject-editor .subject-main-options button{height:46px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:800}
+.subject-editor .subject-main-options button.active{border-color:var(--wine);background:#f8edf2;color:var(--wine)}
 .subject-editor .modal-body>label{display:grid;gap:7px;color:#51484c;font-size:11px;font-weight:750}
 .subject-editor .modal-body>label>input{width:100%;height:43px;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;outline:none;background:#fff}
-.subject-editor .subject-main-options{margin-top:16px}
+.subject-editor .existing-subjects{margin-top:15px;padding:12px;border-radius:10px;background:#faf7f8;display:flex;flex-direction:column;gap:5px}
+.subject-editor .existing-subjects b{font-size:9px}.subject-editor .existing-subjects span{color:var(--muted);font-size:10px}
 
-.class-creator .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}
-.class-creator .form-grid>label{display:grid;gap:7px;min-width:0;color:#51484c;font-size:11px;font-weight:750}
-.class-creator .form-grid input,.class-creator .form-grid select{width:100%;height:43px;margin:0;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;background:#fff;outline:none}
-.class-creator .class-color-options{min-height:43px;padding:7px 9px;border:1px solid #ded6d9;border-radius:10px;display:flex;align-items:center;gap:7px;overflow-x:auto;background:#fff}
-.class-creator .class-color-options>button{flex:0 0 auto;width:26px;height:26px;padding:0;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #d8cfd3}
+.class-creator .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px 14px}
+.class-creator .form-grid>label{color:#51484c;font-size:11px;font-weight:750}
+.class-creator .form-grid input,.class-creator .form-grid select{width:100%;height:43px;margin-top:7px;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;outline:none;background:#fff;color:var(--text);font-size:12px}
+.class-creator .class-color-options{margin-top:7px;min-height:43px;padding:7px 9px;border:1px solid #ded6d9;border-radius:10px;display:flex;align-items:center;gap:7px;overflow-x:auto;background:#fff}
+.class-creator .class-color-options>button{flex:0 0 auto;width:25px;height:25px;padding:0;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #d8cfd3}
 .class-creator .class-color-options>button.active{box-shadow:0 0 0 2px var(--wine)}
-.class-creator .class-color-options>input[type=color]{flex:0 0 34px;width:34px!important;height:28px!important;padding:1px!important;border-radius:7px!important}
+.class-creator .class-color-options>input[type=color]{flex:0 0 34px;width:34px!important;height:25px!important;margin:0!important;padding:1px!important;border-radius:7px!important}
+.class-creator .teacher-picker{margin:18px 0 0;padding:0;border:0}.class-creator .teacher-picker legend{margin-bottom:9px;color:#51484c;font-size:11px;font-weight:800}.class-creator .teacher-picker>div{display:flex;flex-wrap:wrap;gap:8px}.class-creator .teacher-picker>div>label{min-width:110px;padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--text);display:flex;align-items:center;gap:8px}.class-creator .teacher-picker>div>label.active{border-color:#c986a7;background:#f9eaf1}.class-creator .teacher-picker input{width:16px;height:16px;margin:0;accent-color:var(--wine)}.class-creator .teacher-picker i{width:26px;height:26px;border-radius:50%;background:#f2e3ea;color:var(--wine);display:grid;place-items:center;font-style:normal;font-weight:800}
+.class-creator .schedule-builder{margin:18px 0 0;padding:0;border:0}.class-creator .schedule-builder>legend{margin-bottom:8px;color:#51484c;font-size:11px;font-weight:750}.class-creator .schedule-row{display:grid;grid-template-columns:minmax(245px,1fr) 118px 18px 118px auto;gap:12px;align-items:center;margin-bottom:9px;padding:11px;border:1px solid #e4dcdf;border-radius:12px;background:#fcfafb}.class-creator .weekday-options{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.class-creator .weekday-options button{height:36px;padding:0;border:1px solid var(--line);border-radius:9px;background:#fff;color:#6e6368;font-size:10px;font-weight:800}.class-creator .weekday-options button.active{border-color:var(--wine);background:#f7eaf0;color:var(--wine)}.class-creator .schedule-row>label{display:grid;gap:5px;color:#51484c;font-size:10px;font-weight:800}.class-creator .schedule-row>label>label{display:grid;gap:4px;font-size:0;color:transparent}.class-creator .schedule-row>label>label>input{width:100%;height:39px;padding:0 9px;border:1px solid #ded6d9;border-radius:9px;background:#fff;color:var(--text);text-align:center;font-size:12px;font-weight:750;outline:none}.class-creator .schedule-row>label>label>small{display:block;color:var(--muted);font-size:7px;line-height:1.2;text-align:center}
 
-.class-creator .teacher-picker{margin:18px 0 0;padding:0;border:0}
-.class-creator .teacher-picker>legend{margin-bottom:9px;color:#51484c;font-size:11px;font-weight:800}
-.class-creator .teacher-picker>div{display:flex;flex-wrap:wrap;gap:8px}
-.class-creator .teacher-picker>div>label{min-height:44px;padding:7px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text)}
-.class-creator .teacher-picker>div>label.active{border-color:#c986a7;background:#f9eaf1}
-.class-creator .teacher-picker input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:var(--wine)}
-.class-creator .teacher-picker i{width:27px;height:27px;border-radius:50%;background:#f2e3ea;color:var(--wine);display:grid;place-items:center;font-style:normal;font-weight:800}
-.class-creator .teacher-picker span{font-size:11px;font-weight:750}
-
-.class-creator .schedule-builder{margin:18px 0 0;padding:0;border:0}
-.class-creator .schedule-builder>legend{margin-bottom:9px;color:#51484c;font-size:11px;font-weight:800}
-.class-creator .schedule-row{margin-bottom:10px;padding:12px;border:1px solid #e4dcdf;border-radius:12px;background:#fcfafb;display:grid;grid-template-columns:minmax(250px,1fr) minmax(115px,.48fr) 18px minmax(115px,.48fr) auto;align-items:center;gap:9px}
-.class-creator .weekday-options{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;min-width:0}
-.class-creator .weekday-options>button{min-width:0;height:38px;padding:0;border:1px solid var(--line);border-radius:9px;background:#fff;color:#6e6368;font-size:11px;font-weight:800}
-.class-creator .weekday-options>button.active{border-color:var(--wine);background:#f7eaf0;color:var(--wine)}
-.class-creator .schedule-row>label{min-width:0;display:grid;gap:5px;color:#51484c;font-size:10px;font-weight:800}
-/* MilitaryTimeInput renders its own label; hide only that repeated word, never the actual input. */
-.class-creator .schedule-row>label>label{min-width:0;display:grid;gap:4px;font-size:0;color:transparent}
-.class-creator .schedule-row>label>label>input{width:100%;height:40px;padding:0 9px;border:1px solid #ded6d9;border-radius:9px;background:#fff;color:var(--text);text-align:center;font-size:13px;font-weight:800;outline:none}
-.class-creator .schedule-row>label>label>small{display:block;color:var(--muted);font-size:8px;line-height:1.2;text-align:center}
-.class-creator .schedule-row>span{text-align:center;color:#94888e}
-.class-creator .schedule-row>.danger-link{white-space:nowrap}
-.class-creator .schedule-builder>.secondary-button{margin-top:2px}
-
-.roster-editor .roster-search{display:block;width:100%;height:43px;margin:0 0 14px;padding:0 13px;border:1px solid #ded6d9;border-radius:10px;background:#fff;outline:none;color:var(--text)}
+.roster-editor .roster-search{display:block;width:100%;height:42px;margin:0 0 10px;padding:0 12px;border:1px solid #ded6d9;border-radius:10px;outline:none;background:#fff;color:var(--text)}
 .roster-editor .roster-search:focus{border-color:var(--wine);box-shadow:0 0 0 3px rgba(146,45,97,.1)}
-.roster-option-list{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.roster-option-list>button{width:100%;min-height:60px;padding:10px 13px;border:0;border-top:1px solid #f1eeee;background:#fff;color:var(--text);display:flex;align-items:center;gap:12px;text-align:left}
-.roster-option-list>button:first-child{border-top:0}
-.roster-option-list>button:hover{background:#fffafb}
-.roster-option-list>button.enrolled{background:#fff8fb}
-.roster-option-list>button>span{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
-.roster-option-list b{font-size:12px}.roster-option-list small{color:var(--muted);font-size:10px}
-.roster-option-list em{flex:0 0 auto;min-width:48px;padding:6px 9px;border:1px solid #dbcbd3;border-radius:9px;background:#fff;color:var(--wine);font-size:10px;font-style:normal;font-weight:800;text-align:center}
-.roster-option-list>button.enrolled em{border-color:#edc5cd;background:#fff3f5;color:#b6324c}
+.roster-option-list{max-height:390px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.roster-option-list>button{width:100%;min-height:58px;padding:9px 12px;border:0;border-top:1px solid #f1eeee;background:#fff;color:var(--text);display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;text-align:left}
+.roster-option-list>button:first-child{border-top:0}.roster-option-list>button.enrolled{background:#fff8fb}.roster-option-list>button>span{display:flex;flex-direction:column;gap:4px}.roster-option-list b{font-size:10px}.roster-option-list small{color:var(--muted);font-size:8px}.roster-option-list em{min-width:48px;padding:8px 10px;border:1px solid #dbcbd3;border-radius:9px;background:#fff;color:var(--wine);font-size:9px;font-style:normal;font-weight:800;text-align:center}.roster-option-list>button.enrolled em{border-color:#edc5cd;background:#fff3f5;color:#b6324c}
 
-.managed-class-list{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.managed-class-list>button{width:100%;min-height:76px;padding:12px 14px;border:0;border-top:1px solid #f1eeee;background:#fff;color:var(--text);display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:13px;text-align:left}
-.managed-class-list>button:first-child{border-top:0}.managed-class-list>button:hover{background:#fffafb}
-.managed-class-list>button>i{width:7px;height:44px;border-radius:6px}
-.managed-class-list>button>span{min-width:0;display:flex;flex-direction:column;gap:5px}
-.managed-class-list b{font-size:13px}.managed-class-list small,.managed-class-list em{color:var(--muted);font-size:10px;font-style:normal}
-.managed-class-list>button>strong{padding:6px 9px;border-radius:9px;background:#f7f2f4;color:var(--wine);font-size:10px}
+.managed-class-list{padding:8px 18px 20px}.managed-class-list>button{width:100%;display:grid;grid-template-columns:12px minmax(190px,1fr) 75px;align-items:center;gap:12px;padding:14px 4px;border:0;border-bottom:1px solid var(--line);background:#fff;color:var(--text);text-align:left}.managed-class-list>button>i{width:10px;height:42px;border-radius:6px}.managed-class-list>button>span{display:grid;gap:5px}.managed-class-list b{font-size:14px}.managed-class-list small,.managed-class-list em{color:var(--muted);font-size:11px;font-style:normal}.managed-class-list>button>strong{font-size:10px;color:var(--wine);text-align:right}
+.nested-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(35,19,27,.42);backdrop-filter:blur(3px)}
 
-.nested-modal-backdrop{position:fixed;inset:0;z-index:120;padding:18px;display:grid;place-items:center;background:rgba(35,19,27,.46);backdrop-filter:blur(3px)}
-
-@media(max-width:760px){
-  .subject-editor,.class-creator,.roster-editor,.class-manager-modal{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);border-radius:16px}
-  .subject-editor>header,.class-creator>header,.roster-editor>header,.class-manager-modal>header{padding:18px 16px 14px}
-  .subject-editor>.modal-body,.class-creator>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:16px}
-  .subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{padding:12px 16px}
-  .class-creator .form-grid{grid-template-columns:1fr}
-  .class-creator .teacher-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-  .class-creator .teacher-picker>div>label{min-width:0;width:100%}
-  .class-creator .schedule-row{grid-template-columns:1fr 1fr 16px 1fr}
-  .class-creator .weekday-options{grid-column:1/-1}
-  .class-creator .schedule-row>.danger-link{grid-column:1/-1;justify-self:end}
-}
-@media(max-width:480px){
-  .class-creator .teacher-picker>div{grid-template-columns:1fr}
-  .class-creator .schedule-row{grid-template-columns:1fr 12px 1fr}
-  .class-creator .weekday-options{grid-template-columns:repeat(7,minmax(0,1fr))}
-  .class-creator .schedule-row>label:first-of-type{grid-column:1}
-  .class-creator .schedule-row>span{grid-column:2}
-  .class-creator .schedule-row>label:last-of-type{grid-column:3}
-  .managed-class-list>button{grid-template-columns:7px 1fr}.managed-class-list>button>strong{grid-column:2;justify-self:start}
-}
+@media(max-width:760px){.subject-editor,.class-creator,.roster-editor{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.class-manager-modal{width:calc(100vw - 16px)}.subject-editor>header,.class-creator>header,.roster-editor>header,.class-manager-modal>header{padding:22px 20px 17px}.subject-editor>.modal-body,.class-creator>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:18px 20px}.subject-editor>footer,.class-creator>footer,.roster-editor>footer,.class-manager-modal>footer{padding:0 20px 20px}.class-creator .form-grid{grid-template-columns:1fr}.class-creator .schedule-row{grid-template-columns:1fr 1fr 18px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>.danger-link{grid-column:1/-1;justify-self:end}.managed-class-list>button{grid-template-columns:10px 1fr}.managed-class-list>button>strong{grid-column:2;text-align:left}}
+@media(max-width:560px){.class-creator .teacher-picker>div{display:grid;grid-template-columns:1fr 1fr}.class-creator .schedule-row{grid-template-columns:1fr 12px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>label:first-of-type{grid-column:1}.class-creator .schedule-row>span{grid-column:2}.class-creator .schedule-row>label:last-of-type{grid-column:3}}
