@@ -1,10 +1,9 @@
 .correction-direct-badge{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin:0;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;line-height:1;letter-spacing:-.02em;white-space:nowrap}.correction-direct-badge.move{background:#fbe9ef;color:#9f2d63;border:1px solid #efd2dd}.correction-direct-badge.extra{background:#eaf7ef;color:#28724b;border:1px solid #c7e4d2}.correction-direct-badge.compact{display:none!important}
 
-/* 주간 캘린더: 변경/추가 학생도 일반 학생 칩과 정확히 같은 글자·높이·패딩 사용. 색상만 구분 */
-.correction-week-strip em:has(.correction-direct-badge.move),.correction-week-strip em:has(.correction-direct-badge.extra){padding:3px 5px!important;border:0!important;border-radius:5px!important;font-size:7px!important;font-style:normal!important;font-weight:400!important;line-height:normal!important;font-family:inherit!important;letter-spacing:normal!important}
-.correction-week-strip em:has(.correction-direct-badge.move){background:#fcecef!important;color:#9a3158!important}
-.correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important}
-/* 숨겨진 상태용 span이 em의 flex/line box 크기에 영향을 주지 않도록 레이아웃에서도 완전히 제거 */
+/* 주간 캘린더: 모든 학생 이름 칩에 동일한 크기/패딩을 직접 적용하고 상태는 색상만 변경 */
+.correction-learning-board .correction-week-strip em{padding:4px 7px!important;border:0!important;border-radius:6px!important;font-size:10px!important;font-style:normal!important;font-weight:400!important;line-height:1.2!important;font-family:inherit!important;letter-spacing:normal!important}
+.correction-learning-board .correction-week-strip em:has(.correction-direct-badge.move){background:#fcecef!important;color:#9a3158!important}
+.correction-learning-board .correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important}
 .correction-week-strip em>.correction-direct-badge.compact{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;font-size:0!important;line-height:0!important}
 
 /* 학생 상세: 상태 배지는 숨기고 학교 → 변경 일정 → 변경 사유를 같은 리듬으로 정렬 */
@@ -22,4 +21,4 @@
 .correction-change-reason b:after{content:"  |";margin-left:5px;color:#c8bec2;font-weight:500}
 .learning-student:has(>.correction-direct-badge.extra) .correction-change-reason b{color:#2f7651!important}
 
-@media(max-width:720px){.correction-direct-origin,.correction-change-reason,.correction-direct-origin:before,.correction-change-reason b{font-size:8px!important}.correction-direct-origin,.correction-change-reason{gap:6px!important}}
+@media(max-width:720px){.correction-learning-board .correction-week-strip em{font-size:10px!important}.correction-direct-origin,.correction-change-reason,.correction-direct-origin:before,.correction-change-reason b{font-size:8px!important}.correction-direct-origin,.correction-change-reason{gap:6px!important}}
