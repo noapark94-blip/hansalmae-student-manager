@@ -3,6 +3,7 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionMonthCalendar } from "./correction-month-calendar";
+import { CorrectionHistoryModal } from "./correction-history-modal";
 
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;tutorName:string|null;supervisorName:string|null;note:string|null};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
@@ -23,6 +24,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[saving,setSaving]=useState("");
   const[error,setError]=useState("");
   const[monthOpen,setMonthOpen]=useState(false);
+  const[historyStudent,setHistoryStudent]=useState<Assignment|null>(null);
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -96,13 +98,14 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       const key=reportKey(row),report=drafts[key]??{},status=report.attendanceStatus??"scheduled";
       const score=report.examScore,max=report.examMaxScore??100,converted=score==null||!Number.isFinite(Number(score))||!Number.isFinite(Number(max))||Number(max)<=0?null:Math.round(Number(score)/Number(max)*1000)/10;
       return <article key={key}>
-        <div className="learning-person-attendance"><span className="learning-student"><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b><small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{report.recordedByName?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
+        <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b></button><small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{report.recordedByName?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
         <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore??100} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
         <div className="correction-task-cell"><textarea value={report.correctionContent??""} onChange={e=>updateDraft(row,{correctionContent:e.target.value})} placeholder="오늘 실제로 진행한 첨삭 과제·오답·개념 설명 내용을 기록하세요." rows={5}/></div>
       </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
     <footer><span>출결은 즉시 저장되고, 첨삭 기록 저장 시 학생·학부모 리포트와 첨삭시험 성적 추이에 바로 반영됩니다.</span><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void saveAll()}>{saving==="all"?"저장 중…":"첨삭 기록 저장"}</button></footer>
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
+    {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
   </section>;
 }
 
