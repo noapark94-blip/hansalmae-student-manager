@@ -81,7 +81,7 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
             const selected=selectedDate===day;
             return <button type="button" key={day} className={`${records.length?"has-record":""}${selected?" selected":""}`} onClick={()=>records.length&&setSelectedDate(day)} disabled={!records.length}>
               <span>{Number(day.slice(-2))}</span>
-              {records.length?<div>{records.slice(0,2).map(record=><em key={record.id} className={record.attendance_status}>{record.subject} · {attendanceLabel[record.attendance_status]??record.attendance_status}</em>)}{records.length>2?<small>+{records.length-2}</small>:null}</div>:null}
+              {records.length?<div>{records.slice(0,2).map(record=><em key={record.id} className={record.attendance_status}>{attendanceLabel[record.attendance_status]??record.attendance_status}</em>)}{records.length>2?<small>+{records.length-2}</small>:null}</div>:null}
             </button>
           })}</div>
         </section>
