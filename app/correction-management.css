@@ -47,3 +47,22 @@
   min-width:0;
  }
 }
+
+
+/* Compact, equal-size assignment editor actions. */
+@media(min-width:601px){
+ .correction-editor form>footer>button,
+ .correction-editor form>footer>span>button,
+ .correction-editor form>footer>.danger-link{
+  width:120px!important;
+  min-width:120px!important;
+  min-height:46px!important;
+  height:46px!important;
+  flex:0 0 120px!important;
+  padding:0 12px!important;
+  border-radius:11px!important;
+  font-size:14px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+ }
+}
