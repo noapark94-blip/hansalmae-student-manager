@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "../supabase";
 import { CorrectionManagementBoard } from "../correction-management-board";
 import { CorrectionWorkBoard } from "../correction-work-board";
+import { CorrectionOperationSync } from "../correction-operation-sync";
 
 export default function CorrectionsPage(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
@@ -29,5 +30,5 @@ export default function CorrectionsPage(){
   if(!supabase)return<main className="correction-route"><section className="panel correction-empty">Supabase 연결 설정이 필요합니다.</section></main>;
   if(!user)return<main className="correction-route"><section className="panel correction-empty"><b>로그인이 필요합니다.</b><a href="/">로그인 화면으로 돌아가기</a></section></main>;
   if(!allowed)return<main className="correction-route"><section className="panel correction-empty"><b>교직원만 첨삭 관리를 사용할 수 있습니다.</b><a href="/">한살매 홈으로 돌아가기</a></section></main>;
-  return<main className="correction-route"><header className="correction-route-topbar"><a href="/">‹ 한살매 홈</a><span>첨삭 관리</span></header><div className="correction-route-content"><CorrectionManagementBoard supabase={supabase}/><CorrectionWorkBoard supabase={supabase}/></div></main>;
+  return<main className="correction-route"><CorrectionOperationSync supabase={supabase}/><header className="correction-route-topbar"><a href="/">‹ 한살매 홈</a><span>첨삭 관리</span></header><div className="correction-route-content"><CorrectionManagementBoard supabase={supabase}/><CorrectionWorkBoard supabase={supabase}/></div></main>;
 }
