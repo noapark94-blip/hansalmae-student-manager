@@ -138,3 +138,15 @@
   height:calc(100dvh - 16px);
  }
 }
+
+
+/* Use the same visible calendar dimensions as cumulative class history. */
+.correction-history-calendar-modal>header .eyebrow{
+ display:none;
+}
+.correction-history-weekdays{
+ padding:9px 0 7px;
+}
+.correction-history-calendar-grid{
+ padding:0;
+}
