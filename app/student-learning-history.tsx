@@ -91,7 +91,7 @@ function LearningRecordCard({item}:{item:Report}){
   </article>
 }
 function RecordRow({label,text}:{label:string;text:string}){return <section className="student-learning-row"><b>{label}</b><p>{text}</p></section>}
-function recordDayLabel(items:Report[],day:string){const dayItems=items.filter(item=>item.lessonDate===day);if(!dayItems.length)return"";const names=Array.from(new Set(dayItems.map(item=>item.subject).filter(Boolean)));return names.length>1?`${names[0]} 외 ${names.length-1}`:(names[0]??"수업")}
+function recordDayLabel(items:Report[],day:string){const dayItems=items.filter(item=>item.lessonDate===day);if(!dayItems.length)return"";const labels=Array.from(new Set(dayItems.map(item=>item.attendance?attendanceLabel[item.attendance.status]??item.attendance.status:"").filter(Boolean)));return labels.length>1?`${labels[0]} 외 ${labels.length-1}`:(labels[0]??"출결 기록")}
 function buildCalendar(month:string){const[y,m]=month.split("-").map(Number);const first=new Date(y,m-1,1);const count=new Date(y,m,0).getDate();const values:(string|null)[]=Array(first.getDay()).fill(null);for(let d=1;d<=count;d++)values.push(`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`);while(values.length%7)values.push(null);return values}
 function monthKey(date:Date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`}
 function formatMonth(value:string){const[y,m]=value.split("-").map(Number);return `${y}년 ${m}월`}
