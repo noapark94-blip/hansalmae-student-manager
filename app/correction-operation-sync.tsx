@@ -37,13 +37,29 @@ export function CorrectionOperationSync({supabase}:{supabase:SupabaseClient}){
         card.style.setProperty("border","0","important");
         card.querySelector("em")?.remove();
         const small=card.querySelector("small");
-        if(small)small.textContent="정규 일정";
+        if(small&&small.textContent!=="정규 일정")small.textContent="정규 일정";
       });
       board.querySelectorAll<HTMLElement>(".correction-day").forEach(day=>{
         const count=[...day.querySelectorAll<HTMLElement>(".correction-student")].filter(card=>getComputedStyle(card).display!=="none").length;
         const badge=day.querySelector<HTMLElement>(":scope > header > em");
-        if(badge)badge.textContent=`${count}명`;
+        const next=`${count}명`;if(badge&&badge.textContent!==next)badge.textContent=next;
       });
+    };
+
+    const ensureBadge=(host:HTMLElement,row:Operational|null,detail=false)=>{
+      const existing=host.querySelector<HTMLElement>(":scope > .correction-change-badge");
+      if(!row||row.kind==="fixed"){
+        existing?.remove();
+        return;
+      }
+      const text=detail?(row.kind==="move"?"변경 일정":"추가 첨삭"):(row.kind==="move"?"변경":"추가");
+      const className=`correction-change-badge${detail?" detail":""} ${row.kind}`;
+      if(existing){
+        if(existing.className!==className)existing.className=className;
+        if(existing.textContent!==text)existing.textContent=text;
+        return;
+      }
+      const badge=document.createElement("span");badge.className=className;badge.textContent=text;host.appendChild(badge);
     };
 
     const syncWorkBoard=async()=>{
@@ -58,86 +74,65 @@ export function CorrectionOperationSync({supabase}:{supabase:SupabaseClient}){
       for(let i=0;i<7;i++){const date=addDays(monday,i);operational.set(date,buildOperational(board,date));}
 
       buttons.forEach((button,index)=>{
-        const date=addDays(monday,index);
-        const rows=operational.get(date)??[];
-        const nameEls=[...button.querySelectorAll<HTMLElement>("em")];
-        const used=new Set<number>();
-        nameEls.forEach(el=>{
+        const date=addDays(monday,index),rows=operational.get(date)??[],used=new Set<number>();
+        button.querySelectorAll<HTMLElement>("em").forEach(el=>{
           const base=el.dataset.baseStudentName||el.childNodes[0]?.textContent?.trim()||el.textContent?.trim()||"";
-          el.dataset.baseStudentName=base;
-          el.querySelector(".correction-change-badge")?.remove();
+          if(!el.dataset.baseStudentName)el.dataset.baseStudentName=base;
           const rowIndex=rows.findIndex((row,i)=>!used.has(i)&&row.assignment.studentName===base&&row.kind!=="fixed");
-          if(rowIndex<0)return;
-          used.add(rowIndex);
-          const row=rows[rowIndex];
-          const badge=document.createElement("span");
-          badge.className=`correction-change-badge ${row.kind}`;
-          badge.textContent=row.kind==="move"?"변경":"추가";
-          el.appendChild(badge);
+          if(rowIndex<0){ensureBadge(el,null);return}
+          used.add(rowIndex);ensureBadge(el,rows[rowIndex]);
         });
       });
 
       const selectedIndex=buttons.findIndex(button=>button.classList.contains("active"));
       if(selectedIndex<0)return;
-      const selectedDate=addDays(monday,selectedIndex);
-      const selectedRows=operational.get(selectedDate)??[];
+      const selectedDate=addDays(monday,selectedIndex),selectedRows=operational.get(selectedDate)??[];
       document.querySelectorAll<HTMLElement>(".correction-learning-rows article").forEach(article=>{
-        const name=article.querySelector<HTMLElement>(".learning-student button b")?.textContent?.trim();
-        if(!name)return;
+        const name=article.querySelector<HTMLElement>(".learning-student button b")?.textContent?.trim();if(!name)return;
         const info=article.querySelector<HTMLElement>(".learning-student > small")?.textContent||"";
         const row=selectedRows.find(item=>item.assignment.studentName===name&&info.includes(item.assignment.subject));
-        const student=article.querySelector<HTMLElement>(".learning-student");
-        student?.querySelector(".correction-change-badge")?.remove();
-        student?.querySelector(".correction-change-origin")?.remove();
-        if(!row||row.kind==="fixed"||!student)return;
-        const badge=document.createElement("span");
-        badge.className=`correction-change-badge detail ${row.kind}`;
-        badge.textContent=row.kind==="move"?"변경 일정":"추가 첨삭";
-        student.appendChild(badge);
-        const detail=document.createElement("small");
-        detail.className="correction-change-origin";
-        if(row.kind==="move"&&row.exception){
-          const originalDay=WEEKDAYS[isoWeekday(row.exception.originalDate)-1];
-          detail.textContent=`기존 ${originalDay} ${row.assignment.startTime.slice(0,5)} → ${WEEKDAYS[isoWeekday(selectedDate)-1]} ${row.startTime.slice(0,5)}`;
-        }else detail.textContent="정규 일정 외 추가 첨삭";
-        student.appendChild(detail);
+        const student=article.querySelector<HTMLElement>(".learning-student");if(!student)return;
+        ensureBadge(student,row??null,true);
+        const existing=student.querySelector<HTMLElement>(":scope > .correction-change-origin");
+        if(!row||row.kind==="fixed"){existing?.remove();return}
+        const text=row.kind==="move"&&row.exception?`기존 ${WEEKDAYS[isoWeekday(row.exception.originalDate)-1]} ${row.assignment.startTime.slice(0,5)} → ${WEEKDAYS[isoWeekday(selectedDate)-1]} ${row.startTime.slice(0,5)}`:"정규 일정 외 추가 첨삭";
+        if(existing){if(existing.textContent!==text)existing.textContent=text;return}
+        const detail=document.createElement("small");detail.className="correction-change-origin";detail.textContent=text;student.appendChild(detail);
       });
     };
 
     const syncMonthCalendar=async()=>{
-      const modal=document.querySelector<HTMLElement>(".correction-month-modal");
-      if(!modal)return;
+      const modal=document.querySelector<HTMLElement>(".correction-month-modal");if(!modal)return;
       const title=modal.querySelector<HTMLElement>(".correction-month-toolbar strong")?.textContent||"";
       const match=title.match(/(\d{4})년\s*(\d{1,2})월/);if(!match)return;
-      const month=`${match[1]}-${String(Number(match[2])).padStart(2,"0")}-01`;
-      const dates=calendarDays(month);
-      const boards=await Promise.all([...new Set(dates.map(weekMonday))].map(getBoard));
-      if(disposed)return;
-      const boardByMonday=new Map<string,Board>();
-      [...new Set(dates.map(weekMonday))].forEach((monday,i)=>{const board=boards[i];if(board)boardByMonday.set(monday,board)});
+      const month=`${match[1]}-${String(Number(match[2])).padStart(2,"0")}-01`,dates=calendarDays(month),mondays=[...new Set(dates.map(weekMonday))];
+      const boards=await Promise.all(mondays.map(getBoard));if(disposed)return;
+      const boardByMonday=new Map<string,Board>();mondays.forEach((monday,i)=>{const board=boards[i];if(board)boardByMonday.set(monday,board)});
       const cells=[...modal.querySelectorAll<HTMLButtonElement>(".correction-month-grid > button")];
       cells.forEach((cell,index)=>{
-        const date=dates[index];if(!date)return;
-        const board=boardByMonday.get(weekMonday(date));if(!board)return;
-        const rows=buildOperational(board,date);
-        const used=new Set<number>();
+        const date=dates[index];if(!date)return;const board=boardByMonday.get(weekMonday(date));if(!board)return;
+        const rows=buildOperational(board,date),used=new Set<number>();
         cell.querySelectorAll<HTMLElement>("em").forEach(el=>{
           const base=el.dataset.baseStudentName||el.childNodes[0]?.textContent?.trim()||el.textContent?.trim()||"";
-          el.dataset.baseStudentName=base;
-          el.querySelector(".correction-change-badge")?.remove();
+          if(!el.dataset.baseStudentName)el.dataset.baseStudentName=base;
           const rowIndex=rows.findIndex((row,i)=>!used.has(i)&&row.assignment.studentName===base&&row.kind!=="fixed");
-          if(rowIndex<0)return;used.add(rowIndex);
-          const row=rows[rowIndex];const badge=document.createElement("span");
-          badge.className=`correction-change-badge ${row.kind}`;badge.textContent=row.kind==="move"?"변경":"추가";el.appendChild(badge);
+          if(rowIndex<0){ensureBadge(el,null);return}used.add(rowIndex);ensureBadge(el,rows[rowIndex]);
         });
       });
     };
 
     const sync=()=>{syncFixedTimetable();void syncWorkBoard();void syncMonthCalendar()};
     const requestSync=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;sync()})};
+    const onClick=(event:MouseEvent)=>{
+      const target=event.target as HTMLElement|null;
+      if(target?.closest(".correction-action")&&target.closest("button")?.textContent?.trim()==="적용"){
+        boardCache.clear();setTimeout(()=>{if(!disposed)requestSync()},900);
+      }
+    };
+    document.addEventListener("click",onClick,true);
     sync();
-    const observer=new MutationObserver(requestSync);observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:["class"]});
-    return()=>{disposed=true;observer.disconnect()};
+    const observer=new MutationObserver(requestSync);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});
+    return()=>{disposed=true;document.removeEventListener("click",onClick,true);observer.disconnect()};
   },[supabase]);
 
   return <style>{`
