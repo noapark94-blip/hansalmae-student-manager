@@ -30,6 +30,7 @@ import "./correction-subject-tabs.css";
 import "./weekly-timetable-compact.css";
 import "./student-page-polish.css";
 import "./class-modal-repair.css";
+import "./correction-timetable-names.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
