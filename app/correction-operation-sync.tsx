@@ -14,7 +14,7 @@ export function CorrectionOperationSync({supabase}:{supabase:SupabaseClient}){
   useEffect(()=>{
     let disposed=false;
     let queued=false;
-    const boardCache=new Map<string,Promise<Board|null>>();
+    const boardCache=new Map<string,PromiseLike<Board|null>>();
 
     const getBoard=(anchor:string)=>{
       const monday=weekMonday(anchor);
