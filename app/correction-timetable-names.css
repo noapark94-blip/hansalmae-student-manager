@@ -1,46 +1,50 @@
-/* Final override for the correction timetable only.
-   Keep timetable cards compact: names fill horizontally before wrapping. */
-.correction-route .correction-subject > div{
+/* Final override for correction timetable student cards.
+   Two students per row; show only student name and grade. */
+.correction-subject > div{
   display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:5px!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
   align-items:stretch!important;
 }
-.correction-route .correction-subject .correction-student{
+.correction-subject .correction-student{
   width:100%!important;
   min-width:0!important;
-  min-height:30px!important;
+  min-height:44px!important;
   margin:0!important;
-  padding:6px 4px!important;
+  padding:7px 8px!important;
   display:flex!important;
   align-items:center!important;
-  justify-content:center!important;
-  border-radius:8px!important;
-  text-align:center!important;
+  justify-content:flex-start!important;
+  border-radius:9px!important;
+  text-align:left!important;
+  box-sizing:border-box!important;
 }
-.correction-route .correction-subject .correction-student > span{
-  display:block!important;
+.correction-subject .correction-student > span{
+  display:grid!important;
+  gap:2px!important;
   width:100%!important;
   min-width:0!important;
 }
-.correction-route .correction-subject .correction-student b{
+.correction-subject .correction-student b{
   display:block!important;
   margin:0!important;
-  font-size:9px!important;
+  font-size:10px!important;
+  line-height:1.3!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.correction-subject .correction-student small{
+  display:block!important;
+  margin:0!important;
+  color:#94868d!important;
+  font-size:8px!important;
   line-height:1.25!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-.correction-route .correction-subject .correction-student small,
-.correction-route .correction-subject .correction-student em,
-.correction-route .correction-subject .correction-student i{
+.correction-subject .correction-student em,
+.correction-subject .correction-student i{
   display:none!important;
-}
-@media(max-width:900px){
-  .correction-route .correction-subject > div{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-  .correction-route .correction-subject .correction-student b{font-size:10px!important}
-}
-@media(max-width:420px){
-  .correction-route .correction-subject > div{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
