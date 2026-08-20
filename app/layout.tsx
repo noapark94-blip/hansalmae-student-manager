@@ -26,11 +26,13 @@ import "./correction-management-override.css";
 import "./correction-calendar-polish.css";
 import "./correction-history-filter-polish.css";
 import "./correction-subject-groups.css";
+import "./correction-subject-tabs.css";
 import "./weekly-timetable-compact.css";
 import "./student-page-polish.css";
 import "./class-modal-repair.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
+import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
@@ -60,5 +62,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete />{children}</body></html>;
+  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs />{children}</body></html>;
 }
