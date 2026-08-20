@@ -2,6 +2,7 @@
 
 import { useCallback,useEffect,useMemo,useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { CorrectionMonthCalendar } from "./correction-month-calendar";
 
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;tutorName:string|null;supervisorName:string|null;note:string|null};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
@@ -21,6 +22,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[loading,setLoading]=useState(true);
   const[saving,setSaving]=useState("");
   const[error,setError]=useState("");
+  const[monthOpen,setMonthOpen]=useState(false);
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -85,7 +87,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   return <section className="class-learning-board correction-learning-board">
-    <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘 한 첨삭과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions"><button type="button" className="secondary-button" onClick={()=>setDate(addDays(date,-7))}>‹ 이전 주</button><button type="button" className="secondary-button" onClick={()=>setDate(koreaToday())}>이번 주</button><button type="button" className="secondary-button" onClick={()=>setDate(addDays(date,7))}>다음 주 ›</button></div></header>
+    <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘 한 첨삭과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions"><button type="button" className="secondary-button correction-calendar-button" onClick={()=>setMonthOpen(true)}>전체 첨삭 캘린더</button><button type="button" className="secondary-button" onClick={()=>setDate(addDays(date,-7))}>‹ 이전 주</button><button type="button" className="secondary-button" onClick={()=>setDate(koreaToday())}>이번 주</button><button type="button" className="secondary-button" onClick={()=>setDate(addDays(date,7))}>다음 주 ›</button></div></header>
     <div className="class-week-strip correction-week-strip">{weekDates.map((day,index)=>{const dayRows=buildOccurrences(data,day);return <button key={day} className={`${day===date?"active":""} ${dayRows.length?"scheduled":""}`} onClick={()=>setDate(day)}><span>{weekdays[index]}</span><b>{+day.slice(8)}</b><div>{dayRows.slice(0,4).map(row=>{const report=drafts[reportKey(row)]??{};const status=report.attendanceStatus??"scheduled";return <em key={reportKey(row)} className={status==="scheduled"?"":status}>{row.assignment.studentName}</em>})}{!dayRows.length?<small>첨삭 없음</small>:dayRows.every(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled")?<small>출석 전</small>:null}</div></button>})}</div>
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span>시험 기록</span><span>오늘 한 첨삭과제</span></div>
     {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows">{rows.map(row=>{
@@ -98,6 +100,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
     <footer><span>출결은 즉시 저장되고, 첨삭 기록 저장 시 학생·학부모 리포트와 첨삭시험 성적 추이에 바로 반영됩니다.</span><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void saveAll()}>{saving==="all"?"저장 중…":"첨삭 기록 저장"}</button></footer>
+    {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
   </section>;
 }
 
