@@ -1,0 +1,42 @@
+/* 첨삭 기록 열 비율과 월간 캘린더 */
+.correction-learning-board .correction-learning-heading,
+.correction-learning-board .correction-learning-rows>article{
+  grid-template-columns:minmax(260px,1fr) minmax(500px,2fr) minmax(360px,1.35fr)!important;
+}
+.correction-learning-board .correction-learning-rows>article{gap:0!important;padding:0!important}
+.correction-learning-board .correction-learning-rows>article>div{padding:24px 20px!important;box-sizing:border-box;min-width:0}
+.correction-learning-board .correction-learning-rows>article>div+div{border-left:1px solid #eee5e9}
+.correction-learning-board .correction-learning-heading{padding:0!important}
+.correction-learning-board .correction-learning-heading>span{padding:16px 20px;box-sizing:border-box}
+.correction-learning-board .correction-learning-heading>span+span{border-left:1px solid #eee5e9}
+.correction-learning-board .correction-exam{grid-template-columns:minmax(145px,.85fr) minmax(230px,1.4fr)!important;gap:10px!important}
+.correction-learning-board .correction-exam>select,.correction-learning-board .correction-exam>input{min-width:0;width:100%;box-sizing:border-box}
+.correction-learning-board .correction-exam>span{grid-column:1!important;width:100%}
+.correction-learning-board .correction-exam>input:nth-of-type(2){grid-column:2!important}
+.correction-learning-board .correction-task-cell textarea{min-height:150px!important}
+.correction-calendar-button{margin-right:6px!important}
+
+.correction-month-modal{width:min(1040px,94vw)!important;max-width:1040px!important;overflow:hidden}
+.correction-month-toolbar{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 18px;border-bottom:1px solid #eee5e9;background:#fcfafb}
+.correction-month-toolbar strong{min-width:130px;text-align:center;font-size:16px}
+.correction-month-toolbar button{border:1px solid #dfd4d9;border-radius:9px;background:#fff;color:#922d61;padding:8px 12px;font:inherit;font-weight:800;cursor:pointer}
+.correction-month-weekdays,.correction-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.correction-month-weekdays{padding:10px 14px 6px;background:#fff}
+.correction-month-weekdays b{text-align:center;font-size:11px;color:#7d7076}
+.correction-month-grid{padding:0 14px 16px;background:#fff}
+.correction-month-grid>button{min-height:112px;border:0;border-top:1px solid #eee7ea;border-left:1px solid #eee7ea;background:#fff;padding:9px;text-align:left;cursor:pointer;color:#332b2f}
+.correction-month-grid>button:nth-child(7n){border-right:1px solid #eee7ea}.correction-month-grid>button:nth-last-child(-n+7){border-bottom:1px solid #eee7ea}
+.correction-month-grid>button:hover{background:#fdf9fb}.correction-month-grid>button.outside{background:#fbfafb;color:#b4a9ae}.correction-month-grid>button.selected{box-shadow:inset 0 0 0 2px #a62d68}.correction-month-grid>button.today>span{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;border-radius:999px;background:#922d61;color:#fff}
+.correction-month-grid>button>span{font-weight:850;font-size:12px}.correction-month-grid>button>div{display:grid;gap:4px;margin-top:7px}.correction-month-grid em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:6px;background:#f4eef1;padding:3px 5px;font-style:normal;font-size:9px;color:#6b5f65}.correction-month-grid em.present{background:#e7f5ed;color:#32745a}.correction-month-grid em.late{background:#fff2df;color:#a56c1f}.correction-month-grid em.absent{background:#fbe8ec;color:#a84255}.correction-month-grid small{font-size:9px;color:#9b8d94}.correction-month-grid small.empty{opacity:.65}.correction-month-loading{padding:60px 20px;text-align:center;color:#91838a}
+
+@media(max-width:1100px){
+ .correction-learning-board .correction-learning-rows>article{grid-template-columns:minmax(250px,.8fr) minmax(0,1.4fr)!important}
+ .correction-learning-board .correction-learning-rows>article>div:nth-child(3){grid-column:1/-1;border-left:0!important;border-top:1px solid #eee5e9}
+}
+@media(max-width:800px){
+ .correction-learning-board .correction-learning-rows>article{grid-template-columns:1fr!important}
+ .correction-learning-board .correction-learning-rows>article>div{padding:16px!important;border-left:0!important;border-top:1px solid #eee5e9}
+ .correction-learning-board .correction-learning-rows>article>div:first-child{border-top:0}
+ .correction-learning-board .correction-exam{grid-template-columns:1fr 1fr!important}
+ .correction-month-modal{width:96vw!important}.correction-month-grid{overflow-x:auto;grid-template-columns:repeat(7,minmax(105px,1fr))}.correction-month-weekdays{grid-template-columns:repeat(7,minmax(105px,1fr));overflow:hidden}.correction-month-grid>button{min-height:100px}
+}
