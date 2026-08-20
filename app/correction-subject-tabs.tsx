@@ -7,6 +7,13 @@ const SUBJECTS=["국어","영어","수학"] as const;
 export function CorrectionSubjectTabs(){
   useEffect(()=>{
     const sync=()=>{
+      document.querySelectorAll<HTMLElement>(".correction-slot-students .correction-student").forEach(card=>{
+        card.classList.remove("subject-국어","subject-영어","subject-수학");
+        const meta=card.querySelector("small")?.textContent||"";
+        const subject=SUBJECTS.find(item=>meta.includes(item));
+        if(subject)card.classList.add(`subject-${subject}`);
+      });
+
       const groups=document.querySelector<HTMLElement>(".correction-subject-groups");
       if(!groups)return;
 
