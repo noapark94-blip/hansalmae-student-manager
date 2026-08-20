@@ -46,3 +46,25 @@
   .correction-direct-origin:before,.correction-change-reason:before{flex-basis:64px!important;width:64px!important;margin-right:7px!important;padding-right:6px!important}
   .correction-change-review-body{padding:4px 20px 18px}.correction-change-review-body p{grid-template-columns:76px minmax(0,1fr);gap:10px;font-size:13px}
 }
+
+/* Keep schedule-change actions fully inside the rounded modal. */
+.correction-change-review{
+ overflow:hidden;
+}
+.correction-change-review>footer{
+ width:100%;
+ box-sizing:border-box;
+ flex:0 0 auto;
+ gap:12px;
+ padding:16px 28px 24px!important;
+}
+.correction-change-review>footer .danger-link,
+.correction-change-review>footer .secondary-button{
+ flex:0 0 auto;
+ margin:0!important;
+}
+@media(max-width:720px){
+ .correction-change-review>footer{
+  padding:14px 20px 20px!important;
+ }
+}
