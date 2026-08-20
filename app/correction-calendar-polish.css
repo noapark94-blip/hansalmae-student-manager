@@ -84,3 +84,57 @@
   line-height:12px;
 }
 @media(max-width:800px){.correction-history-calendar-grid>.blank{min-height:76px}}
+
+
+/* Keep all six calendar weeks visible inside short desktop viewports. */
+@media(min-width:1101px){
+ .correction-history-modal.correction-history-calendar-modal{
+  height:min(900px,calc(100dvh - 28px));
+ }
+ .correction-history-modal.correction-history-calendar-modal>.correction-history-summary,
+ .correction-history-modal.correction-history-calendar-modal>.correction-history-filter{
+  flex:0 0 auto;
+ }
+ .correction-history-modal.correction-history-calendar-modal>.correction-history-calendar-wrap{
+  flex:1 1 auto;
+  overflow:hidden;
+ }
+ .correction-history-calendar,
+ .correction-history-day-panel{
+  min-height:0;
+ }
+ .correction-history-calendar{
+  display:flex;
+  flex-direction:column;
+ }
+ .correction-history-calendar-toolbar,
+ .correction-history-weekdays{
+  flex:0 0 auto;
+ }
+ .correction-history-calendar-grid{
+  flex:1 1 auto;
+  min-height:0;
+  grid-template-rows:repeat(6,minmax(0,1fr));
+ }
+ .correction-history-calendar-grid>button,
+ .correction-history-calendar-grid>.blank{
+  min-height:0;
+  height:auto;
+ }
+ .correction-history-day-panel{
+  overflow:hidden;
+ }
+}
+@media(max-width:1100px){
+ .correction-history-modal.correction-history-calendar-modal{
+  height:calc(100dvh - 28px);
+ }
+ .correction-history-calendar-wrap{
+  overflow:auto;
+ }
+}
+@media(max-width:800px){
+ .correction-history-modal.correction-history-calendar-modal{
+  height:calc(100dvh - 16px);
+ }
+}
