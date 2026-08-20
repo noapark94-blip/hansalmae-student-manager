@@ -35,6 +35,7 @@ import "./correction-direct-badges.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
+import { CorrectionHubUnified } from "./correction-hub-unified";
 
 export const metadata: Metadata = {
   title: "한살매 입시전문학원",
@@ -64,5 +65,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs />{children}</body></html>;
+  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
 }
