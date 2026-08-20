@@ -2,7 +2,7 @@
 .class-day-workspace .class-learning-board{
   margin:0!important;
   border:1px solid #eadfe4!important;
-  border-radius:18px!important;
+  border-radius:0 0 18px 18px!important;
   background:#fff!important;
   box-shadow:none!important;
   overflow:hidden!important;
@@ -134,7 +134,7 @@
 }
 
 @media(max-width:900px){
-  .class-day-workspace .class-learning-board{border-radius:15px!important}
+  .class-day-workspace .class-learning-board{border-radius:0 0 15px 15px!important}
   .class-day-workspace .class-learning-board>header,
   .class-day-workspace .class-week-strip,
   .class-day-workspace .learning-common-record,
