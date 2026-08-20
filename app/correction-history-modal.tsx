@@ -75,11 +75,12 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
             <button type="button" onClick={()=>setMonth(shiftMonth(month,1))}>›</button>
           </div>
           <div className="correction-history-weekdays">{weekdays.map(day=><b key={day}>{day}</b>)}</div>
-          <div className="correction-history-calendar-grid">{calendarDays.map(day=>{
-            const records=byDate.get(day.date)??[];
-            const selected=selectedDate===day.date;
-            return <button type="button" key={day.date} className={`${day.inMonth?"":"outside"}${records.length?" has-record":""}${selected?" selected":""}`} onClick={()=>records.length&&setSelectedDate(day.date)} disabled={!records.length}>
-              <span>{Number(day.date.slice(-2))}</span>
+          <div className="correction-history-calendar-grid">{calendarDays.map((day,index)=>{
+            if(!day)return <span className="blank" key={`blank-${index}`}/>;
+            const records=byDate.get(day)??[];
+            const selected=selectedDate===day;
+            return <button type="button" key={day} className={`${records.length?"has-record":""}${selected?" selected":""}`} onClick={()=>records.length&&setSelectedDate(day)} disabled={!records.length}>
+              <span>{Number(day.slice(-2))}</span>
               {records.length?<div>{records.slice(0,2).map(record=><em key={record.id} className={record.attendance_status}>{record.subject} · {attendanceLabel[record.attendance_status]??record.attendance_status}</em>)}{records.length>2?<small>+{records.length-2}</small>:null}</div>:null}
             </button>
           })}</div>
@@ -111,4 +112,4 @@ function formatScore(value:number){return Number.isInteger(Number(value))?String
 function monthKey(date:Date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`}
 function formatMonth(value:string){const[y,m]=value.split("-");return `${y}년 ${Number(m)}월`}
 function shiftMonth(value:string,amount:number){const[y,m]=value.split("-").map(Number);return monthKey(new Date(y,m-1+amount,1))}
-function buildCalendar(value:string){const[y,m]=value.split("-").map(Number);const first=new Date(y,m-1,1);const start=new Date(y,m-1,1-first.getDay());return Array.from({length:42},(_,index)=>{const date=new Date(start);date.setDate(start.getDate()+index);const key=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;return{date:key,inMonth:date.getMonth()===m-1}})}
+function buildCalendar(value:string){const[y,m]=value.split("-").map(Number);const first=new Date(y,m-1,1);const count=new Date(y,m,0).getDate();const days:(string|null)[]=Array(first.getDay()).fill(null);for(let day=1;day<=count;day++)days.push(`${y}-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}`);while(days.length%7)days.push(null);return days}
