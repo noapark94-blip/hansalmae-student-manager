@@ -150,3 +150,20 @@
 .correction-history-calendar-grid{
  padding:0;
 }
+
+
+/* Anchor every date number to the same top-left point, regardless of record count. */
+.correction-month-grid>button{
+ position:relative;
+ display:block;
+ vertical-align:top;
+}
+.correction-month-grid>button>span{
+ position:absolute;
+ top:9px;
+ left:9px;
+ line-height:25px;
+}
+.correction-month-grid>button>div{
+ margin-top:27px;
+}
