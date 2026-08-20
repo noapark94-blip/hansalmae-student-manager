@@ -53,7 +53,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
   const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>({...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}}));
 
-  const persist=async(row:Occurrence,next:Report)=>{
+  const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
     const max=next.examMaxScore==null||Number(next.examMaxScore)<=0?100:Number(next.examMaxScore);
     const score=next.examScore==null?null:Number(next.examScore);
     if(score!==null&&(!Number.isFinite(score)||score<0||score>max))throw new Error(`${row.assignment.studentName} 학생의 시험 점수를 확인해 주세요.`);
@@ -63,11 +63,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       p_teacher_instruction:next.teacherInstruction||null,p_exam_title:next.examTitle||null,p_exam_range:next.examRange||null,
       p_exam_score:score,p_exam_max_score:max,p_evaluation:next.evaluation||null,p_homework_instruction:next.homeworkInstruction||null,
       p_homework_status:next.homeworkStatus||null,p_homework_note:next.homeworkNote||null,p_correction_content:next.correctionContent||null,
-      p_assistant_feedback:next.assistantFeedback||null,p_next_preparation:next.nextPreparation||null,p_published:true
+      p_assistant_feedback:next.assistantFeedback||null,p_next_preparation:next.nextPreparation||null,p_published:publish
     });
     if(saveError)throw saveError;
     const refreshed=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
-    if(refreshed.error)updateDraft(row,{...next,published:true,examMaxScore:max});
+    if(refreshed.error)updateDraft(row,{...next,published:publish,examMaxScore:max});
     else setDrafts(current=>({...current,[reportKey(row)]:(refreshed.data??{}) as Report}));
   };
 
@@ -81,13 +81,14 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 숫자로 입력해 주세요.");return}
     }
     setSaving(key);setError("");
-    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:late})}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
+    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:late},false)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
     setSaving("");
   };
 
-  const saveAll=async()=>{
+  const saveAll=async(complete:boolean)=>{
+    if(complete){const missing=rows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled").map(row=>row.assignment.studentName);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
     setSaving("all");setError("");
-    try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{})}
+    try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{},complete)}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
     await load();setSaving("");
   };
@@ -110,7 +111,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span>시험 기록</span><span>오늘 한 첨삭과제</span></div>
     {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=rows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    <footer><span>출결은 즉시 저장되고, 첨삭 기록 저장 시 학생·학부모 리포트와 첨삭시험 성적 추이에 바로 반영됩니다.</span><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void saveAll()}>{saving==="all"?"저장 중…":"첨삭 기록 저장"}</button></footer>
+    <footer><span>출결을 모두 입력하고 완료해야 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</span><span><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void saveAll(false)}>임시 저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"첨삭 완료"}</button></span></footer>
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
     {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
     {scheduleChangeRow?.exception?<CorrectionScheduleChangeModal row={scheduleChangeRow} supabase={supabase} onClose={()=>setScheduleChangeRow(null)} onReverted={async()=>{setScheduleChangeRow(null);await load();}}/>:null}
