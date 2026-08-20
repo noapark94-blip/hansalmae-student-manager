@@ -23,7 +23,7 @@ export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseCl
   useEffect(()=>{
     let active=true;
     setLoading(true);setError("");
-    void supabase.rpc("staff_student_learning_history",{p_student_id:studentId,p_limit:300}).then(({data,error:loadError})=>{
+    void supabase.rpc("staff_student_completed_learning_history",{p_student_id:studentId,p_limit:300}).then(({data,error:loadError})=>{
       if(!active)return;
       if(loadError){setError("수업 기록을 불러오지 못했습니다.");setItems([]);setLoading(false);return;}
       const rows=((data??[]) as Report[]).slice().sort((a,b)=>b.lessonDate.localeCompare(a.lessonDate)||String(b.startsAt).localeCompare(String(a.startsAt)));
