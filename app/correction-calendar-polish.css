@@ -196,3 +196,32 @@
   max-height:calc(100dvh - 16px)!important;
  }
 }
+
+
+/* Compact fixed schedule beside each correction student name. */
+.correction-learning-board .correction-history-trigger{
+ flex-wrap:nowrap!important;
+ gap:7px!important;
+}
+.correction-learning-board .correction-fixed-time{
+ display:inline-flex;
+ align-items:center;
+ flex:0 0 auto;
+ min-height:20px;
+ box-sizing:border-box;
+ padding:3px 7px;
+ border:1px solid #e7dde2;
+ border-radius:999px;
+ background:#f8f5f6;
+ color:#7d7076;
+ font-size:9px;
+ font-weight:750;
+ line-height:1;
+ white-space:nowrap;
+}
+@media(max-width:600px){
+ .correction-learning-board .correction-fixed-time{
+  padding:3px 6px;
+  font-size:8px;
+ }
+}
