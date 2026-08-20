@@ -1,12 +1,21 @@
 /* Final override for correction timetable student cards.
-   Two students per row; show only student name and grade. */
-.correction-subject > div{
-  display:grid!important;
+   Flatten subject wrappers visually so every student in the same time slot
+   participates in one two-column grid. Keep data/interaction structure intact. */
+.correction-slot-content{
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:6px!important;
-  align-items:stretch!important;
+  align-content:start!important;
 }
-.correction-subject .correction-student{
+.correction-slot-content>.correction-subject{
+  display:contents!important;
+}
+.correction-slot-content>.correction-subject>header{
+  display:none!important;
+}
+.correction-slot-content>.correction-subject>div{
+  display:contents!important;
+}
+.correction-slot-content .correction-student{
   width:100%!important;
   min-width:0!important;
   min-height:44px!important;
@@ -15,17 +24,20 @@
   display:flex!important;
   align-items:center!important;
   justify-content:flex-start!important;
+  border:0!important;
   border-radius:9px!important;
+  background:#faf7f8!important;
   text-align:left!important;
   box-sizing:border-box!important;
+  color:#332b2f!important;
 }
-.correction-subject .correction-student > span{
+.correction-slot-content .correction-student>span{
   display:grid!important;
   gap:2px!important;
   width:100%!important;
   min-width:0!important;
 }
-.correction-subject .correction-student b{
+.correction-slot-content .correction-student b{
   display:block!important;
   margin:0!important;
   font-size:10px!important;
@@ -34,7 +46,7 @@
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-.correction-subject .correction-student small{
+.correction-slot-content .correction-student small{
   display:block!important;
   margin:0!important;
   color:#94868d!important;
@@ -44,7 +56,14 @@
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-.correction-subject .correction-student em,
-.correction-subject .correction-student i{
+.correction-slot-content .correction-student em,
+.correction-slot-content .correction-student i{
   display:none!important;
+}
+.correction-slot-content .correction-student.moved{background:#fff7ed!important}
+.correction-slot-content .correction-student.extra{background:#eef7f2!important}
+.correction-slot-content .correction-student.ghost{background:#fff!important;border:1px dashed #decfd6!important;opacity:.72!important}
+.correction-slot-content>.correction-slot-add,
+.correction-slot-content>.correction-slot-empty{
+  grid-column:1/-1!important;
 }
