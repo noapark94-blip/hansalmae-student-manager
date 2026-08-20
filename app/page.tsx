@@ -35,8 +35,8 @@ export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
 const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
-type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; status: string; internalNote: string; classIds:string[] };
-type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; status: string; internalNote: string };
+type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string; classIds:string[] };
+type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string };
 type ClassFormValues = { name: string; subject: string; subjectId:string; room: string; color: string };
 type SubjectOption={id:string;name:string;main_subject:string;parent_id:string|null};
 type SchoolOption={id:string;name:string};
@@ -310,6 +310,8 @@ export default function Home() {
 
     if (error || !data) throw error ?? new Error("student registration returned no data");
     const created = { ...(data as unknown as Omit<StudentRow, "enrollments">), enrollments: [] } as StudentRow;
+    const{error:vehicleInfoError}=await supabase.from("students").update({residence:values.residence.trim()||null,vehicle_pickup_location:values.pickupLocation.trim()||null,vehicle_dropoff_location:values.dropoffLocation.trim()||null}).eq("id",created.id);
+    if(vehicleInfoError)throw vehicleInfoError;
     if(values.classIds.length){
       const{error:enrollmentError}=await supabase.rpc("staff_sync_student_enrollments",{p_student_id:created.id,p_class_ids:values.classIds});
       if(enrollmentError)throw enrollmentError;
@@ -339,13 +341,13 @@ export default function Home() {
   };
 
   const openStudentDetails = async (student: StudentRow) => {
-    const { data, error } = await supabase.from("students").select("id, name, school, grade, phone, status, internal_note").eq("id", student.id).single();
+    const { data, error } = await supabase.from("students").select("id, name, school, grade, phone, residence, vehicle_pickup_location, vehicle_dropoff_location, status, internal_note").eq("id", student.id).single();
     if (error) { showToast("학생 상세 정보를 불러오지 못했습니다."); return; }
-    setStudentDetails({ id: data.id, name: data.name, school: data.school ?? "", grade: data.grade ?? "", phone: data.phone ?? "", status: data.status, internalNote: data.internal_note ?? "" });
+    setStudentDetails({ id: data.id, name: data.name, school: data.school ?? "", grade: data.grade ?? "", phone: data.phone ?? "", residence:data.residence??"", pickupLocation:data.vehicle_pickup_location??"", dropoffLocation:data.vehicle_dropoff_location??"", status: data.status, internalNote: data.internal_note ?? "" });
   };
 
   const updateStudent = async (values: StudentDetails) => {
-    const { data, error } = await supabase.from("students").update({ name: values.name.trim(), school: values.school.trim() || null, grade: values.grade.trim() || null, phone: values.phone.trim() || null, status: values.status, internal_note: values.internalNote.trim() || null }).eq("id", values.id).select("id, name, school, grade, status").single();
+    const { data, error } = await supabase.from("students").update({ name: values.name.trim(), school: values.school.trim() || null, grade: values.grade.trim() || null, phone: values.phone.trim() || null, residence:values.residence.trim()||null, vehicle_pickup_location:values.pickupLocation.trim()||null, vehicle_dropoff_location:values.dropoffLocation.trim()||null, status: values.status, internal_note: values.internalNote.trim() || null }).eq("id", values.id).select("id, name, school, grade, status").single();
     if (error) throw error;
     setStudents((current) => current.map((student) => student.id === values.id ? { ...student, ...data } : student).sort((a, b) => a.name.localeCompare(b.name, "ko")));
     setStudentDetails(null);
@@ -468,7 +470,7 @@ function Students({ rows, total, filteredTotal, statusFilter, loading, error, qu
 }
 
 function StudentRegistrationModal({ classes,schools,onAddSchool,onDeleteSchool,onReorderSchools,onClose, onSubmit }: { classes:AcademyClass[];schools:SchoolOption[];onAddSchool:(name:string)=>Promise<string>;onDeleteSchool:(id:string)=>Promise<void>;onReorderSchools:(schools:SchoolOption[])=>Promise<void>;onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
-  const [values, setValues] = useState<StudentFormValues>({ name: "", school: "", grade: "", phone: "", guardianName: "", guardianPhone: "", status: "active", internalNote: "",classIds:[] });
+  const [values, setValues] = useState<StudentFormValues>({ name: "", school: "", grade: "", phone: "", guardianName: "", guardianPhone: "", residence:"", pickupLocation:"", dropoffLocation:"", status: "active", internalNote: "",classIds:[] });
   const [selectedSubjects,setSelectedSubjects]=useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
