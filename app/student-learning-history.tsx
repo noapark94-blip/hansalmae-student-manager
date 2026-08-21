@@ -42,6 +42,8 @@ export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseCl
   const examRows=useMemo(()=>filtered.flatMap(item=>item.exams),[filtered]);
   const scoredExams=useMemo(()=>examRows.map(exam=>exam.percent??(exam.score!==null&&exam.maxScore>0?exam.score/exam.maxScore*100:null)).filter((value):value is number=>value!==null&&Number.isFinite(value)),[examRows]);
   const examAverage=scoredExams.length?Math.round(scoredExams.reduce((sum,value)=>sum+value,0)/scoredExams.length*10)/10:null;
+  const recentAttendance=useMemo(()=>{const cutoff=Date.now()-29*86400000;return filtered.filter(item=>item.attendance&&dateValue(item.lessonDate).getTime()>=cutoff)},[filtered]);
+  const attendanceRate=recentAttendance.length?Math.round(recentAttendance.filter(item=>item.attendance?.status==="present"||item.attendance?.status==="late").length/recentAttendance.length*100):null;
 
   useEffect(()=>{if(subject!=="전체"&&!subjects.includes(subject))setSubject("전체")},[subject,subjects]);
   useEffect(()=>{if(selectedDate&&dates.has(selectedDate)&&selectedDate.startsWith(month))return;setSelectedDate(filtered.find(item=>item.lessonDate.startsWith(month))?.lessonDate??"")},[filtered,month,dates,selectedDate]);
@@ -50,8 +52,8 @@ export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseCl
 
   return <section className="student-learning-history">
     <section className="student-learning-summary">
-      <article><small>누적 수업 기록</small><b>{filtered.length}<em>회</em></b></article>
-      <article><small>시험 기록</small><b>{examRows.length}<em>회</em></b></article>
+      <article><small>누적 수업</small><b>{filtered.length}<em>회</em></b></article>
+      <article><small>최근 30일 출석률</small><b>{attendanceRate===null?"—":attendanceRate}<em>{attendanceRate===null?"":"%"}</em></b></article>
       <article><small>시험 평균</small><b>{examAverage===null?"—":examAverage}<em>{examAverage===null?"":"점"}</em></b></article>
     </section>
 
@@ -91,7 +93,7 @@ function LearningRecordCard({item}:{item:Report}){
   </article>
 }
 function RecordRow({label,text}:{label:string;text:string}){return <section className="student-learning-row"><b>{label}</b><p>{text}</p></section>}
-function recordDayLabel(items:Report[],day:string){const dayItems=items.filter(item=>item.lessonDate===day);if(!dayItems.length)return"";const labels=Array.from(new Set(dayItems.map(item=>item.attendance?attendanceLabel[item.attendance.status]??item.attendance.status:"").filter(Boolean)));return labels.length>1?`${labels[0]} 외 ${labels.length-1}`:(labels[0]??"출결 기록")}
+function recordDayLabel(items:Report[],day:string){const dayItems=items.filter(item=>item.lessonDate===day);if(!dayItems.length)return"";const first=dayItems[0],status=first.attendance?attendanceLabel[first.attendance.status]??first.attendance.status:"기록";const label=[first.subject,status].filter(Boolean).join(" · ");return dayItems.length>1?`${label} 외 ${dayItems.length-1}`:label}
 function buildCalendar(month:string){const[y,m]=month.split("-").map(Number);const first=new Date(y,m-1,1);const count=new Date(y,m,0).getDate();const values:(string|null)[]=Array(first.getDay()).fill(null);for(let d=1;d<=count;d++)values.push(`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`);while(values.length%7)values.push(null);return values}
 function monthKey(date:Date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`}
 function formatMonth(value:string){const[y,m]=value.split("-").map(Number);return `${y}년 ${m}월`}
