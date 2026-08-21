@@ -320,7 +320,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               />
             </div>
           )}
-          {data && tab === "classes" && <ClassesTab classes={data.classes} guardians={data.guardians} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab assignments={data.assignments} corrections={data.insights.correctionLearning} consultations={data.consultations} />}
+          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab assignments={data.assignments} corrections={data.insights.correctionLearning} consultations={data.consultations} />}
         </div>
       </section>
     </div>
@@ -436,10 +436,10 @@ function examTypeLabel(value: string) {
     )[value] || "시험"
   );
 }
-function ClassesTab({ classes, guardians, onAssign }: { classes: ClassItem[]; guardians: Guardian[]; onAssign?: () => void }) {
+function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: () => void }) {
   return (
     <>
-      <div className="hub-section-title">
+      <div className="hub-section-title class-section-title">
         <div>
           <h3>수강 클래스</h3>
           <p>현재 및 이전 수강 기록입니다.</p>
@@ -467,27 +467,6 @@ function ClassesTab({ classes, guardians, onAssign }: { classes: ClassItem[]; gu
           ))
         ) : (
           <Empty text="수강 기록이 없습니다." />
-        )}
-      </div>
-      <div className="hub-section-title compact">
-        <div>
-          <h3>학부모·보호자</h3>
-        </div>
-      </div>
-      <div className="guardian-grid">
-        {guardians.length ? (
-          guardians.map((item) => (
-            <article key={item.id}>
-              <b>{item.name}</b>
-              <span>{item.phone}</span>
-              <small>
-                {item.relationship || "보호자"}
-                {item.isPrimary ? " · 주 보호자" : ""}
-              </small>
-            </article>
-          ))
-        ) : (
-          <Empty text="등록된 보호자가 없습니다." />
         )}
       </div>
     </>
