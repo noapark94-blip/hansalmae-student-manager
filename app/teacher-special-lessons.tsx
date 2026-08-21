@@ -129,7 +129,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />
             <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}{profile.role === "admin" ? ` · 담당 ${session.teacherName}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
-            <div className="special-lesson-actions"><button type="button" className="primary" onClick={() => setActiveSession(session)}>수업 관리</button>{session.teacherId === profile.id ? <button type="button" className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<details><summary aria-label="일정 더보기">⋯</summary><div><button type="button" onClick={() => void remove(session)}>일정 삭제</button></div></details></div>
+            <div className="special-lesson-actions">{session.teacherId === profile.id ? <button type="button" className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button type="button" className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
           </article>)}{!selectedDaySessions.length ? <p className="settings-empty">이 날짜에는 일정이 없습니다. 위 버튼으로 새 일정을 등록해 주세요.</p> : null}</div>
         </section>
       )}
