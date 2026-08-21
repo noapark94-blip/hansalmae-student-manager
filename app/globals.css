@@ -404,8 +404,8 @@ button:disabled { cursor:wait; opacity:.7; }
 
 /* Use the exact regular-class header scale. */
 .teacher-special-workspace .special-week-calendar>header{padding:18px 20px}
-.teacher-special-workspace .special-week-calendar>header h3{margin:0;font-size:14px;font-weight:700;line-height:normal}
-.teacher-special-workspace .special-week-calendar>header p{margin:5px 0 0;font-size:9px;line-height:normal}
+.teacher-special-workspace .special-week-calendar>header h3{margin:0;font-size:20px;font-weight:700;line-height:1.25}
+.teacher-special-workspace .special-week-calendar>header p{margin:5px 0 0;font-size:13px;line-height:normal}
 .teacher-special-workspace .special-week-calendar>header>.secondary-button{height:auto;min-height:43px;padding:0 16px;border-radius:10px;font-size:inherit;font-weight:750}
 
 /* Separate makeup and additional lessons in both weekly and monthly calendars. */
@@ -420,4 +420,4 @@ button:disabled { cursor:wait; opacity:.7; }
 .special-month-modal .correction-month-grid>button>div>em>small{overflow:hidden;font-size:8px;line-height:1.2;white-space:nowrap;text-overflow:ellipsis;word-break:keep-all}
 .special-month-modal .correction-month-grid>button>div>em.makeup{background:#f6eaf0;color:#8f2c5b}
 .special-month-modal .correction-month-grid>button>div>em.additional{background:#eaf0f9;color:#41669b}
-@media(max-width:600px){.teacher-special-workspace .special-week-calendar>header{padding:15px 14px}.teacher-special-workspace .special-week-calendar>header h3{font-size:14px}.teacher-special-workspace .special-week-calendar>header p{font-size:9px}.teacher-special-workspace .special-week-calendar>header>.secondary-button{min-height:40px;font-size:11px}}
+@media(max-width:600px){.teacher-special-workspace .special-week-calendar>header{padding:15px 14px}.teacher-special-workspace .special-week-calendar>header h3{font-size:20px}.teacher-special-workspace .special-week-calendar>header p{font-size:13px}.teacher-special-workspace .special-week-calendar>header>.secondary-button{min-height:40px;font-size:11px}}
