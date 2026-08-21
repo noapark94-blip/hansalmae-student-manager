@@ -16,7 +16,7 @@
 
 /* While iOS-style reorder mode is active, scrolling must not steal the touch gesture. */
 .teacher-class-cards.reorder-mode{
-  overflow-x:hidden!important;
+  overflow:visible!important;
   scroll-snap-type:none!important;
   overscroll-behavior:contain;
   touch-action:none!important;
@@ -28,5 +28,10 @@
   -webkit-touch-callout:none;
 }
 @media(max-width:900px){
-  .teacher-class-cards.reorder-mode{overflow:hidden!important;}
+  .teacher-class-cards.reorder-mode{
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:none;
+  }
+  .teacher-class-cards.reorder-mode::-webkit-scrollbar{display:none;}
 }
