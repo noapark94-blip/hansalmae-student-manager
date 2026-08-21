@@ -382,11 +382,18 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const sourceItems=items.filter(item=>item.source===source&&item.percent!==null);
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
   const[subject,setSubject]=useState("");
-  const[range,setRange]=useState<"recent"|"all">("recent");
+  const[range,setRange]=useState<"week"|"month"|"quarter"|"all">("month");
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
   const allScored=sourceItems.filter(item=>item.subject===selectedSubject);
-  const scored=range==="recent"?allScored.slice(-8):allScored;
-  const recent=allScored.slice(-3);
+  const rangeDays=range==="week"?7:range==="month"?30:range==="quarter"?90:null;
+  const cutoffDate=new Date();
+  cutoffDate.setHours(0,0,0,0);
+  if(rangeDays!==null) cutoffDate.setDate(cutoffDate.getDate()-(rangeDays-1));
+  const scored=rangeDays===null?allScored:allScored.filter(item=>{
+    const lessonTime=new Date(`${item.lessonDate}T00:00:00`).getTime();
+    return Number.isFinite(lessonTime)&&lessonTime>=cutoffDate.getTime();
+  });
+  const recent=scored.slice(-3);
   const average=recent.length?Math.round(recent.reduce((sum,item)=>sum+(item.percent??0),0)/recent.length*10)/10:null;
   const latest=scored.at(-1)?.percent??null;
   const previous=scored.at(-2)?.percent??null;
@@ -396,20 +403,22 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
       <header>
         <div>
           <h3>시험 성적 추이</h3>
-          <p>수업 종류와 과목을 선택해 최근 8회 또는 전체 시험의 100점 환산 점수를 비교합니다.</p>
+          <p>수업 종류와 과목, 조회 기간을 선택해 시험의 100점 환산 점수를 비교합니다.</p>
         </div>
         <div className="student-exam-selects">
           <label>
             수업 구분
             <select value={source} onChange={(event)=>{setSource(event.target.value as ExamProgressItem["source"]);setSubject("")}}>
-              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"} ({items.filter(item=>item.source===value&&item.percent!==null).length})</option>)}
+              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"} · 시험 {items.filter(item=>item.source===value&&item.percent!==null).length}건</option>)}
             </select>
           </label>
           <label>
             조회 기간
-            <select value={range} onChange={(event)=>setRange(event.target.value as "recent"|"all")}>
-              <option value="recent">최근 8회</option>
-              <option value="all">전체 기록 ({allScored.length})</option>
+            <select value={range} onChange={(event)=>setRange(event.target.value as "week"|"month"|"quarter"|"all")}>
+              <option value="week">최근 7일</option>
+              <option value="month">최근 30일</option>
+              <option value="quarter">최근 90일</option>
+              <option value="all">전체</option>
             </select>
           </label>
         </div>
@@ -417,8 +426,8 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
       {subjects.length?<nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>:null}
       {scored.length ? (
         <>
-          <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>전체 기록 시험</span><b>{allScored.length}회</b></div></div>
-          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${source==="regular"?"정규수업":"첨삭수업"} ${selectedSubject} ${range==="recent"?"최근 8회":"전체"} 시험 성적`}>
+          <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
+          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${source==="regular"?"정규수업":"첨삭수업"} ${selectedSubject} ${range==="week"?"최근 7일":range==="month"?"최근 30일":range==="quarter"?"최근 90일":"전체"} 시험 성적`}>
             {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
           <div className="student-exam-records">
