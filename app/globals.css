@@ -429,3 +429,14 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-board-embedded .learning-board-rows,
 .teacher-special-workspace .special-board-embedded>.form-error,
 .teacher-special-workspace .special-board-embedded>footer{margin-left:0;margin-right:0}
+.teacher-special-workspace .special-board-embedded .family-read-status{border:0;border-bottom:1px solid #eee6e9;border-radius:0;box-shadow:none;background:#fff}
+.teacher-special-workspace .special-board-embedded .family-read-summary{border-radius:0;background:#fff}
+.teacher-special-workspace .special-calendar-students{display:flex;flex-wrap:wrap;gap:3px;white-space:normal;overflow:visible}
+.teacher-special-workspace .special-calendar-students>em{display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;background:rgba(255,255,255,.72);color:#554b50;font-size:8px;font-style:normal;font-weight:750}
+.teacher-special-workspace .special-calendar-students small,.teacher-special-workspace .special-agenda-attendance em{font-size:7px;font-style:normal;font-weight:850}
+.teacher-special-workspace .special-calendar-students small.present,.teacher-special-workspace .special-agenda-attendance .present{color:#397452}
+.teacher-special-workspace .special-calendar-students small.late,.teacher-special-workspace .special-agenda-attendance .late{color:#966820}
+.teacher-special-workspace .special-calendar-students small.absent,.teacher-special-workspace .special-agenda-attendance .absent{color:#a42c3a}
+.teacher-special-workspace .special-calendar-students small.scheduled,.teacher-special-workspace .special-agenda-attendance .scheduled{color:#92868c}
+.teacher-special-workspace .special-agenda-attendance{display:flex;flex:0 1 280px;flex-wrap:wrap;gap:5px}
+.teacher-special-workspace .special-agenda-attendance>em{padding:5px 7px;border-radius:7px;background:#faf7f8}

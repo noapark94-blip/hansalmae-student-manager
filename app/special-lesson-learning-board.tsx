@@ -18,7 +18,7 @@ type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStud
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, embedded = false }: { supabase: SupabaseClient; sessionId: string; onClose: () => void; onEdit: () => void; embedded?: boolean }) {
+export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; sessionId: string; onClose: () => void; onEdit: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
   const [categories, setCategories] = useState<ExamCategory[]>([]);
@@ -90,7 +90,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, embed
     if (next === "late") { const value = prompt(`${row.name} 학생은 몇 분 지각했나요?`, String(row.lateMinutes ?? 10)); if (value === null) return setSaving(""); late = Number(value); if (!Number.isFinite(late) || late < 1) { setSaving(""); return setError("지각 시간을 숫자로 입력해 주세요."); } }
     if (next === "absent") { const value = prompt(`${row.name} 학생의 결석 사유`, row.absenceReason ?? ""); if (value === null) return setSaving(""); reason = value.trim(); if (!reason) { setSaving(""); return setError("결석 사유를 입력해 주세요."); } }
     const { error: saveError } = await supabase.rpc("staff_save_special_lesson_attendance", { p_session_id: sessionId, p_student_id: row.id, p_status: next, p_late_minutes: late, p_absence_reason: reason });
-    if (saveError) setError(saveError.message); else update(row.id, { status: next, lateMinutes: late, absenceReason: reason });
+    if (saveError) setError(saveError.message); else { update(row.id, { status: next, lateMinutes: late, absenceReason: reason }); await onAttendanceChange?.(); }
     setSaving("");
   };
   const save = async (complete: boolean) => {
@@ -100,7 +100,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, embed
     const { error: saveError } = await supabase.rpc("staff_save_special_lesson_learning", { p_session_id: sessionId, p_notice: notice, p_rows: rows.map((row) => ({ studentId: row.id, lessonContent: row.lessonContent, assignedHomework: row.assignedHomework, inspectionStatus: row.inspectionStatus, inspectionNote: row.inspectionNote, exam: { ...row.exam, score: row.exam.score === "" ? null : +row.exam.score, maxScore: +row.exam.maxScore } })) });
     if (saveError) setError(saveError.message); else {
       const { data: stateData, error: stateError } = await supabase.rpc("staff_set_special_lesson_state", { p_session_id: sessionId, p_state: complete ? "completed" : "draft" });
-      if (stateError) setError(stateError.message); else { setLessonState(stateData === "completed" ? "completed" : "draft"); await load(); }
+      if (stateError) setError(stateError.message); else { setLessonState(stateData === "completed" ? "completed" : "draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     }
     setSaving("");
   };
@@ -110,7 +110,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, embed
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
       return <article key={row.id}>
-        <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status === "late" ? <small>{row.lateMinutes}분 지각</small> : null}{row.status === "absent" ? <small>{row.absenceReason}</small> : null}</div></div>
+        <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status ? <small>{row.status === "late" ? `${row.lateMinutes}분 지각 · ` : row.status === "absent" && row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}</div></div>
         <div className="learning-individual-content"><textarea value={row.lessonContent} onChange={(event) => update(row.id,{lessonContent:event.target.value})} placeholder="이 학생의 교재·단원·진도" rows={4}/></div>
         <div className="learning-exam individual"><select value={row.exam.examType} onChange={(event) => updateExam(row.id,{examType:event.target.value})}><option value="">종류 선택</option>{categories.filter((item)=>item.isActive).map((item)=><option key={item.id}>{item.name}</option>)}</select><input value={row.exam.examTitle} onChange={(event)=>updateExam(row.id,{examTitle:event.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={row.exam.score} onChange={(event)=>updateExam(row.id,{score:event.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={row.exam.maxScore} onChange={(event)=>updateExam(row.id,{maxScore:event.target.value})}/></span><input value={row.exam.evaluation} onChange={(event)=>updateExam(row.id,{evaluation:event.target.value})} placeholder="평가·피드백"/>{converted == null ? null : <small>환산 {converted}점</small>}</div>
         <div className="learning-homework previous"><p>{row.previousHomework || "지난 숙제 없음"}</p><select value={row.inspectionStatus} onChange={(event)=>update(row.id,{inspectionStatus:event.target.value})}>{homework.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><input value={row.inspectionNote} onChange={(event)=>update(row.id,{inspectionNote:event.target.value})} placeholder="검사 메모"/></div>
