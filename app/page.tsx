@@ -36,7 +36,7 @@ const VIEW_STORAGE_KEY = "hansalmae:last-view";
 const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string; classIds:string[] };
-type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string };
+type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string; guardianName?:string; guardianPhone?:string };
 type ClassFormValues = { name: string; subject: string; subjectId:string; room: string; color: string };
 type SubjectOption={id:string;name:string;main_subject:string;parent_id:string|null};
 type SchoolOption={id:string;name:string};
@@ -349,11 +349,12 @@ export default function Home() {
   };
 
   const updateStudent = async (values: StudentDetails) => {
-    const { data, error } = await supabase.from("students").update({ name: values.name.trim(), school: values.school.trim() || null, grade: values.grade.trim() || null, phone: values.phone.trim() || null, residence:values.residence.trim()||null, vehicle_pickup_location:values.pickupLocation.trim()||null, vehicle_dropoff_location:values.dropoffLocation.trim()||null, status: values.status, internal_note: values.internalNote.trim() || null }).eq("id", values.id).select("id, name, school, grade, status").single();
+    const { data, error } = await supabase.rpc("staff_update_student_profile_with_guardian",{p_student_id:values.id,p_name:values.name.trim(),p_school:values.school.trim()||null,p_grade:values.grade.trim()||null,p_phone:values.phone.trim()||null,p_residence:values.residence.trim()||null,p_pickup_location:values.pickupLocation.trim()||null,p_dropoff_location:values.dropoffLocation.trim()||null,p_status:values.status,p_internal_note:values.internalNote.trim()||null,p_guardian_name:values.guardianName?.trim()||null,p_guardian_phone:values.guardianPhone?.trim()||null});
     if (error) throw error;
-    setStudents((current) => current.map((student) => student.id === values.id ? { ...student, ...data } : student).sort((a, b) => a.name.localeCompare(b.name, "ko")));
+    const saved=data as {id:string;name:string;school:string|null;grade:string|null;status:string};
+    setStudents((current) => current.map((student) => student.id === values.id ? { ...student, ...saved } : student).sort((a, b) => a.name.localeCompare(b.name, "ko")));
     setStudentDetails(null);
-    showToast(`${data.name} 학생 정보를 수정했습니다.`);
+    showToast(`${saved.name} 학생 정보를 수정했습니다.`);
   };
 
   const deleteStudent = async (student: StudentDetails) => {

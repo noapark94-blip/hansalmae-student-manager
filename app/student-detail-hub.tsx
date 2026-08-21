@@ -17,6 +17,8 @@ type StudentValues = {
   dropoffLocation: string;
   status: string;
   internalNote: string;
+  guardianName?: string;
+  guardianPhone?: string;
 };
 type RosterStudent = {
   id: string;
@@ -159,6 +161,8 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
         const detail = detailResult.data as Omit<DetailData, "timetable" | "examProgress" | "insights">;
         const insights = insightResult.data as DetailInsights;
         const colors = new Map(timetable.map((row) => [row.className, row.color]));
+        const primaryGuardian=detail.guardians.find((item)=>item.isPrimary)??detail.guardians[0];
+        setValues((current)=>({...current,guardianName:primaryGuardian?.name??"",guardianPhone:primaryGuardian?.phone??""}));
         setData({
           ...detail,
           classes: detail.classes.map((item) => ({
@@ -242,7 +246,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
           {loadError && <p className="hub-message error">{loadError}</p>}
           {data && tab === "summary" && <SummaryTab data={data} />}{" "}
           {tab === "profile" && (
-            <>
+            <div className="student-profile-settings">
               <form className="student-profile-form" onSubmit={submit}>
                 <section className="student-profile-card">
                   <header><div><h3>학생 기본정보</h3><p>학생의 학교 정보와 연락처를 관리합니다.</p></div></header>
@@ -263,10 +267,18 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
                     학생 연락처
                     <input value={values.phone} onChange={(event) => update("phone", event.target.value)} />
                     </label>
+                    <label>
+                    학부모 성함
+                    <input value={values.guardianName??""} onChange={(event)=>update("guardianName",event.target.value)} placeholder="예: 김보호" />
+                    </label>
+                    <label>
+                    학부모 연락처
+                    <input type="tel" inputMode="numeric" value={values.guardianPhone??""} onChange={(event)=>update("guardianPhone",event.target.value)} placeholder="숫자만 입력" />
+                    </label>
                   </div>
                 </section>
                 <section className="student-profile-card">
-                  <header><div><h3>학원 이용정보</h3><p>차량 이용 위치, 수강 클래스와 내부 메모를 관리합니다.</p></div>{rosterStudent&&<button type="button" className="secondary-button compact" onClick={()=>onAssign(rosterStudent)}>＋ 클래스 배정</button>}</header>
+                  <header><div><h3>학원 이용정보</h3><p>거주지, 차량 이용 위치와 내부 메모를 관리합니다.</p></div></header>
                   <div className="form-grid">
                     <label className="full">
                     거주지
@@ -306,7 +318,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
                   onLifecycleUpdated(status);
                 }}
               />
-            </>
+            </div>
           )}
           {data && tab === "classes" && <ClassesTab classes={data.classes} guardians={data.guardians} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab assignments={data.assignments} corrections={data.insights.correctionLearning} consultations={data.consultations} />}
         </div>
