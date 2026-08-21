@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLifecyclePanel } from "./student-lifecycle-panel";
+import { StudentLearningHistory } from "./student-learning-history";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
 
 type StudentValues = {
@@ -131,7 +132,7 @@ type AttendanceHistory = {
   correctionAttendance: CorrectionAttendanceItem[];
   makeups: MakeupItem[];
 };
-type Tab = "summary" | "profile" | "classes" | "attendance" | "learning";
+type Tab = "summary" | "profile" | "classes" | "attendance" | "learning" | "consultations";
 const statusLabels = {
   present: "출석",
   late: "지각",
@@ -249,7 +250,8 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               ["profile", "기본정보"],
               ["classes", "수강 클래스"],
               ["attendance", "출결·보강"],
-              ["learning", "학습·상담"],
+              ["learning", "학습 기록"],
+              ["consultations", "상담 기록"],
             ] as [Tab, string][]
           ).map(([id, label]) => (
             <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
@@ -336,7 +338,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               />
             </div>
           )}
-          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab assignments={data.assignments} corrections={data.insights.correctionLearning} consultations={data.consultations} />}
+          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} studentId={student.id} corrections={data.insights.correctionLearning} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
         </div>
       </section>
     </div>
@@ -582,70 +584,35 @@ function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendan
     </>
   );
 }
-function LearningTab({ assignments, corrections, consultations }: { assignments: AssignmentItem[]; corrections: CorrectionLearningItem[]; consultations: ConsultationItem[] }) {
-  return (
-    <>
-      <div className="hub-section-title">
-        <div>
-          <h3>최근 정규수업 과제</h3>
-          <p>정규수업에서 등록한 최근 과제 20건입니다.</p>
-        </div>
-      </div>
-      <div className="hub-section-title compact"><div><h3>최근 첨삭수업 기록</h3><p>첨삭 내용·숙제 검사·피드백을 함께 표시합니다.</p></div></div>
-      <div className="student-record-list correction-learning-list">
-        {corrections.length?corrections.map(item=><article key={item.id}><time>{formatDate(item.lessonDate)}</time><span><b>{item.subject} 첨삭</b><small>{[item.correctionContent,item.homeworkInstruction,item.homeworkNote,item.assistantFeedback].filter(Boolean).join(" · ")||"기록 내용 없음"}</small></span><em>{correctionHomeworkLabel(item.homeworkStatus)}</em></article>):<Empty text="등록된 첨삭수업 기록이 없습니다."/>}
-      </div>
-      <div className="student-record-list">
-        {assignments.length ? (
-          assignments.map((item) => (
-            <article key={item.id}>
-              <time>{formatDate(item.dueAt)} 마감</time>
-              <span>
-                <b>{item.title}</b>
-                <small>
-                  {item.className}
-                  {item.feedback ? ` · ${item.feedback}` : ""}
-                </small>
-              </span>
-              <em className={item.status}>{item.status === "reviewed" ? "첨삭 완료" : item.status === "submitted" ? "첨삭 대기" : "제출 전"}</em>
-            </article>
-          ))
-        ) : (
-          <Empty text="등록된 과제가 없습니다." />
-        )}
-      </div>
-      <div className="hub-section-title compact">
-        <div>
-          <h3>최근 상담</h3>
-          <p>교직원 내부 기록입니다.</p>
-        </div>
-      </div>
-      <div className="consultation-timeline">
-        {consultations.length ? (
-          consultations.map((item) => (
-            <article key={item.id}>
-              <time>{formatDateTime(item.consultedAt)}</time>
-              <span>
-                <b>
-                  {consultationLabels[item.type] || item.type} 상담 · {item.consultantName}
-                </b>
-                <p>{item.internalNote || "내부 메모 없음"}</p>
-                {item.nextContactOn && <small>다음 연락 {formatDate(item.nextContactOn)}</small>}
-              </span>
-            </article>
-          ))
-        ) : (
-          <Empty text="상담 기록이 없습니다." />
-        )}
-      </div>
-    </>
-  );
+function LearningTab({supabase,studentId,corrections}:{supabase:SupabaseClient;studentId:string;corrections:CorrectionLearningItem[]}) {
+  const [section,setSection]=useState<"class"|"correction">("class");
+  const completedCorrections=corrections.filter(item=>item.correctionContent||item.homeworkInstruction||item.homeworkNote||item.assistantFeedback);
+  return <section className="student-unified-learning">
+    <header className="student-tab-intro"><div><h3>학습 기록</h3><p>정규·보강·추가수업과 첨삭 학습 내용을 구분해 확인합니다.</p></div><nav aria-label="학습 기록 구분"><button type="button" className={section==="class"?"active":""} onClick={()=>setSection("class")}>클래스 수업</button><button type="button" className={section==="correction"?"active":""} onClick={()=>setSection("correction")}>첨삭수업 <em>{completedCorrections.length}</em></button></nav></header>
+    {section==="class"?<><div className="student-learning-context"><b>클래스 수업 기록</b><span>정규수업·보강수업·추가수업의 출결, 수업 내용, 숙제와 시험을 날짜별로 확인합니다.</span></div><StudentLearningHistory supabase={supabase} studentId={studentId}/></>:<><div className="student-learning-context correction"><b>첨삭 학습 기록</b><span>첨삭 내용, 숙제 검사 결과와 담당 선생님의 피드백을 최근순으로 표시합니다.</span></div><div className="student-correction-learning-cards">{completedCorrections.length?completedCorrections.map(item=><article key={item.id}><header><div><span>첨삭수업 · {item.subject}</span><b>{formatDate(item.lessonDate)}</b></div><em>{correctionHomeworkLabel(item.homeworkStatus)}</em></header><div>{item.correctionContent&&<section><b>첨삭 내용</b><p>{item.correctionContent}</p></section>}{item.homeworkInstruction&&<section><b>오늘 할 과제</b><p>{item.homeworkInstruction}</p></section>}{item.homeworkNote&&<section><b>숙제 검사</b><p>{item.homeworkNote}</p></section>}{item.assistantFeedback&&<section><b>선생님 피드백</b><p>{item.assistantFeedback}</p></section>}</div></article>):<Empty text="등록된 첨삭 학습 기록이 없습니다."/>}</div></>}
+  </section>;
+}
+
+function ConsultationTab({consultations}:{consultations:ConsultationItem[]}){
+  const [type,setType]=useState<"all"|"guardian"|"student">("all");
+  const sorted=consultations.slice().sort((a,b)=>b.consultedAt.localeCompare(a.consultedAt));
+  const visible=sorted.filter(item=>type==="all"||item.type===type);
+  const lastGuardian=sorted.find(item=>item.type==="guardian");
+  const lastStudent=sorted.find(item=>item.type==="student");
+  const guardianDays=lastGuardian?daysSince(lastGuardian.consultedAt):null;
+  return <section className="student-consultation-tab">
+    <header className="student-tab-intro"><div><h3>상담 기록</h3><p>상담 관리에서 작성한 학생·학부모 상담 내용만 표시합니다.</p></div><nav aria-label="상담 대상 필터">{(["all","guardian","student"] as const).map(value=><button type="button" key={value} className={type===value?"active":""} onClick={()=>setType(value)}>{value==="all"?"전체":value==="guardian"?"학부모":"학생"}</button>)}</nav></header>
+    <div className="student-consultation-summary"><article><span>전체 상담</span><b>{consultations.length}<small>건</small></b></article><article><span>최근 학부모 상담</span><b>{lastGuardian?formatDate(lastGuardian.consultedAt):"기록 없음"}</b><small>{guardianDays===null?"학부모 상담을 기록해 주세요":`${guardianDays}일 전`}</small></article><article><span>최근 학생 상담</span><b>{lastStudent?formatDate(lastStudent.consultedAt):"기록 없음"}</b><small>{lastStudent?`${daysSince(lastStudent.consultedAt)}일 전`:"학생 상담 기록 없음"}</small></article></div>
+    {(guardianDays===null||guardianDays>30)&&<div className="student-guardian-consultation-alert"><i>!</i><span><b>학부모 상담이 필요합니다.</b><small>{guardianDays===null?"등록된 학부모 상담 기록이 없습니다.":`마지막 학부모 상담 후 ${guardianDays}일이 지났습니다.`}</small></span></div>}
+    <div className="student-consultation-records">{visible.length?visible.map(item=><article key={item.id}><header><div><span className={item.type==="guardian"?"guardian":"student"}>{consultationLabels[item.type]||item.type}</span><b>{formatDateTime(item.consultedAt)}</b></div><small>기록 · {item.consultantName}</small></header><p>{item.internalNote||"기록된 상담 내용이 없습니다."}</p></article>):<Empty text="선택한 대상의 상담 기록이 없습니다."/>}</div>
+  </section>;
 }
 function Empty({ text }: { text: string }) {
   return <p className="student-hub-empty">{text}</p>;
 }
 function attendanceRate(value:AttendanceSummary){return value.attendanceTotal?Math.round(value.present/value.attendanceTotal*100):null}
 function correctionHomeworkLabel(value:string){return value==="reviewed"||value==="completed"?"검사 완료":value==="submitted"?"검사 대기":value?"미완료":"첨삭 기록"}
+function daysSince(value:string){const today=new Date();const date=new Date(value);return Math.max(0,Math.floor((today.getTime()-date.getTime())/86400000))}
 function dateDaysAgo(days:number){const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-days);return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date)}
 function dateKey(value:string){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(value))}
 function formatDate(value: string) {
