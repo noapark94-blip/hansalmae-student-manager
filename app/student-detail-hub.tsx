@@ -398,7 +398,21 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           <h3>시험 성적 추이</h3>
           <p>수업 종류와 과목을 선택해 최근 8회 또는 전체 시험의 100점 환산 점수를 비교합니다.</p>
         </div>
-        <div className="student-exam-view-switches"><nav className="student-exam-source-tabs" aria-label="수업 종류">{availableSources.map(value=><button type="button" key={value} className={source===value?"active":""} onClick={()=>{setSource(value);setSubject("")}}>{value==="regular"?"정규수업":"첨삭수업"}<em>{items.filter(item=>item.source===value&&item.percent!==null).length}</em></button>)}</nav><span aria-hidden="true"/><nav className="student-exam-range-tabs" aria-label="시험 기록 표시 범위"><button type="button" className={range==="recent"?"active":""} onClick={()=>setRange("recent")}>최근 8회</button><button type="button" className={range==="all"?"active":""} onClick={()=>setRange("all")}>전체 기록 <em>{allScored.length}</em></button></nav></div>
+        <div className="student-exam-selects">
+          <label>
+            수업 구분
+            <select value={source} onChange={(event)=>{setSource(event.target.value as ExamProgressItem["source"]);setSubject("")}}>
+              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"} ({items.filter(item=>item.source===value&&item.percent!==null).length})</option>)}
+            </select>
+          </label>
+          <label>
+            조회 기간
+            <select value={range} onChange={(event)=>setRange(event.target.value as "recent"|"all")}>
+              <option value="recent">최근 8회</option>
+              <option value="all">전체 기록 ({allScored.length})</option>
+            </select>
+          </label>
+        </div>
       </header>
       {subjects.length?<nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>:null}
       {scored.length ? (
