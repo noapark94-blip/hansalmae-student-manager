@@ -379,9 +379,11 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const sourceItems=items.filter(item=>item.source===source&&item.percent!==null);
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
   const[subject,setSubject]=useState("");
+  const[range,setRange]=useState<"recent"|"all">("recent");
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
-  const scored=sourceItems.filter(item=>item.subject===selectedSubject).slice(-8);
-  const recent=scored.slice(-3);
+  const allScored=sourceItems.filter(item=>item.subject===selectedSubject);
+  const scored=range==="recent"?allScored.slice(-8):allScored;
+  const recent=allScored.slice(-3);
   const average=recent.length?Math.round(recent.reduce((sum,item)=>sum+(item.percent??0),0)/recent.length*10)/10:null;
   const latest=scored.at(-1)?.percent??null;
   const previous=scored.at(-2)?.percent??null;
@@ -391,15 +393,15 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
       <header>
         <div>
           <h3>시험 성적 추이</h3>
-          <p>수업 종류와 과목을 선택해 최근 8회의 100점 환산 점수를 비교합니다.</p>
+          <p>수업 종류와 과목을 선택해 최근 8회 또는 전체 시험의 100점 환산 점수를 비교합니다.</p>
         </div>
         <nav className="student-exam-source-tabs">{availableSources.map(value=><button type="button" key={value} className={source===value?"active":""} onClick={()=>{setSource(value);setSubject("")}}>{value==="regular"?"정규수업":"첨삭수업"}<em>{items.filter(item=>item.source===value&&item.percent!==null).length}</em></button>)}</nav>
       </header>
-      {subjects.length?<nav className="student-exam-subject-tabs">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>:null}
+      {subjects.length?<div className="student-exam-filter-row"><nav className="student-exam-subject-tabs">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav><nav className="student-exam-range-tabs" aria-label="시험 기록 표시 범위"><button type="button" className={range==="recent"?"active":""} onClick={()=>setRange("recent")}>최근 8회</button><button type="button" className={range==="all"?"active":""} onClick={()=>setRange("all")}>전체 기록 <em>{allScored.length}</em></button></nav></div>:null}
       {scored.length ? (
         <>
-          <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>기록 시험</span><b>{scored.length}회</b></div></div>
-          <div className={`student-exam-bars ${source}`} role="img" aria-label={`${source==="regular"?"정규수업":"첨삭수업"} ${selectedSubject} 시험 성적`}>
+          <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>전체 기록 시험</span><b>{allScored.length}회</b></div></div>
+          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${source==="regular"?"정규수업":"첨삭수업"} ${selectedSubject} ${range==="recent"?"최근 8회":"전체"} 시험 성적`}>
             {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
           <div className="student-exam-records">
