@@ -244,77 +244,58 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
           {tab === "profile" && (
             <>
               <form className="student-profile-form" onSubmit={submit}>
-                <div className="form-grid">
-                  <label>
+                <section className="student-profile-card">
+                  <header><div><h3>학생 기본정보</h3><p>학생의 학교 정보와 연락처를 관리합니다.</p></div></header>
+                  <div className="form-grid">
+                    <label>
                     학생 이름 <b>*</b>
                     <input required value={values.name} onChange={(event) => update("name", event.target.value)} />
-                  </label>
-                  <label>
+                    </label>
+                    <label>
                     학교
                     <input value={values.school} onChange={(event) => update("school", event.target.value)} />
-                  </label>
-                  <label>
+                    </label>
+                    <label>
                     학년
                     <input value={values.grade} onChange={(event) => update("grade", event.target.value)} />
-                  </label>
-                  <label>
+                    </label>
+                    <label>
                     학생 연락처
                     <input value={values.phone} onChange={(event) => update("phone", event.target.value)} />
-                  </label>
-                  <label className="full">
+                    </label>
+                  </div>
+                </section>
+                <section className="student-profile-card">
+                  <header><div><h3>학원 이용정보</h3><p>차량 이용 위치, 수강 클래스와 내부 메모를 관리합니다.</p></div>{rosterStudent&&<button type="button" className="secondary-button compact" onClick={()=>onAssign(rosterStudent)}>＋ 클래스 배정</button>}</header>
+                  <div className="form-grid">
+                    <label className="full">
                     거주지
                     <input value={values.residence} onChange={(event) => update("residence", event.target.value)} placeholder="예: 배곧동 한라비발디" />
-                  </label>
-                  <label>
+                    </label>
+                    <label>
                     차량 승차 위치
                     <input value={values.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} placeholder="예: 아파트 정문" />
-                  </label>
-                  <label>
+                    </label>
+                    <label>
                     차량 하차 위치
                     <input value={values.dropoffLocation} onChange={(event) => update("dropoffLocation", event.target.value)} placeholder="예: 아파트 후문" />
-                  </label>
-                  <label>
-                    현재 상태
-                    <input disabled value={studentStatus(values.status)} />
-                  </label>
-                  <label className="full">
+                    </label>
+                    <label className="full">
                     내부 메모
                     <textarea rows={3} value={values.internalNote} onChange={(event) => update("internalNote", event.target.value)} />
-                  </label>
-                </div>
-                <div className="student-detail-actions">
-                  <span>
-                    {rosterStudent && (
-                      <button type="button" className="secondary-button" onClick={() => onAssign(rosterStudent)}>
-                        ＋ 수강 클래스 배정
-                      </button>
-                    )}
-                  </span>
-                  <button type="button" className="danger-link" onClick={() => setConfirmDelete((current) => !current)}>
-                    학생 삭제
-                  </button>
-                </div>
-                {confirmDelete && (
-                  <div className="delete-confirm">
-                    <b>연결된 모든 기록도 함께 삭제됩니다.</b>
-                    <span>
-                      확인을 위해 <strong>{student.name}</strong>을 입력하세요.
-                    </span>
-                    <input value={deleteName} onChange={(event) => setDeleteName(event.target.value)} placeholder={student.name} />
-                    <button type="button" disabled={submitting || deleteName !== student.name} onClick={() => void remove()}>
-                      영구 삭제
-                    </button>
+                    </label>
                   </div>
-                )}
-                {error && <p className="form-error">{error}</p>}
-                <footer>
+                </section>
+                {error&&<p className="form-error">{error}</p>}
+                <footer className="student-profile-savebar"><span>변경한 기본정보를 저장합니다.</span><div>
                   <button type="button" className="secondary-button" onClick={onClose}>
                     취소
                   </button>
                   <button className="primary" disabled={submitting}>
                     {submitting ? "저장 중…" : "기본정보 저장"}
                   </button>
-                </footer>
+                </div></footer>
+                <section className="student-danger-zone"><div><b>학생 삭제</b><small>학생과 연결된 모든 기록이 영구적으로 삭제됩니다.</small></div><button type="button" className="danger-link" onClick={()=>setConfirmDelete((current)=>!current)}>{confirmDelete?"삭제 취소":"삭제하기"}</button>{confirmDelete&&<div className="delete-confirm"><b>연결된 모든 기록도 함께 삭제됩니다.</b><span>확인을 위해 <strong>{student.name}</strong>을 입력하세요.</span><input value={deleteName} onChange={(event)=>setDeleteName(event.target.value)} placeholder={student.name}/><button type="button" disabled={submitting||deleteName!==student.name} onClick={()=>void remove()}>영구 삭제</button></div>}</section>
               </form>
               <StudentLifecyclePanel
                 supabase={supabase}
