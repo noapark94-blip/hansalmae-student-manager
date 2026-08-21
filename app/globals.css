@@ -446,6 +446,13 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-calendar-students small.late{background:#fff2da}
 .teacher-special-workspace .special-calendar-students small.absent{background:#fff0f1}
 .teacher-special-workspace .special-calendar-students small.scheduled{background:#f1edef}
+.teacher-special-workspace .special-week-session{gap:3px;padding:6px 7px}
+.teacher-special-workspace .special-session-details{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;color:inherit}
+.teacher-special-workspace .special-session-subject{flex:0 0 auto;color:#8b7d84;font-size:8px;font-weight:800;line-height:1.2}
+.teacher-special-workspace .special-session-subject::after{content:"·";margin-left:5px;color:#c1b7bc}
+.teacher-special-workspace .special-session-details .special-calendar-students{display:flex;flex:1 1 auto;flex-wrap:nowrap;gap:3px;min-width:0;overflow:hidden}
+.teacher-special-workspace .special-session-details .special-calendar-students>em{flex:0 1 auto;min-width:0;gap:4px;padding:1px 3px;background:transparent;font-size:8px;white-space:nowrap}
+.teacher-special-workspace .special-session-details .special-calendar-students>em>small{min-height:14px;padding:1px 4px;font-size:6px}
 .teacher-special-workspace .special-board-modal .learning-student>i{display:grid!important;grid-row:1/3!important;width:46px!important;height:46px!important;border-radius:50%!important;background:#f6e8ef!important;color:#9a2e62!important;font-size:16px!important;font-style:normal!important;font-weight:900!important;place-items:center!important}
 .teacher-special-workspace .special-board-modal .learning-student{display:grid!important;grid-template-columns:46px minmax(0,1fr)!important;grid-template-rows:auto auto!important;column-gap:12px!important;row-gap:0!important;align-items:center!important}
 .teacher-special-workspace .special-board-modal .learning-student>b{grid-column:2!important;grid-row:1!important;align-self:end!important}
