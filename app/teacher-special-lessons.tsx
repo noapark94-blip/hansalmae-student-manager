@@ -111,15 +111,15 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       </header>
       {error ? <p className="form-error special-lesson-error">{error}</p> : null}
       <section className="special-week-calendar">
-        <header><div><h3>이번 주 출석부</h3><p>요일 칸을 누르면 그날의 일정 수정·삭제가, 안쪽 수업을 누르면 수업 관리 화면이 열립니다.</p></div><div><button type="button" className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>이전 주</button><button type="button" className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button><button type="button" className="secondary-button" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>다음 주</button></div></header>
-        <div className="class-week-strip special-week-strip">{week.map((date, index) => {
+        <header><div><h3>이번 주 수업 기록</h3><p>날짜를 선택해 보강·추가수업 일정을 확인하고 수업 기록을 관리합니다.</p></div><button type="button" className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button></header>
+        <div className="class-week-navigation special-week-navigation"><button type="button" aria-label="이전 주" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>‹</button><div className="class-week-strip special-week-strip">{week.map((date, index) => {
           const daySessions = sessionsByDate.get(date) ?? [];
           const selectDay = () => { setAnchorDate(date); setActiveSession(null); };
           return <article key={date} role="button" tabIndex={0} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={selectDay} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectDay(); }}>
             <div className="special-week-day"><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 없음"}</small></div>
             {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</b><span>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
           </article>;
-        })}</div>
+        })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
       {loading ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
         activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /> : <section className="special-day-agenda">
