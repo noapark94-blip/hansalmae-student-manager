@@ -119,7 +119,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           const selectDay = () => { setAnchorDate(date); setActiveSession(null); };
           return <article key={date} role="button" tabIndex={0} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={selectDay} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectDay(); }}>
             <div className="special-week-day"><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 없음"}</small></div>
-            {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</b><span>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
+            {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b><time>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</time><em>{session.kind === "makeup" ? "보강" : "추가"}</em></b><span>{session.students.map((student) => student.name).join(" · ") || "학생 미배정"}</span></button>)}
           </article>;
         })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
