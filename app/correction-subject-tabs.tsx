@@ -17,13 +17,17 @@ export function CorrectionSubjectTabs(){
       const groups=document.querySelector<HTMLElement>(".correction-subject-groups");
       if(!groups)return;
 
+      let tabs=groups.previousElementSibling as HTMLElement|null;
+
       const sections=SUBJECTS.map(subject=>({
         subject,
         section:groups.querySelector<HTMLElement>(`.correction-subject-group.subject-${subject}`),
       })).filter((item):item is {subject:(typeof SUBJECTS)[number];section:HTMLElement}=>Boolean(item.section));
-      if(!sections.length)return;
+      if(!sections.length){
+        if(tabs?.classList.contains("correction-subject-tabs"))tabs.remove();
+        return;
+      }
 
-      let tabs=groups.previousElementSibling as HTMLElement|null;
       if(!tabs?.classList.contains("correction-subject-tabs")){
         tabs=document.createElement("div");
         tabs.className="correction-subject-tabs";
