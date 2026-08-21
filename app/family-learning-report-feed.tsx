@@ -26,7 +26,7 @@ export function FamilyLearningReportFeed({supabase,studentId}:{supabase:Supabase
     let active=true;
     setLoading(true);setUnavailable(false);setReadTracking(false);setReads({});
     void (async()=>{
-      const reportResult=await supabase.rpc("family_learning_reports",{p_student_id:studentId,p_limit:20});
+      const reportResult=await supabase.rpc("family_completed_learning_reports",{p_student_id:studentId,p_limit:20});
       if(!active)return;
       if(reportResult.error){setUnavailable(true);setItems([]);setLoading(false);return;}
       setItems((reportResult.data??[]) as Report[]);
