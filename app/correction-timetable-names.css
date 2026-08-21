@@ -1,4 +1,4 @@
-/* Correction timetable: render the actual slot student list as two columns. */
+/* Correction timetable: keep dense student rosters readable without overlapping controls. */
 .correction-slot-content{
   display:grid!important;
   grid-template-columns:1fr!important;
