@@ -9,8 +9,9 @@ type Assignment={id:string;studentId:string;studentName:string;school:string|nul
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={assignment:Assignment;date:string;startTime:string;endTime:string;kind:"fixed"|"move"|"extra";exception?:Exception};
-type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null};
+type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;absenceReason?:string;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null};
 type ExamCategory={id:string;name:string;isActive:boolean;sortOrder:number};
+type AttendanceEditor={row:Occurrence;status:"late"|"absent";value:string};
 
 const weekdays=["월","화","수","목","금","토","일"];
 const subjects:["국어","영어","수학"]=["국어","영어","수학"];
@@ -27,6 +28,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[monthOpen,setMonthOpen]=useState(false);
   const[historyStudent,setHistoryStudent]=useState<Assignment|null>(null);
   const[scheduleChangeRow,setScheduleChangeRow]=useState<Occurrence|null>(null);
+  const[attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -57,9 +59,10 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     const max=next.examMaxScore==null||Number(next.examMaxScore)<=0?100:Number(next.examMaxScore);
     const score=next.examScore==null?null:Number(next.examScore);
     if(score!==null&&(!Number.isFinite(score)||score<0||score>max))throw new Error(`${row.assignment.studentName} 학생의 시험 점수를 확인해 주세요.`);
-    const{error:saveError}=await supabase.rpc("staff_save_correction_report",{
+    const{error:saveError}=await supabase.rpc("staff_save_correction_report_v2",{
       p_assignment_id:row.assignment.id,p_correction_date:row.date,p_start_time:row.startTime,p_end_time:row.endTime,
       p_attendance_status:next.attendanceStatus??"scheduled",p_late_minutes:next.attendanceStatus==="late"?(next.lateMinutes??null):null,
+      p_absence_reason:next.attendanceStatus==="absent"?(next.absenceReason||null):null,
       p_teacher_instruction:next.teacherInstruction||null,p_exam_title:next.examTitle||null,p_exam_range:next.examRange||null,
       p_exam_score:score,p_exam_max_score:max,p_evaluation:next.evaluation||null,p_homework_instruction:next.homeworkInstruction||null,
       p_homework_status:next.homeworkStatus||null,p_homework_note:next.homeworkNote||null,p_correction_content:next.correctionContent||null,
@@ -74,14 +77,23 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const saveAttendance=async(row:Occurrence,status:"present"|"late"|"absent")=>{
     const key=reportKey(row),current=drafts[key]??{};
     const nextStatus=current.attendanceStatus===status?"scheduled":status;
-    let late:number|null=null;
-    if(nextStatus==="late"){
-      const value=prompt(`${row.assignment.studentName} 학생은 몇 분 지각했나요?`,String(current.lateMinutes??10));
-      if(value===null)return;
-      late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 숫자로 입력해 주세요.");return}
-    }
+    if(nextStatus==="late"){setAttendanceEditor({row,status:"late",value:String(current.lateMinutes??10)});return}
+    if(nextStatus==="absent"){setAttendanceEditor({row,status:"absent",value:current.absenceReason??""});return}
     setSaving(key);setError("");
-    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:late},false)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
+    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:null,absenceReason:""},false)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
+    setSaving("");
+  };
+
+  const saveAttendanceDetail=async()=>{
+    if(!attendanceEditor)return;
+    const{row,status}=attendanceEditor,key=reportKey(attendanceEditor.row),current=drafts[reportKey(attendanceEditor.row)]??{};
+    const value=attendanceEditor.value.trim();
+    let late:number|null=null,reason="";
+    if(status==="late"){late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 1분 이상의 숫자로 입력해 주세요.");return}}
+    else{reason=value;if(!reason){setError("결석 사유를 입력해 주세요.");return}}
+    setSaving(key);setError("");
+    try{await persist(row,{...current,attendanceStatus:status,lateMinutes:late,absenceReason:reason},false);setAttendanceEditor(null)}
+    catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
     setSaving("");
   };
 
@@ -99,7 +111,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     const originalLabel=row.kind==="move"&&row.exception?`${weekdays[isoWeekday(row.exception.originalDate)-1]} ${row.assignment.startTime.slice(0,5)} → ${weekdays[isoWeekday(row.date)-1]} ${row.startTime.slice(0,5)}`:row.kind==="extra"?"정규 일정 외 추가 첨삭":"";
     const changeReason=row.kind!=="fixed"?row.exception?.note?.trim()||"변경 사유 미입력":"";
     return <article key={key}>
-      <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b><span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{report.recordedByName?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
+      <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b><span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{report.recordedByName?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
       <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore??100} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
       <div className="correction-task-cell"><textarea value={report.correctionContent??""} onChange={e=>updateDraft(row,{correctionContent:e.target.value})} placeholder="오늘 실제로 진행한 첨삭 과제·오답·개념 설명 내용을 기록하세요." rows={5}/></div>
     </article>;
@@ -115,6 +127,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
     {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
     {scheduleChangeRow?.exception?<CorrectionScheduleChangeModal row={scheduleChangeRow} supabase={supabase} onClose={()=>setScheduleChangeRow(null)} onReverted={async()=>{setScheduleChangeRow(null);await load();}}/>:null}
+    {attendanceEditor?<div className="modal-backdrop nested attendance-editor-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setAttendanceEditor(null)}}><form className="attendance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="correction-attendance-editor-title" onSubmit={event=>{event.preventDefault();void saveAttendanceDetail()}}><header><span className={`attendance-editor-icon ${attendanceEditor.status}`}>{attendanceEditor.status==="late"?"분":"!"}</span><div><small>{attendanceEditor.status==="late"?"지각 시간 기록":"결석 사유 기록"}</small><h2 id="correction-attendance-editor-title">{attendanceEditor.row.assignment.studentName} 학생</h2></div><button type="button" aria-label="닫기" onClick={()=>setAttendanceEditor(null)}>×</button></header><label><b>{attendanceEditor.status==="late"?"몇 분 지각했나요?":"결석 사유를 입력해 주세요"}</b>{attendanceEditor.status==="late"?<div className="attendance-minute-input"><input autoFocus type="number" min="1" inputMode="numeric" value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)}/><span>분</span></div>:<textarea autoFocus rows={3} value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)} placeholder="예: 병원 진료, 개인 사정"/>}</label><footer><button type="button" className="secondary-button" onClick={()=>setAttendanceEditor(null)}>취소</button><button type="submit" className="primary" disabled={saving===reportKey(attendanceEditor.row)}>{saving===reportKey(attendanceEditor.row)?"저장 중…":"기록하기"}</button></footer></form></div>:null}
   </section>;
 }
 
