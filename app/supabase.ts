@@ -14,6 +14,8 @@ export type StudentRow = {
   school: string | null;
   grade: string | null;
   status: string;
+  attendanceRate?: number | null;
+  attendanceChecked?: number;
   enrollments: {
     class_id: string;
     status: "active" | "paused" | "completed";
