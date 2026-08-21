@@ -421,3 +421,11 @@ button:disabled { cursor:wait; opacity:.7; }
 .special-month-modal .correction-month-grid>button>div>em.makeup{background:#f6eaf0;color:#8f2c5b}
 .special-month-modal .correction-month-grid>button>div>em.additional{background:#eaf0f9;color:#41669b}
 @media(max-width:600px){.teacher-special-workspace .special-week-calendar>header{padding:15px 14px}.teacher-special-workspace .special-week-calendar>header h3{font-size:20px}.teacher-special-workspace .special-week-calendar>header p{font-size:13px}.teacher-special-workspace .special-week-calendar>header>.secondary-button{min-height:40px;font-size:11px}}
+
+/* The selected special lesson uses the same five-column record sheet as a regular class. */
+.teacher-special-workspace .special-board-embedded{margin:0;border:0;border-radius:0;box-shadow:none}
+.teacher-special-workspace .special-board-embedded .family-read-status,
+.teacher-special-workspace .special-board-embedded .learning-board-heading,
+.teacher-special-workspace .special-board-embedded .learning-board-rows,
+.teacher-special-workspace .special-board-embedded>.form-error,
+.teacher-special-workspace .special-board-embedded>footer{margin-left:0;margin-right:0}
