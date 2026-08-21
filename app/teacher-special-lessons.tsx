@@ -33,6 +33,8 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [anchorDate, setAnchorDate] = useState(today());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(today().slice(0, 7));
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }] = await Promise.all([
@@ -111,7 +113,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       </header>
       {error ? <p className="form-error special-lesson-error">{error}</p> : null}
       <section className="special-week-calendar">
-        <header><div><h3>이번 주 수업 기록</h3><p>날짜를 선택해 보강·추가수업 일정을 확인하고 수업 기록을 관리합니다.</p></div><button type="button" className="secondary-button" onClick={() => setAnchorDate(today())}>이번 주</button></header>
+        <header><div><h3>이번 주 수업 기록</h3><p>날짜를 선택해 보강·추가수업 일정을 확인하고 수업 기록을 관리합니다.</p></div><button type="button" className="secondary-button" onClick={() => { setCalendarMonth(anchorDate.slice(0, 7)); setCalendarOpen(true); }}>전체 캘린더</button></header>
         <div className="class-week-navigation special-week-navigation"><button type="button" aria-label="이전 주" onClick={() => setAnchorDate(shiftDate(anchorDate, -7))}>‹</button><div className="class-week-strip special-week-strip">{week.map((date, index) => {
           const daySessions = sessionsByDate.get(date) ?? [];
           const selectDay = () => { setAnchorDate(date); setActiveSession(null); };
@@ -123,7 +125,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       </section>
       {loading ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
         activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} /> : <section className="special-day-agenda">
-          <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div><button type="button" className="primary compact" onClick={() => setDraft({ ...blank(), date: anchorDate })}>＋ 일정 등록</button></header>
+          <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div></header>
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />
             <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
@@ -132,6 +134,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           </article>)}{!selectedDaySessions.length ? <p className="settings-empty">이 날짜에는 일정이 없습니다. 위 버튼으로 새 일정을 등록해 주세요.</p> : null}</div>
         </section>
       )}
+      {calendarOpen ? <div className="modal-backdrop nested" onMouseDown={(event) => { if (event.target === event.currentTarget) setCalendarOpen(false); }}><section className="student-modal class-month-modal correction-month-modal" role="dialog" aria-modal="true" aria-label="보강·추가수업 전체 캘린더"><header><div><p className="eyebrow">전체 일정</p><h2>전체 캘린더</h2><span>월간 보강·추가수업 일정을 한눈에 확인합니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCalendarOpen(false)}>×</button></header><nav className="correction-month-toolbar" aria-label="월 이동"><button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button><strong>{formatMonth(calendarMonth)}</strong><button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button><button type="button" onClick={() => setCalendarMonth(today().slice(0, 7))}>이번 달</button></nav><div className="correction-month-weekdays">{weekdays.map((day) => <b key={day}>{day}</b>)}</div><div className="correction-month-grid">{monthDates(calendarMonth).map((date) => { const daySessions = sessionsByDate.get(date) ?? []; const inMonth = date.slice(0, 7) === calendarMonth; return <button type="button" key={date} className={`${inMonth ? "" : "outside"} ${date === anchorDate ? "selected" : ""} ${date === today() ? "today" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={() => { setAnchorDate(date); setActiveSession(null); setCalendarOpen(false); }}><span>{+date.slice(8)}</span><div>{daySessions.slice(0, 3).map((session) => <em key={session.id}>{session.startTime.slice(0, 5)} · {session.kind === "makeup" ? "보강" : "추가"}</em>)}{daySessions.length > 3 ? <small>+{daySessions.length - 3}개</small> : null}{!daySessions.length ? <small className="empty">일정 없음</small> : null}</div></button>; })}</div></section></div> : null}
       {draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>날짜와 시간, 학생을 순서대로 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={() => setDraft(null)}>×</button></header>
         <form onSubmit={(event) => void save(event)}>
           <div className="form-pair"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label></div>
@@ -151,3 +154,6 @@ function formatDate(value: string) { return new Intl.DateTimeFormat("ko-KR", { t
 const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
 function shiftDate(value: string, days: number) { const date = new Date(`${value}T00:00:00+09:00`); date.setDate(date.getDate() + days); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); }
 function weekDates(value: string) { const date = new Date(`${value}T00:00:00+09:00`); const mondayOffset = (date.getDay() + 6) % 7; date.setDate(date.getDate() - mondayOffset); return Array.from({ length: 7 }, (_, index) => { const current = new Date(date); current.setDate(date.getDate() + index); return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(current); }); }
+function shiftMonth(value: string, amount: number) { const [year, month] = value.split("-").map(Number); const next = new Date(Date.UTC(year, month - 1 + amount, 1)); return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`; }
+function formatMonth(value: string) { const [year, month] = value.split("-").map(Number); return `${year}년 ${month}월`; }
+function monthDates(value: string) { const [year, month] = value.split("-").map(Number); const first = new Date(Date.UTC(year, month - 1, 1)); const mondayOffset = (first.getUTCDay() + 6) % 7; first.setUTCDate(first.getUTCDate() - mondayOffset); return Array.from({ length: 42 }, (_, index) => { const current = new Date(first); current.setUTCDate(first.getUTCDate() + index); return current.toISOString().slice(0, 10); }); }
