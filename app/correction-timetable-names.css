@@ -113,20 +113,71 @@
 .correction-timetable-subject-filter em{min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#f2edef;color:#796c72;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-style:normal}
 .correction-timetable-subject-filter button.active em{background:#922d61;color:#fff}
 .correction-slot-students{grid-template-columns:minmax(0,1fr)!important;gap:5px!important}
-.correction-slot-subject-group{min-width:0;border-radius:8px;padding:5px;background:#fcfafb}
-.correction-slot-subject-group>header{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:4px;padding:0 2px}
+.correction-slot-subject-group{min-width:0;border-radius:7px;padding:4px;background:#fcfafb}
+.correction-slot-subject-group>header{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:3px;padding:0 2px}
 .correction-slot-subject-group>header b{font-size:8px;color:#55494f}
 .correction-slot-subject-group>header span{font-size:7px;color:#8d7f86}
-.correction-slot-subject-group>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
-.correction-slot-subject-group .correction-student{min-height:37px!important;padding:5px 6px!important;border-radius:7px!important}
+.correction-slot-subject-group>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.correction-slot-subject-group .correction-student{min-height:25px!important;padding:3px 5px!important;border-radius:6px!important}
+.correction-slot-subject-group .correction-student>span{display:flex!important;align-items:center!important;gap:4px!important}
 .correction-slot-subject-group .correction-student b{font-size:8.5px!important}
-.correction-slot-subject-group .correction-student small{font-size:7px!important}
+.correction-slot-subject-group .correction-student small{font-size:6.5px!important;flex:0 1 auto!important}
 .correction-slot-subject-group.subject-국어{background:#fdf8f1;box-shadow:inset 3px 0 0 #d9a15f}
 .correction-slot-subject-group.subject-영어{background:#fdf5f9;box-shadow:inset 3px 0 0 #c66c99}
 .correction-slot-subject-group.subject-수학{background:#f3f8fb;box-shadow:inset 3px 0 0 #6f9fba}
+.correction-slot-more{
+  width:100%;
+  min-height:25px;
+  border:1px dashed #cfb6c2;
+  border-radius:7px;
+  background:#fff;
+  color:#922d61;
+  font:inherit;
+  font-size:8px;
+  font-weight:850;
+  cursor:pointer;
+}
+.correction-slot-more:hover{background:#fbf4f7;border-color:#b8658e}
+
+/* 많은 학생이 있어도 시간 칸 자체의 높이는 변하지 않는다. */
+@media(min-width:901px){
+  .correction-timetable-mode .correction-slot{height:112px!important;min-height:112px!important}
+  .correction-timetable-mode .correction-slot-content{position:relative!important;overflow:hidden!important;padding-bottom:3px!important}
+  .correction-timetable-mode .correction-slot-content>.correction-slot-add{
+    position:absolute!important;
+    right:3px!important;
+    bottom:3px!important;
+    width:22px!important;
+    min-height:22px!important;
+    padding:0!important;
+    border-radius:999px!important;
+    background:#fff!important;
+    font-size:0!important;
+    box-shadow:0 1px 4px rgba(73,42,57,.13)!important;
+  }
+  .correction-timetable-mode .correction-slot-content>.correction-slot-add::after{content:"＋";font-size:11px;font-weight:900;color:#922d61}
+}
+
+.correction-slot-roster-modal{width:min(680px,calc(100vw - 28px))!important}
+.correction-slot-roster-modal>header span{display:block;margin-top:5px;color:#80747a;font-size:11px}
+.correction-slot-roster-groups{display:grid;gap:12px;padding:18px 22px;overflow:auto}
+.correction-slot-roster-groups>section{padding:12px;border:1px solid #eadfe4;border-radius:12px;background:#fcfafb}
+.correction-slot-roster-groups>section>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.correction-slot-roster-groups>section>header b{font-size:12px}
+.correction-slot-roster-groups>section>header span{padding:3px 7px;border-radius:999px;background:#f1e9ed;color:#776a70;font-size:9px;font-weight:800}
+.correction-slot-roster-groups>section>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.correction-slot-roster-groups>section>div>button{display:grid;gap:3px;min-width:0;padding:9px 10px;border:1px solid #eadfe4;border-radius:9px;background:#fff;color:#332b2f;text-align:left;cursor:pointer}
+.correction-slot-roster-groups>section>div>button:hover{border-color:#b8658e;background:#fff9fc}
+.correction-slot-roster-groups>section>div b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.correction-slot-roster-groups>section>div small{color:#8d7f86;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.correction-slot-roster-groups>section.subject-국어{box-shadow:inset 3px 0 0 #d9a15f}
+.correction-slot-roster-groups>section.subject-영어{box-shadow:inset 3px 0 0 #c66c99}
+.correction-slot-roster-groups>section.subject-수학{box-shadow:inset 3px 0 0 #6f9fba}
 
 @media(max-width:720px){
   .correction-timetable-subject-filter{position:sticky;top:58px;z-index:9;margin-bottom:10px;padding:7px;background:rgba(255,255,255,.95)}
   .correction-timetable-subject-filter button{min-width:76px;height:34px}
   .correction-slot-subject-group>div{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .correction-slot-roster-groups{padding:14px}
+  .correction-slot-roster-groups>section>div{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
