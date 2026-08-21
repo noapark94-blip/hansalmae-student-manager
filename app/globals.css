@@ -417,7 +417,7 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-week-session.additional.active{border-color:#557aaa;background:#e9f0fa}
 .special-month-modal .correction-month-grid>button>div>em{padding:5px 7px;display:grid;gap:2px;border-radius:7px;font-style:normal;text-align:left}
 .special-month-modal .correction-month-grid>button>div>em>b{font-size:8px;line-height:1.2}
-.special-month-modal .correction-month-grid>button>div>em>small{overflow:hidden;font-size:7px;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}
+.special-month-modal .correction-month-grid>button>div>em>small{overflow:hidden;font-size:7px;line-height:1.2;white-space:nowrap;text-overflow:ellipsis;word-break:keep-all}
 .special-month-modal .correction-month-grid>button>div>em.makeup{background:#f6eaf0;color:#8f2c5b}
 .special-month-modal .correction-month-grid>button>div>em.additional{background:#eaf0f9;color:#41669b}
 @media(max-width:600px){.teacher-special-workspace .special-week-calendar>header{padding:15px 14px}.teacher-special-workspace .special-week-calendar>header h3{font-size:14px}.teacher-special-workspace .special-week-calendar>header p{font-size:9px}.teacher-special-workspace .special-week-calendar>header>.secondary-button{min-height:40px;font-size:11px}}
