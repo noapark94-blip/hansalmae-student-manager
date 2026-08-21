@@ -360,7 +360,7 @@ function SummaryTab({ data }: { data: DetailData }) {
           <b>{correctionRate === null ? "-" : `${correctionRate}%`}</b>
           <small>출석 {data.insights.correctionAttendance.present} · 지각 {data.insights.correctionAttendance.late} · 결석 {data.insights.correctionAttendance.absent}</small>
         </article>
-        <article><span>개별수업 출석률 · 30일</span><b>{specialRate===null?"-":`${specialRate}%`}</b><small>출석 {data.special.attendance.present} · 지각 {data.special.attendance.late} · 결석 {data.special.attendance.absent}</small></article>
+        <article><span>보강·추가수업 출석률 · 30일</span><b>{specialRate===null?"-":`${specialRate}%`}</b><small>출석 {data.special.attendance.present} · 지각 {data.special.attendance.late} · 결석 {data.special.attendance.absent}</small></article>
         <article>
           <span>미완료 정규 과제</span>
           <b>{data.summary.assignmentOpen}</b>
@@ -385,9 +385,9 @@ function SummaryTab({ data }: { data: DetailData }) {
 }
 
 function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
-  const availableSources = useMemo(()=>["regular","correction","makeup","additional"].filter(source=>items.some(item=>item.source===source)) as ExamProgressItem["source"][],[items]);
-  const[source,setSource]=useState<ExamProgressItem["source"]>(availableSources[0]??"regular");
-  const sourceItems=items.filter(item=>item.source===source&&item.percent!==null);
+  const sourceOptions:ExamSourceFilter[]=["all","regular","correction","makeup","additional"];
+  const[source,setSource]=useState<ExamSourceFilter>("all");
+  const sourceItems=items.filter(item=>(source==="all"||item.source===source)&&item.percent!==null);
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
   const[subject,setSubject]=useState("");
   const[range,setRange]=useState<"week"|"month"|"quarter"|"all">("month");
@@ -416,8 +416,8 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
         <div className="student-exam-selects">
           <label>
             수업 구분
-            <select value={source} onChange={(event)=>{setSource(event.target.value as ExamProgressItem["source"]);setSubject("")}}>
-              {availableSources.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}
+            <select value={source} onChange={(event)=>{setSource(event.target.value as ExamSourceFilter);setSubject("")}}>
+              {sourceOptions.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}
             </select>
           </label>
           <label>
@@ -477,7 +477,8 @@ function examTypeLabel(value: string) {
     )[value] || "시험"
   );
 }
-function sourceLabel(value:ExamProgressItem["source"]){return value==="regular"?"정규수업":value==="correction"?"첨삭수업":value==="makeup"?"보강수업":"추가수업"}
+type ExamSourceFilter="all"|ExamProgressItem["source"];
+function sourceLabel(value:ExamSourceFilter){return value==="all"?"전체 수업":value==="regular"?"정규수업":value==="correction"?"첨삭수업":value==="makeup"?"보강수업":"추가수업"}
 function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: () => void }) {
   return (
     <>
