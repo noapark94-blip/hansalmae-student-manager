@@ -11,6 +11,7 @@ type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"c
 type Board={weekStart:string;students:Student[];staff:Staff[];assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={key:string;assignment:Assignment;date:string;startTime:string;endTime:string;state:"fixed"|"moved"|"extra";exception?:Exception};
 type EditorState={row?:Assignment;weekday?:number;slot?:string}|null;
+type SubjectFilter="전체"|Assignment["subject"];
 
 const days=["월","화","수","목","금","토","일"];
 const weekdaySlots=[["14:30","16:00"],["16:00","17:30"],["17:30","19:00"],["19:00","20:30"],["20:30","22:00"]] as const;
@@ -24,6 +25,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
   const[editor,setEditor]=useState<EditorState>(null);
   const[action,setAction]=useState<{assignment:Assignment;date:string}|null>(null);
   const[selectedDay,setSelectedDay]=useState(1);
+  const[subjectFilter,setSubjectFilter]=useState<SubjectFilter>("전체");
 
   const load=useCallback(async()=>{
     setLoading(true);
@@ -47,23 +49,24 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     <div className="correction-week-toolbar"><button onClick={()=>changeWeek(-7)}>‹ 이전 주</button><strong>{data?formatWeek(data.weekStart):"주간 시간표"}</strong><button onClick={()=>changeWeek(7)}>다음 주 ›</button><button className="today" onClick={()=>setAnchor(koreaToday())}>이번 주</button></div>
     {error&&<p className="attendance-error">{error}</p>}
     <nav className="correction-mobile-days">{days.map((day,index)=><button key={day} className={selectedDay===index+1?"active":""} onClick={()=>setSelectedDay(index+1)}>{day}</button>)}</nav>
+    <nav className="correction-timetable-subject-filter" aria-label="첨삭 과목 필터">{(["전체","국어","영어","수학"] as SubjectFilter[]).map(subject=>{const count=subject==="전체"?occurrences.length:occurrences.filter(item=>item.assignment.subject===subject).length;return <button type="button" key={subject} className={subjectFilter===subject?"active":""} onClick={()=>setSubjectFilter(subject)}><span>{subject}</span><em>{count}명</em></button>})}</nav>
     {loading?<section className="panel correction-empty">첨삭 시간표를 불러오는 중이에요…</section>:!data?<section className="panel correction-empty">첨삭 시간표를 표시할 수 없습니다.</section>:<section className="correction-week-board">{days.map((day,index)=>{
       const weekday=index+1;
       const date=addDays(data.weekStart,index);
       const slots=weekday<=5?weekdaySlots:weekendSlots;
       return <section key={day} className={`correction-day ${selectedDay===weekday?"mobile-active":""}`}>
-        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><em>{occurrences.filter(item=>item.date===date).length}명</em></header>
+        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><em>{occurrences.filter(item=>item.date===date&&(subjectFilter==="전체"||item.assignment.subject===subjectFilter)).length}명</em></header>
         <div className="correction-slot-list">{slots.map(([start,end])=>{
           const inSlot=occurrences.filter(item=>item.date===date&&item.startTime.slice(0,5)===start);
           const fixedMoved=(data.assignments??[]).filter(item=>item.weekday===weekday&&item.startTime.slice(0,5)===start).map(item=>({item,exception:movedFrom.get(`${item.id}-${date}`)})).filter(row=>row.exception);
+          const visibleInSlot=inSlot.filter(item=>subjectFilter==="전체"||item.assignment.subject===subjectFilter);
+          const visibleFixedMoved=fixedMoved.filter(row=>subjectFilter==="전체"||row.item.subject===subjectFilter);
+          const hasAny=visibleInSlot.length>0||visibleFixedMoved.length>0;
           return <article className="correction-slot correction-slot-clickable" key={start} role="button" tabIndex={0} aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setEditor({weekday,slot:start});}}}>
             <div className="correction-slot-time"><b>{start}</b><span>– {end}</span></div>
             <div className="correction-slot-content">
-              {(inSlot.length||fixedMoved.length)?<div className="correction-slot-students" onClick={event=>event.stopPropagation()}>
-                {inSlot.map(row=><button key={row.key} className={`correction-student ${row.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:row.assignment,date});}}><span><b>{row.assignment.studentName}</b><small>{[row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small></span></button>)}
-                {fixedMoved.map(row=><button key={`ghost-${row.item.id}`} className="correction-student ghost" onClick={event=>{event.stopPropagation();setAction({assignment:row.item,date});}}><span><b>{row.item.studentName}</b><small>{[row.item.grade,row.item.subject].filter(Boolean).join(" · ")}</small></span></button>)}
-              </div>:<p className="correction-slot-empty">＋ 눌러서 학생 추가</p>}
-              {(inSlot.length||fixedMoved.length)?<button type="button" className="correction-slot-add" onClick={event=>{event.stopPropagation();setEditor({weekday,slot:start});}}>＋ 학생 추가</button>:null}
+              {hasAny?<div className="correction-slot-students" onClick={event=>event.stopPropagation()}>{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const subjectRows=visibleInSlot.filter(row=>row.assignment.subject===subject),subjectMoved=visibleFixedMoved.filter(row=>row.item.subject===subject);if(!subjectRows.length&&!subjectMoved.length)return null;return <section className={`correction-slot-subject-group subject-${subject}`} key={subject}><header><b>{subject}</b><span>{subjectRows.length+subjectMoved.length}명</span></header><div>{subjectRows.map(row=><button key={row.key} data-subject={subject} className={`correction-student subject-${subject} ${row.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:row.assignment,date});}}><span><b>{row.assignment.studentName}</b><small>{row.assignment.grade||"학년 미입력"}</small></span></button>)}{subjectMoved.map(row=><button key={`ghost-${row.item.id}`} data-subject={subject} className={`correction-student subject-${subject} ghost`} onClick={event=>{event.stopPropagation();setAction({assignment:row.item,date});}}><span><b>{row.item.studentName}</b><small>{row.item.grade||"학년 미입력"}</small></span></button>)}</div></section>})}</div>:<p className="correction-slot-empty">{subjectFilter==="전체"?"＋ 눌러서 학생 추가":`${subjectFilter} 학생 없음`}</p>}
+              {hasAny?<button type="button" className="correction-slot-add" onClick={event=>{event.stopPropagation();setEditor({weekday,slot:start});}}>＋ 학생 추가</button>:null}
             </div>
           </article>;
         })}</div>
