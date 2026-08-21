@@ -7,7 +7,7 @@ type StudentInfo={studentId:string;studentName:string;school:string|null;grade:s
 type Row={
   id:string;correction_date:string;start_time:string;end_time:string;subject:string;
   attendance_status:string;late_minutes:number|null;exam_title:string|null;exam_range:string|null;
-  exam_score:number|null;exam_max_score:number|null;evaluation:string|null;correction_content:string|null;recorded_by_name:string|null;
+  exam_score:number|null;exam_max_score:number|null;evaluation:string|null;homework_status:string|null;correction_content:string|null;recorded_by_name:string|null;
 };
 
 const attendanceLabel:Record<string,string>={scheduled:"미기록",present:"출석",late:"지각",absent:"결석"};
@@ -23,7 +23,7 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
 
   useEffect(()=>{let active=true;setLoading(true);setError("");void(async()=>{
     const response=await supabase.from("correction_reports")
-      .select("id,correction_date,start_time,end_time,subject,attendance_status,late_minutes,exam_title,exam_range,exam_score,exam_max_score,evaluation,correction_content,recorded_by_name")
+      .select("id,correction_date,start_time,end_time,subject,attendance_status,late_minutes,exam_title,exam_range,exam_score,exam_max_score,evaluation,homework_status,correction_content,recorded_by_name")
       .eq("student_id",student.studentId)
       .eq("published",true)
       .in("attendance_status",["present","late","absent"])
@@ -43,6 +43,8 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
   const visible=useMemo(()=>subject==="전체"?items:items.filter(item=>item.subject===subject),[items,subject]);
   const scored=visible.filter(item=>item.exam_score!=null&&item.exam_max_score!=null&&Number(item.exam_max_score)>0);
   const average=scored.length?Math.round(scored.reduce((sum,item)=>sum+Number(item.exam_score)/Number(item.exam_max_score)*100,0)/scored.length*10)/10:null;
+  const homeworkRows=visible.filter(item=>item.homework_status);
+  const homeworkRate=homeworkRows.length?Math.round(homeworkRows.filter(item=>item.homework_status==="complete").length/homeworkRows.length*100):null;
   const byDate=useMemo(()=>{const map=new Map<string,Row[]>();for(const item of visible){const list=map.get(item.correction_date)??[];list.push(item);map.set(item.correction_date,list)}return map},[visible]);
   const calendarDays=useMemo(()=>buildCalendar(month),[month]);
   const selectedItems=selectedDate?(byDate.get(selectedDate)??[]):[];
@@ -57,12 +59,12 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
   return <div className="correction-history-backdrop" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="correction-history-modal correction-history-calendar-modal" role="dialog" aria-modal="true" aria-label={`${student.studentName} 첨삭 기록`}>
       <header>
-        <div><p className="eyebrow">교직원 전용 · 누적 첨삭 기록</p><h2>{student.studentName}</h2><span>{[student.school,student.grade].filter(Boolean).join(" · ")||"학생 정보"}</span></div>
+        <div><p className="eyebrow">교직원 전용 · 누적 첨삭 기록</p><h2>{student.studentName}<small className="history-type-label">첨삭 기록</small></h2><span>{[student.school,student.grade].filter(Boolean).join(" · ")||"학생 정보"}</span></div>
         <button type="button" className="modal-close" aria-label="닫기" onClick={onClose}>×</button>
       </header>
       <div className="correction-history-summary">
-        <div><small>누적 기록</small><b>{visible.length}<em>회</em></b></div>
-        <div><small>시험 기록</small><b>{scored.length}<em>회</em></b></div>
+        <div><small>누적 첨삭</small><b>{visible.length}<em>회</em></b></div>
+        <div><small>과제 완료율</small><b>{homeworkRate==null?"—":homeworkRate}<em>{homeworkRate==null?"":"%"}</em></b></div>
         <div><small>시험 평균</small><b>{average==null?"—":average}<em>{average==null?"":"점"}</em></b></div>
       </div>
       <nav className="correction-history-filter" aria-label="과목 필터">{subjects.map(value=><button type="button" key={value} className={subject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>
@@ -81,7 +83,7 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
             const selected=selectedDate===day;
             return <button type="button" key={day} className={`${records.length?"has-record":""}${selected?" selected":""}`} onClick={()=>records.length&&setSelectedDate(day)} disabled={!records.length}>
               <span>{Number(day.slice(-2))}</span>
-              {records.length?<div>{records.slice(0,2).map(record=><em key={record.id} className={record.attendance_status}>{attendanceLabel[record.attendance_status]??record.attendance_status}</em>)}{records.length>2?<small>+{records.length-2}</small>:null}</div>:null}
+              {records.length?<div>{records.slice(0,2).map(record=><em key={record.id} className={record.attendance_status}>{record.subject} · {attendanceLabel[record.attendance_status]??record.attendance_status}</em>)}{records.length>2?<small>+{records.length-2}</small>:null}</div>:null}
             </button>
           })}</div>
         </section>
