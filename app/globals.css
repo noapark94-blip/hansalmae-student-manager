@@ -372,3 +372,11 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-week-calendar>header{padding:18px 25px}
 @media(max-width:900px){.teacher-special-workspace .special-week-calendar{margin:0}}
 @media(max-width:600px){.teacher-special-workspace .special-week-calendar{margin:0}.teacher-special-workspace .special-week-calendar>header{padding:15px 14px}}
+
+/* Special lessons: seamless selected-day section and readable compact schedule chips. */
+.teacher-special-workspace .special-day-agenda{margin-top:0;border-width:1px 0 0;border-radius:0}
+.teacher-special-workspace .special-week-session{gap:4px;margin-top:6px;padding:7px 8px;border-radius:8px}
+.teacher-special-workspace .special-week-session>b{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:10px;line-height:1.2}
+.teacher-special-workspace .special-week-session>b time{font:inherit;white-space:nowrap}
+.teacher-special-workspace .special-week-session>b em{flex:0 0 auto;padding:2px 4px;border-radius:999px;background:#eadce3;color:var(--wine);font-size:7px;font-style:normal;font-weight:850}
+.teacher-special-workspace .special-week-session>span{font-size:8px;font-weight:700;line-height:1.35}
