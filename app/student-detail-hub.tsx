@@ -64,6 +64,7 @@ type MakeupItem = {
   status: string;
   teacherName: string;
   note: string | null;
+  recordKind?: "absence_makeup" | "individual_makeup" | "additional";
 };
 type AssignmentItem = {
   id: string;
@@ -123,6 +124,11 @@ type DetailData = {
   examProgress: ExamProgressItem[];
   insights: DetailInsights;
 };
+type AttendanceHistory = {
+  regularAttendance: AttendanceItem[];
+  correctionAttendance: CorrectionAttendanceItem[];
+  makeups: MakeupItem[];
+};
 type Tab = "summary" | "profile" | "classes" | "attendance" | "learning";
 const statusLabels = {
   present: "출석",
@@ -154,17 +160,21 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
       supabase.rpc("staff_student_detail_hub", { p_student_id: student.id }),
       supabase.rpc("staff_student_exam_progress", { p_student_id: student.id }),
       supabase.rpc("staff_student_detail_insights", { p_student_id: student.id }),
-    ]).then(([detailResult, examResult, insightResult]) => {
+      supabase.rpc("staff_student_attendance_makeup_history", { p_student_id: student.id }),
+    ]).then(([detailResult, examResult, insightResult, historyResult]) => {
       if (!active) return;
-      if (detailResult.error || examResult.error || insightResult.error) setLoadError("학생 통합 기록을 불러오지 못했습니다.");
+      if (detailResult.error || examResult.error || insightResult.error || historyResult.error) setLoadError("학생 통합 기록을 불러오지 못했습니다.");
       else {
         const detail = detailResult.data as Omit<DetailData, "timetable" | "examProgress" | "insights">;
         const insights = insightResult.data as DetailInsights;
+        const history = historyResult.data as AttendanceHistory;
         const colors = new Map(timetable.map((row) => [row.className, row.color]));
         const primaryGuardian=detail.guardians.find((item)=>item.isPrimary)??detail.guardians[0];
         setValues((current)=>({...current,guardianName:primaryGuardian?.name??"",guardianPhone:primaryGuardian?.phone??""}));
         setData({
           ...detail,
+          attendance: history.regularAttendance ?? [],
+          makeups: history.makeups ?? [],
           classes: detail.classes.map((item) => ({
             ...item,
             color: colors.get(item.name),
@@ -174,7 +184,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
             ...((examResult.data ?? []) as Omit<ExamProgressItem,"source">[]).map((item)=>({...item,source:"regular" as const})),
             ...(insights.correctionExams??[]).map((item)=>({...item,source:"correction" as const})),
           ],
-          insights,
+          insights: { ...insights, correctionAttendanceRecords: history.correctionAttendance ?? [] },
         });
       }
       setLoading(false);
@@ -474,18 +484,21 @@ function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: ()
 }
 function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendance: AttendanceItem[]; correctionAttendance: CorrectionAttendanceItem[]; makeups: MakeupItem[] }) {
   const[source,setSource]=useState<"all"|"regular"|"correction">("all");
+  const[range,setRange]=useState<"7"|"30"|"90"|"all">("30");
+  const cutoff=useMemo(()=>range==="all"?null:dateDaysAgo(Number(range)-1),[range]);
   const rows=useMemo(()=>[
     ...attendance.map(item=>({...item,source:"regular" as const})),
     ...correctionAttendance.map(item=>({...item,source:"correction" as const})),
-  ].filter(item=>source==="all"||item.source===source).sort((a,b)=>b.lessonDate.localeCompare(a.lessonDate)).slice(0,30),[attendance,correctionAttendance,source]);
+  ].filter(item=>(source==="all"||item.source===source)&&(!cutoff||item.lessonDate>=cutoff)).sort((a,b)=>b.lessonDate.localeCompare(a.lessonDate)),[attendance,correctionAttendance,source,cutoff]);
+  const sortedMakeups=useMemo(()=>[...makeups].sort((a,b)=>b.scheduledAt.localeCompare(a.scheduledAt)),[makeups]);
   return (
     <>
       <div className="hub-section-title">
         <div>
           <h3>최근 출결</h3>
-          <p>정규수업과 첨삭수업의 최근 30건을 표시합니다.</p>
+          <p>정규수업과 첨삭수업 출결을 선택한 기간으로 확인합니다.</p>
         </div>
-        <nav className="student-record-source-tabs">{(["all","regular","correction"] as const).map(value=><button type="button" key={value} className={source===value?"active":""} onClick={()=>setSource(value)}>{value==="all"?"전체":value==="regular"?"정규수업":"첨삭수업"}</button>)}</nav>
+        <div className="student-record-filter-stack"><nav className="student-record-source-tabs">{(["all","regular","correction"] as const).map(value=><button type="button" key={value} className={source===value?"active":""} onClick={()=>setSource(value)}>{value==="all"?"전체":value==="regular"?"정규수업":"첨삭수업"}</button>)}</nav><nav className="student-record-range-tabs">{(["7","30","90","all"] as const).map(value=><button type="button" key={value} className={range===value?"active":""} onClick={()=>setRange(value)}>{value==="7"?"1주":value==="all"?"전체":`${value}일`}</button>)}</nav></div>
       </div>
       <div className="student-record-list">
         {rows.length ? (
@@ -510,12 +523,12 @@ function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendan
       </div>
       <div className="student-record-list">
         {makeups.length ? (
-          makeups.map((item) => (
+          sortedMakeups.map((item) => (
             <article key={item.id}>
               <time>{formatDateTime(item.scheduledAt)}</time>
               <span>
                 <b>
-                  {item.className} · {item.teacherName}
+                  {item.className} · {item.teacherName}<small className={`record-source makeup-${item.recordKind??"absence_makeup"}`}>{item.recordKind==="additional"?"추가수업":item.recordKind==="individual_makeup"?"개별 보강":"결석 연계"}</small>
                 </b>
                 <small>
                   {item.room}
@@ -596,6 +609,7 @@ function Empty({ text }: { text: string }) {
 }
 function attendanceRate(value:AttendanceSummary){return value.attendanceTotal?Math.round(value.present/value.attendanceTotal*100):null}
 function correctionHomeworkLabel(value:string){return value==="reviewed"||value==="completed"?"검사 완료":value==="submitted"?"검사 대기":value?"미완료":"첨삭 기록"}
+function dateDaysAgo(days:number){const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-days);return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date)}
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
