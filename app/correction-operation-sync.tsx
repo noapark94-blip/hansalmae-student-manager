@@ -11,8 +11,7 @@ export function CorrectionOperationSync({supabase:_supabase}:{supabase:SupabaseC
 
     const studentKey=(card:Element)=>{
       const name=card.querySelector("b")?.textContent?.trim()??"";
-      const meta=card.querySelector("small")?.textContent?.trim()??"";
-      const subject=meta.split("·").map(value=>value.trim()).filter(Boolean).at(-1)??"";
+      const subject=(card as HTMLElement).dataset.subject??"";
       return `${name}|${subject}`;
     };
 
