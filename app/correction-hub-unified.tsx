@@ -51,18 +51,17 @@ export function CorrectionHubUnified(){
   if(!host||!supabase)return null;
 
   return createPortal(
-    <div className="correction-timetable-mode">
-      <div className="page-heading correction-timetable-title">
+    <section className="panel hub-panel correction-timetable-mode">
+      <div className="hub-toolbar">
         <div>
-          <p className="eyebrow">한살매 첨삭 운영</p>
-          <h1>첨삭 시간표</h1>
-          <p>요일·시간 블록을 눌러 학생을 고정 배정하고, 이번 주만 변경·취소·추가할 수 있습니다.</p>
+          <h2>첨삭 시간표</h2>
+          <span>요일·시간 블록을 눌러 학생을 고정 배정하고, 이번 주만 변경·취소·추가할 수 있습니다.</span>
         </div>
       </div>
       <div className="correction-management-workspace">
         <CorrectionManagementBoard supabase={supabase}/>
       </div>
-    </div>,
+    </section>,
     host
   );
 }
