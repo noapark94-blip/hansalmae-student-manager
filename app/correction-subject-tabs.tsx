@@ -17,7 +17,8 @@ export function CorrectionSubjectTabs(){
       const groups=document.querySelector<HTMLElement>(".correction-subject-groups");
       if(!groups)return;
 
-      let tabs=groups.previousElementSibling as HTMLElement|null;
+      const board=groups.closest<HTMLElement>(".correction-learning-board");
+      let tabs=board?.querySelector<HTMLElement>(":scope > .correction-subject-tabs")??null;
 
       const sections=SUBJECTS.map(subject=>({
         subject,
@@ -33,7 +34,8 @@ export function CorrectionSubjectTabs(){
         tabs.className="correction-subject-tabs";
         tabs.setAttribute("role","tablist");
         tabs.setAttribute("aria-label","첨삭 과목 선택");
-        groups.parentElement?.insertBefore(tabs,groups);
+        const heading=board?.querySelector(":scope > .correction-learning-heading");
+        if(heading)board?.insertBefore(tabs,heading);else groups.parentElement?.insertBefore(tabs,groups);
       }
 
       const available=sections.map(item=>item.subject);
@@ -45,6 +47,9 @@ export function CorrectionSubjectTabs(){
       if(tabs.dataset.signature!==signature){
         tabs.dataset.signature=signature;
         tabs.replaceChildren();
+        const label=document.createElement("strong");
+        label.textContent="당일 과목";
+        tabs.appendChild(label);
         sections.forEach(item=>{
           const count=item.section.querySelector(".correction-subject-header span")?.textContent?.trim()||"";
           const button=document.createElement("button");
