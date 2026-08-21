@@ -64,7 +64,7 @@
   white-space:nowrap;
 }
 .teacher-class-cards > button > span > b { font-size:17px; line-height:1.28; letter-spacing:-.35px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.teacher-class-cards > button > span > em { margin-top:auto; padding-top:10px; color:#7f757a; font-size:11px; line-height:1.4; font-style:normal; white-space:normal; overflow-wrap:anywhere; }
+.teacher-class-cards > button > span > em { margin-top:auto; padding-top:10px; color:#7f757a; font-size:11px; line-height:1.4; font-style:normal; white-space:normal; word-break:keep-all; overflow-wrap:normal; }
 .teacher-class-cards > button > strong {
   align-self:start;
   min-width:44px;
