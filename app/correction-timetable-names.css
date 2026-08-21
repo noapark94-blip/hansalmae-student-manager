@@ -78,3 +78,55 @@
 .correction-slot-students .correction-student.ghost{background:#fff!important;border:1px dashed #decfd6!important;opacity:.72!important}
 .correction-slot-content>.correction-slot-add,
 .correction-slot-content>.correction-slot-empty{width:100%!important}
+
+/* 과목 필터와 시간 칸 내부 과목별 압축 그룹 */
+.correction-timetable-subject-filter{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:0 0 12px;
+  padding:10px 12px;
+  border:1px solid #eadfe4;
+  border-radius:13px;
+  background:#fff;
+  overflow-x:auto;
+}
+.correction-timetable-subject-filter button{
+  min-width:84px;
+  height:36px;
+  padding:0 11px;
+  border:1px solid #e2d7dc;
+  border-radius:9px;
+  background:#fff;
+  color:#62575c;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font:inherit;
+  font-size:10px;
+  font-weight:850;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.correction-timetable-subject-filter button.active{border-color:#922d61;background:#f8edf2;color:#922d61}
+.correction-timetable-subject-filter em{min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#f2edef;color:#796c72;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-style:normal}
+.correction-timetable-subject-filter button.active em{background:#922d61;color:#fff}
+.correction-slot-students{grid-template-columns:minmax(0,1fr)!important;gap:5px!important}
+.correction-slot-subject-group{min-width:0;border-radius:8px;padding:5px;background:#fcfafb}
+.correction-slot-subject-group>header{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:4px;padding:0 2px}
+.correction-slot-subject-group>header b{font-size:8px;color:#55494f}
+.correction-slot-subject-group>header span{font-size:7px;color:#8d7f86}
+.correction-slot-subject-group>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.correction-slot-subject-group .correction-student{min-height:37px!important;padding:5px 6px!important;border-radius:7px!important}
+.correction-slot-subject-group .correction-student b{font-size:8.5px!important}
+.correction-slot-subject-group .correction-student small{font-size:7px!important}
+.correction-slot-subject-group.subject-국어{background:#fdf8f1;box-shadow:inset 3px 0 0 #d9a15f}
+.correction-slot-subject-group.subject-영어{background:#fdf5f9;box-shadow:inset 3px 0 0 #c66c99}
+.correction-slot-subject-group.subject-수학{background:#f3f8fb;box-shadow:inset 3px 0 0 #6f9fba}
+
+@media(max-width:720px){
+  .correction-timetable-subject-filter{position:sticky;top:58px;z-index:9;margin-bottom:10px;padding:7px;background:rgba(255,255,255,.95)}
+  .correction-timetable-subject-filter button{min-width:76px;height:34px}
+  .correction-slot-subject-group>div{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
