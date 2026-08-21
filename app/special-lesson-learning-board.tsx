@@ -12,6 +12,7 @@ type Row = {
   status: Status | null; lateMinutes: number | null; absenceReason: string | null;
   lessonContent: string; assignedHomework: string; previousHomework: string; inspectionStatus: string; inspectionNote: string; exam: Exam;
 };
+type AttendanceEditor = { row: Row; status: "late" | "absent"; value: string };
 type Board = { notice: string; state: "draft" | "completed"; students: Array<Omit<Row, "exam"> & { exam?: Partial<Record<keyof Exam, string | number | null>> }> };
 type FamilyReadStudent = { studentId:string; studentName:string; school:string|null; grade:string|null; guardianCount:number; readCount:number; status:"confirmed"|"unconfirmed"|"unlinked"; viewedAt:string|null };
 type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStudents:number; confirmedStudents:number; unconfirmedStudents:number; unlinkedStudents:number; students:FamilyReadStudent[] };
@@ -31,6 +32,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   const [categorySaving, setCategorySaving] = useState(false);
   const [lessonState, setLessonState] = useState<"draft" | "completed">("draft");
   const [historyStudent,setHistoryStudent]=useState<Row|null>(null);
+  const [attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
   const load = useCallback(async () => {
     setLoading(true);
     const [boardResponse, categoryResponse] = await Promise.all([
@@ -56,12 +58,13 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   useEffect(() => {
     const closeTopLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (categoryManager) setCategoryManager(false);
+      if (attendanceEditor) setAttendanceEditor(null);
+      else if (categoryManager) setCategoryManager(false);
       else onClose();
     };
     document.addEventListener("keydown", closeTopLayer);
     return () => document.removeEventListener("keydown", closeTopLayer);
-  }, [categoryManager, onClose]);
+  }, [attendanceEditor, categoryManager, onClose]);
   const refreshCategories = async () => {
     const { data, error: categoryError } = await supabase.rpc("staff_exam_categories");
     if (categoryError) setError(categoryError.message);
@@ -85,15 +88,27 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   };
   const update = (id: string, patch: Partial<Row>) => setRows((current) => current.map((row) => row.id === id ? { ...row, ...patch } : row));
   const updateExam = (id: string, patch: Partial<Exam>) => setRows((current) => current.map((row) => row.id === id ? { ...row, exam: { ...row.exam, ...patch } } : row));
-  const saveAttendance = async (row: Row, status: Status) => {
+  const persistAttendance = async (row: Row, status: Status | null, late: number | null, reason: string | null) => {
     setSaving(row.id); setError("");
-    const next = row.status === status ? null : status;
-    let late: number | null = null, reason: string | null = null;
-    if (next === "late") { const value = prompt(`${row.name} 학생은 몇 분 지각했나요?`, String(row.lateMinutes ?? 10)); if (value === null) return setSaving(""); late = Number(value); if (!Number.isFinite(late) || late < 1) { setSaving(""); return setError("지각 시간을 숫자로 입력해 주세요."); } }
-    if (next === "absent") { const value = prompt(`${row.name} 학생의 결석 사유`, row.absenceReason ?? ""); if (value === null) return setSaving(""); reason = value.trim(); if (!reason) { setSaving(""); return setError("결석 사유를 입력해 주세요."); } }
-    const { error: saveError } = await supabase.rpc("staff_save_special_lesson_attendance", { p_session_id: sessionId, p_student_id: row.id, p_status: next, p_late_minutes: late, p_absence_reason: reason });
-    if (saveError) setError(saveError.message); else { update(row.id, { status: next, lateMinutes: late, absenceReason: reason }); await onAttendanceChange?.(); }
+    const { error: saveError } = await supabase.rpc("staff_save_special_lesson_attendance", { p_session_id: sessionId, p_student_id: row.id, p_status: status, p_late_minutes: late, p_absence_reason: reason });
+    if (saveError) setError(saveError.message); else { update(row.id, { status, lateMinutes: late, absenceReason: reason }); await onAttendanceChange?.(); }
     setSaving("");
+    return !saveError;
+  };
+  const saveAttendance = async (row: Row, status: Status) => {
+    const next = row.status === status ? null : status;
+    if (next === "late") { setAttendanceEditor({ row, status: "late", value: String(row.lateMinutes ?? 10) }); return; }
+    if (next === "absent") { setAttendanceEditor({ row, status: "absent", value: row.absenceReason ?? "" }); return; }
+    await persistAttendance(row, next, null, null);
+  };
+  const saveAttendanceDetail = async () => {
+    if (!attendanceEditor) return;
+    const { row, status, value } = attendanceEditor;
+    const late = status === "late" ? Number(value) : null;
+    const reason = status === "absent" ? value.trim() : null;
+    if (status === "late" && (!Number.isFinite(late) || late == null || late < 1)) return setError("지각 시간을 숫자로 입력해 주세요.");
+    if (status === "absent" && !reason) return setError("결석 사유를 입력해 주세요.");
+    if (await persistAttendance(row, status, late, reason)) setAttendanceEditor(null);
   };
   const save = async (complete: boolean) => {
     if (complete) { const missing = rows.filter((row) => !row.status).map((row) => row.name); if (missing.length) return setError(`출결 미입력 학생: ${missing.join(", ")}`); }
@@ -121,6 +136,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     })}{!rows.length ? <p className="settings-empty">배정된 학생이 없습니다. 학생·시간 수정에서 학생을 추가해 주세요.</p> : null}</div>}</div></div>
     {error ? <p className="form-error learning-board-error">{error}</p> : null}
     <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학부모 학습리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={() => { if (lessonState==="completed"&&!confirm("수업 완료 기록을 취소할까요?\n입력 내용은 남고 학부모 리포트에서만 빠집니다.")) return; void save(false); }}>저장내용 취소</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={() => void save(true)}>{saving==="all" ? "저장 중…" : "수업 완료"}</button></span></footer>
+    {attendanceEditor?<div className="modal-backdrop nested attendance-editor-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setAttendanceEditor(null)}}><form className="attendance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="special-attendance-editor-title" onSubmit={event=>{event.preventDefault();void saveAttendanceDetail()}}><header><span className={`attendance-editor-icon ${attendanceEditor.status}`}>{attendanceEditor.status==="late"?"분":"!"}</span><div><small>{attendanceEditor.status==="late"?"지각 시간 기록":"결석 사유 기록"}</small><h2 id="special-attendance-editor-title">{attendanceEditor.row.name} 학생</h2></div><button type="button" aria-label="닫기" onClick={()=>setAttendanceEditor(null)}>×</button></header><label><b>{attendanceEditor.status==="late"?"몇 분 지각했나요?":"결석 사유를 입력해 주세요"}</b>{attendanceEditor.status==="late"?<div className="attendance-minute-input"><input autoFocus type="number" min="1" inputMode="numeric" value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)}/><span>분</span></div>:<textarea autoFocus rows={3} value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)} placeholder="예: 병원 진료, 개인 사정"/>}</label><footer><button type="button" className="secondary-button" onClick={()=>setAttendanceEditor(null)}>취소</button><button type="submit" className="primary" disabled={saving===attendanceEditor.row.id}>{saving===attendanceEditor.row.id?"저장 중…":"기록하기"}</button></footer></form></div>:null}
     {categoryManager ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label="시험 종류 관리" className="student-modal exam-category-modal"><header><div><p className="eyebrow">개인별 시험</p><h2>시험 종류 관리</h2><span>선택 목록에 사용할 종류를 추가하거나 숨깁니다. 기존 기록은 삭제되지 않습니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCategoryManager(false)}>×</button></header><div className="exam-category-add"><input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void addCategory(); }} placeholder="예: 영단어, 중간고사" /><button type="button" className="primary" disabled={categorySaving} onClick={() => void addCategory()}>＋ 종류 추가</button></div><div className="exam-category-list">{categories.filter((item) => item.isActive).map((category) => <article key={category.id}><span><b>{category.name}</b><small>시험 입력 목록에 표시 중</small></span><button type="button" className="danger-button" disabled={categorySaving} onClick={() => void removeCategory(category)}>삭제</button></article>)}{!categories.some((item) => item.isActive) ? <p className="settings-empty">등록된 시험 종류가 없습니다.</p> : null}</div>{error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setCategoryManager(false)}>닫기</button></footer></section></div> : null}
     {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">교직원 전용 · 누적 수업 기록</p><h2>{historyStudent.name}<small className="history-type-label">{lessonKind==="makeup"?"보강수업 기록":"추가수업 기록"}</small></h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id} initialSource={lessonKind}/></section></div>:null}
   </section>;
