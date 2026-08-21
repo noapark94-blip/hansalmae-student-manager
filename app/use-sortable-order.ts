@@ -118,6 +118,15 @@ export function useSortableOrder(onMove: (activeId: string, overId: string) => v
       preview.current.style.left = `${clientX - offset.current.x}px`;
       preview.current.style.top = `${clientY - offset.current.y}px`;
     }
+    const cardScroller = document.querySelector<HTMLElement>(".teacher-class-cards.reorder-mode");
+    if (cardScroller && cardScroller.scrollWidth > cardScroller.clientWidth) {
+      const rect = cardScroller.getBoundingClientRect();
+      const edge = Math.min(72, Math.max(44, rect.width * .12));
+      const leftDistance = clientX - rect.left;
+      const rightDistance = rect.right - clientX;
+      if (leftDistance < edge) cardScroller.scrollLeft -= Math.ceil((edge - leftDistance) / 3) + 5;
+      else if (rightDistance < edge) cardScroller.scrollLeft += Math.ceil((edge - rightDistance) / 3) + 5;
+    }
     const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-sort-id]");
     const overId = target?.dataset.sortId;
     if (overId && overId !== active.current && overId !== lastOver.current) {
