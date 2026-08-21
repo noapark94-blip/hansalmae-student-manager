@@ -380,3 +380,16 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-week-session>b time{font:inherit;white-space:nowrap}
 .teacher-special-workspace .special-week-session>b em{flex:0 0 auto;padding:2px 4px;border-radius:999px;background:#eadce3;color:var(--wine);font-size:7px;font-style:normal;font-weight:850}
 .teacher-special-workspace .special-week-session>span{font-size:8px;font-weight:700;line-height:1.35}
+
+/* Special lesson row actions: equal controls with destructive action tucked away. */
+.teacher-special-workspace .special-lesson-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
+.teacher-special-workspace .special-lesson-actions>button,.teacher-special-workspace .special-lesson-actions>details>summary{height:38px;min-height:38px;margin:0;padding:0 13px;border-radius:9px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-family:inherit;font-size:9px;font-weight:850;line-height:1;white-space:nowrap}
+.teacher-special-workspace .special-lesson-actions>button{min-width:68px}
+.teacher-special-workspace .special-lesson-actions>details{position:relative}
+.teacher-special-workspace .special-lesson-actions>details>summary{width:38px;padding:0;border:1px solid #ded2d8;background:#fff;color:#75686e;cursor:pointer;list-style:none;font-size:16px}
+.teacher-special-workspace .special-lesson-actions>details>summary::-webkit-details-marker{display:none}
+.teacher-special-workspace .special-lesson-actions>details[open]>summary{border-color:#cfa9bb;background:#fff7fa;color:var(--wine)}
+.teacher-special-workspace .special-lesson-actions>details>div{position:absolute;right:0;top:44px;z-index:8;min-width:112px;padding:5px;border:1px solid #eadde3;border-radius:10px;background:#fff;box-shadow:0 10px 28px rgba(70,38,52,.14)}
+.teacher-special-workspace .special-lesson-actions>details>div>button{width:100%;height:34px;padding:0 10px;border:0;border-radius:7px;background:#fff;color:#b02d43;font:inherit;font-size:9px;font-weight:850;text-align:left;cursor:pointer}
+.teacher-special-workspace .special-lesson-actions>details>div>button:hover{background:#fff1f3}
+@media(max-width:700px){.teacher-special-workspace .special-lesson-actions{width:100%;justify-content:flex-end}}
