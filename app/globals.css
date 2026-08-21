@@ -393,3 +393,11 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-lesson-actions>details>div>button{width:100%;height:34px;padding:0 10px;border:0;border-radius:7px;background:#fff;color:#b02d43;font:inherit;font-size:9px;font-weight:850;text-align:left;cursor:pointer}
 .teacher-special-workspace .special-lesson-actions>details>div>button:hover{background:#fff1f3}
 @media(max-width:700px){.teacher-special-workspace .special-lesson-actions{width:100%;justify-content:flex-end}}
+
+/* Match the regular-class calendar header scale and let the action menu escape the row. */
+.teacher-special-workspace,.teacher-special-workspace .special-day-agenda,.teacher-special-workspace .special-lesson-list,.teacher-special-workspace .special-lesson-list>article{overflow:visible}
+.teacher-special-workspace .special-week-calendar>header h3{font-size:20px;font-weight:750;line-height:1.25}
+.teacher-special-workspace .special-week-calendar>header p{margin-top:6px;font-size:12px;line-height:1.45}
+.teacher-special-workspace .special-week-calendar>header>.secondary-button{height:48px;min-height:48px;padding:0 18px;border-radius:11px;font-size:14px;font-weight:800}
+.teacher-special-workspace .special-lesson-actions>details>div{top:44px;bottom:auto}
+@media(max-width:600px){.teacher-special-workspace .special-week-calendar>header h3{font-size:17px}.teacher-special-workspace .special-week-calendar>header p{font-size:11px}.teacher-special-workspace .special-week-calendar>header>.secondary-button{height:42px;min-height:42px;font-size:12px}}
