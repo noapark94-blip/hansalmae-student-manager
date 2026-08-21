@@ -17,6 +17,7 @@ type FamilyReadStudent={studentId:string;studentName:string;school:string|null;g
 type FamilyReadStatus={lessonId:string|null;totalStudents:number;linkedStudents:number;confirmedStudents:number;unconfirmedStudents:number;unlinkedStudents:number;students:FamilyReadStudent[]};
 type PreviousTemplate={lessonDate:string;lessonContent:string;notice:string;assignedHomework:string;exam:{examType?:string;examTitle?:string;maxScore?:number;evaluation?:string}};
 type MakeupOption={id:string;name:string;school:string|null;grade:string|null;selected:boolean};
+type AttendanceEditor={row:Row;status:"late"|"absent";value:string};
 
 const attendance:[Status,string][]=[["present","출석"],["late","지각"],["absent","결석"]];
 const homework=[["","미검사"],["complete","완료"],["partial","일부"],["missing","미제출"],["excused","면제"]];
@@ -48,6 +49,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   const [makeupLoading,setMakeupLoading]=useState(false);
   const [makeupEnabled,setMakeupEnabled]=useState(validDay);
   const [lessonState,setLessonState]=useState<"draft"|"completed">("draft");
+  const [attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
 
   const loadWeek=useCallback(async()=>{const{data}=await supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"});setWeek((data??[]) as CalendarDay[])},[classId,date,supabase]);
   const loadCategories=useCallback(async()=>{const{data,error:categoryError}=await supabase.rpc("staff_exam_categories");if(categoryError)setError(categoryError.message);else setCategories((data??[]) as ExamCategory[])},[supabase]);
@@ -155,10 +157,21 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     setSaving(row.id);setError("");
     if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});setLessonState("draft");await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:"draft"});await loadWeek()}setSaving("");return}
     let late:number|null=null,reason:string|null=null;
-    if(status==="late"){const value=prompt(`${row.name} 학생은 몇 분 지각했나요?`,String(row.lateMinutes??10));if(value===null){setSaving("");return}late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 숫자로 입력해 주세요.");setSaving("");return}}
-    if(status==="absent"){const value=prompt(`${row.name} 학생의 결석 사유`,row.absenceReason??"");if(value===null){setSaving("");return}reason=value.trim();if(!reason){setError("결석 사유를 입력해 주세요.");setSaving("");return}}
+    if(status==="late"){setAttendanceEditor({row,status,value:String(row.lateMinutes??10)});setSaving("");return}
+    if(status==="absent"){setAttendanceEditor({row,status,value:row.absenceReason??""});setSaving("");return}
     const{error:saveError}=await supabase.rpc("staff_save_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id,p_status:status,p_late_minutes:late,p_absence_reason:reason,p_note:row.note});
     if(saveError)setError(saveError.message);else{update(row.id,{status,lateMinutes:late,absenceReason:reason});await loadWeek()}
+    setSaving("");
+  };
+
+  const saveAttendanceDetail=async()=>{
+    if(!attendanceEditor)return;
+    const{row,status}=attendanceEditor;const value=attendanceEditor.value.trim();let late:number|null=null,reason:string|null=null;
+    if(status==="late"){late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 1분 이상의 숫자로 입력해 주세요.");return}}
+    else{reason=value;if(!reason){setError("결석 사유를 입력해 주세요.");return}}
+    setSaving(row.id);setError("");
+    const{error:saveError}=await supabase.rpc("staff_save_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id,p_status:status,p_late_minutes:late,p_absence_reason:reason,p_note:row.note});
+    if(saveError)setError(saveError.message);else{update(row.id,{status,lateMinutes:late,absenceReason:reason});setAttendanceEditor(null);await loadWeek()}
     setSaving("");
   };
 
@@ -211,6 +224,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     </>}
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
+    {attendanceEditor?<div className="modal-backdrop nested attendance-editor-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setAttendanceEditor(null)}}><form className="attendance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="attendance-editor-title" onSubmit={event=>{event.preventDefault();void saveAttendanceDetail()}}><header><span className={`attendance-editor-icon ${attendanceEditor.status}`}>{attendanceEditor.status==="late"?"분":"!"}</span><div><small>{attendanceEditor.status==="late"?"지각 시간 기록":"결석 사유 기록"}</small><h2 id="attendance-editor-title">{attendanceEditor.row.name} 학생</h2></div><button type="button" aria-label="닫기" onClick={()=>setAttendanceEditor(null)}>×</button></header><label><b>{attendanceEditor.status==="late"?"몇 분 지각했나요?":"결석 사유를 입력해 주세요"}</b>{attendanceEditor.status==="late"?<div className="attendance-minute-input"><input autoFocus type="number" min="1" inputMode="numeric" value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)}/><span>분</span></div>:<textarea autoFocus rows={3} value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)} placeholder="예: 병원 진료, 개인 사정"/>}</label><footer><button type="button" className="secondary-button" onClick={()=>setAttendanceEditor(null)}>취소</button><button type="submit" className="primary" disabled={saving===attendanceEditor.row.id}>{saving===attendanceEditor.row.id?"저장 중…":"기록하기"}</button></footer></form></div>:null}
     {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">누적 수업 기록</p><h2>{historyStudent.name}</h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id}/></section></div>:null}
   </section>;
 }
