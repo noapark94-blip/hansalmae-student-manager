@@ -485,12 +485,14 @@ function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: ()
 function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendance: AttendanceItem[]; correctionAttendance: CorrectionAttendanceItem[]; makeups: MakeupItem[] }) {
   const[source,setSource]=useState<"all"|"regular"|"correction">("all");
   const[range,setRange]=useState<"7"|"30"|"90"|"all">("30");
+  const[makeupRange,setMakeupRange]=useState<"7"|"30"|"90"|"all">("30");
   const cutoff=useMemo(()=>range==="all"?null:dateDaysAgo(Number(range)-1),[range]);
+  const makeupCutoff=useMemo(()=>makeupRange==="all"?null:dateDaysAgo(Number(makeupRange)-1),[makeupRange]);
   const rows=useMemo(()=>[
     ...attendance.map(item=>({...item,source:"regular" as const})),
     ...correctionAttendance.map(item=>({...item,source:"correction" as const})),
   ].filter(item=>(source==="all"||item.source===source)&&(!cutoff||item.lessonDate>=cutoff)).sort((a,b)=>b.lessonDate.localeCompare(a.lessonDate)),[attendance,correctionAttendance,source,cutoff]);
-  const sortedMakeups=useMemo(()=>[...makeups].sort((a,b)=>b.scheduledAt.localeCompare(a.scheduledAt)),[makeups]);
+  const sortedMakeups=useMemo(()=>makeups.filter(item=>!makeupCutoff||dateKey(item.scheduledAt)>=makeupCutoff).sort((a,b)=>b.scheduledAt.localeCompare(a.scheduledAt)),[makeups,makeupCutoff]);
   return (
     <>
       <div className="hub-section-title">
@@ -498,7 +500,7 @@ function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendan
           <h3>최근 출결</h3>
           <p>정규수업과 첨삭수업 출결을 선택한 기간으로 확인합니다.</p>
         </div>
-        <div className="student-record-filter-stack"><nav className="student-record-source-tabs">{(["all","regular","correction"] as const).map(value=><button type="button" key={value} className={source===value?"active":""} onClick={()=>setSource(value)}>{value==="all"?"전체":value==="regular"?"정규수업":"첨삭수업"}</button>)}</nav><nav className="student-record-range-tabs">{(["7","30","90","all"] as const).map(value=><button type="button" key={value} className={range===value?"active":""} onClick={()=>setRange(value)}>{value==="7"?"1주":value==="all"?"전체":`${value}일`}</button>)}</nav></div>
+        <div className="student-record-selects"><label><span>수업 구분</span><select value={source} onChange={event=>setSource(event.target.value as typeof source)}><option value="all">전체 수업</option><option value="regular">정규수업</option><option value="correction">첨삭수업</option></select></label><label><span>조회 기간</span><select value={range} onChange={event=>setRange(event.target.value as typeof range)}><option value="7">최근 1주</option><option value="30">최근 30일</option><option value="90">최근 90일</option><option value="all">전체 기록</option></select></label></div>
       </div>
       <div className="student-record-list">
         {rows.length ? (
@@ -519,10 +521,12 @@ function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendan
       <div className="hub-section-title compact">
         <div>
           <h3>보강 일정</h3>
+          <p>결석 연계 보강·개별 보강·추가수업을 함께 표시합니다.</p>
         </div>
+        <label className="student-record-period-select"><span>조회 기간</span><select value={makeupRange} onChange={event=>setMakeupRange(event.target.value as typeof makeupRange)}><option value="7">최근 1주 이후</option><option value="30">최근 30일 이후</option><option value="90">최근 90일 이후</option><option value="all">전체 일정</option></select></label>
       </div>
       <div className="student-record-list">
-        {makeups.length ? (
+        {sortedMakeups.length ? (
           sortedMakeups.map((item) => (
             <article key={item.id}>
               <time>{formatDateTime(item.scheduledAt)}</time>
@@ -610,6 +614,7 @@ function Empty({ text }: { text: string }) {
 function attendanceRate(value:AttendanceSummary){return value.attendanceTotal?Math.round(value.present/value.attendanceTotal*100):null}
 function correctionHomeworkLabel(value:string){return value==="reviewed"||value==="completed"?"검사 완료":value==="submitted"?"검사 대기":value?"미완료":"첨삭 기록"}
 function dateDaysAgo(days:number){const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-days);return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date)}
+function dateKey(value:string){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(value))}
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
