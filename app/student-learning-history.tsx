@@ -84,7 +84,7 @@ function LearningRecordCard({item}:{item:Report}){
   const attendance=item.attendance;
   const attendanceMemo=[attendance?.absenceReason,attendance?.note].filter(Boolean).join(" · ");
   return <article className="student-learning-card">
-    <header><div><span>{item.source==="makeup"?"보강수업":item.source==="additional"?"추가수업":`${item.subject} 수업`}</span><h4>{item.className}</h4><small>{formatTime(item.startsAt)} · 담당 {item.teacherName}{item.room?` · ${item.room}`:""}</small></div>{attendance&&<strong className={attendance.status}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</header>
+    <header><div><span>{item.source==="makeup"?`보강수업 · ${item.subject}`:item.source==="additional"?`추가수업 · ${item.subject}`:`${item.subject} 수업`}</span><h4>{item.className}</h4><small>{formatTime(item.startsAt)} · 담당 {item.teacherName}{item.room?` · ${item.room}`:""}</small></div>{attendance&&<strong className={attendance.status}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</header>
     <div className="student-learning-card-body">
       {item.lessonContent&&<RecordRow label="수업 내용" text={item.lessonContent}/>} 
       {item.homeworkResult&&<RecordRow label="지난 숙제 검사" text={`${homeworkLabel[item.homeworkResult.status]??item.homeworkResult.status}${item.homeworkResult.note?` · ${item.homeworkResult.note}`:""}`}/>} 

@@ -9,24 +9,29 @@ import { SpecialLessonLearningBoard } from "./special-lesson-learning-board";
 
 type AttendanceStatus = "present" | "late" | "absent" | null;
 type Student = { id: string; name: string; school: string | null; grade: string | null; attendanceStatus: AttendanceStatus };
+type Subject = { id: string; name: string; mainSubject: string; parentId: string | null };
 type Session = {
   id: string;
   date: string;
   startTime: string;
   endTime: string;
   kind: "makeup" | "additional";
+  subjectId: string | null;
+  subject: string | null;
+  mainSubject: string | null;
   room: string | null;
   note: string | null;
   teacherName: string;
   teacherId: string;
   students: Student[];
 };
-type Draft = Omit<Session, "id" | "students" | "teacherName" | "teacherId" | "room" | "note"> & { id: string; room: string; note: string; studentIds: string[] };
-const blank = (): Draft => ({ id: "", date: today(), startTime: "", endTime: "", kind: "makeup", room: "", note: "", studentIds: [] });
+type Draft = { id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
+const blank = (): Draft => ({ id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
 
 export function TeacherSpecialLessons({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [query, setQuery] = useState("");
@@ -38,14 +43,16 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const [calendarMonth, setCalendarMonth] = useState(today().slice(0, 7));
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }] = await Promise.all([
+    const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }, { data: subjectData, error: subjectError }] = await Promise.all([
       supabase.rpc("staff_teacher_special_lessons", { p_teacher_id: profile.role === "admin" ? null : profile.id }),
       supabase.rpc("staff_special_lesson_student_options", { p_teacher_id: profile.id }),
+      supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active", true).order("main_subject").order("name"),
     ]);
-    if (sessionError || studentError) setError(sessionError?.message ?? studentError?.message ?? "일정을 불러오지 못했습니다.");
+    if (sessionError || studentError || subjectError) setError(sessionError?.message ?? studentError?.message ?? subjectError?.message ?? "일정을 불러오지 못했습니다.");
     else {
       setSessions((sessionData ?? []) as Session[]);
       setStudents((studentData ?? []) as Student[]);
+      setSubjects((subjectData ?? []).map((item) => ({ id: item.id, name: item.name, mainSubject: item.main_subject, parentId: item.parent_id })) as Subject[]);
       setError("");
     }
     setLoading(false);
@@ -71,11 +78,12 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     return grouped;
   }, [sessions]);
   const selectedDaySessions = sessionsByDate.get(anchorDate) ?? [];
-  const edit = (session: Session) => setDraft({ id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
+  const edit = (session: Session) => setDraft({ id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!draft) return;
     if (!isMilitaryTime(draft.startTime) || !isMilitaryTime(draft.endTime) || draft.endTime <= draft.startTime) return setError("시작·종료 시간을 24시간제 4자리로 정확히 입력해 주세요.");
+    if (!draft.subjectId) return setError("수업 과목을 선택해 주세요.");
     if (!draft.studentIds.length) return setError("수업에 참여할 학생을 한 명 이상 선택해 주세요.");
     setSaving(true);
     const { error: saveError } = await supabase.rpc("staff_save_teacher_special_lesson", {
@@ -85,6 +93,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       p_start_time: draft.startTime,
       p_end_time: draft.endTime,
       p_kind: draft.kind,
+      p_subject_id: draft.subjectId,
       p_room: draft.room.trim() || null,
       p_note: draft.note.trim() || null,
       p_student_ids: draft.studentIds,
@@ -120,7 +129,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           const selectDay = () => { setAnchorDate(date); setActiveSession(null); };
           return <article key={date} role="button" tabIndex={0} className={`${date === anchorDate ? "active" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={selectDay} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectDay(); }}>
             <div className="special-week-day"><span>{weekdays[index]}</span><b>{+date.slice(8)}</b><small>{daySessions.length ? `${daySessions.length}개 일정` : "일정 없음"}</small></div>
-            {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${session.kind} ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b><time>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</time><em>{session.kind === "makeup" ? "보강" : "추가"}</em></b><span className="special-calendar-students">{session.students.length ? session.students.map((student) => <em key={student.id}>{student.name}<small className={student.attendanceStatus ?? "scheduled"}>{attendanceLabel(student.attendanceStatus)}</small></em>) : "학생 미배정"}</span></button>)}
+            {daySessions.map((session) => <button type="button" key={session.id} className={`special-week-session ${session.kind} ${activeSession?.id === session.id ? "active" : ""}`} onClick={(event) => { event.stopPropagation(); setAnchorDate(date); setActiveSession(session); }}><b><time>{session.startTime.slice(0,5)}–{session.endTime.slice(0,5)}</time><em>{session.kind === "makeup" ? "보강" : "추가"}</em></b><small className="special-session-subject">{session.subject ?? "과목 미지정"}</small><span className="special-calendar-students">{session.students.length ? session.students.map((student) => <em key={student.id}>{student.name}<small className={student.attendanceStatus ?? "scheduled"}>{attendanceLabel(student.attendanceStatus)}</small></em>) : "학생 미배정"}</span></button>)}
           </article>;
         })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
@@ -129,16 +138,17 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
           <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div></header>
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />
-            <span><small>{session.kind === "makeup" ? "보강" : "추가수업"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}{profile.role === "admin" ? ` · 담당 ${session.teacherName}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
+            <span><small>{session.kind === "makeup" ? "보강" : "추가수업"} · {session.subject ?? "과목 미지정"}</small><b>{formatDate(session.date)} · {session.startTime.slice(0, 5)}–{session.endTime.slice(0, 5)}</b><em>{session.students.map((item) => item.name).join(" · ") || "학생 미배정"}{session.room ? ` · ${session.room}` : ""}{profile.role === "admin" ? ` · 담당 ${session.teacherName}` : ""}</em>{session.note ? <p>{session.note}</p> : null}</span>
             <span className="special-agenda-attendance">{session.students.map((student) => <em className={student.attendanceStatus ?? "scheduled"} key={student.id}>{student.name} · {attendanceLabel(student.attendanceStatus)}</em>)}</span>
             <div className="special-lesson-actions">{session.teacherId === profile.id ? <button type="button" className="secondary-button" onClick={() => edit(session)}>수정</button> : null}<button type="button" className="danger-button" onClick={() => void remove(session)}>삭제</button></div>
           </article>)}{!selectedDaySessions.length ? <p className="settings-empty">이 날짜에는 일정이 없습니다. 위 버튼으로 새 일정을 등록해 주세요.</p> : null}</div>
         </section>
       )}
       {calendarOpen ? <div className="modal-backdrop nested" onMouseDown={(event) => { if (event.target === event.currentTarget) setCalendarOpen(false); }}><section className="student-modal class-month-modal correction-month-modal special-month-modal" role="dialog" aria-modal="true" aria-label="보강·추가수업 전체 캘린더"><header><div><p className="eyebrow">전체 일정·출결</p><h2>전체 캘린더</h2><span>월간 보강·추가수업 일정과 학생별 출결을 한눈에 확인합니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCalendarOpen(false)}>×</button></header><nav className="correction-month-toolbar" aria-label="월 이동"><button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button><strong>{formatMonth(calendarMonth)}</strong><button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button><button type="button" onClick={() => setCalendarMonth(today().slice(0, 7))}>이번 달</button></nav><div className="correction-month-weekdays">{weekdays.map((day) => <b key={day}>{day}</b>)}</div><div className="correction-month-grid">{monthDates(calendarMonth).map((date) => { const daySessions = sessionsByDate.get(date) ?? []; const inMonth = date.slice(0, 7) === calendarMonth; return <button type="button" key={date} className={`${inMonth ? "" : "outside"} ${date === anchorDate ? "selected" : ""} ${date === today() ? "today" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={() => { setAnchorDate(date); setActiveSession(null); setCalendarOpen(false); }}><span>{+date.slice(8)}</span><div>{daySessions.slice(0, 3).map((session) => <em className={session.kind} key={session.id}><b>{session.startTime.slice(0, 5)} · {session.kind === "makeup" ? "보강" : "추가"}</b><small>{session.students.length ? session.students.map((student) => `${student.name} ${attendanceLabel(student.attendanceStatus)}`).join(" · ") : "학생 미배정"}</small></em>)}{daySessions.length > 3 ? <small>+{daySessions.length - 3}개</small> : null}{!daySessions.length ? <small className="empty">일정 없음</small> : null}</div></button>; })}</div></section></div> : null}
-      {draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>날짜와 시간, 학생을 순서대로 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={() => setDraft(null)}>×</button></header>
+      {draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>수업 구분과 과목, 날짜·시간, 학생을 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={() => setDraft(null)}>×</button></header>
         <form onSubmit={(event) => void save(event)}>
-          <div className="form-pair"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label></div>
+          <div className="form-pair"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>과목 *<select required value={draft.subjectId} onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })}><option value="">과목 선택</option>{subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.parentId ? `${subject.mainSubject} · ${subject.name}` : subject.name}</option>)}</select></label></div>
+          <label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label>
           <div className="form-pair special-time-fields"><MilitaryTimeInput label="시작 시간" value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} /><MilitaryTimeInput label="종료 시간" value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} /></div>
           <div className="form-pair"><label>강의실<input value={draft.room ?? ""} onChange={(event) => setDraft({ ...draft, room: event.target.value })} placeholder="선택 입력" /></label><label>메모<input value={draft.note ?? ""} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="수업 내용·준비물" /></label></div>
           <label className="special-student-search">학생 선택<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·학교·학년 검색" /></label>
