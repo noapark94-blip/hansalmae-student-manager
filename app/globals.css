@@ -283,12 +283,32 @@ button:disabled { cursor:wait; opacity:.7; }
 .special-lesson-modal .form-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .special-lesson-modal label{display:grid;gap:7px}
 .special-lesson-modal input,.special-lesson-modal select,.special-lesson-modal textarea{min-width:0;width:100%}
+.special-lesson-modal{background:#fbfaf9}
+.special-lesson-modal>header{background:#fff}
+.special-lesson-modal form{gap:12px;padding:18px 22px 20px}
+.special-lesson-form-card{padding:15px;border:1px solid #e7dfe2;border-radius:14px;background:#fff;box-shadow:0 7px 22px rgba(74,48,60,.035)}
+.special-lesson-form-card>header{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.special-lesson-form-card>header>span{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:#f5e8ee;color:var(--wine);font-size:8px;font-weight:900}
+.special-lesson-form-card>header>div{display:grid;gap:1px;min-width:0}.special-lesson-form-card>header b{font-size:11px}.special-lesson-form-card>header small{color:#92858b;font-size:8px}
+.special-lesson-form-card>header>em{margin-left:auto;padding:4px 8px;border-radius:999px;background:#f5e8ee;color:var(--wine);font-size:8px;font-style:normal;font-weight:850}
+.special-lesson-primary-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.special-lesson-date-time{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:10px;margin:10px 0}
+.special-lesson-form-card label{gap:5px;color:#51484c;font-size:9px;font-weight:800}.special-lesson-form-card label>small{display:inline;color:#a79ca1;font-size:7px;font-weight:650}
+.special-lesson-form-card input,.special-lesson-form-card select{height:40px;padding:0 11px;border:1px solid #ded5d9;border-radius:9px;background:#fff;color:#30282c;font-size:10px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.special-lesson-form-card input:focus,.special-lesson-form-card select:focus{border-color:var(--wine);box-shadow:0 0 0 3px rgba(146,45,97,.09)}
+.special-lesson-form-card input::placeholder{color:#b1a7ab}
+.special-lesson-students .special-student-search{display:grid;grid-template-columns:75px 1fr;align-items:center;gap:9px;margin:0 0 10px;padding:7px 8px 7px 12px;border-radius:10px;background:#f8f5f6}
+.special-lesson-students .special-student-search input{background:#fff}
+.special-lesson-students .special-student-options{max-height:190px;margin:0;padding:0;gap:7px}
+.special-lesson-students .special-student-options>button{min-height:51px;border-radius:10px;transition:border-color .15s,background .15s,transform .15s}
+.special-lesson-students .special-student-options>button:hover{border-color:#cdb8c2;background:#fdf9fb}.special-lesson-students .special-student-options>button.active{border-color:#b86a8e;background:#fbf0f5;box-shadow:inset 0 0 0 1px rgba(169,45,104,.08)}
+.special-lesson-modal form>footer{margin-top:0;padding-top:2px}
 .learning-board-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding-bottom:3px}
 .learning-board-table{min-width:900px}
 .special-board-modal{overflow-x:hidden}
 .special-board-modal .learning-board-heading,.special-board-modal .learning-board-rows>article{grid-template-columns:minmax(180px,.8fr) minmax(245px,1.1fr) minmax(205px,.9fr) minmax(215px,1fr)}
 @media(max-width:900px){.special-day-agenda>header{align-items:stretch;flex-direction:column}.special-lesson-list>article{grid-template-columns:1fr}.special-lesson-list>article>div:last-child{justify-content:flex-start}.special-board-modal .learning-board-table{min-width:860px}}
-@media(max-width:600px){.special-lesson-modal .form-pair{grid-template-columns:1fr}.special-time-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}.special-day-agenda{border-radius:15px}.special-day-agenda>header,.special-lesson-list{padding-left:14px;padding-right:14px}.special-board-embedded{border-radius:15px}.special-board-embedded>header{padding:17px 14px}.special-board-embedded .special-board-toolbar,.special-board-embedded .class-daily-notice,.special-board-embedded .learning-board-heading,.special-board-embedded .learning-board-rows,.special-board-embedded>.form-error,.special-board-embedded>footer{margin-left:10px;margin-right:10px}}
+@media(max-width:600px){.special-lesson-modal .form-pair,.special-lesson-primary-fields{grid-template-columns:1fr}.special-time-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}.special-lesson-date-time{grid-template-columns:1fr 1fr}.special-lesson-date-time>label:first-child{grid-column:1/-1}.special-lesson-modal form{padding:13px}.special-lesson-form-card{padding:12px}.special-lesson-students .special-student-search{grid-template-columns:1fr}.special-day-agenda{border-radius:15px}.special-day-agenda>header,.special-lesson-list{padding-left:14px;padding-right:14px}.special-board-embedded{border-radius:15px}.special-board-embedded>header{padding:17px 14px}.special-board-embedded .special-board-toolbar,.special-board-embedded .class-daily-notice,.special-board-embedded .learning-board-heading,.special-board-embedded .learning-board-rows,.special-board-embedded>.form-error,.special-board-embedded>footer{margin-left:10px;margin-right:10px}}
 
 
 /* Automatic vehicle roster derived from regular classes and corrections. */
