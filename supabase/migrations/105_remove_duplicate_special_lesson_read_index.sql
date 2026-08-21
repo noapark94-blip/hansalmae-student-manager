@@ -1,0 +1,1 @@
+drop index if exists public.idx_family_special_lesson_report_reads_student;
