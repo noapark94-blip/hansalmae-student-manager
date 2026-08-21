@@ -440,7 +440,6 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-calendar-students small.scheduled,.teacher-special-workspace .special-agenda-attendance .scheduled{color:#92868c}
 .teacher-special-workspace .special-agenda-attendance{display:flex;flex:0 1 280px;flex-wrap:wrap;gap:5px}
 .teacher-special-workspace .special-agenda-attendance>em{padding:5px 7px;border-radius:7px;background:#faf7f8}
-.teacher-special-workspace .special-agenda-attendance>em{padding:5px 7px;border-radius:7px;background:#faf7f8}
 .teacher-special-workspace .special-calendar-students>em{gap:7px;padding:3px 5px}
 .teacher-special-workspace .special-calendar-students small{display:inline-flex;align-items:center;min-height:17px;padding:1px 5px;border-radius:999px;background:#f1edef;line-height:1;white-space:nowrap}
 .teacher-special-workspace .special-calendar-students small.present{background:#e3f0e8}
@@ -456,3 +455,10 @@ button:disabled { cursor:wait; opacity:.7; }
 .student-exam-bars.additional i{background:linear-gradient(180deg,#6f97d0,#496da3);box-shadow:0 5px 12px rgba(73,109,163,.14)}
 .student-learning-source-tabs{margin-bottom:2px}
 @media(max-width:900px){.student-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.teacher-special-workspace .special-board-modal .learning-student{display:block!important}
+.teacher-special-workspace .special-board-modal .learning-student>.learning-student-history-button{width:100%!important;display:grid!important;grid-template-columns:46px minmax(0,1fr)!important;grid-template-areas:'avatar name' 'avatar meta'!important;column-gap:12px!important;align-items:center!important}
+.student-learning-filters{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-width:0}
+.student-learning-filters>div{display:grid;gap:6px;min-width:0}
+.student-learning-filters>div>small{color:#91858b;font-size:9px;font-weight:800}
+.student-learning-filters .student-learning-subject-tabs{margin:0!important}
+@media(max-width:720px){.student-learning-filters{align-items:stretch;flex-direction:column;gap:10px}}

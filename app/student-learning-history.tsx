@@ -60,13 +60,10 @@ export function StudentLearningHistory({supabase,studentId,initialSource="all"}:
       <article><small>시험 평균</small><b>{examAverage===null?"—":examAverage}<em>{examAverage===null?"":"점"}</em></b></article>
     </section>
 
-    <nav className="student-learning-subject-tabs student-learning-source-tabs">
-      {(["all","regular","makeup","additional"] as const).map(value=><button key={value} className={source===value?"active":""} onClick={()=>{setSource(value);setSubject("전체")}}>{value==="all"?"전체 수업":value==="regular"?"정규수업":value==="makeup"?"보강수업":"추가수업"}</button>)}
-    </nav>
-    <nav className="student-learning-subject-tabs">
-      <button className={subject==="전체"?"active":""} onClick={()=>setSubject("전체")}>전체</button>
-      {subjects.map(name=><button key={name} className={subject===name?"active":""} onClick={()=>setSubject(name)}>{name}</button>)}
-    </nav>
+    <section className="student-learning-filters">
+      <div><small>수업 구분</small><nav className="student-learning-subject-tabs student-learning-source-tabs">{(["all","regular","makeup","additional"] as const).map(value=><button key={value} className={source===value?"active":""} onClick={()=>{setSource(value);setSubject("전체")}}>{value==="all"?"전체 수업":value==="regular"?"정규수업":value==="makeup"?"보강수업":"추가수업"}</button>)}</nav></div>
+      {subjects.length?<div><small>과목</small><nav className="student-learning-subject-tabs"><button className={subject==="전체"?"active":""} onClick={()=>setSubject("전체")}>전체</button>{subjects.map(name=><button key={name} className={subject===name?"active":""} onClick={()=>setSubject(name)}>{name}</button>)}</nav></div>:null}
+    </section>
 
     {loading?<p className="student-learning-empty">수업 기록을 불러오는 중이에요…</p>:error?<p className="student-learning-empty error">{error}</p>:!items.length?<p className="student-learning-empty">아직 저장된 수업 기록이 없습니다.</p>:<section className="student-learning-history-grid">
       <section className="student-learning-calendar-panel">
