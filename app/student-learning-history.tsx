@@ -6,17 +6,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type AttendanceInfo={status:string;lateMinutes:number|null;absenceReason:string;note:string}|null;
 type HomeworkResult={status:string;note:string}|null;
 type Exam={id:string;examType:string;examTitle:string;score:number|null;maxScore:number;percent:number|null;evaluation:string;feedback:string};
-type Report={lessonId:string;lessonDate:string;startsAt:string;classId:string;className:string;subject:string;room:string|null;teacherName:string;lessonContent:string;homeworkContent:string;examContent:string;attendance:AttendanceInfo;homeworkResult:HomeworkResult;exams:Exam[]};
+type Source="regular"|"makeup"|"additional";
+type Report={lessonId:string;lessonDate:string;startsAt:string;classId:string;className:string;subject:string;room:string|null;teacherName:string;lessonContent:string;homeworkContent:string;examContent:string;attendance:AttendanceInfo;homeworkResult:HomeworkResult;exams:Exam[];source:Source};
 
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 const homeworkLabel:Record<string,string>={complete:"완료",partial:"일부 완료",missing:"미제출",excused:"확인 제외"};
 const weekdays=["일","월","화","수","목","금","토"];
 
-export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseClient;studentId:string}){
+export function StudentLearningHistory({supabase,studentId,initialSource="all"}:{supabase:SupabaseClient;studentId:string;initialSource?:Source|"all"}){
   const [items,setItems]=useState<Report[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [subject,setSubject]=useState("전체");
+  const [source,setSource]=useState<Source|"all">(initialSource);
   const [month,setMonth]=useState(()=>monthKey(new Date()));
   const [selectedDate,setSelectedDate]=useState("");
 
@@ -34,8 +36,9 @@ export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseCl
     return()=>{active=false};
   },[studentId,supabase]);
 
-  const subjects=useMemo(()=>Array.from(new Set(items.map(item=>item.subject).filter(Boolean))),[items]);
-  const filtered=useMemo(()=>subject==="전체"?items:items.filter(item=>item.subject===subject),[items,subject]);
+  const sourceItems=useMemo(()=>source==="all"?items:items.filter(item=>item.source===source),[items,source]);
+  const subjects=useMemo(()=>Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean))),[sourceItems]);
+  const filtered=useMemo(()=>subject==="전체"?sourceItems:sourceItems.filter(item=>item.subject===subject),[sourceItems,subject]);
   const dates=useMemo(()=>new Set(filtered.map(item=>item.lessonDate)),[filtered]);
   const selected=useMemo(()=>filtered.filter(item=>item.lessonDate===selectedDate),[filtered,selectedDate]);
   const calendar=useMemo(()=>buildCalendar(month),[month]);
@@ -57,6 +60,9 @@ export function StudentLearningHistory({supabase,studentId}:{supabase:SupabaseCl
       <article><small>시험 평균</small><b>{examAverage===null?"—":examAverage}<em>{examAverage===null?"":"점"}</em></b></article>
     </section>
 
+    <nav className="student-learning-subject-tabs student-learning-source-tabs">
+      {(["all","regular","makeup","additional"] as const).map(value=><button key={value} className={source===value?"active":""} onClick={()=>{setSource(value);setSubject("전체")}}>{value==="all"?"전체 수업":value==="regular"?"정규수업":value==="makeup"?"보강수업":"추가수업"}</button>)}
+    </nav>
     <nav className="student-learning-subject-tabs">
       <button className={subject==="전체"?"active":""} onClick={()=>setSubject("전체")}>전체</button>
       {subjects.map(name=><button key={name} className={subject===name?"active":""} onClick={()=>setSubject(name)}>{name}</button>)}
@@ -81,7 +87,7 @@ function LearningRecordCard({item}:{item:Report}){
   const attendance=item.attendance;
   const attendanceMemo=[attendance?.absenceReason,attendance?.note].filter(Boolean).join(" · ");
   return <article className="student-learning-card">
-    <header><div><span>{item.subject} 수업</span><h4>{item.className}</h4><small>{formatTime(item.startsAt)} · 담당 {item.teacherName}{item.room?` · ${item.room}`:""}</small></div>{attendance&&<strong className={attendance.status}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</header>
+    <header><div><span>{item.source==="makeup"?"보강수업":item.source==="additional"?"추가수업":`${item.subject} 수업`}</span><h4>{item.className}</h4><small>{formatTime(item.startsAt)} · 담당 {item.teacherName}{item.room?` · ${item.room}`:""}</small></div>{attendance&&<strong className={attendance.status}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</header>
     <div className="student-learning-card-body">
       {item.lessonContent&&<RecordRow label="수업 내용" text={item.lessonContent}/>} 
       {item.homeworkResult&&<RecordRow label="지난 숙제 검사" text={`${homeworkLabel[item.homeworkResult.status]??item.homeworkResult.status}${item.homeworkResult.note?` · ${item.homeworkResult.note}`:""}`}/>} 

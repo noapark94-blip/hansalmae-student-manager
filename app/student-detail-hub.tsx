@@ -100,7 +100,7 @@ type ExamProgressItem = {
   maxScore: number;
   percent: number | null;
   evaluation: string;
-  source: "regular" | "correction";
+  source: "regular" | "correction" | "makeup" | "additional";
 };
 type AttendanceSummary = { attendanceTotal: number; present: number; late: number; absent: number };
 type CorrectionAttendanceItem = AttendanceItem & { subject: string; startTime: string };
@@ -112,6 +112,7 @@ type DetailInsights = {
   correctionExams: Omit<ExamProgressItem,"source">[];
   correctionLearning: CorrectionLearningItem[];
 };
+type SpecialInsights = { attendance:AttendanceSummary; upcomingMakeups:number; exams:Omit<ExamProgressItem,"source">[] };
 type DetailData = {
   summary: Summary;
   classes: ClassItem[];
@@ -123,6 +124,7 @@ type DetailData = {
   timetable: WeeklyTimetableRow[];
   examProgress: ExamProgressItem[];
   insights: DetailInsights;
+  special: SpecialInsights;
 };
 type AttendanceHistory = {
   regularAttendance: AttendanceItem[];
@@ -161,13 +163,15 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
       supabase.rpc("staff_student_exam_progress", { p_student_id: student.id }),
       supabase.rpc("staff_student_detail_insights", { p_student_id: student.id }),
       supabase.rpc("staff_student_attendance_makeup_history", { p_student_id: student.id }),
-    ]).then(([detailResult, examResult, insightResult, historyResult]) => {
+      supabase.rpc("staff_student_special_lesson_insights", { p_student_id: student.id }),
+    ]).then(([detailResult, examResult, insightResult, historyResult, specialResult]) => {
       if (!active) return;
-      if (detailResult.error || examResult.error || insightResult.error || historyResult.error) setLoadError("학생 통합 기록을 불러오지 못했습니다.");
+      if (detailResult.error || examResult.error || insightResult.error || historyResult.error || specialResult.error) setLoadError("학생 통합 기록을 불러오지 못했습니다.");
       else {
         const detail = detailResult.data as Omit<DetailData, "timetable" | "examProgress" | "insights">;
         const insights = insightResult.data as DetailInsights;
         const history = historyResult.data as AttendanceHistory;
+        const special = specialResult.data as SpecialInsights;
         const colors = new Map(timetable.map((row) => [row.className, row.color]));
         const primaryGuardian=detail.guardians.find((item)=>item.isPrimary)??detail.guardians[0];
         setValues((current)=>({...current,guardianName:primaryGuardian?.name??"",guardianPhone:primaryGuardian?.phone??""}));
@@ -183,8 +187,10 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
           examProgress: [
             ...((examResult.data ?? []) as Omit<ExamProgressItem,"source">[]).map((item)=>({...item,source:"regular" as const})),
             ...(insights.correctionExams??[]).map((item)=>({...item,source:"correction" as const})),
+            ...(special.exams??[]).map((item)=>({...item,source:(item.className==="개별 보강"?"makeup":"additional") as "makeup"|"additional"})),
           ],
           insights: { ...insights, correctionAttendanceRecords: history.correctionAttendance ?? [] },
+          special,
         });
       }
       setLoading(false);
@@ -340,6 +346,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
 function SummaryTab({ data }: { data: DetailData }) {
   const regularRate = attendanceRate(data.insights.regularAttendance);
   const correctionRate = attendanceRate(data.insights.correctionAttendance);
+  const specialRate = attendanceRate(data.special.attendance);
   return (
     <>
       <div className="student-summary-cards">
@@ -353,6 +360,7 @@ function SummaryTab({ data }: { data: DetailData }) {
           <b>{correctionRate === null ? "-" : `${correctionRate}%`}</b>
           <small>출석 {data.insights.correctionAttendance.present} · 지각 {data.insights.correctionAttendance.late} · 결석 {data.insights.correctionAttendance.absent}</small>
         </article>
+        <article><span>개별수업 출석률 · 30일</span><b>{specialRate===null?"-":`${specialRate}%`}</b><small>출석 {data.special.attendance.present} · 지각 {data.special.attendance.late} · 결석 {data.special.attendance.absent}</small></article>
         <article>
           <span>미완료 정규 과제</span>
           <b>{data.summary.assignmentOpen}</b>
@@ -360,7 +368,7 @@ function SummaryTab({ data }: { data: DetailData }) {
         </article>
         <article>
           <span>예정 보강</span>
-          <b>{data.summary.upcomingMakeups}</b>
+          <b>{data.summary.upcomingMakeups+data.special.upcomingMakeups}</b>
           <small>{data.summary.lastConsultedAt?`최근 상담 ${formatDate(data.summary.lastConsultedAt)}`:"최근 상담 없음"}</small>
         </article>
       </div>
@@ -377,7 +385,7 @@ function SummaryTab({ data }: { data: DetailData }) {
 }
 
 function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
-  const availableSources = useMemo(()=>["regular","correction"].filter(source=>items.some(item=>item.source===source)) as ExamProgressItem["source"][],[items]);
+  const availableSources = useMemo(()=>["regular","correction","makeup","additional"].filter(source=>items.some(item=>item.source===source)) as ExamProgressItem["source"][],[items]);
   const[source,setSource]=useState<ExamProgressItem["source"]>(availableSources[0]??"regular");
   const sourceItems=items.filter(item=>item.source===source&&item.percent!==null);
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
@@ -409,7 +417,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           <label>
             수업 구분
             <select value={source} onChange={(event)=>{setSource(event.target.value as ExamProgressItem["source"]);setSubject("")}}>
-              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"}</option>)}
+              {availableSources.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}
             </select>
           </label>
           <label>
@@ -427,7 +435,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
       {scored.length ? (
         <>
           <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
-          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${source==="regular"?"정규수업":"첨삭수업"} ${selectedSubject} ${range==="week"?"최근 7일":range==="month"?"최근 30일":range==="quarter"?"최근 90일":"전체"} 시험 성적`}>
+          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${sourceLabel(source)} ${selectedSubject} ${range==="week"?"최근 7일":range==="month"?"최근 30일":range==="quarter"?"최근 90일":"전체"} 시험 성적`}>
             {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
           <div className="student-exam-records">
@@ -450,7 +458,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           </div>
         </>
       ) : (
-        <Empty text={source==="regular"?"아직 점수가 입력된 정규수업 시험이 없습니다.":"아직 점수가 입력된 첨삭수업 시험이 없습니다."} />
+        <Empty text={`아직 점수가 입력된 ${sourceLabel(source)} 시험이 없습니다.`} />
       )}
     </section>
   );
@@ -469,6 +477,7 @@ function examTypeLabel(value: string) {
     )[value] || "시험"
   );
 }
+function sourceLabel(value:ExamProgressItem["source"]){return value==="regular"?"정규수업":value==="correction"?"첨삭수업":value==="makeup"?"보강수업":"추가수업"}
 function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: () => void }) {
   return (
     <>

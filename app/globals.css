@@ -451,3 +451,8 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-special-workspace .special-board-modal .learning-student{display:grid!important;grid-template-columns:46px minmax(0,1fr)!important;grid-template-rows:auto auto!important;column-gap:12px!important;row-gap:0!important;align-items:center!important}
 .teacher-special-workspace .special-board-modal .learning-student>b{grid-column:2!important;grid-row:1!important;align-self:end!important}
 .teacher-special-workspace .special-board-modal .learning-student>small{grid-column:2!important;grid-row:2!important;align-self:start!important}
+.student-summary-cards{grid-template-columns:repeat(5,minmax(0,1fr))}
+.student-exam-bars.makeup i{background:linear-gradient(180deg,#c45a8d,#963061);box-shadow:0 5px 12px rgba(150,48,97,.14)}
+.student-exam-bars.additional i{background:linear-gradient(180deg,#6f97d0,#496da3);box-shadow:0 5px 12px rgba(73,109,163,.14)}
+.student-learning-source-tabs{margin-bottom:2px}
+@media(max-width:900px){.student-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { StudentLearningHistory } from "./student-learning-history";
 
 type Status = "present" | "late" | "absent";
 type ExamCategory = { id: string; name: string; isActive: boolean; sortOrder: number };
@@ -18,7 +19,7 @@ type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStud
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; sessionId: string; onClose: () => void; onEdit: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
+export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onEdit: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
   const [categories, setCategories] = useState<ExamCategory[]>([]);
@@ -29,6 +30,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onAtt
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categorySaving, setCategorySaving] = useState(false);
   const [lessonState, setLessonState] = useState<"draft" | "completed">("draft");
+  const [historyStudent,setHistoryStudent]=useState<Row|null>(null);
   const load = useCallback(async () => {
     setLoading(true);
     const [boardResponse, categoryResponse] = await Promise.all([
@@ -110,7 +112,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onAtt
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
       return <article key={row.id}>
-        <div className="learning-person-attendance"><span className="learning-student"><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status ? <small>{row.status === "late" ? `${row.lateMinutes}분 지각 · ` : row.status === "absent" && row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}</div></div>
+        <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="learning-student-history-button" onClick={()=>setHistoryStudent(row)} title={`${row.name} 학생 누적 수업 기록 보기`}><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></button></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status ? <small>{row.status === "late" ? `${row.lateMinutes}분 지각 · ` : row.status === "absent" && row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}</div></div>
         <div className="learning-individual-content"><textarea value={row.lessonContent} onChange={(event) => update(row.id,{lessonContent:event.target.value})} placeholder="이 학생의 교재·단원·진도" rows={4}/></div>
         <div className="learning-exam individual"><select value={row.exam.examType} onChange={(event) => updateExam(row.id,{examType:event.target.value})}><option value="">종류 선택</option>{categories.filter((item)=>item.isActive).map((item)=><option key={item.id}>{item.name}</option>)}</select><input value={row.exam.examTitle} onChange={(event)=>updateExam(row.id,{examTitle:event.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={row.exam.score} onChange={(event)=>updateExam(row.id,{score:event.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={row.exam.maxScore} onChange={(event)=>updateExam(row.id,{maxScore:event.target.value})}/></span><input value={row.exam.evaluation} onChange={(event)=>updateExam(row.id,{evaluation:event.target.value})} placeholder="평가·피드백"/>{converted == null ? null : <small>환산 {converted}점</small>}</div>
         <div className="learning-homework previous"><p>{row.previousHomework || "지난 숙제 없음"}</p><select value={row.inspectionStatus} onChange={(event)=>update(row.id,{inspectionStatus:event.target.value})}>{homework.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><input value={row.inspectionNote} onChange={(event)=>update(row.id,{inspectionNote:event.target.value})} placeholder="검사 메모"/></div>
@@ -120,6 +122,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, onClose, onAtt
     {error ? <p className="form-error learning-board-error">{error}</p> : null}
     <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학부모 학습리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={() => { if (lessonState==="completed"&&!confirm("수업 완료 기록을 취소할까요?\n입력 내용은 남고 학부모 리포트에서만 빠집니다.")) return; void save(false); }}>저장내용 취소</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={() => void save(true)}>{saving==="all" ? "저장 중…" : "수업 완료"}</button></span></footer>
     {categoryManager ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label="시험 종류 관리" className="student-modal exam-category-modal"><header><div><p className="eyebrow">개인별 시험</p><h2>시험 종류 관리</h2><span>선택 목록에 사용할 종류를 추가하거나 숨깁니다. 기존 기록은 삭제되지 않습니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCategoryManager(false)}>×</button></header><div className="exam-category-add"><input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void addCategory(); }} placeholder="예: 영단어, 중간고사" /><button type="button" className="primary" disabled={categorySaving} onClick={() => void addCategory()}>＋ 종류 추가</button></div><div className="exam-category-list">{categories.filter((item) => item.isActive).map((category) => <article key={category.id}><span><b>{category.name}</b><small>시험 입력 목록에 표시 중</small></span><button type="button" className="danger-button" disabled={categorySaving} onClick={() => void removeCategory(category)}>삭제</button></article>)}{!categories.some((item) => item.isActive) ? <p className="settings-empty">등록된 시험 종류가 없습니다.</p> : null}</div>{error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setCategoryManager(false)}>닫기</button></footer></section></div> : null}
+    {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">교직원 전용 · 누적 수업 기록</p><h2>{historyStudent.name}<small className="history-type-label">{lessonKind==="makeup"?"보강수업 기록":"추가수업 기록"}</small></h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id} initialSource={lessonKind}/></section></div>:null}
   </section>;
 }
 
