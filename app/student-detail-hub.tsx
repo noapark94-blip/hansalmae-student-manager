@@ -409,7 +409,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           <label>
             수업 구분
             <select value={source} onChange={(event)=>{setSource(event.target.value as ExamProgressItem["source"]);setSubject("")}}>
-              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"} · 시험 {items.filter(item=>item.source===value&&item.percent!==null).length}건</option>)}
+              {availableSources.map(value=><option key={value} value={value}>{value==="regular"?"정규수업":"첨삭수업"}</option>)}
             </select>
           </label>
           <label>
