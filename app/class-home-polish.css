@@ -11,8 +11,8 @@
 .teacher-home-heading h1 { margin:0; color:var(--hm-ink); font-size:29px; line-height:1.2; letter-spacing:-.8px; }
 .teacher-home-heading p { margin:8px 0 0; color:var(--hm-sub); font-size:14px; line-height:1.5; }
 .teacher-home-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
-.teacher-home-actions button { min-height:42px; border-radius:11px; padding:0 15px; font-size:13px; font-weight:750; }
-.teacher-home-actions button:nth-child(2) { order:-1; padding:0 12px; border-color:#eee5e9; color:#7c7076; background:#fff; box-shadow:none; font-size:0; }
+.teacher-home-actions button { min-width:112px; min-height:42px; border-radius:11px; padding:0 14px; font-size:12px; font-weight:750; white-space:nowrap; }
+.teacher-home-actions button:nth-child(2) { order:-1; border-color:#eee5e9; color:#7c7076; background:#fff; box-shadow:none; font-size:0; }
 .teacher-home-actions button:nth-child(2)::after { content:"과목 설정"; font-size:12px; }
 
 .teacher-class-cards {
@@ -64,7 +64,7 @@
   white-space:nowrap;
 }
 .teacher-class-cards > button > span > b { font-size:17px; line-height:1.28; letter-spacing:-.35px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.teacher-class-cards > button > span > em { margin-top:auto; padding-top:10px; color:#7f757a; font-size:12px; line-height:1.45; font-style:normal; white-space:normal; }
+.teacher-class-cards > button > span > em { margin-top:auto; padding-top:10px; color:#7f757a; font-size:11px; line-height:1.4; font-style:normal; white-space:normal; overflow-wrap:anywhere; }
 .teacher-class-cards > button > strong {
   align-self:start;
   min-width:44px;
