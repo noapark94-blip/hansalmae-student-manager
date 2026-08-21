@@ -155,7 +155,7 @@
 }
 .correction-slot-more:hover{background:#fbf4f7;border-color:#b8658e}
 
-/* 많은 학생이 있어도 시간 칸 자체의 높이는 변하지 않는다. */
+/* 많은 학생이 있어도 시간 칸 자체의 높이는 변하지 않고, 명단 칩은 한 줄로 유지한다. */
 @media(min-width:901px){
   .correction-timetable-mode .correction-slot{height:112px!important;min-height:112px!important}
   .correction-timetable-mode .correction-slot-content{position:relative!important;overflow:hidden!important;padding-bottom:3px!important}
