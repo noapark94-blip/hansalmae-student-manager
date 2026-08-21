@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type StudentInfo={studentId:string;studentName:string;school:string|null;grade:string|null;subject:string};
 type Row={
   id:string;correction_date:string;start_time:string;end_time:string;subject:string;
-  attendance_status:string;late_minutes:number|null;exam_title:string|null;exam_range:string|null;
+  attendance_status:string;late_minutes:number|null;absence_reason:string|null;exam_title:string|null;exam_range:string|null;
   exam_score:number|null;exam_max_score:number|null;evaluation:string|null;homework_status:string|null;correction_content:string|null;recorded_by_name:string|null;
 };
 
@@ -23,7 +23,7 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
 
   useEffect(()=>{let active=true;setLoading(true);setError("");void(async()=>{
     const response=await supabase.from("correction_reports")
-      .select("id,correction_date,start_time,end_time,subject,attendance_status,late_minutes,exam_title,exam_range,exam_score,exam_max_score,evaluation,homework_status,correction_content,recorded_by_name")
+      .select("id,correction_date,start_time,end_time,subject,attendance_status,late_minutes,absence_reason,exam_title,exam_range,exam_score,exam_max_score,evaluation,homework_status,correction_content,recorded_by_name")
       .eq("student_id",student.studentId)
       .eq("published",true)
       .in("attendance_status",["present","late","absent"])
@@ -100,7 +100,7 @@ function HistoryCard({item}:{item:Row}){
   const max=item.exam_max_score??100;
   const converted=item.exam_score==null||Number(max)<=0?null:Math.round(Number(item.exam_score)/Number(max)*1000)/10;
   return <article className="correction-history-day-card">
-    <header><div><b>{item.subject} 첨삭</b><span>{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</span></div><strong className={item.attendance_status}>{attendanceLabel[item.attendance_status]??item.attendance_status}{item.attendance_status==="late"&&item.late_minutes?` ${item.late_minutes}분`:""}</strong></header>
+    <header><div><b>{item.subject} 첨삭</b><span>{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</span></div><strong className={item.attendance_status}>{attendanceLabel[item.attendance_status]??item.attendance_status}{item.attendance_status==="late"&&item.late_minutes?` ${item.late_minutes}분`:item.attendance_status==="absent"&&item.absence_reason?` · ${item.absence_reason}`:""}</strong></header>
     <div className="correction-history-meta"><span>첨삭 담당</span><b>{item.recorded_by_name||"기록 없음"}</b></div>
     {item.exam_title?<section className="correction-history-block exam"><small>시험 기록</small><h3>{item.exam_title}</h3><p>{[cleanRange(item.exam_range),item.exam_score==null?null:`${formatScore(item.exam_score)} / ${formatScore(max)}점${converted==null?"":` · 환산 ${converted}점`}`,item.evaluation].filter(Boolean).join(" · ")}</p></section>:null}
     {item.correction_content?<section className="correction-history-block task"><small>오늘 한 첨삭과제</small><p>{item.correction_content}</p></section>:null}
