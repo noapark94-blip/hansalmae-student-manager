@@ -125,6 +125,22 @@
 .correction-slot-subject-group.subject-국어{background:#fdf8f1;box-shadow:inset 3px 0 0 #d9a15f}
 .correction-slot-subject-group.subject-영어{background:#fdf5f9;box-shadow:inset 3px 0 0 #c66c99}
 .correction-slot-subject-group.subject-수학{background:#f3f8fb;box-shadow:inset 3px 0 0 #6f9fba}
+.correction-timetable-mode .correction-slot-subject-group button.correction-student{
+  height:25px!important;
+  min-height:25px!important;
+  padding:3px 5px!important;
+  border-radius:6px!important;
+}
+.correction-timetable-mode .correction-slot-subject-group button.correction-student>span{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+}
+.correction-timetable-mode .correction-slot-subject-group button.correction-student b,
+.correction-timetable-mode .correction-slot-subject-group button.correction-student small{
+  display:block!important;
+  line-height:1.15!important;
+}
 .correction-slot-more{
   width:100%;
   min-height:25px;
@@ -143,19 +159,6 @@
 @media(min-width:901px){
   .correction-timetable-mode .correction-slot{height:112px!important;min-height:112px!important}
   .correction-timetable-mode .correction-slot-content{position:relative!important;overflow:hidden!important;padding-bottom:3px!important}
-  .correction-timetable-mode .correction-slot-content>.correction-slot-add{
-    position:absolute!important;
-    right:3px!important;
-    bottom:3px!important;
-    width:22px!important;
-    min-height:22px!important;
-    padding:0!important;
-    border-radius:999px!important;
-    background:#fff!important;
-    font-size:0!important;
-    box-shadow:0 1px 4px rgba(73,42,57,.13)!important;
-  }
-  .correction-timetable-mode .correction-slot-content>.correction-slot-add::after{content:"＋";font-size:11px;font-weight:900;color:#922d61}
 }
 
 .correction-slot-roster-modal{width:min(680px,calc(100vw - 28px))!important}
