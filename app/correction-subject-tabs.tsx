@@ -8,9 +8,10 @@ export function CorrectionSubjectTabs(){
   useEffect(()=>{
     const sync=()=>{
       document.querySelectorAll<HTMLElement>(".correction-slot-students .correction-student").forEach(card=>{
-        card.classList.remove("subject-국어","subject-영어","subject-수학");
+        const dataSubject=card.dataset.subject;
         const meta=card.querySelector("small")?.textContent||"";
-        const subject=SUBJECTS.find(item=>meta.includes(item));
+        const subject=SUBJECTS.find(item=>item===dataSubject)??SUBJECTS.find(item=>meta.includes(item));
+        card.classList.remove("subject-국어","subject-영어","subject-수학");
         if(subject)card.classList.add(`subject-${subject}`);
       });
 
