@@ -447,7 +447,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   const nextClass = live?.todayClasses.find((item) => item.time.slice(0,5) >= new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }));
   const weekTotals = (live?.weekAttendance ?? []).reduce((total, day) => ({ present: total.present + day.present, late: total.late + day.late, absent: total.absent + day.absent }), { present: 0, late: 0, absent: 0 });
   return <>
-    <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>오늘 학원 운영 현황을 한눈에 확인하세요.</p></div><button className="primary" onClick={() => onNavigate("communications")}>✦ 새 공지 작성</button></div>
+    <div className="page-heading"><div><p className="eyebrow">역할 · {roleLabels[profile.role]}</p><h1>안녕하세요, {profile.display_name}님</h1><p>오늘 학원 운영 현황을 한눈에 확인하세요.</p></div></div>
     <section className="stats-grid">
       <Stat label="전체 재원생" value={studentsLoading ? "…" : String(activeStudentCount)} unit="명" detail="Supabase 실시간 기준" icon="人" tone="wine" />
       <Stat label="오늘 수업" value={live ? String(live.todayClasses.length) : "…"} unit="개" detail={nextClass ? `다음 수업 ${nextClass.time.slice(0,5)}` : live ? "오늘 남은 수업 없음" : "Supabase 확인 중"} icon="▦" tone="blue" />
