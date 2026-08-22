@@ -26,7 +26,7 @@ const paths: Record<IconName, ReactNode> = {
 };
 
 export const viewIcon: Record<View, IconName> = {
-  dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"calendar", corrections:"edit", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", consultations:"chat", communications:"notice", tuition:"wallet", "tuition-settings":"settings", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
+  dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"calendar", corrections:"edit", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", consultations:"chat", communications:"notice", tuition:"wallet", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
 };
 
 export function HansalmaeIcon({ name, size = 20 }: { name: IconName; size?: number }) {

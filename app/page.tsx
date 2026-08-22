@@ -19,7 +19,6 @@ import { OperationsAuditBoard } from "./operations-audit";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
-import { TuitionRulesBoard } from "./tuition-rules-board";
 import { OperationsAnalytics } from "./operations-analytics";
 import { BackupBoard } from "./backup-board";
 import { BulkImportBoard } from "./bulk-import-board";
@@ -30,10 +29,10 @@ import { BulkRegistrationGuide } from "./bulk-registration-guide";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "tuition-settings" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = { name: string; school: string; grade: string; phone: string; guardianName: string; guardianPhone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string; classIds:string[] };
 type StudentDetails = { id: string; name: string; school: string; grade: string; phone: string; residence:string; pickupLocation:string; dropoffLocation:string; status: string; internalNote: string; guardianName?:string; guardianPhone?:string };
@@ -69,8 +68,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
-  { id: "tuition", label: "수납·미납", icon: "₩" },
-  { id: "tuition-settings", label: "수강료 설정", icon: "₩" },
+  { id: "tuition", label: "원비 정산", icon: "₩" },
   { id: "analytics", label: "운영 통계", icon: "▥" },
   { id: "backup", label: "데이터 백업", icon: "⇩" },
   { id: "audit", label: "운영 점검", icon: "◉" },
@@ -86,8 +84,8 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "tuition-settings", "my-account"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
 };
@@ -406,7 +404,6 @@ export default function Home() {
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
-          {view === "tuition-settings" && <TuitionRulesBoard supabase={supabase} />}
           {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
           {view === "backup" && <BackupBoard supabase={supabase} />}
           {view === "settings" && <><SettingsBoard supabase={supabase} /><AccountDeletionPanel supabase={supabase} /></>}

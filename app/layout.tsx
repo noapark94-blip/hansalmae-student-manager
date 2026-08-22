@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./tuition-settlement.css";
 import "./teacher-workspace.css";
 import "./analytics.css";
 import "./backup.css";
