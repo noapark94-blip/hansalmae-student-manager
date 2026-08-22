@@ -114,6 +114,10 @@ button:disabled { cursor:wait; opacity:.7; }
 .teacher-schedule-shortcuts.compact { grid-template-columns:repeat(4,1fr); margin:0; gap:9px; }
 .teacher-schedule-shortcuts.compact button { min-height:58px; padding:11px 13px; grid-template-columns:30px 1fr; column-gap:9px; border-radius:12px; box-shadow:none; }
 .teacher-schedule-shortcuts.compact span { width:30px; height:30px; border-radius:9px; font-size:14px; }
+.teacher-schedule-shortcuts.compact .student-shortcut-icon { position:relative; display:block; }
+.student-shortcut-icon i { position:absolute; display:block; border-radius:50%; background:currentColor; }
+.student-shortcut-icon i:first-child { width:7px; height:7px; left:8px; top:7px; box-shadow:8px 2px 0 -1px currentColor; }
+.student-shortcut-icon i:last-child { width:13px; height:7px; left:5px; bottom:6px; border-radius:7px 7px 4px 4px; box-shadow:8px 1px 0 -2px currentColor; }
 .teacher-schedule-shortcuts.compact b { font-size:11px; }
 .teacher-schedule-shortcuts.compact small { margin-top:2px; font-size:8px; }
 .schedule-tabs { display:flex; gap:7px; margin:-8px 0 16px; overflow:auto; }.schedule-tabs button { flex:0 0 auto; padding:9px 13px; border:1px solid var(--line); border-radius:10px; background:#fff; color:#6d6267; font-size:11px; font-weight:750; }.schedule-tabs button.active { border-color:var(--wine); background:var(--wine); color:#fff; }
