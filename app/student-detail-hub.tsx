@@ -596,16 +596,20 @@ function LearningTab({supabase,student,corrections}:{supabase:SupabaseClient;stu
 
 function ConsultationTab({consultations}:{consultations:ConsultationItem[]}){
   const [type,setType]=useState<"all"|"guardian"|"student">("all");
+  const [year,setYear]=useState("all");
+  const [month,setMonth]=useState("all");
   const sorted=consultations.slice().sort((a,b)=>b.consultedAt.localeCompare(a.consultedAt));
-  const visible=sorted.filter(item=>type==="all"||item.type===type);
+  const years=Array.from(new Set(sorted.map(item=>item.consultedAt.slice(0,4)).filter(Boolean))).sort((a,b)=>b.localeCompare(a));
+  const periodItems=sorted.filter(item=>(year==="all"||item.consultedAt.slice(0,4)===year)&&(month==="all"||item.consultedAt.slice(5,7)===month));
+  const visible=periodItems.filter(item=>type==="all"||item.type===type);
   const lastGuardian=sorted.find(item=>item.type==="guardian");
   const lastStudent=sorted.find(item=>item.type==="student");
   const guardianDays=lastGuardian?daysSince(lastGuardian.consultedAt):null;
   return <section className="student-consultation-tab">
-    <header className="student-tab-intro"><div><h3>상담 기록</h3><p>상담 관리에서 작성한 학생·학부모 상담 내용만 표시합니다.</p></div><nav aria-label="상담 대상 필터">{(["all","guardian","student"] as const).map(value=><button type="button" key={value} className={type===value?"active":""} onClick={()=>setType(value)}>{value==="all"?"전체":value==="guardian"?"학부모":"학생"}</button>)}</nav></header>
-    <div className="student-consultation-summary"><article><span>전체 상담</span><b>{consultations.length}<small>건</small></b></article><article><span>최근 학부모 상담</span><b>{lastGuardian?formatDate(lastGuardian.consultedAt):"기록 없음"}</b><small>{guardianDays===null?"학부모 상담을 기록해 주세요":`${guardianDays}일 전`}</small></article><article><span>최근 학생 상담</span><b>{lastStudent?formatDate(lastStudent.consultedAt):"기록 없음"}</b><small>{lastStudent?`${daysSince(lastStudent.consultedAt)}일 전`:"학생 상담 기록 없음"}</small></article></div>
+    <header className="student-tab-intro consultation-tab-heading"><div><h3>상담 기록</h3><p>상담 관리에서 작성한 학생·학부모 상담 내용만 표시합니다.</p></div><div className="consultation-tab-tools"><div className="consultation-period-filters"><label><span>연도</span><select value={year} onChange={event=>setYear(event.target.value)}><option value="all">전체 연도</option>{years.map(value=><option key={value} value={value}>{value}년</option>)}</select></label><label><span>월</span><select value={month} onChange={event=>setMonth(event.target.value)}><option value="all">전체 월</option>{Array.from({length:12},(_,index)=>String(index+1).padStart(2,"0")).map(value=><option key={value} value={value}>{Number(value)}월</option>)}</select></label></div><nav aria-label="상담 대상 필터">{(["all","guardian","student"] as const).map(value=><button type="button" key={value} className={type===value?"active":""} onClick={()=>setType(value)}>{value==="all"?"전체":value==="guardian"?"학부모":"학생"}</button>)}</nav></div></header>
+    <div className="student-consultation-summary"><article><span>선택 기간 상담</span><b>{periodItems.length}<small>건</small></b></article><article><span>최근 학부모 상담</span><b>{lastGuardian?formatDate(lastGuardian.consultedAt):"기록 없음"}</b><small>{guardianDays===null?"학부모 상담을 기록해 주세요":`${guardianDays}일 전`}</small></article><article><span>최근 학생 상담</span><b>{lastStudent?formatDate(lastStudent.consultedAt):"기록 없음"}</b><small>{lastStudent?`${daysSince(lastStudent.consultedAt)}일 전`:"학생 상담 기록 없음"}</small></article></div>
     {(guardianDays===null||guardianDays>30)&&<div className="student-guardian-consultation-alert"><i>!</i><span><b>학부모 상담이 필요합니다.</b><small>{guardianDays===null?"등록된 학부모 상담 기록이 없습니다.":`마지막 학부모 상담 후 ${guardianDays}일이 지났습니다.`}</small></span></div>}
-    <div className="student-consultation-records">{visible.length?visible.map(item=><article key={item.id}><header><div><span className={item.type==="guardian"?"guardian":"student"}>{consultationLabels[item.type]||item.type}</span><b>{formatDateTime(item.consultedAt)}</b></div><small>기록 · {item.consultantName}</small></header><p>{item.internalNote||"기록된 상담 내용이 없습니다."}</p></article>):<Empty text="선택한 대상의 상담 기록이 없습니다."/>}</div>
+    <div className="student-consultation-records">{visible.length?visible.map(item=><article key={item.id}><header><div><span className={item.type==="guardian"?"guardian":"student"}>{consultationLabels[item.type]||item.type}</span><b>{formatDateTime(item.consultedAt)}</b></div><small>기록 · {item.consultantName}</small></header><p>{item.internalNote||"기록된 상담 내용이 없습니다."}</p></article>):<Empty text="선택한 기간과 대상의 상담 기록이 없습니다."/>}</div>
   </section>;
 }
 function Empty({ text }: { text: string }) {
