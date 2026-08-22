@@ -531,6 +531,10 @@ button:disabled { cursor:wait; opacity:.7; }
  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid{min-width:0!important}
 }
 
+/* Student consultation history period filters. */
+.consultation-tab-tools{display:flex;align-items:flex-end;gap:10px}.consultation-tab-tools>nav{flex:0 0 auto}.consultation-period-filters{display:flex;align-items:flex-end;gap:6px}.consultation-period-filters label{display:grid;gap:4px}.consultation-period-filters label>span{color:#91858b;font-size:8px;font-weight:800}.consultation-period-filters select{height:34px;padding:0 28px 0 10px;border:1px solid #e5d9df;border-radius:9px;background:#fff;color:#665b60;font-size:9px;font-weight:750;outline:none}.consultation-period-filters select:focus{border-color:var(--wine);box-shadow:0 0 0 2px rgba(146,45,97,.08)}
+@media(max-width:760px){.consultation-tab-heading{gap:12px}.consultation-tab-tools{align-items:stretch;flex-direction:column}.consultation-period-filters{width:100%}.consultation-period-filters label{flex:1}.consultation-period-filters select{width:100%}.consultation-tab-tools>nav{overflow:auto}}
+
 /* Correction calendar and detail share one frame without horizontal overflow. */
 @media(min-width:901px){
  .student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{max-width:100%!important;grid-template-columns:minmax(0,1.28fr) minmax(0,.72fr)!important;border:1px solid #eadfe5!important;border-radius:15px!important;background:#fff!important}
