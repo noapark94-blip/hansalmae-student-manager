@@ -518,6 +518,19 @@ button:disabled { cursor:wait; opacity:.7; }
  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>button,.student-unified-learning .correction-history-embedded .correction-history-calendar-grid>.blank{height:auto!important;min-height:0!important}
 }
 
+/* Never let embedded correction history widen or horizontally scroll the student modal. */
+.student-hub-modal:has(.correction-history-embedded){max-width:calc(100vw - 40px)!important;overflow-x:hidden!important}
+.student-hub-modal:has(.correction-history-embedded) .student-hub-body,.student-unified-learning,.student-unified-learning .correction-history-embedded{width:100%!important;max-width:100%!important;min-width:0!important}
+.student-unified-learning .correction-history-embedded>.correction-history-summary,.student-unified-learning .correction-history-embedded>.correction-history-filter,.student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{width:100%!important;max-width:100%!important;min-width:0!important}
+.student-unified-learning .correction-history-embedded .correction-history-weekdays,.student-unified-learning .correction-history-embedded .correction-history-calendar-grid{min-width:0!important;max-width:100%!important}
+@media(max-width:900px){
+ .student-hub-modal:has(.correction-history-embedded){max-width:calc(100vw - 16px)!important}
+ .student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{height:auto!important;min-height:0!important;max-height:none!important;grid-template-columns:minmax(0,1fr)!important;overflow:hidden!important}
+ .student-unified-learning .correction-history-embedded .correction-history-calendar{height:404px!important;min-height:404px!important;max-height:404px!important;overflow:hidden!important}
+ .student-unified-learning .correction-history-embedded .correction-history-day-panel{height:auto!important;min-height:0!important;max-height:none!important;border-top:1px solid #eee4e9!important}
+ .student-unified-learning .correction-history-embedded .correction-history-calendar-grid{min-width:0!important}
+}
+
 /* Correction calendar and detail share one frame without horizontal overflow. */
 @media(min-width:901px){
  .student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{max-width:100%!important;grid-template-columns:minmax(0,1.28fr) minmax(0,.72fr)!important;border:1px solid #eadfe5!important;border-radius:15px!important;background:#fff!important}
