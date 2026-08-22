@@ -438,8 +438,9 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
       {scored.length ? (
         <>
           <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
+          {source==="all"?<div className="student-exam-source-legend" aria-label="수업 구분 색상"><span className="regular">정규수업</span><span className="correction">첨삭수업</span><span className="makeup">보강수업</span><span className="additional">추가수업</span></div>:null}
           <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${sourceLabel(source)} ${selectedSubject} ${range==="week"?"최근 7일":range==="month"?"최근 30일":range==="quarter"?"최근 90일":"전체"} 시험 성적`}>
-            {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
+            {scored.map(item=><article className={`exam-source-${item.source}`} key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
           <div className="student-exam-records">
             {scored
