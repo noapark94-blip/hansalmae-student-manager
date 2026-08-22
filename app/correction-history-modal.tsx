@@ -13,7 +13,7 @@ type Row={
 const attendanceLabel:Record<string,string>={scheduled:"미기록",present:"출석",late:"지각",absent:"결석"};
 const weekdays=["일","월","화","수","목","금","토"];
 
-export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:SupabaseClient;student:StudentInfo;onClose:()=>void}){
+export function CorrectionHistoryModal({supabase,student,onClose,embedded=false}:{supabase:SupabaseClient;student:StudentInfo;onClose?:()=>void;embedded?:boolean}){
   const[items,setItems]=useState<Row[]>([]);
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
@@ -56,12 +56,11 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
     setMonth(visible[0].correction_date.slice(0,7));
   },[subject,visible,selectedDate]);
 
-  return <div className="correction-history-backdrop" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
-    <section className="correction-history-modal correction-history-calendar-modal" role="dialog" aria-modal="true" aria-label={`${student.studentName} 첨삭 기록`}>
-      <header>
+  const calendar=<section className={`correction-history-modal correction-history-calendar-modal${embedded?" correction-history-embedded":""}`} role={embedded?undefined:"dialog"} aria-modal={embedded?undefined:true} aria-label={`${student.studentName} 첨삭 기록`}>
+      {!embedded?<header>
         <div><p className="eyebrow">교직원 전용 · 누적 첨삭 기록</p><h2>{student.studentName}<small className="history-type-label">첨삭 기록</small></h2><span>{[student.school,student.grade].filter(Boolean).join(" · ")||"학생 정보"}</span></div>
         <button type="button" className="modal-close" aria-label="닫기" onClick={onClose}>×</button>
-      </header>
+      </header>:null}
       <div className="correction-history-summary">
         <div><small>누적 첨삭</small><b>{visible.length}<em>회</em></b></div>
         <div><small>과제 완료율</small><b>{homeworkRate==null?"—":homeworkRate}<em>{homeworkRate==null?"":"%"}</em></b></div>
@@ -92,8 +91,8 @@ export function CorrectionHistoryModal({supabase,student,onClose}:{supabase:Supa
           <div className="correction-history-day-list">{selectedItems.length?selectedItems.map(item=><HistoryCard key={item.id} item={item}/>):<p>캘린더에서 기록이 있는 날짜를 선택하세요.</p>}</div>
         </section>
       </div>}
-    </section>
-  </div>;
+    </section>;
+  return embedded?calendar:<div className="correction-history-backdrop" role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)onClose?.()}}>{calendar}</div>;
 }
 
 function HistoryCard({item}:{item:Row}){

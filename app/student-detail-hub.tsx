@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLifecyclePanel } from "./student-lifecycle-panel";
 import { StudentLearningHistory } from "./student-learning-history";
+import { CorrectionHistoryModal } from "./correction-history-modal";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
 
 type StudentValues = {
@@ -338,7 +339,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               />
             </div>
           )}
-          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} studentId={student.id} corrections={data.insights.correctionLearning} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
+          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} student={student} corrections={data.insights.correctionLearning} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
         </div>
       </section>
     </div>
@@ -584,12 +585,12 @@ function AttendanceTab({ attendance, correctionAttendance, makeups }: { attendan
     </>
   );
 }
-function LearningTab({supabase,studentId,corrections}:{supabase:SupabaseClient;studentId:string;corrections:CorrectionLearningItem[]}) {
+function LearningTab({supabase,student,corrections}:{supabase:SupabaseClient;student:StudentValues;corrections:CorrectionLearningItem[]}) {
   const [section,setSection]=useState<"class"|"correction">("class");
   const completedCorrections=corrections.filter(item=>item.correctionContent||item.homeworkInstruction||item.homeworkNote||item.assistantFeedback);
   return <section className="student-unified-learning">
     <header className="student-tab-intro"><div><h3>학습 기록</h3><p>정규·보강·추가수업과 첨삭 학습 내용을 구분해 확인합니다.</p></div><nav aria-label="학습 기록 구분"><button type="button" className={section==="class"?"active":""} onClick={()=>setSection("class")}>클래스 수업</button><button type="button" className={section==="correction"?"active":""} onClick={()=>setSection("correction")}>첨삭수업 <em>{completedCorrections.length}</em></button></nav></header>
-    {section==="class"?<><div className="student-learning-context"><b>클래스 수업 기록</b><span>정규수업·보강수업·추가수업의 출결, 수업 내용, 숙제와 시험을 날짜별로 확인합니다.</span></div><StudentLearningHistory supabase={supabase} studentId={studentId}/></>:<><div className="student-learning-context correction"><b>첨삭 학습 기록</b><span>첨삭 내용, 숙제 검사 결과와 담당 선생님의 피드백을 최근순으로 표시합니다.</span></div><div className="student-correction-learning-cards">{completedCorrections.length?completedCorrections.map(item=><article key={item.id}><header><div><span>첨삭수업 · {item.subject}</span><b>{formatDate(item.lessonDate)}</b></div><em>{correctionHomeworkLabel(item.homeworkStatus)}</em></header><div>{item.correctionContent&&<section><b>첨삭 내용</b><p>{item.correctionContent}</p></section>}{item.homeworkInstruction&&<section><b>오늘 할 과제</b><p>{item.homeworkInstruction}</p></section>}{item.homeworkNote&&<section><b>숙제 검사</b><p>{item.homeworkNote}</p></section>}{item.assistantFeedback&&<section><b>선생님 피드백</b><p>{item.assistantFeedback}</p></section>}</div></article>):<Empty text="등록된 첨삭 학습 기록이 없습니다."/>}</div></>}
+    {section==="class"?<><div className="student-learning-context"><b>클래스 수업 기록</b><span>정규수업·보강수업·추가수업의 출결, 수업 내용, 숙제와 시험을 날짜별로 확인합니다.</span></div><StudentLearningHistory supabase={supabase} studentId={student.id}/></>:<><div className="student-learning-context correction"><b>첨삭 학습 기록</b><span>첨삭 출결, 시험과 오늘 한 첨삭과제를 월간 달력에서 날짜별로 확인합니다.</span></div><CorrectionHistoryModal embedded supabase={supabase} student={{studentId:student.id,studentName:student.name,school:student.school||null,grade:student.grade||null,subject:""}}/></>}
   </section>;
 }
 
