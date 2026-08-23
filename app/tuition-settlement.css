@@ -46,3 +46,42 @@
 .tuition-settings-layout main>footer{padding-top:4px;gap:9px}
 .tuition-settings-layout main>footer button{min-width:124px;height:40px;border-radius:10px;font-size:11px;font-weight:750}
 @media(max-width:650px){.tuition-settings-modal{width:calc(100vw - 14px);max-height:calc(100vh - 14px);border-radius:15px}.tuition-settings-modal>header{min-height:auto;padding:16px 18px}.tuition-settings-modal>header h2{font-size:20px}.tuition-settings-layout{height:calc(100vh - 105px)}.tuition-settings-layout aside{max-height:178px;padding:12px}.tuition-settings-layout main{padding:14px}.tuition-fee-list>div{grid-template-columns:minmax(0,1fr) 86px 104px 15px;gap:6px}.fee-default-toggle{font-size:8px}.tuition-rule-list>div{grid-template-columns:90px minmax(0,1fr) 100px 15px;gap:6px}.tuition-settings-layout main>footer{position:sticky;bottom:-14px;margin:0 -14px -14px;padding:12px 14px;background:#fff}.tuition-settings-layout main>footer button{flex:1;min-width:0}}
+
+/* Tuition settlement dashboard: consistent controls, readable data, restrained hierarchy. */
+.tuition-page-heading{margin-bottom:24px;align-items:center;gap:24px}
+.tuition-page-heading>div:first-child{max-width:520px}
+.tuition-page-heading .eyebrow{margin-bottom:7px;font-size:11px;letter-spacing:.025em}
+.tuition-page-heading h1{margin:0 0 8px;font-size:32px;line-height:1.2;letter-spacing:-.04em}
+.tuition-page-heading h1+p{margin:0;color:#74686d;font-size:13px;line-height:1.55}
+.tuition-heading-actions{gap:8px;flex-wrap:nowrap}
+.tuition-month-picker{height:44px;border-radius:11px}
+.tuition-month-picker button{width:38px;font-size:20px}
+.tuition-month-picker input{width:152px;font-size:13px}
+.tuition-heading-actions>.secondary-button,.tuition-heading-actions>.primary{height:44px;padding:0 17px;border-radius:11px;font-size:12px;font-weight:750;white-space:nowrap}
+.tuition-heading-actions>.primary{padding:0 19px}
+.tuition-summary-five{margin-bottom:16px;gap:10px}
+.tuition-summary-five article{min-height:104px;padding:17px 18px;border-radius:14px;gap:7px}
+.tuition-summary-five article span{font-size:10px;letter-spacing:.01em}
+.tuition-summary-five article b{font-size:20px;line-height:1.2;letter-spacing:-.025em}
+.tuition-summary-five article small{font-size:9px;line-height:1.4}
+.tuition-settlement-panel{border-radius:16px;box-shadow:0 12px 30px rgba(66,41,52,.055)}
+.tuition-toolbar{min-height:64px;padding:10px 14px;gap:16px}
+.tuition-filters{gap:4px}
+.tuition-filters button{height:36px;padding:0 12px;border-radius:9px;font-size:10px;gap:6px}
+.tuition-filters button small{min-width:20px;padding:3px 6px;font-size:8px}
+.tuition-toolbar-actions{gap:8px}
+.tuition-search{height:38px;min-width:238px;padding:0 11px;border-radius:10px;gap:7px}
+.tuition-search input{font-size:10px}
+.tuition-reminder-button{height:38px!important;padding:0 15px!important;border-radius:10px!important;font-size:11px!important;white-space:nowrap}
+.tuition-settlement-head,.tuition-row{min-width:1260px;grid-template-columns:110px minmax(180px,1.25fr) 125px 105px 105px 82px 105px minmax(140px,.9fr) 178px;column-gap:12px;padding-left:18px;padding-right:18px}
+.tuition-settlement-head{height:42px;font-size:9px;letter-spacing:.01em}
+.tuition-row{min-height:70px;font-size:10px}
+.tuition-row>span,.tuition-row>strong{gap:4px}
+.tuition-row b,.tuition-row strong{font-size:10px;line-height:1.4}
+.tuition-row small{font-size:8px;line-height:1.4}
+.tuition-row i{padding:5px 8px;border-radius:11px;font-size:8px}
+.tuition-row-actions{gap:6px}
+.tuition-row-actions button{height:32px;padding:0 9px;border-radius:8px;font-size:8px}
+.tuition-empty{padding:62px;font-size:11px}
+@media(max-width:1100px){.tuition-page-heading{align-items:flex-start;flex-direction:column}.tuition-heading-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}.tuition-summary-five{grid-template-columns:repeat(3,minmax(0,1fr))}.tuition-summary-five article:nth-last-child(-n+2){grid-column:auto}}
+@media(max-width:650px){.tuition-page-heading{margin-bottom:18px;gap:15px}.tuition-page-heading h1{font-size:27px}.tuition-page-heading h1+p{font-size:11px}.tuition-heading-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.tuition-month-picker{grid-column:1/-1;width:100%}.tuition-heading-actions>.primary{grid-column:1/-1}.tuition-summary-five{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tuition-summary-five article{min-height:92px;padding:14px}.tuition-summary-five article:first-child{grid-column:1/-1}.tuition-summary-five article b{font-size:17px}.tuition-toolbar{padding:10px;gap:10px}.tuition-filters button{font-size:9px}.tuition-search{min-width:0}.tuition-reminder-button{font-size:9px!important;padding:0 10px!important}}
