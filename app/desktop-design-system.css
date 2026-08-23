@@ -9,7 +9,8 @@
   .sidebar>nav{gap:4px;padding-right:2px}.sidebar nav button{min-height:43px;border-radius:10px;padding:0 11px;font-size:13px;font-weight:720}.nav-icon{font-size:17px}.folder-navigation .nav-folder-title{min-height:30px;font-size:11px!important}.teacher-card{padding:16px 7px 2px}.teacher-card b{font-size:13px}.teacher-card span,.signout-button{font-size:11px}
   .topbar{height:68px;padding:0 32px;border-bottom-color:#e8e1de}.search-wrap{height:40px;border:1px solid transparent;border-radius:10px;background:#f5f2f2}.search-wrap:focus-within{border-color:#cf9ab4;background:#fff;box-shadow:0 0 0 3px rgba(146,45,97,.07)}.search-wrap input{font-size:13px}.icon-button{width:40px;height:40px}.content{max-width:1540px;padding:32px 36px 56px}
   /* CSS 모듈과 개별 화면에서 다시 지정한 명조체·가변 크기까지 동일한 제목 체계로 정리합니다. */
-  .content h1{font-family:inherit!important;font-size:27px!important;font-weight:820!important;line-height:1.22!important;letter-spacing:-.8px!important}
+  .content h1{font-family:inherit!important;font-size:27px!important;font-weight:820!important;line-height:1.22!important;letter-spacing:-.8px!important;color:#4a1831!important;background:linear-gradient(108deg,#3b1729 0%,#702449 64%,#a33e72 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .content .print-receipt h1{color:#241f21!important;background:none!important;-webkit-text-fill-color:#241f21!important}
   .content h2{font-family:inherit!important;font-size:17px!important;font-weight:800!important;line-height:1.35!important;letter-spacing:-.35px!important}
   .content h3{font-family:inherit!important;font-size:14px!important;font-weight:800!important;line-height:1.4!important;letter-spacing:-.2px!important}
   .page-heading{margin-bottom:24px}
