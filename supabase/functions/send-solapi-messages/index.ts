@@ -20,6 +20,20 @@ type SolapiResponse = {
 type SolapiError = SolapiResponse & { errorCode?:string; errorMessage?:string; message?:string };
 
 const cleanPhone = (value:string) => value.replace(/\D/g, "");
+const cleanCredential = (value:string | undefined) => (value ?? "")
+  .trim()
+  .replace(/^(["'])(.*)\1$/, "$2")
+  .replace(/[\s\uFEFF]+/g, "");
+const safeErrorMessage = (error:unknown) => {
+  const raw = error instanceof Error ? error.message : typeof error === "string" ? error : "솔라피 발송 중 오류가 발생했습니다.";
+  if (/invalid header value/i.test(raw)) {
+    return "솔라피 API Key 형식에 문제가 있습니다. 관리자에게 문의해 주세요.";
+  }
+  return raw
+    .replace(/apiKey\s*=\s*[^,\s"']+/gi, "apiKey=[숨김]")
+    .replace(/signature\s*=\s*[^,\s"']+/gi, "signature=[숨김]")
+    .slice(0, 500);
+};
 
 async function authorization(apiKey:string, apiSecret:string) {
   const date = new Date().toISOString();
@@ -43,8 +57,8 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const apiKey = Deno.env.get("SOLAPI_API_KEY");
-  const apiSecret = Deno.env.get("SOLAPI_API_SECRET");
+  const apiKey = cleanCredential(Deno.env.get("SOLAPI_API_KEY"));
+  const apiSecret = cleanCredential(Deno.env.get("SOLAPI_API_SECRET"));
   const sender = cleanPhone(Deno.env.get("SOLAPI_SENDER_NUMBER") ?? "");
   const bearer = request.headers.get("Authorization");
 
@@ -100,7 +114,7 @@ Deno.serve(async (request) => {
     });
     const result = await response.json().catch(() => ({})) as SolapiError;
     if (!response.ok) {
-      const detail = result.errorMessage ?? result.message ?? "요청 내용을 확인해 주세요.";
+      const detail = safeErrorMessage(result.errorMessage ?? result.message ?? "요청 내용을 확인해 주세요.");
       const message = `솔라피 요청 실패${result.errorCode ? ` (${result.errorCode})` : ` (${response.status})`}: ${detail}`;
       console.error("[send-solapi-messages] solapi rejected request", { status:response.status, code:result.errorCode, message:detail });
       await failAll(message);
@@ -126,7 +140,7 @@ Deno.serve(async (request) => {
         if (updateError) throw updateError;
         sent++;
       } else {
-        const reason = failure?.statusMessage ?? "솔라피에서 발송 접수 결과를 확인하지 못했습니다.";
+        const reason = safeErrorMessage(failure?.statusMessage ?? "솔라피에서 발송 접수 결과를 확인하지 못했습니다.");
         const { error:updateError } = await adminClient.rpc("internal_finish_message_delivery", {
           p_message_id:item.id,
           p_status:"failed",
@@ -140,7 +154,7 @@ Deno.serve(async (request) => {
     }
     return json({ sent, failed, groupId });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "솔라피 발송 중 오류가 발생했습니다.";
+    const message = safeErrorMessage(error);
     console.error("[send-solapi-messages] unexpected failure", { message });
     await failAll(message);
     return json({ error:message }, 502);
