@@ -25,4 +25,28 @@
   .class-learning-board:not(.correction-learning-board) .learning-homework.assigned textarea{min-height:88px!important;height:88px;padding:9px 10px!important;border-radius:8px!important;font-size:11.5px!important;line-height:1.4!important}
   .class-learning-board:not(.correction-learning-board)>footer{padding:10px 16px!important;min-height:62px!important}
   .class-learning-board:not(.correction-learning-board)>footer .learning-completion-actions>button{height:40px!important;min-height:40px!important;font-size:12px!important}
+
+  /* Match the correction sheet to the same compact desktop density. */
+  .correction-learning-board .correction-subject-header{padding:9px 16px!important}
+  .correction-learning-board .correction-subject-rows>article>div{padding:12px 14px!important}
+  .correction-learning-board .learning-person-attendance{gap:8px!important}
+  .correction-learning-board .correction-history-trigger{gap:6px!important}
+  .correction-learning-board .correction-history-trigger i{width:36px!important;height:36px!important;font-size:11px!important}
+  .correction-learning-board .correction-history-trigger b{font-size:14px!important;line-height:1.2!important}
+  .correction-learning-board .correction-fixed-time{min-height:18px!important;padding:2px 6px!important;font-size:8px!important}
+  .correction-learning-board .learning-student>small,
+  .correction-learning-board .correction-direct-origin,
+  .correction-learning-board .correction-change-reason{font-size:9px!important;line-height:1.3!important}
+  .correction-learning-board .learning-attendance{gap:5px!important}
+  .correction-learning-board .learning-attendance>button{min-height:34px!important;border-radius:8px!important;font-size:11px!important}
+  .correction-learning-board .learning-attendance>small{font-size:9px!important;line-height:1.25!important}
+  .correction-learning-board .learning-exam-card{gap:5px!important}
+  .correction-learning-board .learning-exam.individual{gap:6px!important}
+  .correction-learning-board .learning-exam.individual select,
+  .correction-learning-board .learning-exam.individual input,
+  .correction-learning-board .learning-exam.individual span input{height:36px!important;border-radius:8px!important;padding:0 9px!important;font-size:11.5px!important}
+  .correction-learning-board .exam-percent{font-size:9px!important;line-height:1.25!important}
+  .correction-learning-board .correction-task-cell textarea{min-height:88px!important;height:88px!important;padding:9px 10px!important;border-radius:8px!important;font-size:11.5px!important;line-height:1.4!important}
+  .correction-learning-board>footer{padding:10px 16px!important;min-height:62px!important}
+  .correction-learning-board>footer .learning-completion-actions>button{height:40px!important;min-height:40px!important;font-size:12px!important}
 }
