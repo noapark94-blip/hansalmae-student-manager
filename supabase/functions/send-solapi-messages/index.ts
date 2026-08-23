@@ -17,6 +17,7 @@ type SolapiResponse = {
   messageList?:SolapiItem[];
   failedMessageList?:SolapiItem[];
 };
+type SolapiError = SolapiResponse & { errorCode?:string; errorMessage?:string; message?:string };
 
 const cleanPhone = (value:string) => value.replace(/\D/g, "");
 
@@ -70,7 +71,11 @@ Deno.serve(async (request) => {
   if (!claimed.length) return json({ error:"이미 처리됐거나 발송할 수 없는 문자입니다." }, 409);
 
   const failAll = async (message:string) => {
-    await adminClient.from("message_logs").update({ status:"failed", error_message:message, sending_at:null }).in("id", claimed.map(item => item.id));
+    const { error } = await adminClient.rpc("internal_fail_message_delivery", {
+      p_message_ids:claimed.map(item => item.id),
+      p_error_message:message,
+    });
+    if (error) console.error("[send-solapi-messages] failed to persist failure", { code:error.code, message:error.message });
   };
 
   try {
@@ -93,9 +98,11 @@ Deno.serve(async (request) => {
         showMessageList:true,
       }),
     });
-    const result = await response.json().catch(() => ({})) as SolapiResponse & { errorMessage?:string; message?:string };
+    const result = await response.json().catch(() => ({})) as SolapiError;
     if (!response.ok) {
-      const message = result.errorMessage ?? result.message ?? `솔라피 요청에 실패했습니다. (${response.status})`;
+      const detail = result.errorMessage ?? result.message ?? "요청 내용을 확인해 주세요.";
+      const message = `솔라피 요청 실패${result.errorCode ? ` (${result.errorCode})` : ` (${response.status})`}: ${detail}`;
+      console.error("[send-solapi-messages] solapi rejected request", { status:response.status, code:result.errorCode, message:detail });
       await failAll(message);
       return json({ error:message }, 502);
     }
@@ -109,35 +116,33 @@ Deno.serve(async (request) => {
       const success = accepted.get(item.id);
       const failure = rejected.get(item.id);
       if (success) {
-        const { error:updateError } = await adminClient.from("message_logs").update({
-          status:"sent",
-          provider:"solapi",
-          provider_message_id:success.messageId ?? null,
-          provider_group_id:groupId,
-          error_message:null,
-          sending_at:null,
-          sent_at:new Date().toISOString(),
-        }).eq("id", item.id).eq("status", "sending");
+        const { error:updateError } = await adminClient.rpc("internal_finish_message_delivery", {
+          p_message_id:item.id,
+          p_status:"sent",
+          p_provider_message_id:success.messageId ?? null,
+          p_provider_group_id:groupId,
+          p_error_message:null,
+        });
         if (updateError) throw updateError;
         sent++;
       } else {
         const reason = failure?.statusMessage ?? "솔라피에서 발송 접수 결과를 확인하지 못했습니다.";
-        await adminClient.from("message_logs").update({
-          status:"failed",
-          provider:"solapi",
-          provider_message_id:failure?.messageId ?? null,
-          provider_group_id:groupId,
-          error_message:reason,
-          sending_at:null,
-        }).eq("id", item.id).eq("status", "sending");
+        const { error:updateError } = await adminClient.rpc("internal_finish_message_delivery", {
+          p_message_id:item.id,
+          p_status:"failed",
+          p_provider_message_id:failure?.messageId ?? null,
+          p_provider_group_id:groupId,
+          p_error_message:reason,
+        });
+        if (updateError) throw updateError;
         failed++;
       }
     }
     return json({ sent, failed, groupId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "솔라피 발송 중 오류가 발생했습니다.";
+    console.error("[send-solapi-messages] unexpected failure", { message });
     await failAll(message);
     return json({ error:message }, 502);
   }
 });
-
