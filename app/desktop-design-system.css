@@ -43,6 +43,12 @@
   .student-modal,.menu-editor,.tuition-settings-modal,.tuition-analytics-modal{border-radius:20px;box-shadow:0 28px 80px rgba(48,29,38,.2)}
   .student-modal>header,.menu-editor>header{padding-top:22px;padding-bottom:18px}.student-modal>header h2,.menu-editor>header h2{font-family:inherit!important;font-size:22px!important;font-weight:820;letter-spacing:-.55px}.student-modal>header span{font-size:12px!important;line-height:1.55}.student-modal form label,.student-modal fieldset legend{font-size:12px!important}.student-modal input,.student-modal select,.student-modal textarea{font-size:13px!important}.student-modal footer button{min-height:40px;font-size:12px!important}
   .schedule-grid,.correction-grid,.weekly-timetable,.vehicle-week{font-size:12px}.schedule-card strong,.schedule-card span,.schedule-card small,.correction-cell b,.correction-cell small,.vehicle-card strong,.vehicle-card small,.vehicle-card time{font-size:11px!important}.calendar-day,.calendar-weekday,.month-calendar-day{font-size:12px!important}
+  /* 첨삭 시간표는 학생 이름 밀도를 유지하고 시간과 조작 문구만 또렷하게 조정합니다. */
+  .correction-timetable-mode .correction-slot-time b{font-size:11px!important;line-height:1.25!important}.correction-timetable-mode .correction-slot-time span{font-size:8.5px!important;line-height:1.3!important}
+  .correction-timetable-mode .correction-slot-empty{font-size:10px!important;font-weight:750!important;letter-spacing:-.2px!important}
+  .correction-timetable-mode .correction-slot-empty.filtered-empty{color:#a7989f!important;font-size:8.5px!important;font-weight:700!important}
+  .correction-timetable-mode .correction-slot-summary{height:17px!important}.correction-timetable-mode .correction-slot-summary small{padding:1px 3px!important;border-radius:5px!important;font-size:6px!important;line-height:1.1!important}
+  .correction-timetable-mode .correction-slot-summary>span>b{font-size:7.5px!important}.correction-timetable-mode .correction-slot-summary>button{width:19px!important;height:19px!important;min-height:19px!important;padding:0!important;font-size:11px!important}
   .toast{padding:13px 18px;border-radius:10px;font-size:12px}
   :where(button,a,input,select,textarea):focus-visible{outline:2px solid rgba(146,45,97,.5);outline-offset:2px}
   .auth-shell{background:radial-gradient(circle at 18% 15%,rgba(146,45,97,.09),transparent 31%),radial-gradient(circle at 82% 84%,rgba(196,169,143,.13),transparent 32%),#f8f6f3}
