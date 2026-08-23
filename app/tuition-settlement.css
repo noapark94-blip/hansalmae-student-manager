@@ -85,3 +85,11 @@
 .tuition-empty{padding:62px;font-size:11px}
 @media(max-width:1100px){.tuition-page-heading{align-items:flex-start;flex-direction:column}.tuition-heading-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}.tuition-summary-five{grid-template-columns:repeat(3,minmax(0,1fr))}.tuition-summary-five article:nth-last-child(-n+2){grid-column:auto}}
 @media(max-width:650px){.tuition-page-heading{margin-bottom:18px;gap:15px}.tuition-page-heading h1{font-size:27px}.tuition-page-heading h1+p{font-size:11px}.tuition-heading-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.tuition-month-picker{grid-column:1/-1;width:100%}.tuition-heading-actions>.primary{grid-column:1/-1}.tuition-summary-five{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tuition-summary-five article{min-height:92px;padding:14px}.tuition-summary-five article:first-child{grid-column:1/-1}.tuition-summary-five article b{font-size:17px}.tuition-toolbar{padding:10px;gap:10px}.tuition-filters button{font-size:9px}.tuition-search{min-width:0}.tuition-reminder-button{font-size:9px!important;padding:0 10px!important}}
+
+/* Keep the full settlement row visible on ordinary desktop widths. */
+.tuition-settlement-head,.tuition-row{min-width:1000px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 158px;column-gap:9px;padding-left:14px;padding-right:14px}
+.tuition-row .classes{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.5}
+.tuition-row-actions{min-width:0;gap:5px}
+.tuition-row-actions button{flex:0 0 auto;padding:0 8px;white-space:nowrap}
+@media(min-width:1001px){.tuition-table-scroll{overflow-x:hidden}}
+@media(max-width:1180px) and (min-width:701px){.tuition-settlement-head,.tuition-row{min-width:940px;grid-template-columns:78px minmax(132px,1.15fr) 82px 66px 76px 54px 68px minmax(84px,.7fr) 145px;column-gap:7px;padding-left:11px;padding-right:11px}.tuition-row-actions{gap:4px}.tuition-row-actions button{padding:0 6px;font-size:7.5px}}
