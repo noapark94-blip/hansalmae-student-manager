@@ -13,3 +13,4 @@
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes riseIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
 @media(max-width:480px){.dialog{padding:27px 18px 21px;border-radius:18px}.dialog h3{font-size:21px}.stats{gap:3px}.stats b{font-size:11px}.copy br{display:none}}
 @media(prefers-reduced-motion:reduce){.backdrop,.dialog{animation:none}}
+.danger .icon{background:#fff0f1;color:#a42c3a}.danger .eyebrow{color:#a42c3a}.danger .notice{color:#8d666c}.danger .notice i{background:#fde7e9;color:#a42c3a}.danger .primary{border-color:#a42c3a;background:#a42c3a;box-shadow:0 7px 16px rgba(164,44,58,.17)}
