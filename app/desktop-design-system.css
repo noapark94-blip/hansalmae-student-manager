@@ -67,5 +67,5 @@
 }
 
 @media (min-width:761px){
-  .sidebar .brand span{margin:0!important;font-family:var(--font-note-handwriting),"Nanum Pen Script",cursive!important;font-size:18.5px!important;font-weight:400!important;line-height:1!important;letter-spacing:-.025em!important;transform:translateY(-.5px)}
+  .sidebar .brand strong,.sidebar .brand span{margin:0!important;font-family:var(--font-note-handwriting),"Nanum Pen Script",cursive!important;font-size:18.5px!important;font-weight:400!important;line-height:1!important;letter-spacing:-.025em!important;transform:translateY(-.5px)}
 }
