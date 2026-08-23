@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Nanum_Pen_Script } from "next/font/google";
 import "./globals.css";
 import "./tuition-settlement.css";
 import "./teacher-workspace.css";
@@ -46,6 +47,13 @@ import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
 
+const nanumPenScript = Nanum_Pen_Script({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-note-handwriting",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "한살매 수업노트",
   description: "한살매 수업·출결·학습 기록 통합 관리",
@@ -74,5 +82,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
+  return <html lang="ko" className={nanumPenScript.variable}><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
 }
