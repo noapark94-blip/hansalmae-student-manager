@@ -1,0 +1,65 @@
+/* 계정·역할 설정: 정보 밀도와 시각 위계를 한 화면에 맞게 정돈 */
+.page-heading:has(.account-heading-actions){align-items:flex-end;margin-bottom:18px;padding:2px 0 0}
+.page-heading:has(.account-heading-actions) .eyebrow{margin-bottom:6px;font-size:10px;letter-spacing:.07em}
+.page-heading:has(.account-heading-actions) h1{font-size:28px;line-height:1.18;letter-spacing:-.7px}
+.page-heading:has(.account-heading-actions)>div:first-child>p:last-child{margin-top:8px;color:#746a6f;font-size:12px}
+.account-heading-actions{gap:9px}
+.account-heading-actions>button{height:42px;min-width:138px;padding:0 16px;border-radius:11px;font-size:10px;box-shadow:none}
+.account-heading-actions>.primary{min-width:146px;box-shadow:0 7px 18px rgba(146,45,97,.12)}
+
+.settings-guide{min-height:46px;margin:0 0 12px;padding:0 16px;border-color:#dce5ed;border-radius:12px;background:#f7fafc;align-items:center;gap:13px;color:#647583;font-size:9px}
+.settings-guide b{flex:0 0 auto;color:#365d78;font-size:9px}
+.settings-guide span{min-width:0;line-height:1.5}
+.makeup-summary:has(+.account-panel){gap:8px;margin-bottom:12px}
+.makeup-summary:has(+.account-panel) span{min-width:116px;padding:10px 13px;border-color:#e8e0e3;border-radius:11px;background:#fff;box-shadow:0 3px 12px rgba(55,35,45,.025);font-size:9px}
+.makeup-summary:has(+.account-panel) b{margin-left:8px;font-size:15px}
+
+.account-panel{border-color:#e8e0e3;border-radius:16px;box-shadow:0 7px 26px rgba(55,35,45,.035)}
+.account-toolbar{min-height:58px;padding:10px 16px;background:#fff;align-items:center}
+.account-toolbar .search-wrap{width:min(100%,330px);height:38px;border-radius:10px;background:#faf8f9}
+.account-toolbar .search-wrap input{font-size:10px}
+.account-toolbar select{height:38px;min-width:132px;padding:0 12px;border-radius:10px;font-size:9px}
+.account-head,.account-table>article{grid-template-columns:minmax(220px,1.25fr) 90px minmax(180px,1fr) 74px 66px;padding:0 18px}
+.account-head{min-height:38px;background:#fbf9fa;font-size:8px;letter-spacing:.02em}
+.account-table>article{min-height:66px;transition:background .15s ease}
+.account-table>article:hover{background:#fefbfc}
+.account-person>i{width:34px;height:34px;background:#f5e7ee;font-size:10px}
+.account-person b{font-size:10px}.account-person small{font-size:8px}
+.account-table>article>strong{font-size:9px}.account-link{font-size:9px}
+.account-table>article>i{padding:5px 8px;border-radius:999px;font-size:8px;font-weight:800}
+.account-table>article>button{height:34px;padding:0 11px;border-radius:9px;font-size:8px;font-weight:800}
+
+.account-history{margin-top:12px;border-color:#e8e0e3;border-radius:15px;box-shadow:none}
+.account-history>header{min-height:48px;padding:0 18px;align-items:center}
+.account-history h2{font-size:12px}.account-history header span{font-size:8px}
+.account-history>div{grid-template-columns:1fr}
+.account-history article{min-height:52px;padding:9px 16px;border-top:0}
+.account-history article>i{width:28px;height:28px;border-radius:9px;background:#f5f1f2;color:#766b70;font-size:10px}
+.account-history b{font-size:9px}.account-history small{font-size:8px}
+
+.account-deletion-panel{margin-top:12px;padding:0;border-color:#eadfe3;border-radius:15px;box-shadow:none;overflow:hidden}
+.account-deletion-panel>header{padding:16px 18px;border-bottom:1px solid #eee6e9;background:#fcfafb}
+.account-deletion-panel h2{margin:0;font-size:13px;letter-spacing:-.2px}
+.account-deletion-panel header p{margin:6px 0 0;color:#84787e;font-size:9px;line-height:1.5}
+.account-deletion-panel>div>article{min-height:60px;padding:10px 18px;border-top:1px solid #f1eaed;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.account-deletion-panel>div>article:first-child{border-top:0}
+.account-deletion-panel article>span{display:grid;gap:4px}
+.account-deletion-panel article b{font-size:10px}.account-deletion-panel article small{color:#877b81;font-size:8px}
+.account-deletion-panel article>button{height:35px;padding:0 12px;border:1px solid #e3aebb;border-radius:9px;background:#fff;color:#b52d48;font-size:8px;font-weight:850}
+.account-deletion-panel article>button:hover{background:#fff6f7}.account-deletion-panel article>button:disabled{opacity:.5}
+.account-delete-message{margin:12px 18px 0;padding:9px 11px;border-radius:9px;background:#fff3f5;color:#9f3046;font-size:9px}
+
+@media(max-width:760px){
+ .page-heading:has(.account-heading-actions){align-items:stretch;margin-bottom:14px}
+ .page-heading:has(.account-heading-actions) h1{font-size:23px}
+ .account-heading-actions{display:grid;grid-template-columns:1fr 1fr}
+ .account-heading-actions>button,.account-heading-actions>.primary{width:100%;min-width:0;padding:0 8px;font-size:9px}
+ .settings-guide{align-items:flex-start;min-height:0;padding:12px 13px;flex-direction:column;gap:4px}
+ .makeup-summary:has(+.account-panel) span{min-width:105px}
+ .account-toolbar{align-items:stretch}.account-toolbar .search-wrap{width:100%;max-width:none}
+ .account-table>article{grid-template-columns:1fr auto;padding:13px 15px;gap:9px}
+ .account-table>article>button{justify-self:end}
+ .account-history>div{grid-template-columns:1fr}
+ .account-deletion-panel>div>article{align-items:flex-start;padding:13px 15px}
+ .account-deletion-panel article>span{min-width:0}.account-deletion-panel article small{overflow-wrap:anywhere}
+}

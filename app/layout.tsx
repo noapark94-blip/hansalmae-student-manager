@@ -39,6 +39,7 @@ import "./student-learning-history-fit.css";
 import "./class-common-record-compact.css";
 import "./class-record-compact.css";
 import "./invite-signup.css";
+import "./account-settings-polish.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
