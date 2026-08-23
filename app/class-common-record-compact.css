@@ -30,10 +30,13 @@
 .learning-common-toggle small{color:#a04470;font-size:9px;font-weight:850}
 .learning-common-toggle b{color:#352c31;font-size:15px;line-height:1.3}
 .learning-common-toggle>strong{color:#766a70;font-size:10px;font-weight:800;white-space:nowrap}
-.learning-common-toggle i{width:24px;height:24px;margin-left:6px;border-radius:8px;background:#f4edf0;color:#922d61;display:inline-grid;place-items:center;font-size:13px;font-style:normal}
+.learning-common-toggle i{width:28px;height:28px;margin-left:8px;border-radius:9px;background:#f4edf0;color:#922d61;display:inline-grid;place-items:center;font-size:0;font-style:normal}
+.learning-common-toggle i::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .16s ease}
+.learning-common-toggle[aria-expanded="true"] i::before{transform:translateY(2px) rotate(225deg)}
 .learning-compact-common .learning-compact-heading>span:last-child{display:flex;gap:7px}
-.learning-compact-common .learning-compact-heading>span:last-child>button{min-width:auto!important;height:36px!important;padding:0 12px!important;border-radius:9px!important;font-size:10px!important}
-.learning-compact-common.collapsed .learning-compact-heading{border-bottom:0}
+.learning-compact-common .learning-compact-heading>span:last-child>button{width:130px!important;min-width:130px!important;height:38px!important;padding:0 10px!important;border-radius:10px!important;font-size:10px!important}
+.class-day-workspace .learning-compact-common.collapsed{border-bottom:1px solid #e3d7dc;box-shadow:0 5px 13px rgba(69,45,56,.045)}
+.learning-compact-common.collapsed .learning-compact-heading{border-bottom:0;background:linear-gradient(180deg,#fff,#fcf9fa)}
 .learning-common-grid{padding:10px 14px 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start;gap:10px;background:#faf8f9}
 .learning-common-card{min-width:0;min-height:170px;padding:10px 11px;border:1px solid #e7dde1;border-radius:13px;background:#fff;display:flex;flex-direction:column;gap:7px;box-shadow:0 4px 14px rgba(61,39,49,.035)}
 .learning-common-card.filled{border-color:#d9adbf;background:linear-gradient(180deg,#fff,#fffafd)}
@@ -53,10 +56,10 @@
 .learning-card-disclosure>strong{grid-column:2;grid-row:1/3;color:#922d61;font-size:9px;font-weight:850}
 .learning-common-card.disclosure>p{margin:auto 11px 11px;padding:11px 8px;border-radius:9px;background:#faf7f8;color:#96888e;font-size:9px;line-height:1.5;text-align:center}
 .learning-card-exam{padding:0 11px 10px;display:grid;gap:5px}
-.learning-card-exam>div{display:grid;grid-template-columns:70px minmax(0,1fr);gap:7px}
+.learning-common-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px}.learning-common-score>em{color:#a4959c;font-size:10px;font-style:normal;text-align:center}.learning-common-score>input[readonly]{background:#faf7f8;color:#9b8e94}
 .learning-card-exam>*{min-height:31px}
 .learning-card-exam>small{min-height:auto;color:#93858b;font-size:8px;line-height:1.4}
-@media(min-width:701px){.learning-compact-common .learning-compact-heading{position:relative;display:flex;justify-content:flex-end}.learning-common-toggle{position:absolute;left:50%;top:50%;width:210px;transform:translate(-50%,-50%);justify-content:center;text-align:center}.learning-common-toggle>span{justify-items:center!important;text-align:center!important}.learning-common-toggle>strong{position:absolute;left:calc(100% + 8px)}.learning-common-toggle i{position:absolute;left:calc(100% + 54px);margin-left:0}}
+@media(min-width:701px){.learning-compact-common .learning-compact-heading{position:relative;display:flex;justify-content:flex-end}.learning-common-toggle{position:absolute;left:50%;top:50%;width:240px;transform:translate(-50%,-50%);justify-content:center;text-align:center}.learning-common-toggle>span{justify-items:center!important;text-align:center!important}.learning-common-toggle>strong{position:absolute;left:calc(100% + 8px);display:flex;align-items:center}}
 @media(max-width:1100px){.learning-common-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.learning-common-card{min-height:165px}}
 @media(max-width:700px){.learning-compact-common .learning-compact-heading{grid-template-columns:1fr;padding:11px}.learning-common-toggle{width:100%}.learning-compact-common .learning-compact-heading>span:last-child{justify-content:stretch}.learning-compact-common .learning-compact-heading>span:last-child>button{flex:1}.learning-common-grid{padding:10px;grid-template-columns:1fr}.learning-common-card{min-height:auto}.learning-common-card>textarea{min-height:92px}}
 
