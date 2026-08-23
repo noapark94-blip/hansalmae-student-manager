@@ -15,7 +15,6 @@ import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
-import { OperationsAuditBoard } from "./operations-audit";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
@@ -69,9 +68,8 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
   { id: "tuition", label: "원비 정산", icon: "₩" },
-  { id: "analytics", label: "운영 통계", icon: "▥" },
+  { id: "analytics", label: "운영 현황", icon: "▥" },
   { id: "backup", label: "데이터 백업", icon: "⇩" },
-  { id: "audit", label: "운영 점검", icon: "◉" },
   { id: "settings", label: "계정·역할", icon: "⚙" },
   { id: "my-account", label: "내 계정", icon: "♙" },
 ];
@@ -404,10 +402,10 @@ export default function Home() {
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
-          {view === "analytics" && <OperationsAnalytics supabase={supabase} />}
+          {view === "analytics" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "backup" && <BackupBoard supabase={supabase} />}
           {view === "settings" && <><SettingsBoard supabase={supabase} /><AccountDeletionPanel supabase={supabase} /></>}
-          {view === "audit" && <OperationsAuditBoard supabase={supabase} onNavigate={selectView} />}
+          {view === "audit" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
         </div>
       </section>
