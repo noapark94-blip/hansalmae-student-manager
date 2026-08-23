@@ -366,7 +366,7 @@ export default function Home() {
       <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
         <button className="brand" type="button" onClick={() => selectView("dashboard")} aria-label="홈으로 이동">
           <img className="brand-mark" src="/hansalmae-logo.png" alt="한살매 로고" />
-          <div><strong>한살매</strong><span>학생관리</span></div>
+          <div><strong>한살매</strong><span>수업노트</span></div>
         </button>
         <SidebarNavigation supabase={supabase} role={profile.role} items={allowedNav} activeView={view} onSelect={selectView} />
         <div className="sidebar-bottom">
@@ -615,7 +615,7 @@ function LoginScreen({ supabase,onSubmit, error }: { supabase:SupabaseClient;onS
     setSubmitting(false);
   };
   if(signup)return <InviteSignup supabase={supabase} onBack={()=>setSignup(false)}/>;
-  return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><h1>한살매 입시전문학원</h1><p className="auth-copy">등록된 교사·학생·학부모 계정으로 로그인하세요.</p><form onSubmit={submit}><label>이메일<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required placeholder="name@example.com" /></label><label>비밀번호<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required placeholder="비밀번호" /></label><label className="remember-email"><input type="checkbox" checked={rememberEmail} onChange={(event) => setRememberEmail(event.target.checked)} /><span>아이디 저장</span></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" disabled={submitting}>{submitting ? "로그인 중…" : "로그인"}</button></form><button className="auth-signup-link" onClick={()=>setSignup(true)}>초대코드로 회원가입</button><small>초대코드는 학원 관리자에게 문의해 주세요.</small></section></main>;
+  return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><p className="auth-product-name">한살매</p><h1>수업노트</h1><p className="auth-copy">수업과 학습 기록을 한곳에서 확인하세요.</p><form onSubmit={submit}><label>이메일<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required placeholder="name@example.com" /></label><label>비밀번호<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required placeholder="비밀번호" /></label><label className="remember-email"><input type="checkbox" checked={rememberEmail} onChange={(event) => setRememberEmail(event.target.checked)} /><span>아이디 저장</span></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" disabled={submitting}>{submitting ? "로그인 중…" : "로그인"}</button></form><button className="auth-signup-link" onClick={()=>setSignup(true)}>초대코드로 회원가입</button><small>초대코드는 학원 관리자에게 문의해 주세요.</small></section></main>;
 }
 
 function InviteSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()=>void}){
