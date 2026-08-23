@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "한살매 입시전문학원",
-    short_name: "한살매",
-    description: "한살매입시전문학원 학생·수업·출결 통합 관리",
+    name: "한살매 수업노트",
+    short_name: "수업노트",
+    description: "한살매 수업·출결·학습 기록 통합 관리",
     start_url: "/",
     display: "standalone",
     background_color: "#faf8f5",
