@@ -246,7 +246,7 @@ export default function Home() {
 
   if (!authReady) return <LoadingScreen />;
   if (!supabase) return <ConfigurationScreen />;
-  if (!user) return <LoginScreen onSubmit={async (email, password) => {
+  if (!user) return <LoginScreen supabase={supabase} onSubmit={async (email, password) => {
     setAuthError("");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setAuthError("이메일 또는 비밀번호를 확인해 주세요.");
@@ -593,11 +593,12 @@ function SimplePanel({ title, description, items }: { title: string; description
   return <><div className="page-heading compact"><div><p className="eyebrow">한살매 관리</p><h1>{title}</h1><p>{description}</p></div><button className="primary">＋ 새 기록</button></div><section className="panel simple-panel"><h2>오늘 확인할 항목</h2>{items.map((item, index) => <button key={item}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}</section></>;
 }
 
-function LoginScreen({ onSubmit, error }: { onSubmit: (email: string, password: string) => Promise<void>; error: string }) {
+function LoginScreen({ supabase,onSubmit, error }: { supabase:SupabaseClient;onSubmit: (email: string, password: string) => Promise<void>; error: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [signup,setSignup]=useState(false);
   useEffect(() => {
     const savedEmail = window.localStorage.getItem("hansalmae-saved-email");
     if (!savedEmail) return;
@@ -613,7 +614,17 @@ function LoginScreen({ onSubmit, error }: { onSubmit: (email: string, password: 
     await onSubmit(normalizedEmail, password);
     setSubmitting(false);
   };
-  return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><h1>한살매 입시전문학원</h1><p className="auth-copy">등록된 교사·학생·학부모 계정으로 로그인하세요.</p><form onSubmit={submit}><label>이메일<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required placeholder="name@example.com" /></label><label>비밀번호<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required placeholder="비밀번호" /></label><label className="remember-email"><input type="checkbox" checked={rememberEmail} onChange={(event) => setRememberEmail(event.target.checked)} /><span>아이디 저장</span></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" disabled={submitting}>{submitting ? "로그인 중…" : "로그인"}</button></form><small>계정과 역할 변경은 학원 관리자에게 문의해 주세요.</small></section></main>;
+  if(signup)return <InviteSignup supabase={supabase} onBack={()=>setSignup(false)}/>;
+  return <main className="auth-shell"><section className="auth-card"><img src="/hansalmae-logo.png" alt="한살매 로고" /><h1>한살매 입시전문학원</h1><p className="auth-copy">등록된 교사·학생·학부모 계정으로 로그인하세요.</p><form onSubmit={submit}><label>이메일<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required placeholder="name@example.com" /></label><label>비밀번호<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required placeholder="비밀번호" /></label><label className="remember-email"><input type="checkbox" checked={rememberEmail} onChange={(event) => setRememberEmail(event.target.checked)} /><span>아이디 저장</span></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary" disabled={submitting}>{submitting ? "로그인 중…" : "로그인"}</button></form><button className="auth-signup-link" onClick={()=>setSignup(true)}>초대코드로 회원가입</button><small>초대코드는 학원 관리자에게 문의해 주세요.</small></section></main>;
+}
+
+function InviteSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()=>void}){
+ const [step,setStep]=useState<1|2|3>(1),[code,setCode]=useState(""),[role,setRole]=useState(""),[targetName,setTargetName]=useState(""),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[confirm,setConfirm]=useState(""),[displayName,setDisplayName]=useState(""),[phone,setPhone]=useState(""),[loading,setLoading]=useState(false),[message,setMessage]=useState("");
+ const invoke=async(body:Record<string,unknown>)=>{const{data,error}=await supabase.functions.invoke("invite-signup",{body});if(error){let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const json=await context.clone().json() as{error?:string};if(json.error)text=json.error}catch{}throw new Error(text)}return data as Record<string,unknown>};
+ const check=async(event:FormEvent)=>{event.preventDefault();setLoading(true);setMessage("");try{const data=await invoke({action:"check",code});setRole(String(data.role));setTargetName(String(data.targetName));setStep(2)}catch(next){setMessage(next instanceof Error?next.message:"초대코드를 확인해 주세요.")}setLoading(false)};
+ const register=async(event:FormEvent)=>{event.preventDefault();if(password!==confirm){setMessage("비밀번호가 서로 일치하지 않습니다.");return}setLoading(true);setMessage("");try{await invoke({action:"register",code,email,password,displayName,phone});setStep(3)}catch(next){setMessage(next instanceof Error?next.message:"회원가입을 완료하지 못했습니다.")}setLoading(false)};
+ const normalized=code.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+ return <main className="auth-shell"><section className="auth-card signup-card"><button className="signup-back" onClick={step===1?onBack:()=>{setStep(1);setMessage("")}}>‹</button><img src="/hansalmae-logo.png" alt="한살매 로고"/><p className="signup-eyebrow">초대 회원가입</p><h1>{step===3?"가입이 완료됐어요":"내 계정 만들기"}</h1><div className="signup-progress"><i className={step>=1?"active":""}/><i className={step>=2?"active":""}/><i className={step>=3?"active":""}/></div>{step===1&&<><p className="auth-copy">학원에서 받은 8자리 초대코드를 입력해 주세요.</p><form onSubmit={check}><label>초대코드<input className="invite-code-input" value={normalized.length>4?`${normalized.slice(0,4)}-${normalized.slice(4)}`:normalized} onChange={event=>setCode(event.target.value)} autoCapitalize="characters" autoComplete="one-time-code" placeholder="ABCD-EFGH" required/></label>{message&&<p className="auth-error">{message}</p>}<button className="primary" disabled={loading||normalized.length!==8}>{loading?"확인 중…":"초대코드 확인"}</button></form></>}{step===2&&<><section className="signup-target"><span>{role==="student"?"학생":role==="guardian"?"학부모":"선생님"} 계정</span><b>{targetName}</b><small>이 연결 정보는 가입 후 자동으로 적용됩니다.</small></section><form onSubmit={register}><label>이름<input required value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="실명을 입력해 주세요"/></label><label>이메일<input required type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@example.com"/></label>{role==="guardian"&&<label>연락처<input required inputMode="tel" value={phone} onChange={event=>setPhone(formatPhoneNumber(event.target.value))} placeholder="010-0000-0000"/></label>}<div className="signup-passwords"><label>비밀번호<input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={event=>setPassword(event.target.value)} placeholder="8자 이상"/></label><label>비밀번호 확인<input required minLength={8} type="password" autoComplete="new-password" value={confirm} onChange={event=>setConfirm(event.target.value)} placeholder="한 번 더 입력"/></label></div>{message&&<p className="auth-error">{message}</p>}<button className="primary" disabled={loading}>{loading?"가입 중…":"회원가입 완료"}</button></form></>}{step===3&&<><p className="auth-copy">등록한 이메일과 비밀번호로 바로 로그인할 수 있습니다.</p><button className="primary signup-finish" onClick={onBack}>로그인하러 가기</button></>}</section></main>
 }
 
 function LoadingScreen() { return <main className="auth-shell"><section className="auth-card loading"><img src="/hansalmae-logo.png" alt="" /><p>로그인 정보를 확인하고 있어요…</p></section></main>; }
