@@ -40,20 +40,21 @@ import "./class-common-record-compact.css";
 import "./class-record-compact.css";
 import "./invite-signup.css";
 import "./account-settings-polish.css";
+import "./desktop-design-system.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
 
 export const metadata: Metadata = {
-  title: "한살매 입시전문학원",
-  description: "한살매입시전문학원 학생·수업·출결 통합 관리",
+  title: "한살매 수업노트",
+  description: "한살매 수업·출결·학습 기록 통합 관리",
   manifest: "/manifest.webmanifest",
-  applicationName: "한살매 입시전문학원",
+  applicationName: "한살매 수업노트",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "한살매",
+    title: "한살매 수업노트",
   },
   icons: {
     icon: [
