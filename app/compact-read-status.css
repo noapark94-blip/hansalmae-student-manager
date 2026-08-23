@@ -1,0 +1,11 @@
+/* Compact, non-duplicated staff report-read summary. */
+.family-read-status{margin:10px 0 12px;border-width:1px 0;border-radius:0}
+.family-read-summary{min-height:54px;padding:9px 16px}
+.family-read-title{display:flex!important;align-items:center;gap:10px!important;min-width:0}
+.family-read-title small{font-size:10px;white-space:nowrap}
+.family-read-title b{font-size:13px;white-space:nowrap}
+.family-read-title b>em{color:#39745a;font-style:normal}
+.family-read-title .family-read-warning{padding:4px 7px;border-radius:999px;background:#fff2dc;color:#9a671a;font-size:9px;font-style:normal;font-weight:800;white-space:nowrap}
+.family-read-pills strong{margin-left:5px;white-space:nowrap}
+.correction-read-status{margin-top:10px}
+@media(max-width:720px){.family-read-summary{align-items:center}.family-read-title{display:grid!important;gap:2px!important}.family-read-pills{max-width:none}.family-read-title .family-read-warning{display:none}}

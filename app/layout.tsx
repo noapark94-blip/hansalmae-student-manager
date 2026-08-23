@@ -12,6 +12,7 @@ import "./family-kidsnote.css";
 import "./family-learning-note.css";
 import "./family-learning-report-feed.css";
 import "./staff-report-read-status.css";
+import "./compact-read-status.css";
 import "./learning-efficiency.css";
 import "./learning-board-four-columns.css";
 import "./exam-category-header.css";
