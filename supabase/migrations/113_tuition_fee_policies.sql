@@ -239,7 +239,7 @@ begin
     end if;
   end loop;
 
-  delete from public.tuition_combination_discounts;
+  delete from public.tuition_combination_discounts where id is not null;
   for item in select value from jsonb_array_elements(p_discounts) loop
     if (item->>'amount')::numeric<0 or jsonb_array_length(item->'groupIds')<2 then
       raise exception '결합 할인 조건을 확인해 주세요.';
