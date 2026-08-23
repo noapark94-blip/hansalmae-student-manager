@@ -93,3 +93,16 @@
 .tuition-row-actions button{flex:0 0 auto;padding:0 8px;white-space:nowrap}
 @media(min-width:1001px){.tuition-table-scroll{overflow-x:hidden}}
 @media(max-width:1180px) and (min-width:701px){.tuition-settlement-head,.tuition-row{min-width:940px;grid-template-columns:78px minmax(132px,1.15fr) 82px 66px 76px 54px 68px minmax(84px,.7fr) 145px;column-gap:7px;padding-left:11px;padding-right:11px}.tuition-row-actions{gap:4px}.tuition-row-actions button{padding:0 6px;font-size:7.5px}}
+
+.tuition-advanced-filterbar{margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;box-shadow:0 8px 24px rgba(66,41,52,.035)}
+.tuition-filter-selects,.tuition-sort-controls{display:flex;align-items:flex-end;gap:8px}
+.tuition-advanced-filterbar label{display:grid;gap:5px}
+.tuition-advanced-filterbar label>span{padding-left:2px;color:#7e7277;font-size:9px;font-weight:750}
+.tuition-advanced-filterbar select{height:36px;min-width:122px;padding:0 30px 0 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#40373b;font-size:10px;outline:none}
+.tuition-advanced-filterbar select:focus{border-color:#c78da9;box-shadow:0 0 0 3px rgba(153,42,94,.08)}
+.tuition-filter-selects label:last-child select{min-width:170px}
+.tuition-sort-controls>span{height:36px;padding:0 10px;border-radius:9px;background:#f8f3f5;color:var(--wine);display:flex;align-items:center;font-size:10px;font-weight:800;white-space:nowrap}
+.tuition-sort-controls label select{min-width:150px}
+.tuition-sort-controls button{height:36px;padding:0 11px;border:1px solid #dec8d3;border-radius:9px;background:#fff;color:var(--wine);font-size:9px;font-weight:750;white-space:nowrap}
+@media(max-width:1100px){.tuition-advanced-filterbar{align-items:stretch;flex-direction:column}.tuition-filter-selects{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.tuition-advanced-filterbar select,.tuition-filter-selects label:last-child select{width:100%;min-width:0}.tuition-sort-controls{justify-content:flex-end}}
+@media(max-width:650px){.tuition-advanced-filterbar{padding:11px;margin-bottom:12px}.tuition-filter-selects{grid-template-columns:1fr 1fr}.tuition-sort-controls{display:grid;grid-template-columns:auto 1fr auto;align-items:end}.tuition-sort-controls label select{width:100%;min-width:0}.tuition-sort-controls button{padding:0 8px}}
