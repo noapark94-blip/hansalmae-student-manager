@@ -147,9 +147,7 @@
   margin:0!important;
 }
 
-/* 홈의 의미 불명 기호를 텍스트 중심의 명확한 액션으로 정리 */
-.page-heading > .primary { font-size:0; }
-.page-heading > .primary::after { content:"공지 작성"; font-size:13px; font-weight:800; }
+/* 각 화면의 주요 버튼은 컴포넌트가 제공하는 실제 문구를 그대로 표시 */
 .notification-button { color:#5f565b!important; }
 .notification-button .hansalmae-icon { width:21px; height:21px; }
 .notification-list article > i { display:grid!important; place-items:center; }
@@ -232,6 +230,5 @@
     padding:0 13px!important;
     border-radius:11px!important;
   }
-  .page-heading > .primary::after { content:"공지"; font-size:12px; }
   .notification-button { border-radius:11px!important; }
 }
