@@ -43,6 +43,7 @@ import "./account-settings-polish.css";
 import "./desktop-design-system.css";
 import "./mobile-design-system.css";
 import "./family-mobile-app.css";
+import "./staff-mobile-app.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";

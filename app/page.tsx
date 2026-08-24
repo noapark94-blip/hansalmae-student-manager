@@ -107,6 +107,7 @@ export default function Home() {
   const [searchOpen,setSearchOpen]=useState(false);
   const [adminHomeMode,setAdminHomeMode]=useState<"operations"|"classes">("operations");
   const [mobileNav, setMobileNav] = useState(false);
+  const [staffMoreOpen, setStaffMoreOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [studentTimetables,setStudentTimetables]=useState<Record<string,WeeklyTimetableRow[]>>({});
@@ -159,7 +160,7 @@ export default function Home() {
         setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
-        if (role === "student" || role === "guardian") setView("dashboard");
+        if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -246,6 +247,7 @@ export default function Home() {
     }
     setView(next);
     setMobileNav(false);
+    setStaffMoreOpen(false);
     setQuery("");
     setSearchOpen(false);
   };
@@ -368,9 +370,10 @@ export default function Home() {
   };
 
   const familyAccount=profile.role==="student"||profile.role==="guardian";
+  const staffAccount=profile.role==="admin"||profile.role==="teacher";
 
   return (
-    <main className={`app-shell${familyAccount?" family-app-shell":""}`}>
+    <main className={`app-shell${familyAccount?" family-app-shell":""}${staffAccount?" staff-app-shell":""}`}>
       {!familyAccount&&<aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
         <button className="brand" type="button" onClick={() => selectView("dashboard")} aria-label="홈으로 이동">
           <img className="brand-mark" src="/hansalmae-logo.png" alt="한살매 로고" />
@@ -385,16 +388,17 @@ export default function Home() {
       {!familyAccount&&mobileNav && <button className="backdrop" aria-label="메뉴 닫기" onClick={() => setMobileNav(false)} />}
 
       <section className={`workspace${familyAccount?" family-app-workspace":""}`}>
-        {familyAccount?<header className="family-app-topbar"><button type="button" className="family-app-brand" onClick={()=>selectView("dashboard")} aria-label="한살매 홈으로 이동"><img src="/hansalmae-logo.png" alt=""/><span><b>한살매</b><small>수업노트</small></span></button><div><NotificationCenter supabase={supabase}/><button type="button" className="family-account-button" onClick={()=>selectView("my-account")} aria-label="내 정보"><HansalmaeIcon name="user" size={21}/></button></div></header>:<header className="topbar">
+        {familyAccount?<header className="family-app-topbar"><button type="button" className="family-app-brand" onClick={()=>selectView("dashboard")} aria-label="한살매 홈으로 이동"><img src="/hansalmae-logo.png" alt=""/><span><b>한살매</b><small>수업노트</small></span></button><div><NotificationCenter supabase={supabase}/><button type="button" className="family-account-button" onClick={()=>selectView("my-account")} aria-label="내 정보"><HansalmaeIcon name="user" size={21}/></button></div></header>:<><header className="staff-app-topbar"><button type="button" className="staff-app-brand" onClick={()=>selectView("dashboard")} aria-label="한살매 홈으로 이동"><img src="/hansalmae-logo.png" alt=""/><span><b>한살매</b><small>{roleLabels[profile.role]} 수업노트</small></span></button><div><NotificationCenter supabase={supabase}/><button type="button" className="staff-account-button" onClick={()=>selectView("my-account")} aria-label="내 계정"><span>{profile.display_name.slice(0,1)}</span></button></div></header><header className="topbar">
           <button className="menu-button" aria-label="메뉴 열기" onClick={() => setMobileNav(true)}>☰</button>
           <div className="global-search"><div className="search-wrap"><span>⌕</span><input value={query} onFocus={()=>setSearchOpen(true)} onChange={(event) => {setQuery(event.target.value);setSearchOpen(true);}} onKeyDown={(event)=>{if(event.key==="Escape")setSearchOpen(false);if(event.key==="Enter"){const firstStudent=globalSearch.students[0];const firstClass=globalSearch.classes[0];if(firstStudent){void openStudentDetails(firstStudent);setSearchOpen(false);}else if(firstClass){selectView("schedule");showToast(`${firstClass.name} 클래스를 시간표에서 확인해 주세요.`);}}}} placeholder="학생, 클래스 검색" /></div>{searchOpen&&query.trim()&&<div className="global-search-results">{globalSearch.students.map((student)=><button key={student.id} onClick={()=>{void openStudentDetails(student);setSearchOpen(false);}}><i>{student.name.slice(0,1)}</i><span><b>{student.name}</b><small>{[student.school,student.grade].filter(Boolean).join(" · ")||"학생"}</small></span><em>학생 보기</em></button>)}{globalSearch.classes.map((item)=><button key={item.id} onClick={()=>{selectView("schedule");showToast(`${item.name} 클래스를 시간표에서 확인해 주세요.`);}}><i style={{color:item.color}}>▦</i><span><b>{item.name}</b><small>{item.subject}{item.room?` · ${item.room}`:""}</small></span><em>시간표 보기</em></button>)}{!globalSearch.students.length&&!globalSearch.classes.length&&<p>검색 결과가 없습니다.</p>}</div>}</div>
           <NotificationCenter supabase={supabase} />
           {(profile.role === "admin" || profile.role === "teacher") && <button className="primary small" onClick={() => void refreshStudentRegistrationCatalog().then((ready)=>ready&&setRegistrationOpen(true))}>＋ 학생 등록</button>}
-        </header>}
+        </header></>}
 
         <div className={`content${familyAccount?" family-app-content":""}`}>
+          {view === "dashboard" && staffAccount&&<StaffMobileHomeHero role={profile.role as "admin"|"teacher"} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={()=>void refreshStudentRegistrationCatalog().then((ready)=>ready&&setRegistrationOpen(true))}/>} 
           {view === "dashboard" && profile.role==="admin"&&<><div className="admin-home-switch"><button className={adminHomeMode==="operations"?"active":""} onClick={()=>setAdminHomeMode("operations")}>학원 운영</button><button className={adminHomeMode==="classes"?"active":""} onClick={()=>setAdminHomeMode("classes")}>내 수업</button></div>{adminHomeMode==="operations"?<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>:<TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={()=>void refreshStudentRegistrationCatalog()}/>}</>}
-          {view === "dashboard" && profile.role==="teacher"&&<TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={()=>void refreshStudentRegistrationCatalog()}/>}
+          {view === "dashboard" && profile.role==="teacher"&&<TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={()=>void refreshStudentRegistrationCatalog()}/>} 
           {view === "dashboard" && (profile.role==="student"||profile.role==="guardian")&&<Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView}/>}
           {view === "students" && <div className="student-page-layout">{profile.role==="admin"&&<StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter}/>}<Students rows={filteredStudents} allRows={students} total={students.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready)=>ready&&setRegistrationOpen(true))} onOpen={openStudentDetails} /></div>}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
@@ -416,8 +420,10 @@ export default function Home() {
           {view === "audit" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
         </div>
-        {familyAccount&&<FamilyBottomNavigation role={profile.role==="guardian"?"guardian":"student"} activeView={view} onSelect={selectView}/>}
+        {familyAccount&&<FamilyBottomNavigation role={profile.role==="guardian"?"guardian":"student"} activeView={view} onSelect={selectView}/>} 
+        {staffAccount&&<StaffBottomNavigation role={profile.role as "admin"|"teacher"} activeView={view} onSelect={selectView} onMore={()=>setStaffMoreOpen(true)}/>} 
       </section>
+      {staffAccount&&staffMoreOpen&&<StaffMoreSheet items={allowedNav} activeView={view} onSelect={selectView} onClose={()=>setStaffMoreOpen(false)}/>} 
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
@@ -430,6 +436,20 @@ export default function Home() {
 function FamilyBottomNavigation({role,activeView,onSelect}:{role:"student"|"guardian";activeView:View;onSelect:(view:View)=>void}){
   const items:{id:View;label:string}[]=role==="student"?[{id:"dashboard",label:"홈"},{id:"schedule",label:"시간표"},{id:"assignments",label:"학습"},{id:"communications",label:"공지"},{id:"my-account",label:"내 정보"}]:[{id:"dashboard",label:"홈"},{id:"schedule",label:"시간표"},{id:"attendance",label:"출결"},{id:"consultations",label:"상담"},{id:"my-account",label:"내 정보"}];
   return <nav className="family-bottom-nav" aria-label="학생·학부모 주요 메뉴">{items.map(item=><button type="button" key={item.id} className={activeView===item.id?"active":""} aria-current={activeView===item.id?"page":undefined} onClick={()=>onSelect(item.id)}><HansalmaeIcon name={viewIcon[item.id]} size={21}/><span>{item.label}</span></button>)}</nav>;
+}
+
+function StaffMobileHomeHero({role,displayName,activeStudentCount,studentsLoading,onNavigate,onRegister}:{role:"admin"|"teacher";displayName:string;activeStudentCount:number;studentsLoading:boolean;onNavigate:(view:View)=>void;onRegister:()=>void}){
+  const actions=role==="admin"?[{id:"students" as View,label:"학생 관리",tone:"blue"},{id:"schedule" as View,label:"시간표",tone:"green"},{id:"attendance" as View,label:"출결 입력",tone:"wine"},{id:"analytics" as View,label:"운영 현황",tone:"amber"}]:[{id:"class-management" as View,label:"내 수업",tone:"blue"},{id:"schedule" as View,label:"시간표",tone:"green"},{id:"attendance" as View,label:"출결 입력",tone:"wine"},{id:"assignments" as View,label:"과제·첨삭",tone:"amber"}];
+  return <section className="staff-mobile-home" aria-label="모바일 업무 홈"><div className="staff-mobile-welcome"><p>{roleLabels[role]} 홈</p><h1>{displayName}님, 안녕하세요</h1><span>오늘 필요한 학원 업무를 빠르게 확인하세요.</span></div><div className="staff-mobile-summary"><div><small>재원 학생</small><b>{studentsLoading?"…":activeStudentCount}<em>명</em></b></div><button type="button" onClick={role==="admin"?onRegister:()=>onNavigate("students")}><HansalmaeIcon name={role==="admin"?"plus":"students"} size={19}/><span>{role==="admin"?"학생 등록":"학생 보기"}</span></button></div><div className="staff-mobile-quick-links">{actions.map((item)=><button type="button" key={item.id} onClick={()=>onNavigate(item.id)}><i className={item.tone}><HansalmaeIcon name={viewIcon[item.id]} size={22}/></i><span>{item.label}</span></button>)}</div></section>;
+}
+
+function StaffBottomNavigation({role,activeView,onSelect,onMore}:{role:"admin"|"teacher";activeView:View;onSelect:(view:View)=>void;onMore:()=>void}){
+  const items:{id:View;label:string}[]=role==="admin"?[{id:"dashboard",label:"홈"},{id:"students",label:"학생"},{id:"schedule",label:"시간표"},{id:"analytics",label:"학원 운영"}]:[{id:"dashboard",label:"홈"},{id:"class-management",label:"내 수업"},{id:"schedule",label:"시간표"},{id:"attendance",label:"출결"}];
+  return <nav className="staff-bottom-nav" aria-label={`${roleLabels[role]} 주요 메뉴`}>{items.map(item=><button type="button" key={item.id} className={activeView===item.id?"active":""} aria-current={activeView===item.id?"page":undefined} onClick={()=>onSelect(item.id)}><HansalmaeIcon name={viewIcon[item.id]} size={21}/><span>{item.label}</span></button>)}<button type="button" onClick={onMore} aria-label="전체 메뉴 열기"><HansalmaeIcon name="menu" size={21}/><span>전체</span></button></nav>;
+}
+
+function StaffMoreSheet({items,activeView,onSelect,onClose}:{items:typeof nav;activeView:View;onSelect:(view:View)=>void;onClose:()=>void}){
+  return <div className="staff-sheet-layer" role="presentation"><button type="button" className="staff-sheet-backdrop" aria-label="전체 메뉴 닫기" onClick={onClose}/><section className="staff-more-sheet" role="dialog" aria-modal="true" aria-labelledby="staff-menu-title"><div className="staff-sheet-handle"/><header><div><p>한살매 수업노트</p><h2 id="staff-menu-title">전체 메뉴</h2></div><button type="button" onClick={onClose} aria-label="닫기">×</button></header><div className="staff-sheet-grid">{items.map(item=><button type="button" key={item.id} className={activeView===item.id?"active":""} onClick={()=>onSelect(item.id)}><i><HansalmaeIcon name={viewIcon[item.id]} size={20}/></i><span>{item.label}</span></button>)}</div></section></div>;
 }
 
 function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void }) {
