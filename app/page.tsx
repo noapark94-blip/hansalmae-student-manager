@@ -870,15 +870,28 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
     role === "admin"
       ? [
           { id: "students" as View, label: "학생 관리", tone: "blue" },
+          { id: "class-management" as View, label: "클래스", tone: "wine" },
           { id: "schedule" as View, label: "시간표", tone: "green" },
-          { id: "attendance" as View, label: "출결 입력", tone: "wine" },
-          { id: "analytics" as View, label: "운영 현황", tone: "amber" },
+          { id: "reports" as View, label: "리포트", tone: "violet" },
+          { id: "tuition" as View, label: "원비 정산", tone: "amber" },
+          { id: "settings" as View, label: "계정·역할", tone: "gray" },
         ]
+      : role === "manager"
+        ? [
+            { id: "class-management" as View, label: "내 수업", tone: "blue" },
+            { id: "schedule" as View, label: "시간표", tone: "green" },
+            { id: "transport" as View, label: "차량 운행", tone: "amber" },
+            { id: "reports" as View, label: "리포트", tone: "violet" },
+            { id: "consultations" as View, label: "상담", tone: "wine" },
+            { id: "students" as View, label: "학생", tone: "gray" },
+          ]
       : [
           { id: "class-management" as View, label: "내 수업", tone: "blue" },
           { id: "schedule" as View, label: "시간표", tone: "green" },
-          { id: "attendance" as View, label: "출결 입력", tone: "wine" },
-          { id: "assignments" as View, label: "과제·첨삭", tone: "amber" },
+          { id: "corrections" as View, label: "첨삭 시간표", tone: "amber" },
+          { id: "reports" as View, label: "리포트", tone: "violet" },
+          { id: "consultations" as View, label: "상담", tone: "wine" },
+          { id: "students" as View, label: "학생", tone: "gray" },
         ];
   return (
     <section className="staff-mobile-home" aria-label="모바일 업무 홈">
