@@ -108,6 +108,10 @@
   .student-modal>footer button,.student-modal>form>footer button,.modal>footer button,.class-creator>footer button,.subject-editor>footer button,.roster-editor>footer button,.class-manager-modal>footer button{width:100%!important;min-width:0!important;min-height:44px!important;margin:0!important}
   .delete-confirm{width:calc(100% - 24px)!important;margin:0 12px 12px!important;border-radius:18px!important}
 
+  /* 클래스 일정: 도움말과 추가 버튼을 분리해 좁은 화면에서도 겹치지 않게 합니다. */
+  .class-creator .schedule-time-hint{display:block!important;width:100%!important;margin:4px 0 0!important;white-space:normal!important;line-height:1.45!important}
+  .class-creator .add-schedule-row{display:block!important;width:100%!important;min-height:42px!important;margin:10px 0 0!important}
+
   .menu-editor{width:100%!important;height:min(92dvh,780px)!important;max-height:calc(100dvh - env(safe-area-inset-top))!important;border-radius:20px 20px 0 0!important}
   .menu-editor-backdrop{align-items:end!important;padding:0!important}
   .menu-editor>header{padding:17px!important}.menu-editor-toolbar{padding:12px 17px!important}.menu-folder-editor-list{padding:0 17px 14px!important}
