@@ -1,0 +1,336 @@
+/* Mobile correction workspace: keep the existing data and save flow, reduce navigation chrome. */
+.correction-mobile-day-count,.class-mobile-day-count{display:none}
+
+@media(max-width:700px){
+  .teacher-class-cards{
+    gap:8px!important;
+    margin:0 -16px 12px!important;
+    padding:0 16px 4px!important;
+  }
+  .teacher-class-cards>button{
+    flex:0 0 168px!important;
+    min-height:76px!important;
+    padding:11px 10px 10px 12px!important;
+    border-radius:14px!important;
+    grid-template-columns:3px minmax(0,1fr) auto!important;
+    gap:9px!important;
+  }
+  .teacher-class-cards>button.teacher-special-card{flex-basis:196px!important}
+  .teacher-class-cards>button>i{min-height:50px!important;border-radius:999px!important}
+  .teacher-class-cards>button>span>small{
+    width:max-content!important;
+    max-width:100%!important;
+    margin-bottom:4px!important;
+    padding:3px 6px!important;
+    font-size:9px!important;
+    line-height:1!important;
+  }
+  .teacher-class-cards>button>span>b{font-size:14px!important;line-height:1.2!important}
+  .teacher-class-cards>button>span>em{
+    padding-top:5px!important;
+    font-size:9.5px!important;
+    line-height:1.25!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .teacher-class-cards>button>strong{min-width:34px!important;padding:4px 6px!important;font-size:9px!important}
+  .teacher-class-cards>button.active::after{right:9px!important;bottom:6px!important;font-size:8px!important}
+
+  .correction-learning-board{
+    margin-top:12px!important;
+    border-radius:16px!important;
+    overflow:visible!important;
+  }
+  .correction-learning-board>header{
+    min-height:0!important;
+    padding:15px 14px 12px!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .correction-learning-board>header h3{font-size:18px!important;line-height:1.25!important}
+  .correction-learning-board>header p{display:none!important}
+  .correction-learning-board>header .correction-learning-week-actions{margin-left:auto!important}
+  .correction-learning-board>header .correction-calendar-button{
+    min-height:36px!important;
+    height:36px!important;
+    padding:0 10px!important;
+    border-radius:9px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+  }
+
+  .correction-week-navigation{
+    grid-template-columns:30px minmax(0,1fr) 30px!important;
+    padding:8px 7px!important;
+    gap:5px!important;
+    border-top:1px solid #f0e8eb!important;
+    background:#fbf9fa!important;
+  }
+  .correction-week-navigation>button{
+    width:30px!important;
+    min-width:30px!important;
+    min-height:58px!important;
+    height:58px!important;
+    margin:0!important;
+    padding:0!important;
+    border-radius:10px!important;
+    font-size:20px!important;
+  }
+  .correction-week-strip{
+    display:grid!important;
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:4px!important;
+    width:100%!important;
+    padding:0!important;
+    overflow:visible!important;
+    background:transparent!important;
+  }
+  .correction-week-strip>button{
+    min-width:0!important;
+    min-height:58px!important;
+    height:58px!important;
+    padding:7px 2px 5px!important;
+    border:1px solid transparent!important;
+    border-radius:10px!important;
+    background:transparent!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:2px!important;
+    box-shadow:none!important;
+  }
+  .correction-week-strip>button>span{font-size:8px!important;line-height:1!important}
+  .correction-week-strip>button>b{font-size:12px!important;line-height:1.15!important}
+  .correction-week-strip>button.scheduled:not(.active)::after{
+    content:"";
+    width:4px;
+    height:4px;
+    margin-top:1px;
+    border-radius:50%;
+    background:#bd6a91;
+  }
+  .correction-week-strip>button.active{
+    border-color:#a72d68!important;
+    background:#fff5f9!important;
+    box-shadow:0 0 0 1px rgba(167,45,104,.08)!important;
+  }
+  .correction-week-strip>button>div{display:none!important}
+  .correction-week-strip .correction-mobile-day-count{
+    display:block!important;
+    margin:0!important;
+    color:#a2959b!important;
+    font-size:7px!important;
+    line-height:1!important;
+  }
+  .correction-week-strip>button.active .correction-mobile-day-count{color:#922d61!important;font-weight:800!important}
+
+  .correction-read-status{margin:0!important;border-left:0!important;border-right:0!important;border-radius:0!important}
+  .correction-read-status .family-read-summary{padding:11px 14px!important}
+  .correction-learning-heading{display:none!important}
+  .correction-subject-group{border-radius:0!important;border-left:0!important;border-right:0!important}
+  .correction-subject-header{padding:10px 14px!important}
+  .correction-subject-header>small{display:none!important}
+  .correction-subject-rows{padding:10px!important;background:#faf8f9!important}
+  .correction-learning-rows article{
+    margin-bottom:10px!important;
+    border:1px solid #eadfe4!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    box-shadow:0 5px 16px rgba(65,38,50,.035)!important;
+  }
+  .correction-learning-board .correction-learning-rows>article>div{padding:13px!important}
+  .correction-learning-board .learning-person-attendance{background:#fff!important}
+  .correction-learning-board .correction-history-trigger{gap:6px!important}
+  .correction-learning-board .correction-history-trigger>i{width:28px!important;height:28px!important;font-size:11px!important}
+  .correction-learning-board .correction-history-trigger>b{font-size:14px!important}
+  .correction-learning-board .correction-fixed-time{font-size:7.5px!important}
+  .correction-learning-board .learning-attendance{margin-top:10px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  .correction-learning-board .learning-attendance>button{min-height:38px!important;border-radius:9px!important}
+  .correction-learning-board .correction-exam{gap:7px!important}
+  .correction-learning-board .correction-exam select,
+  .correction-learning-board .correction-exam input{min-height:40px!important;border-radius:9px!important}
+  .correction-learning-board .correction-task-cell textarea{min-height:92px!important}
+  .correction-learning-board>footer{
+    position:sticky!important;
+    bottom:calc(72px + env(safe-area-inset-bottom))!important;
+    z-index:12!important;
+    margin:0!important;
+    padding:10px!important;
+    border-top:1px solid #eadfe4!important;
+    background:rgba(255,255,255,.96)!important;
+    backdrop-filter:blur(12px)!important;
+  }
+  .correction-learning-board>footer>span:first-child{display:none!important}
+  .correction-learning-board .learning-completion-actions{display:grid!important;grid-template-columns:1fr 1.25fr!important;width:100%!important;gap:8px!important}
+  .correction-learning-board .learning-completion-actions>button{min-width:0!important;width:100%!important;height:44px!important}
+
+  .class-day-workspace .class-learning-board>header{
+    min-height:0!important;
+    padding:14px!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .class-day-workspace .class-learning-board>header h3{font-size:18px!important;line-height:1.25!important}
+  .class-day-workspace .class-learning-board>header p{display:none!important}
+  .class-day-workspace .class-learning-board>header .learning-header-actions{margin-left:auto!important}
+  .class-day-workspace .class-learning-board>header .learning-header-actions>button{
+    min-height:36px!important;
+    height:36px!important;
+    padding:0 10px!important;
+    border-radius:9px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+  }
+  .class-day-workspace .class-week-navigation{
+    grid-template-columns:30px minmax(0,1fr) 30px!important;
+    padding:8px 7px!important;
+    gap:5px!important;
+    border-bottom:1px solid #eee6e9!important;
+    background:#fbf9fa!important;
+  }
+  .class-day-workspace .class-week-navigation>button{
+    width:30px!important;
+    min-width:30px!important;
+    min-height:58px!important;
+    height:58px!important;
+    margin:0!important;
+    padding:0!important;
+    border-radius:10px!important;
+    font-size:20px!important;
+  }
+  .class-day-workspace .class-week-strip{
+    display:grid!important;
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:4px!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  .class-day-workspace .class-week-strip>button{
+    min-width:0!important;
+    min-height:58px!important;
+    height:58px!important;
+    padding:7px 2px 5px!important;
+    border:1px solid transparent!important;
+    border-radius:10px!important;
+    background:transparent!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:2px!important;
+    box-shadow:none!important;
+  }
+  .class-day-workspace .class-week-strip>button>span{font-size:8px!important;line-height:1!important}
+  .class-day-workspace .class-week-strip>button>b{font-size:12px!important;line-height:1.15!important}
+  .class-day-workspace .class-week-strip>button>div{display:none!important}
+  .class-day-workspace .class-week-strip .class-mobile-day-count{
+    display:block!important;
+    margin:0!important;
+    color:#a2959b!important;
+    font-size:7px!important;
+    line-height:1!important;
+  }
+  .class-day-workspace .class-week-strip>button.scheduled:not(.active)::after{
+    content:"";
+    width:4px;
+    height:4px;
+    margin-top:1px;
+    border-radius:50%;
+    background:#bd6a91;
+  }
+  .class-day-workspace .class-week-strip>button.active{
+    border-color:#a72d68!important;
+    background:#fff5f9!important;
+    box-shadow:0 0 0 1px rgba(167,45,104,.08)!important;
+  }
+  .class-day-workspace .class-week-strip>button.active .class-mobile-day-count{color:#922d61!important;font-weight:800!important}
+  .class-day-workspace .learning-compact-heading{padding:10px 12px!important}
+  .class-day-workspace .learning-compact-heading>span:last-child{gap:5px!important}
+  .class-day-workspace .learning-compact-heading>span:last-child>button{min-width:0!important;height:34px!important;padding:0 8px!important;font-size:9px!important}
+  .class-day-workspace .learning-common-grid{padding:9px!important;gap:8px!important;background:#faf8f9!important}
+  .class-day-workspace .learning-common-card{padding:11px!important;border-radius:12px!important}
+  .class-day-workspace .family-read-status{border-radius:0!important}
+  .class-day-workspace .family-read-summary{padding:11px 14px!important}
+  .class-day-workspace .learning-board-heading{display:none!important}
+  .class-day-workspace .learning-board-rows{padding:10px!important;background:#faf8f9!important}
+  .class-day-workspace .learning-board-rows>article{
+    margin-bottom:10px!important;
+    border:1px solid #eadfe4!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    box-shadow:0 5px 16px rgba(65,38,50,.035)!important;
+  }
+  .class-day-workspace .learning-board-rows>article>div{padding:12px!important}
+  .class-day-workspace .learning-student-history-button i{width:28px!important;height:28px!important;font-size:11px!important}
+  .class-day-workspace .learning-student-history-button b{font-size:14px!important}
+  .class-day-workspace .learning-student-history-button small{font-size:9px!important}
+  .class-day-workspace .learning-attendance{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  .class-day-workspace .learning-attendance>button{min-height:38px!important;border-radius:9px!important}
+  .class-day-workspace .learning-individual-content textarea,
+  .class-day-workspace .learning-homework.assigned textarea{min-height:78px!important;height:78px!important}
+  .class-day-workspace .learning-exam.individual select,
+  .class-day-workspace .learning-exam.individual input{min-height:40px!important;border-radius:9px!important}
+  .class-day-workspace .class-learning-board>footer{
+    position:sticky!important;
+    bottom:calc(72px + env(safe-area-inset-bottom))!important;
+    z-index:12!important;
+    margin:0!important;
+    padding:10px!important;
+    border-top:1px solid #eadfe4!important;
+    background:rgba(255,255,255,.96)!important;
+    backdrop-filter:blur(12px)!important;
+  }
+  .class-day-workspace .class-learning-board>footer>span:first-child{display:none!important}
+  .class-day-workspace .class-learning-board .learning-completion-actions{display:grid!important;grid-template-columns:1fr 1.25fr!important;width:100%!important;gap:8px!important}
+  .class-day-workspace .class-learning-board .learning-completion-actions>button{min-width:0!important;width:100%!important;height:44px!important}
+
+  .teacher-special-workspace>header{
+    padding:14px!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .teacher-special-workspace>header .eyebrow,
+  .teacher-special-workspace>header span{display:none!important}
+  .teacher-special-workspace>header h2{font-size:18px!important}
+  .teacher-special-workspace>header>.primary{min-height:38px!important;height:38px!important;padding:0 12px!important;font-size:11px!important}
+  .teacher-special-workspace .special-week-calendar>header{padding:12px 14px!important;align-items:center!important;flex-direction:row!important}
+  .teacher-special-workspace .special-week-calendar>header h3{font-size:16px!important}
+  .teacher-special-workspace .special-week-calendar>header p{display:none!important}
+  .teacher-special-workspace .special-week-calendar>header>.secondary-button{min-height:36px!important;height:36px!important;margin-left:auto!important;padding:0 10px!important;font-size:10px!important}
+  .teacher-special-workspace .special-week-navigation{grid-template-columns:30px minmax(0,1fr) 30px!important;padding:8px 7px!important;gap:5px!important}
+  .teacher-special-workspace .special-week-navigation>button{width:30px!important;min-width:30px!important;min-height:58px!important;height:58px!important;margin:0!important;padding:0!important}
+  .teacher-special-workspace .special-week-strip{
+    display:grid!important;
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:4px!important;
+    width:100%!important;
+    padding:0!important;
+    overflow:visible!important;
+    background:transparent!important;
+  }
+  .teacher-special-workspace .special-week-strip>article{
+    min-width:0!important;
+    min-height:58px!important;
+    height:58px!important;
+    padding:7px 2px!important;
+    border-color:transparent!important;
+    border-radius:10px!important;
+    box-shadow:none!important;
+  }
+  .teacher-special-workspace .special-week-day{display:flex!important;flex-direction:column!important;align-items:center!important;padding:0!important;text-align:center!important}
+  .teacher-special-workspace .special-week-day span{font-size:8px!important}
+  .teacher-special-workspace .special-week-day b{font-size:12px!important}
+  .teacher-special-workspace .special-week-day small{margin-top:3px!important;font-size:7px!important}
+  .teacher-special-workspace .special-week-session{display:none!important}
+  .teacher-special-workspace .special-week-strip>article.scheduled:not(.active)::after{content:"";display:block;width:4px;height:4px;margin:2px auto 0;border-radius:50%;background:#bd6a91}
+  .teacher-special-workspace .special-week-strip>article.active{border-color:#a72d68!important;background:#fff5f9!important}
+  .teacher-special-workspace .special-day-agenda>header{padding:13px 14px!important}
+}
