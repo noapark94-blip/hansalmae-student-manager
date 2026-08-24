@@ -94,6 +94,32 @@
 .teacher-class-cards > .teacher-special-card > span > small { background:#f3f1f2; color:#6f696c; }
 .teacher-class-cards > .teacher-special-card > strong { color:#6f696c; }
 
+/* 브라우저 확대율 100%에서도 글자 크기는 유지하고 클래스 선택부만 촘촘하게 정돈합니다. */
+@media (min-width:1180px) {
+  .teacher-class-cards {
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:11px;
+  }
+  .teacher-class-cards > button {
+    min-height:110px;
+    padding:15px 15px 14px 17px;
+    gap:11px;
+  }
+  .teacher-class-cards > button > i { min-height:68px; }
+  .teacher-class-cards > button > span > small { margin-bottom:6px; }
+  .teacher-class-cards > button > span > em {
+    padding-top:8px;
+    display:-webkit-box;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+  }
+  .teacher-class-cards > button > strong {
+    min-width:40px;
+    padding:5px 7px;
+  }
+}
+
 .class-day-workspace {
   border-radius:20px!important;
   overflow:hidden;
