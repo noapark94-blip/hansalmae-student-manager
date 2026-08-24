@@ -35,7 +35,7 @@ Deno.serve(async (request) => {
   try { input = await request.json(); } catch { return json({ error: "입력 내용을 확인해 주세요." }, 400); }
   const email = input.email?.trim().toLowerCase();
   const displayName = input.displayName?.trim();
-  const roles = ["admin", "teacher", "student", "guardian"];
+  const roles = ["admin", "teacher", "assistant", "manager", "student", "guardian"];
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) return json({ error: "올바른 이메일을 입력해 주세요." }, 400);
   if (!input.password || input.password.length < 8) return json({ error: "임시 비밀번호는 8자 이상 입력해 주세요." }, 400);
   if (!displayName) return json({ error: "표시 이름을 입력해 주세요." }, 400);

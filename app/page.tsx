@@ -145,9 +145,11 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "my-account", label: "내 계정", icon: "♙" },
 ];
 
-const roleLabels: Record<UserRole, string> = {
+const roleLabels: Record<string, string> = {
   admin: "관리자",
   teacher: "교사",
+  assistant: "조교",
+  manager: "실장님",
   student: "학생",
   guardian: "학부모",
 };
@@ -155,9 +157,12 @@ const roleLabels: Record<UserRole, string> = {
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
+  assistant: ["corrections", "assignments", "my-account"],
+  manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "reports", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "reports", "consultations", "communications", "my-account"],
 };
+const defaultViewForRole = (role: UserRole): View => role === "assistant" ? "assignments" : "dashboard";
 
 const notices = [
   {
@@ -215,7 +220,7 @@ export default function Home() {
   }, [view, viewRestored]);
 
   useEffect(() => {
-    if (profile && !roleViews[profile.role].includes(view)) setView("dashboard");
+    if (profile && !roleViews[profile.role].includes(view)) setView(defaultViewForRole(profile.role));
   }, [profile, view]);
 
   useEffect(() => {
@@ -256,7 +261,8 @@ export default function Home() {
         setProfile(null);
       } else {
         if (deepReportId) setView("reports");
-        else if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
+        else if (role === "assistant") setView("assignments");
+        else if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -275,7 +281,7 @@ export default function Home() {
   }, [deepReportId, supabase]);
 
   useEffect(() => {
-    if (!supabase || !profile || (profile.role !== "admin" && profile.role !== "teacher")) {
+    if (!supabase || !profile || !["admin","teacher","manager"].includes(profile.role)) {
       return;
     }
 
@@ -354,6 +360,11 @@ export default function Home() {
     if (profile && !roleViews[profile.role].includes(next)) {
       showToast("이 역할에서는 접근할 수 없는 메뉴예요.");
       return;
+    }
+    if (next === "corrections" || next === "assignments") {
+      window.sessionStorage.setItem("hansalmae:correction-mode", next === "corrections" ? "timetable" : "management");
+      window.dispatchEvent(new Event("hansalmae-correction-mode"));
+      next = "assignments";
     }
     setView(next);
     setMobileNav(false);
@@ -563,7 +574,7 @@ export default function Home() {
   };
 
   const familyAccount = profile.role === "student" || profile.role === "guardian";
-  const staffAccount = profile.role === "admin" || profile.role === "teacher";
+  const staffAccount = ["admin","teacher","assistant","manager"].includes(profile.role);
 
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
@@ -617,7 +628,7 @@ export default function Home() {
               <button type="button" className="staff-app-brand" onClick={() => selectView("dashboard")} aria-label="한살매 수업노트 홈으로 이동">
                 <img src="/hansalmae-logo.png" alt="" />
                 <b>한살매 수업노트</b>
-                <small>{profile.role === "admin" ? "관리자" : "선생님"}</small>
+                <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
                 <NotificationCenter supabase={supabase} />
@@ -699,7 +710,7 @@ export default function Home() {
                 )}
               </div>
               <NotificationCenter supabase={supabase} />
-              {(profile.role === "admin" || profile.role === "teacher") && (
+              {(profile.role === "admin" || profile.role === "teacher" || profile.role === "manager") && (
                 <button className="primary small" onClick={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))}>
                   ＋ 학생 등록
                 </button>
@@ -709,7 +720,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}`}>
-          {view === "dashboard" && staffAccount && <StaffMobileHomeHero role={profile.role as "admin" | "teacher"} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
+          {view === "dashboard" && staffAccount && profile.role !== "assistant" && <StaffMobileHomeHero role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
               <div className="admin-home-switch">
@@ -723,7 +734,7 @@ export default function Home() {
               {adminHomeMode === "operations" ? <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} /> : <TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
             </>
           )}
-          {view === "dashboard" && profile.role === "teacher" && <TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
+          {view === "dashboard" && (profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
           {view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
           {view === "students" && (
             <div className="student-page-layout">
@@ -735,10 +746,10 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "schedule" && (profile.role === "admin" || profile.role === "teacher" ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
+          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
-          {view === "attendance" && (profile.role === "admin" || profile.role === "teacher" ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
+          {view === "attendance" && (["admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "reports" && <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />}
@@ -768,9 +779,9 @@ export default function Home() {
           )}
         </div>
         {familyAccount && <FamilyBottomNavigation role={profile.role === "guardian" ? "guardian" : "student"} activeView={view} onSelect={selectView} />}
-        {staffAccount && <StaffBottomNavigation role={profile.role as "admin" | "teacher"} activeView={view} onSelect={selectView} onMore={() => setStaffMoreOpen(true)} />}
+        {staffAccount && <StaffBottomNavigation role={profile.role} activeView={view} onSelect={selectView} onMore={() => setStaffMoreOpen(true)} />}
       </section>
-      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={profile.display_name} role={profile.role as "admin" | "teacher"} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
+      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={profile.display_name} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
@@ -851,7 +862,7 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
   );
 }
 
-function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLoading, onNavigate, onRegister }: { role: "admin" | "teacher"; displayName: string; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onRegister: () => void }) {
+function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLoading, onNavigate, onRegister }: { role: UserRole; displayName: string; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onRegister: () => void }) {
   const actions =
     role === "admin"
       ? [
@@ -900,7 +911,7 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
   );
 }
 
-function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: "admin" | "teacher"; activeView: View; onSelect: (view: View) => void; onMore: () => void }) {
+function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: UserRole; activeView: View; onSelect: (view: View) => void; onMore: () => void }) {
   const items: { id: View; label: string }[] =
     role === "admin"
       ? [
@@ -909,7 +920,11 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: "
           { id: "schedule", label: "시간표" },
           { id: "analytics", label: "학원 운영" },
         ]
-      : [
+      : role === "assistant" ? [
+          { id: "assignments", label: "첨삭 관리" },
+          { id: "corrections", label: "첨삭 시간표" },
+          { id: "my-account", label: "내 계정" },
+        ] : [
           { id: "dashboard", label: "홈" },
           { id: "class-management", label: "내 수업" },
           { id: "schedule", label: "시간표" },
@@ -931,7 +946,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: "
   );
 }
 
-function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: "admin" | "teacher"; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
+function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   return (
     <div className="staff-sheet-layer" role="presentation">
       <button type="button" className="staff-sheet-backdrop" aria-label="전체 메뉴 닫기" onClick={onClose} />
@@ -2178,7 +2193,7 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
         {step === 2 && (
           <div className="signup-step-content">
             <section className="signup-target">
-              <span>{role === "student" ? "학생" : role === "guardian" ? "학부모" : "선생님"} 계정</span>
+              <span>{roleLabels[role]} 계정</span>
               <b>{targetName}</b>
               <small>이 연결 정보는 가입 후 자동으로 적용됩니다.</small>
             </section>

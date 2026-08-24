@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-export type UserRole = "admin" | "teacher" | "student" | "guardian";
+export type UserRole = "admin" | "teacher" | "assistant" | "manager" | "student" | "guardian";
 
 export type Profile = {
   id: string;

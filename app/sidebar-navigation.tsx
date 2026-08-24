@@ -27,7 +27,7 @@ const defaultLayout: MenuLayout = {
 };
 
 export function SidebarNavigation({ supabase, role, items, activeView, onSelect }: { supabase: SupabaseClient; role: UserRole; items: MenuItem[]; activeView: View; onSelect: (view: View) => void }) {
-  const usableItems = useMemo(() => items.filter((item) => !hiddenStandaloneViews.has(item.id) && (item.id !== "assignments" || role === "admin" || role === "teacher")), [items, role]);
+  const usableItems = useMemo(() => items.filter((item) => !hiddenStandaloneViews.has(item.id) && (item.id !== "assignments" || ["admin","teacher","assistant","manager"].includes(role))), [items, role]);
   const [layout, setLayout] = useState<MenuLayout>(defaultLayout);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
