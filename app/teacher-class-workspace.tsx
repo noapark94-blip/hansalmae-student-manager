@@ -94,6 +94,7 @@ type LessonHistoryItem = {
   updatedAt: string;
 };
 type StudentExamResult = {
+  examId: string | null;
   studentId: string;
   studentName: string;
   school: string | null;
@@ -102,6 +103,21 @@ type StudentExamResult = {
   maxScore: string;
   evaluation: string;
   feedback: string;
+};
+type ClassExamResultRow = {
+  studentId: string;
+  studentName: string;
+  school: string | null;
+  grade: string | null;
+  exams?: Array<{
+    id: string;
+    examType: string | null;
+    examTitle: string | null;
+    score: number | null;
+    maxScore: number | null;
+    evaluation: string | null;
+    feedback: string | null;
+  }>;
 };
 const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
 const classColors = ["#a92d68", "#4c86a8", "#c85c7d", "#df8658", "#c8952a", "#5f9074", "#7060a7", "#61676f"];
@@ -355,14 +371,17 @@ function StudentExamResultEditor({ supabase, classRoom, date, examTitle, onClose
   const [error, setError] = useState("");
   useEffect(() => {
     void (async () => {
-      const { data: next, error: loadError } = await supabase.rpc("staff_exam_results_for_class_day", { p_class_id: classRoom.id, p_date: date });
+      const { data: next, error: loadError } = await supabase.rpc("staff_class_exam_results", { p_class_id: classRoom.id, p_date: date });
       if (loadError) {
         setError(loadError.message);
         setLoading(false);
         return;
       }
-      const rows = (next as StudentExamResult[]) ?? [];
-      setResults(rows.map((item) => ({ ...item, score: item.score ?? "", maxScore: item.maxScore || "100", evaluation: item.evaluation ?? "", feedback: item.feedback ?? "" })));
+      const rows = (next as ClassExamResultRow[]) ?? [];
+      setResults(rows.map((item) => {
+        const exam = item.exams?.[0];
+        return { examId:exam?.id ?? null, studentId:item.studentId, studentName:item.studentName, school:item.school, grade:item.grade, score:exam?.score == null ? "" : String(exam.score), maxScore:String(exam?.maxScore ?? 100), evaluation:exam?.evaluation ?? "", feedback:exam?.feedback ?? "" };
+      }));
       setLoading(false);
     })();
   }, [classRoom.id, date, supabase]);
@@ -371,25 +390,12 @@ function StudentExamResultEditor({ supabase, classRoom, date, examTitle, onClose
     event.preventDefault();
     setSaving(true);
     setError("");
-    for (const item of results) {
-      const score = item.score.trim();
-      if (!score) continue;
-      const maxScore = item.maxScore.trim() || "100";
-      const { error: saveError } = await supabase.rpc("staff_save_exam_result", {
-        p_class_id: classRoom.id,
-        p_student_id: item.studentId,
-        p_exam_date: date,
-        p_title: examTitle,
-        p_score: Number(score),
-        p_max_score: Number(maxScore),
-        p_evaluation: item.evaluation.trim() || null,
-        p_feedback: item.feedback.trim() || null,
-      });
-      if (saveError) {
-        setError(saveError.message);
-        setSaving(false);
-        return;
-      }
+    const payload = results.map((item) => ({ studentId:item.studentId, exams:[{ id:item.examId, examType:null, examTitle, score:item.score.trim() ? Number(item.score) : null, maxScore:Number(item.maxScore.trim() || "100"), evaluation:item.evaluation.trim() || null, feedback:item.feedback.trim() || null }] }));
+    const { error: saveError } = await supabase.rpc("staff_save_class_exam_results", { p_class_id:classRoom.id, p_date:date, p_results:payload });
+    if (saveError) {
+      setError(saveError.message);
+      setSaving(false);
+      return;
     }
     await onSaved();
   };
@@ -461,7 +467,7 @@ function ClassCreator({ supabase, profile, subjects, classes, onClose, onSaved }
   const [error, setError] = useState("");
   useEffect(() => {
     void (async () => {
-      const { data: rows } = await supabase.rpc("staff_teacher_options");
+      const { data: rows } = await supabase.rpc("staff_class_teacher_options");
       setTeachers((rows as Named[]) ?? []);
     })();
   }, [supabase]);
@@ -512,7 +518,7 @@ function ClassManager({ supabase, profile, subjects, onClose, onSaved }: { supab
 
 function ClassEditor({ supabase, profile, subjects, classes, classRoom, onClose, onSaved }: { supabase: SupabaseClient; profile: Profile; subjects: Subject[]; classes: ManagedClass[]; classRoom: ManagedClass; onClose: () => void; onSaved: () => Promise<void> }) {
   const [name,setName]=useState(classRoom.name),[subjectId,setSubjectId]=useState(classRoom.subjectId??""),[room,setRoom]=useState(classRoom.room??""),[color,setColor]=useState(classRoom.color),[teacherIds,setTeacherIds]=useState(classRoom.teachers.map((item)=>item.id)),[teachers,setTeachers]=useState<Named[]>([]),[schedules,setSchedules]=useState<{weekdays:number[];startTime:string;endTime:string}[]>(groupSchedules(classRoom.schedules)),[saving,setSaving]=useState(false),[error,setError]=useState("");
-  useEffect(()=>{void(async()=>{const{data:rows}=await supabase.rpc("staff_teacher_options");setTeachers((rows as Named[])??[])})()},[supabase]);
+  useEffect(()=>{void(async()=>{const{data:rows}=await supabase.rpc("staff_class_teacher_options");setTeachers((rows as Named[])??[])})()},[supabase]);
   const updateSchedule=(index:number,patch:Partial<(typeof schedules)[number]>)=>setSchedules((current)=>current.map((item,idx)=>idx===index?{...item,...patch}:item));
   const submit=async(event:FormEvent)=>{event.preventDefault();setSaving(true);setError("");if(!name.trim()||!subjectId||!teacherIds.length||schedules.some((item)=>!item.weekdays.length||!isMilitaryTime(item.startTime)||!isMilitaryTime(item.endTime))){setError("필수 정보를 모두 입력해 주세요.");setSaving(false);return}const{error:saveError}=await supabase.rpc("staff_update_class_with_teachers",{p_class_id:classRoom.id,p_name:name.trim(),p_subject_id:subjectId,p_room:room.trim()||null,p_color:color,p_teacher_ids:teacherIds,p_schedules:schedules.flatMap((item)=>item.weekdays.map((weekday)=>({weekday,start_time:item.startTime,end_time:item.endTime})))});if(saveError){setError(saveError.message);setSaving(false);return}await onSaved()};
   return <div className="nested-modal-backdrop"><form className="modal class-creator" onSubmit={submit}><header><div><p className="eyebrow">클래스 수정</p><h2>{classRoom.name}</h2><p>기본 정보·담당 선생님·정규 수업 시간을 함께 수정합니다.</p></div><button type="button" className="modal-close" onClick={onClose}>×</button></header><div className="modal-body"><div className="form-grid"><label>클래스 이름 *<input value={name} onChange={(e)=>setName(e.target.value)}/></label><label>과목 *<select value={subjectId} onChange={(e)=>setSubjectId(e.target.value)}>{subjects.map((item)=><option value={item.id} key={item.id}>{item.name}</option>)}</select></label><label>강의실<input value={room} onChange={(e)=>setRoom(e.target.value)}/></label><label>표시 색상<ClassColorPicker value={color} onChange={setColor} classes={classes} excludeClassId={classRoom.id}/></label></div><fieldset className="teacher-picker"><legend>담당 선생님 * <small>공동 담당 가능</small></legend><div>{teachers.map((item)=><label key={item.id} className={teacherIds.includes(item.id)?"active":""}><input type="checkbox" checked={teacherIds.includes(item.id)} onChange={()=>setTeacherIds((current)=>current.includes(item.id)?current.filter((id)=>id!==item.id):[...current,item.id])}/><i>{item.name.slice(0,1)}</i><span>{item.name}</span></label>)}</div></fieldset><fieldset className="schedule-builder"><legend>수업 요일·시간 *</legend>{schedules.map((item,index)=><div className="schedule-row" key={index}><b className="schedule-field-title weekday-title">요일</b><b className="schedule-field-title start-title">시작</b><b className="schedule-field-title end-title">종료</b><div className="weekday-options">{weekdays.map((label,dayIndex)=><button type="button" key={label} className={item.weekdays.includes(dayIndex+1)?"active":""} onClick={()=>updateSchedule(index,{weekdays:item.weekdays.includes(dayIndex+1)?item.weekdays.filter((day)=>day!==dayIndex+1):[...item.weekdays,dayIndex+1]})}>{label}</button>)}</div><div className="schedule-time-input start-time-input"><MilitaryTimeInput value={item.startTime} onChange={(value)=>updateSchedule(index,{startTime:value})}/></div><span aria-hidden="true">→</span><div className="schedule-time-input end-time-input"><MilitaryTimeInput value={item.endTime} onChange={(value)=>updateSchedule(index,{endTime:value})}/></div>{schedules.length>1&&<button type="button" className="danger-link" onClick={()=>setSchedules((current)=>current.filter((_,idx)=>idx!==index))}>삭제</button>}</div>)}<small className="schedule-time-hint">시간은 24시간제 4자리로 입력해 주세요. 예: 1800</small><button type="button" className="add-schedule-row" onClick={()=>setSchedules((current)=>[...current,{weekdays:[],startTime:"18:00",endTime:"20:00"}])}>＋ 다른 시간 추가</button></fieldset></div>{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"저장 중…":"수정 저장"}</button></footer></form></div>
