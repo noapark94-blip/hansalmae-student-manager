@@ -104,6 +104,19 @@ type MobileMakeupItem = {
   recordKind?: "absence" | "schedule";
   status?: "scheduled" | "completed" | "cancelled" | null;
 };
+type MobileVehicleRow = {
+  studentId: string;
+  weekday: number;
+  pickupTime: string | null;
+  dropoffTime: string | null;
+  pickupLocation: string | null;
+  dropoffLocation: string | null;
+  pickupExcluded: boolean;
+  dropoffExcluded: boolean;
+};
+type MobileManualVehicleRow = { studentId: string; weekday: number; direction: "pickup" | "dropoff"; time: string };
+type MobileVehicleSummary = { pickup: number; dropoff: number; excluded: number; missingLocations: number; hasNote: boolean; nextTime: string | null };
+type MobileAdminSummary = { accountRequests: number; unpaidStudents: number; overdueConsultations: number };
 type AssignmentCount = {
   unsubmitted: number;
   reviewPending: number;
@@ -873,8 +886,10 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
   const greeting = useMobileGreeting();
   const [todayClasses, setTodayClasses] = useState<LiveTodayClass[] | null>(null);
   const [makeupItems, setMakeupItems] = useState<MobileMakeupItem[] | null>(null);
+  const [vehicleSummary, setVehicleSummary] = useState<MobileVehicleSummary | null>(null);
+  const [adminSummary, setAdminSummary] = useState<MobileAdminSummary | null>(null);
   useEffect(() => {
-    if (role !== "teacher") return;
+    if (role !== "teacher" && role !== "admin") return;
     let active = true;
     void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("absence_makeup_board")]).then(([dashboardResult, makeupResult]) => {
       if (!active) return;
@@ -885,6 +900,77 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
     return () => {
       active = false;
     };
+  }, [role, supabase]);
+  useEffect(() => {
+    if (role !== "admin") return;
+    let active = true;
+    const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit" }).format(new Date());
+    void Promise.all([
+      supabase.rpc("admin_password_reset_board"),
+      supabase.rpc("admin_account_invite_board"),
+      supabase.rpc("tuition_board", { p_month: `${month}-01` }),
+      supabase.rpc("consultation_dashboard_count"),
+    ]).then(([requestsResult, invitesResult, tuitionResult, consultationResult]) => {
+      if (!active) return;
+      const requests = requestsResult.error ? [] : ((requestsResult.data ?? []) as unknown[]);
+      const invites = invitesResult.error ? [] : (((invitesResult.data as { invites?: { status: string }[] } | null)?.invites ?? []));
+      const charges = tuitionResult.error ? [] : (((tuitionResult.data as { items?: { balance: number; status: string }[] } | null)?.items ?? []));
+      const consultations = consultationResult.error ? null : (consultationResult.data as ConsultationCount | null);
+      setAdminSummary({
+        accountRequests: requests.length + invites.filter((item) => item.status === "active").length,
+        unpaidStudents: charges.filter((item) => item.balance > 0 && item.status !== "waived").length,
+        overdueConsultations: consultations?.overdue ?? 0,
+      });
+    });
+    return () => { active = false; };
+  }, [role, supabase]);
+  useEffect(() => {
+    if (role !== "manager") return;
+    let active = true;
+    const weekdayName = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" }).format(new Date());
+    const weekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].indexOf(weekdayName) + 1;
+    if (weekday < 1) {
+      setVehicleSummary({ pickup: 0, dropoff: 0, excluded: 0, missingLocations: 0, hasNote: false, nextTime: null });
+      return;
+    }
+    void Promise.all([
+      supabase.rpc("staff_auto_vehicle_schedule"),
+      supabase.rpc("staff_manual_vehicle_data"),
+      supabase.from("vehicle_schedule_notes").select("note").eq("weekday", weekday).maybeSingle(),
+    ]).then(([autoResult, manualResult, noteResult]) => {
+      if (!active) return;
+      const autoRows = (autoResult.error ? [] : (autoResult.data ?? [])) as MobileVehicleRow[];
+      const manualRows = (manualResult.error ? [] : ((manualResult.data as { assignments?: MobileManualVehicleRow[] } | null)?.assignments ?? []));
+      const todayRows = autoRows.filter((item) => item.weekday === weekday);
+      const activeDirections = new Set<string>();
+      const times: string[] = [];
+      let pickup = 0;
+      let dropoff = 0;
+      let excluded = 0;
+      let missingLocations = 0;
+      todayRows.forEach((item) => {
+        if (item.pickupTime) {
+          if (item.pickupExcluded) excluded += 1;
+          else { pickup += 1; activeDirections.add(`${item.studentId}-pickup`); times.push(item.pickupTime.slice(0, 5)); if (!item.pickupLocation) missingLocations += 1; }
+        }
+        if (item.dropoffTime) {
+          if (item.dropoffExcluded) excluded += 1;
+          else { dropoff += 1; activeDirections.add(`${item.studentId}-dropoff`); times.push(item.dropoffTime.slice(0, 5)); if (!item.dropoffLocation) missingLocations += 1; }
+        }
+      });
+      manualRows.filter((item) => item.weekday === weekday).forEach((item) => {
+        const key = `${item.studentId}-${item.direction}`;
+        if (activeDirections.has(key)) return;
+        activeDirections.add(key);
+        if (item.direction === "pickup") pickup += 1;
+        else dropoff += 1;
+        times.push(item.time.slice(0, 5));
+      });
+      const currentTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+      const nextTime = times.sort().find((time) => time >= currentTime) ?? null;
+      setVehicleSummary({ pickup, dropoff, excluded, missingLocations, hasNote: Boolean(!noteResult.error && noteResult.data?.note?.trim()), nextTime });
+    });
+    return () => { active = false; };
   }, [role, supabase]);
   const activeMakeups = makeupItems?.filter((item) => item.status !== "cancelled") ?? [];
   const absenceCount = activeMakeups.filter((item) => (item.recordKind ?? "absence") === "absence").length;
@@ -985,6 +1071,57 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
               </div>
             )}
             <small>담당 클래스 확인 ›</small>
+          </button>
+        </div>
+      )}
+      {role === "admin" && (
+        <div className="staff-mobile-glance" aria-label="오늘 전체 수업과 운영 확인 요약">
+          <button type="button" className="staff-mobile-glance-card admin-schedule" onClick={() => onNavigate("schedule")}>
+            <header><span>오늘 전체 수업</span><HansalmaeIcon name={viewIcon.schedule} size={17} /></header>
+            <div className="staff-mobile-class-list">
+              {todayClasses === null ? <p>전체 시간표 확인 중…</p> : todayClasses.length ? todayClasses.slice(0, 3).map((item) => (
+                <span key={item.id}><time>{item.time.slice(0, 5)}</time><i style={{ background: item.color }} /><b>{item.name}</b></span>
+              )) : <p>오늘 등록된 수업이 없어요</p>}
+            </div>
+            <small>{todayClasses && todayClasses.length > 3 ? `전체 ${todayClasses.length}개 수업 · 더보기 ›` : "전체 시간표 보기 ›"}</small>
+          </button>
+          <button type="button" className="staff-mobile-glance-card admin-operations" onClick={() => onNavigate("analytics")}>
+            <header><span>운영 확인</span><HansalmaeIcon name={viewIcon.analytics} size={17} /></header>
+            {adminSummary === null || makeupItems === null ? <p className="staff-mobile-glance-loading">운영 항목 확인 중…</p> : (
+              <div className="staff-mobile-operation-counts">
+                <span className={waitingCount ? "attention" : ""}><small>보강 대기</small><b>{waitingCount}</b></span>
+                <span className={adminSummary.accountRequests ? "attention" : ""}><small>계정 요청</small><b>{adminSummary.accountRequests}</b></span>
+                <span className={adminSummary.unpaidStudents ? "attention" : ""}><small>미납 학생</small><b>{adminSummary.unpaidStudents}</b></span>
+                <span className={adminSummary.overdueConsultations ? "attention" : ""}><small>장기 미상담</small><b>{adminSummary.overdueConsultations}</b></span>
+              </div>
+            )}
+            <small>학원 운영 전체보기 ›</small>
+          </button>
+        </div>
+      )}
+      {role === "manager" && (
+        <div className="staff-mobile-glance" aria-label="오늘 차량 운행과 전달사항 요약">
+          <button type="button" className="staff-mobile-glance-card vehicle" onClick={() => onNavigate("transport")}>
+            <header><span>오늘 차량 운행</span><HansalmaeIcon name={viewIcon.transport} size={17} /></header>
+            {vehicleSummary === null ? <p className="staff-mobile-glance-loading">운행표 확인 중…</p> : (
+              <div className="staff-mobile-vehicle-counts">
+                <span><small>등원</small><b>{vehicleSummary.pickup}명</b></span>
+                <span><small>하원</small><b>{vehicleSummary.dropoff}명</b></span>
+                <p>{vehicleSummary.nextTime ? `다음 운행 ${vehicleSummary.nextTime}` : "오늘 남은 운행이 없어요"}</p>
+              </div>
+            )}
+            <small>차량 운행표 보기 ›</small>
+          </button>
+          <button type="button" className="staff-mobile-glance-card vehicle-alert" onClick={() => onNavigate("transport")}>
+            <header><span>확인할 전달사항</span><HansalmaeIcon name="notice" size={17} /></header>
+            {vehicleSummary === null ? <p className="staff-mobile-glance-loading">전달사항 확인 중…</p> : (
+              <div className="staff-mobile-makeup-counts">
+                <span className={vehicleSummary.excluded ? "attention" : ""}><small>차량 제외</small><b>{vehicleSummary.excluded}</b></span>
+                <span className={vehicleSummary.missingLocations ? "attention" : ""}><small>위치 미입력</small><b>{vehicleSummary.missingLocations}</b></span>
+                <span><small>운행 메모</small><b>{vehicleSummary.hasNote ? "있음" : "없음"}</b></span>
+              </div>
+            )}
+            <small>전달사항 확인 ›</small>
           </button>
         </div>
       )}
