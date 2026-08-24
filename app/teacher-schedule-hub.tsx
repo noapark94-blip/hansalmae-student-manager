@@ -109,6 +109,10 @@ function VehicleBoard({rows,studentOptions,supabase,onChanged}:{rows:AutoVehicle
   const[manualOpen,setManualOpen]=useState(false);
   const[saving,setSaving]=useState("");
   const[error,setError]=useState("");
+  const[notes,setNotes]=useState<Record<number,string>>({});
+  const[noteLoading,setNoteLoading]=useState(true);
+  const[noteSaving,setNoteSaving]=useState(false);
+  const[noteMessage,setNoteMessage]=useState("");
   const times=["16:00","17:30","19:00","20:30"];
   const dayRows=rows.filter(row=>row.weekday===selectedDay);
   const excludedCount=dayRows.reduce((sum,row)=>sum+(row.pickupExcluded&&row.pickupTime?1:0)+(row.dropoffExcluded&&row.dropoffTime?1:0),0);
@@ -123,6 +127,8 @@ function VehicleBoard({rows,studentOptions,supabase,onChanged}:{rows:AutoVehicle
     ...(row.pickupTime&&row.pickupExcluded?[{row,direction:"pickup" as const,time:row.pickupTime.slice(0,5)}]:[]),
     ...(row.dropoffTime&&row.dropoffExcluded?[{row,direction:"dropoff" as const,time:row.dropoffTime.slice(0,5)}]:[])
   ]);
+  useEffect(()=>{let active=true;void supabase.from("vehicle_schedule_notes").select("weekday,note").then(({data:noteRows,error:noteError})=>{if(!active)return;if(noteError)setError("차량 운행 메모를 불러오지 못했습니다.");else setNotes(Object.fromEntries((noteRows??[]).map(row=>[Number(row.weekday),String(row.note??"")])));setNoteLoading(false)});return()=>{active=false}},[supabase]);
+  const saveNote=async()=>{setNoteSaving(true);setNoteMessage("");setError("");const{error:noteError}=await supabase.from("vehicle_schedule_notes").upsert({weekday:selectedDay,note:notes[selectedDay]?.trim()??"",updated_by:(await supabase.auth.getUser()).data.user?.id??null},{onConflict:"weekday"});if(noteError)setError("차량 운행 메모를 저장하지 못했습니다.");else setNoteMessage(`${weekdays[selectedDay-1]}요일 메모를 저장했습니다.`);setNoteSaving(false)};
   const renderStudent=(row:AutoVehicleRow,direction:"pickup"|"dropoff")=>{
     const key=`${row.studentId}-${direction}`;
     const manual=direction==="pickup"?row.manualPickup:row.manualDropoff;
@@ -138,6 +144,7 @@ function VehicleBoard({rows,studentOptions,supabase,onChanged}:{rows:AutoVehicle
       <div className="auto-vehicle-grid-head"><b>시간</b><b className="pickup">등원 학생</b><b className="dropoff">하원 학생</b></div>
       {times.map(time=>{const pickup=students(time,"pickup"),dropoff=students(time,"dropoff");return <div className="auto-vehicle-grid-row" key={time}><strong>{time}</strong><section className="pickup">{pickup.length?pickup.map(row=>renderStudent(row,"pickup")):<p>등원 학생 없음</p>}</section><section className="dropoff">{dropoff.length?dropoff.map(row=>renderStudent(row,"dropoff")):<p>하원 학생 없음</p>}</section></div>})}
     </div>
+    <section className="auto-vehicle-memo"><header><div><b>{weekdays[selectedDay-1]}요일 운행 메모</b><span>차량 운행 시 함께 확인할 전달사항을 자유롭게 적어 주세요.</span></div>{noteMessage?<em>{noteMessage}</em>:null}</header><textarea value={notes[selectedDay]??""} disabled={noteLoading||noteSaving} onChange={(event)=>{setNotes(current=>({...current,[selectedDay]:event.target.value}));setNoteMessage("")}} placeholder="예: 19시 하원 차량은 정문 공사로 후문에서 출발 / 우산 확인" rows={6}/><footer><button type="button" className="primary" disabled={noteLoading||noteSaving} onClick={()=>void saveNote()}>{noteSaving?"저장 중…":"메모 저장"}</button></footer></section>
     {showExcluded?<section className="auto-vehicle-excluded"><header><b>{weekdays[selectedDay-1]}요일 차량 제외 학생</b><span>수업·첨삭 일정은 유지됩니다.</span></header>{excluded.length?<div>{excluded.map(({row,direction,time})=>{const key=`${row.studentId}-${direction}`;return <article key={key}><span className={direction}>{direction==="pickup"?"등원":"하원"} · {time}</span><b>{row.studentName}</b><button type="button" disabled={saving===key} onClick={()=>void setExcluded(row,direction,false)}>다시 포함</button></article>})}</div>:<p>제외된 학생이 없습니다.</p>}</section>:null}
     {selectedStudent?<VehicleStudentDetailModal row={selectedStudent} supabase={supabase} onSaved={onChanged} onClose={()=>setSelectedStudent(null)}/>:null}
     {manualOpen?<ManualVehicleAssignmentModal studentOptions={studentOptions} initialDay={selectedDay} supabase={supabase} onSaved={async()=>{await onChanged();setManualOpen(false)}} onClose={()=>setManualOpen(false)}/>:null}

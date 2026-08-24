@@ -350,6 +350,7 @@ button:disabled { cursor:wait; opacity:.7; }
 .auto-vehicle-grid-row>section{grid-template-columns:repeat(3,minmax(0,1fr))}
 .auto-vehicle-grid-row>strong+section{border-left:1px solid #eadfe4}
 .auto-vehicle-grid-row>section>p{grid-column:1/-1}
+.auto-vehicle-memo{margin:0 24px 24px;padding:16px;border:1px solid #e6dce1;border-radius:14px;background:#fcfafb}.auto-vehicle-memo>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:11px}.auto-vehicle-memo>header>div{display:grid;gap:4px}.auto-vehicle-memo>header b{color:#3f3038;font-size:12px}.auto-vehicle-memo>header span{color:#91858b;font-size:9px}.auto-vehicle-memo>header em{flex:0 0 auto;color:#27714e;font-size:9px;font-style:normal;font-weight:800}.auto-vehicle-memo textarea{display:block;width:100%;min-height:132px;box-sizing:border-box;padding:12px 13px;border:1px solid #ded2d8;border-radius:11px;background:#fff;color:#342d31;resize:vertical;outline:none;font:inherit;font-size:11px;line-height:1.65}.auto-vehicle-memo textarea:focus{border-color:var(--wine);box-shadow:0 0 0 3px rgba(146,45,97,.07)}.auto-vehicle-memo>footer{display:flex;justify-content:flex-end;margin-top:10px}.auto-vehicle-memo>footer button{min-width:112px}
 .auto-vehicle-student{align-items:flex-start;flex-direction:column;justify-content:space-between}
 .auto-vehicle-student>div{width:100%}
 .vehicle-student-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:18px;border-bottom:1px solid #eadfe4}
@@ -364,6 +365,7 @@ button:disabled { cursor:wait; opacity:.7; }
 .vehicle-detail-save{display:flex;justify-content:flex-end;margin-top:12px}.vehicle-detail-save button{min-width:104px}
 @media(max-width:1100px){.auto-vehicle-grid-row>section{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.auto-vehicle-grid-row>section{grid-template-columns:1fr}}
+@media(max-width:800px){.auto-vehicle-memo{margin:0 14px 18px;padding:13px}.auto-vehicle-memo>header{display:grid}.auto-vehicle-memo textarea{min-height:150px}.auto-vehicle-memo>footer button{width:100%}}
 @media(max-width:600px){.vehicle-student-edit-grid{grid-template-columns:1fr}.vehicle-student-edit-grid>.full{grid-column:auto}.vehicle-detail-save button{width:100%}}
 
 .auto-vehicle-student>div>span{display:flex;align-items:center;gap:6px;min-width:0}.auto-vehicle-student>div>span>em{flex:0 0 auto;padding:3px 5px;border-radius:999px;background:#f3e7ed;color:var(--wine);font-size:7px;font-style:normal;font-weight:850}
