@@ -6,6 +6,7 @@ export type Profile = {
   id: string;
   role: UserRole;
   display_name: string;
+  must_change_password?: boolean;
 };
 
 export type StudentRow = {

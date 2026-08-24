@@ -29,6 +29,7 @@ import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
 import { ReportCenter } from "./report-center";
+import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
@@ -241,13 +242,13 @@ export default function Home() {
 
       let role: string | null = null;
       let roleError = false;
-      let ownProfile: { display_name: string } | null = null;
+      let ownProfile: { display_name: string; must_change_password: boolean } | null = null;
       const retryDelays = [0, 250, 650];
 
       for (const retryDelay of retryDelays) {
         if (retryDelay) await new Promise((resolve) => window.setTimeout(resolve, retryDelay));
         if (loadSequence !== profileLoadSequence.current) return;
-        const [roleResult, profileResult] = await Promise.all([supabase.rpc("current_user_role"), supabase.from("profiles").select("display_name").eq("id", nextUser.id).maybeSingle()]);
+        const [roleResult, profileResult] = await Promise.all([supabase.rpc("current_user_role"), supabase.from("profiles").select("display_name,must_change_password").eq("id", nextUser.id).maybeSingle()]);
         role = typeof roleResult.data === "string" ? roleResult.data : null;
         roleError = Boolean(roleResult.error);
         if (profileResult.data) ownProfile = profileResult.data;
@@ -268,6 +269,7 @@ export default function Home() {
           id: nextUser.id,
           role: role as UserRole,
           display_name: ownProfile?.display_name ?? nextUser.user_metadata.display_name ?? nextUser.user_metadata.full_name ?? nextUser.email?.split("@")[0] ?? "사용자",
+          must_change_password: ownProfile?.must_change_password ?? false,
         });
       }
       setAuthReady(true);
@@ -391,6 +393,7 @@ export default function Home() {
       />
     );
   if (!profile) return <AccessPendingScreen email={user.email ?? ""} error={authError} onSignOut={() => void supabase.auth.signOut()} />;
+  if (profile.must_change_password) return <ForcedPasswordChange supabase={supabase} onComplete={() => setProfile(current => current ? {...current,must_change_password:false} : current)} />;
 
   const showToast = (message: string) => {
     setToast(message);
@@ -2014,6 +2017,7 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
   const [rememberEmail, setRememberEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [signup, setSignup] = useState(false);
+  const [recovery, setRecovery] = useState(false);
   useEffect(() => {
     const savedEmail = window.localStorage.getItem("hansalmae-saved-email");
     if (!savedEmail) return;
@@ -2057,6 +2061,7 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
             {submitting ? "로그인 중…" : "로그인"}
           </button>
         </form>
+        <button type="button" className="auth-recovery-link" onClick={() => setRecovery(true)}>아이디 찾기 · 비밀번호 재발급 요청</button>
         <div className="auth-divider">
           <span>처음 이용하시나요?</span>
         </div>
@@ -2065,6 +2070,7 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
         </button>
         <small>초대코드는 학원 관리자에게 문의해 주세요.</small>
       </section>
+      {recovery && <AccountRecovery supabase={supabase} onClose={() => setRecovery(false)} />}
     </main>
   );
 }
