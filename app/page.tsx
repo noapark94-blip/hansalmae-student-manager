@@ -28,11 +28,12 @@ import { BulkRegistrationGuide } from "./bulk-registration-guide";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
+import { ReportCenter } from "./report-center";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -134,6 +135,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "attendance", label: "출결 입력", icon: "✓" },
   { id: "makeups", label: "보강 일정", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
+  { id: "reports", label: "데일리·위클리 리포트", icon: "▥" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
   { id: "tuition", label: "원비 정산", icon: "₩" },
@@ -151,10 +153,10 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "my-account"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
+  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "reports", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "attendance", "makeups", "reports", "consultations", "communications", "my-account"],
 };
 
 const notices = [
@@ -181,6 +183,7 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const profileLoadSequence = useRef(0);
   const [view, setView] = useState<View>("dashboard");
+  const [deepReportId] = useState<string | null>(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("report")));
   const [viewRestored, setViewRestored] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -252,7 +255,8 @@ export default function Home() {
         setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
-        if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
+        if (deepReportId) setView("reports");
+        else if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -268,7 +272,7 @@ export default function Home() {
       window.setTimeout(() => void loadProfile(session?.user ?? null), 0);
     });
     return () => listener.subscription.unsubscribe();
-  }, [supabase]);
+  }, [deepReportId, supabase]);
 
   useEffect(() => {
     if (!supabase || !profile || (profile.role !== "admin" && profile.role !== "teacher")) {
@@ -737,6 +741,7 @@ export default function Home() {
           {view === "attendance" && (profile.role === "admin" || profile.role === "teacher" ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
+          {view === "reports" && <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
@@ -823,14 +828,14 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
       ? [
           { id: "dashboard", label: "홈" },
           { id: "schedule", label: "시간표" },
-          { id: "assignments", label: "학습" },
+          { id: "reports", label: "리포트" },
           { id: "communications", label: "공지" },
           { id: "my-account", label: "내 정보" },
         ]
       : [
           { id: "dashboard", label: "홈" },
           { id: "schedule", label: "시간표" },
-          { id: "attendance", label: "출결" },
+          { id: "reports", label: "리포트" },
           { id: "consultations", label: "상담" },
           { id: "my-account", label: "내 정보" },
         ];
