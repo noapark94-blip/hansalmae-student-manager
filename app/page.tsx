@@ -970,9 +970,9 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
-    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account"],
-    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "my-account"],
-    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "my-account"],
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account"],
+    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
+    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
     assistant: ["dashboard", "assignments", "corrections", "my-account"],
     student: [],
     guardian: [],
