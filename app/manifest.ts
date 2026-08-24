@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "한살매 수업노트",
-    short_name: "수업노트",
-    description: "한살매 수업·출결·학습 기록 통합 관리",
+    short_name: "한살매노트",
+    description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
     start_url: "/",
     display: "standalone",
     background_color: "#faf8f5",
@@ -12,13 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     icons: [
       {
-        src: "/app-icon-192.png",
+        src: "/app-icon-192-v2.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/app-icon-512.png",
+        src: "/app-icon-512-v2.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",

@@ -50,21 +50,38 @@ import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://hansalmae-student-manager.vercel.app"),
   title: "한살매 수업노트",
-  description: "한살매 수업·출결·학습 기록 통합 관리",
+  description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
   manifest: "/manifest.webmanifest",
   applicationName: "한살매 수업노트",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "한살매 수업노트",
+    title: "한살매노트",
   },
   icons: {
     icon: [
-      { url: "/app-icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/app-icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/app-icon-192-v2.png", sizes: "192x192", type: "image/png" },
+      { url: "/app-icon-512-v2.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon-v2.png", sizes: "180x180", type: "image/png" }],
+  },
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "/",
+    siteName: "한살매 수업노트",
+    title: "한살매 수업노트",
+    description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
+    images: [{ url: "/og-hansalmae-note.png", width: 1200, height: 630, alt: "한살매 수업노트" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "한살매 수업노트",
+    description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
+    images: ["/og-hansalmae-note.png"],
   },
   other: { "codex-preview": "development" },
 };
