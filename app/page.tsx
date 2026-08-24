@@ -28,6 +28,7 @@ import { BulkRegistrationGuide } from "./bulk-registration-guide";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
+import { useMobileGreeting } from "./mobile-greeting";
 import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 
@@ -865,6 +866,7 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
 }
 
 function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLoading, onNavigate, onRegister }: { role: UserRole; displayName: string; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onRegister: () => void }) {
+  const greeting = useMobileGreeting();
   const actions =
     role === "admin"
       ? [
@@ -915,7 +917,7 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
     <section className="staff-mobile-home" aria-label="모바일 업무 홈">
       <div className="staff-mobile-welcome">
         <p>한살매 수업노트</p>
-        <h1>오늘도 반갑습니다</h1>
+        <h1>{greeting}</h1>
       </div>
       <div className="staff-mobile-profile-card">
         <i aria-hidden="true">{displayName.slice(0, 1)}</i>
