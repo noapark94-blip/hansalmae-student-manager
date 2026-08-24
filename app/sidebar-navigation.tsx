@@ -34,7 +34,6 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   const [draft, setDraft] = useState<MenuLayout>(defaultLayout);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
-  const [correctionMode,setCorrectionMode]=useState<"timetable"|"management">(()=>typeof window!=="undefined"&&window.sessionStorage.getItem("hansalmae:correction-mode")==="timetable"?"timetable":"management");
 
   useEffect(() => {
     let active = true;
@@ -49,18 +48,8 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   const folders = layout.folders.map((folder) => ({ ...folder, itemIds: folder.itemIds.filter((id) => visible.has(id)) })).filter((folder) => folder.itemIds.length);
 
   const displayLabel = (source: MenuLayout, item: MenuItem) => source.labels?.[item.id]?.trim() || defaultMenuLabel(item);
-  const selectItem=(id:View)=>{
-    if(id==="corrections"||id==="assignments"){
-      const mode=id==="corrections"?"timetable":"management";
-      setCorrectionMode(mode);
-      window.sessionStorage.setItem("hansalmae:correction-mode",mode);
-      window.dispatchEvent(new Event("hansalmae-correction-mode"));
-      onSelect("assignments");
-      return;
-    }
-    onSelect(id);
-  };
-  const isActive=(id:View)=>id==="corrections"?activeView==="assignments"&&correctionMode==="timetable":id==="assignments"?activeView==="assignments"&&correctionMode==="management":activeView===id;
+  const selectItem=(id:View)=>onSelect(id);
+  const isActive=(id:View)=>activeView===id;
 
   const beginEditing = () => {
     setDraft(mergeMissingItems(layout, usableItems));
