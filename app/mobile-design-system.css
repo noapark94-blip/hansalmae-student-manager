@@ -1,0 +1,151 @@
+/* 한살매 모바일 디자인 시스템: 데스크톱 스타일을 유지하며 760px 이하만 정돈합니다. */
+@media (max-width:760px){
+  :root{--mobile-gutter:15px;--mobile-radius:16px;--mobile-control:44px}
+  html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+  body{background:#faf8f7}
+  button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+  button{touch-action:manipulation}
+  input,select,textarea{max-width:100%;font-size:16px!important}
+  .app-shell,.workspace,.content{min-width:0;max-width:100%}
+  .workspace{margin-left:0!important;width:100%!important}
+
+  /* 상단 앱 바 */
+  .topbar{height:62px!important;min-height:62px;padding:0 max(var(--mobile-gutter),env(safe-area-inset-left))!important;gap:8px!important;top:0;border-bottom-color:#ebe5e7!important;background:rgba(255,255,255,.96)!important}
+  .menu-button{width:42px;height:42px;flex:0 0 42px;display:grid!important;place-items:center;padding:0;border:1px solid #ece5e8!important;border-radius:12px!important;background:#fff!important;color:#51474c;font-size:0!important;box-shadow:0 3px 12px rgba(55,35,45,.04)}
+  .menu-button::before{content:"";width:18px;height:12px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;background:linear-gradient(currentColor,currentColor) center/18px 2px no-repeat}
+  .global-search{min-width:0;flex:1}
+  .search-wrap,.global-search .search-wrap{width:100%!important;height:42px!important;padding:0 12px!important;border:1px solid #ece7e8!important;border-radius:12px!important;background:#f8f6f5!important}
+  .search-wrap input{min-width:0;height:40px!important;margin:0!important;padding:0!important;font-size:14px!important}
+  .global-search-results{position:fixed!important;top:58px!important;right:10px!important;left:10px!important;width:auto!important;max-height:min(62dvh,460px)!important;border-radius:15px!important;box-shadow:0 18px 50px rgba(49,31,40,.18)!important}
+  .global-search-results>button{min-height:64px;padding:10px 12px;grid-template-columns:34px minmax(0,1fr) auto}
+  .icon-button{width:42px!important;height:42px!important;flex:0 0 42px;margin-left:0!important;border-radius:12px!important}
+  .topbar>.primary.small{width:42px!important;min-width:42px!important;height:42px!important;flex:0 0 42px;border-radius:12px!important}
+
+  /* 서랍형 내비게이션 */
+  .sidebar{width:min(88vw,330px)!important;padding:18px 14px max(14px,env(safe-area-inset-bottom))!important;transform:translateX(-104%);transition:transform .22s ease;box-shadow:18px 0 48px rgba(48,28,38,.18);z-index:60!important}
+  .sidebar.is-open{transform:translateX(0)}
+  .brand{min-height:62px;padding:2px 8px 17px!important;gap:11px!important}
+  .brand-mark{width:42px!important;height:42px!important}
+  .brand strong{font-size:20px!important}.brand span{font-size:11px!important}
+  .sidebar>nav{padding:3px 2px 8px!important;gap:3px!important}
+  .sidebar nav button{min-height:46px!important;padding:0 12px!important;border-radius:11px!important;font-size:14px!important}
+  .folder-navigation .nav-folder-title{min-height:34px!important;font-size:10px!important}
+  .teacher-card{margin-top:8px!important;padding:14px 7px 2px!important}
+  .teacher-card .avatar{width:36px;height:36px}.signout-button{min-height:36px;padding:0 7px!important;font-size:10px!important}
+  .backdrop{position:fixed;inset:0;display:block!important;z-index:50!important;border:0;background:rgba(37,24,30,.36);backdrop-filter:blur(2px)}
+
+  /* 페이지 공통 */
+  .content{width:100%;padding:20px var(--mobile-gutter) calc(30px + env(safe-area-inset-bottom))!important}
+  .page-heading,.page-heading.compact{align-items:stretch!important;flex-direction:column!important;gap:14px!important;margin-bottom:18px!important}
+  .page-heading>div>.eyebrow{display:block!important;margin:0 0 6px!important;font-size:10px!important;letter-spacing:.05em}
+  .page-heading>div>h1{display:block!important;margin:0!important;font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",sans-serif!important;font-size:25px!important;font-weight:800!important;letter-spacing:-.8px!important;line-height:1.25}
+  .page-heading p{max-width:none!important;margin:6px 0 0!important;font-size:12px!important;line-height:1.55!important}
+  .page-heading>.primary,.page-heading>.secondary-button,.page-heading>button{width:100%;min-height:var(--mobile-control);font-size:12px!important}
+  .panel,.stat-card{border-radius:var(--mobile-radius)!important;box-shadow:0 4px 18px rgba(55,35,45,.04)!important}
+  .panel{padding:16px!important}
+  .panel-header{gap:10px;margin-bottom:12px}.panel-header h2,.simple-panel h2{font-size:15px}.panel-header button{min-height:38px;padding:0 4px;font-size:11px}
+  .primary,.secondary-button{min-height:var(--mobile-control);border-radius:11px;font-size:12px}
+  .danger-link{min-height:40px;padding:0 10px}
+  .hub-tabs,.student-hub-tabs,.attendance-class-tabs,.makeup-summary{scrollbar-width:none;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+  .hub-tabs::-webkit-scrollbar,.student-hub-tabs::-webkit-scrollbar,.attendance-class-tabs::-webkit-scrollbar,.makeup-summary::-webkit-scrollbar{display:none}
+  .hub-tabs button,.student-hub-tabs button,.attendance-class-tabs button{min-height:42px;scroll-snap-align:start}
+  .toast{right:14px;bottom:calc(18px + env(safe-area-inset-bottom));left:14px;width:auto;max-width:none;transform:none;text-align:center;font-size:12px}
+
+  /* 카드와 대시보드 */
+  .admin-home-switch{width:100%;margin-bottom:16px!important;display:grid;grid-template-columns:1fr 1fr}
+  .admin-home-switch button{width:100%;height:40px;padding:0 8px}
+  .stats-grid,.stats-grid.family-stats,.student-summary-cards,.lifecycle-status-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .stats-grid .stat-card{min-height:112px!important;padding:14px!important;display:grid!important;grid-template-columns:38px minmax(0,1fr);gap:10px!important}
+  .stats-grid .stat-icon{width:38px!important;height:38px!important}
+  .stats-grid .stat-card>div:last-child{min-width:0}.stats-grid .stat-card strong{font-size:24px!important}.stats-grid .stat-card small{font-size:10px!important}
+  .dashboard-grid,.dashboard-focus-grid,.family-dashboard-grid,.assignment-grid,.billing-settings-grid{grid-template-columns:1fr!important;gap:11px!important}
+  .activity-list{grid-template-columns:1fr!important}.class-row{min-height:64px}.class-row time{width:38px}.attendance-pill{padding:6px 8px}
+
+  /* 입력 폼 */
+  .form-grid,.form-pair,.consultation-editor-grid,.payment-meta-grid,.charge-adjustments,.readonlyGrid,.passwordGrid{grid-template-columns:1fr!important}
+  label input,label select,label textarea,.form-grid input,.form-grid select,.form-grid textarea{min-height:44px;border-radius:10px}
+  textarea{line-height:1.55}
+  .search-wrap{max-width:none!important}
+  .student-list-tools,.consultation-toolbar,.hub-toolbar,.account-toolbar{align-items:stretch!important;flex-direction:column!important;gap:10px!important}
+  .student-list-tools>.search-wrap,.consultation-toolbar .search-wrap,.account-toolbar .search-wrap{width:100%!important}
+  .student-list-filters,.student-record-selects,.consultation-period-filters{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;width:100%}
+  .student-list-filters label,.student-record-selects label,.consultation-period-filters label{min-width:0!important}
+  .student-list-filters select,.student-record-selects select,.consultation-period-filters select{width:100%!important;min-height:42px}
+
+  /* 목록: 정보는 세로, 작업 버튼은 충분한 터치 크기 */
+  .attendance-panel,.makeup-panel,.assignment-list,.assignment-detail,.consultation-panel{padding:0!important}
+  .attendance-panel>header,.assignment-detail>header{padding:15px!important;align-items:flex-start!important;flex-direction:column!important}
+  .attendance-summary{padding:10px 15px!important;gap:8px 13px!important}
+  .attendance-list article{min-height:0!important;padding:14px 15px!important;grid-template-columns:1fr!important;gap:10px!important}
+  .attendance-student{min-width:0}.attendance-statuses{display:grid!important;grid-template-columns:repeat(4,1fr);width:100%;gap:6px!important}
+  .attendance-statuses button{min-width:0!important;min-height:42px!important;padding:7px 3px!important;font-size:10px!important}
+  .attendance-note{height:42px!important;font-size:14px!important}
+  .makeup-list article{min-height:0!important;padding:15px!important;grid-template-columns:1fr 1fr!important;gap:11px!important}
+  .makeup-student{grid-column:1/-1}.makeup-actions{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .makeup-actions button{min-height:42px;width:100%;padding:7px!important}.makeup-note{grid-column:1/-1!important;margin:0!important}
+  .assignment-list>button{min-height:76px;padding:13px 14px}.assignment-detail>section{padding:14px!important}
+  .consultation-summary{padding-bottom:3px}.consultation-list article{padding:14px!important;grid-template-columns:1fr!important;gap:10px!important}
+  .consultation-actions{width:100%;display:grid!important;grid-template-columns:1fr 1fr}.consultation-actions button{width:100%;min-height:42px}
+
+  /* 표와 시간표: 억지 축소 대신 명확한 가로 스크롤 */
+  .weekly-timetable,.aligned-schedule,.learning-board-scroll,.tuition-table-scroll,.import-preview,.account-table,.analytics-table,.message-log{width:calc(100% + 2 * var(--mobile-gutter))!important;margin-left:calc(-1 * var(--mobile-gutter))!important;padding-left:var(--mobile-gutter)!important;padding-right:var(--mobile-gutter)!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;scrollbar-width:thin}
+  .weekly-timetable{padding-bottom:8px!important}
+  .aligned-schedule{min-width:720px!important;margin-left:0!important;padding-left:0!important;padding-right:0!important}
+  .tuition-settlement-head,.tuition-row{min-width:900px}
+  .import-table{min-width:760px}.message-log-head,.message-log>article{min-width:720px}
+  .account-head{display:none!important}.account-table>article{min-width:0!important}
+  .auto-vehicle-grid{margin-right:0!important;margin-left:0!important;overflow-x:auto}.auto-vehicle-grid-head,.auto-vehicle-grid-row{min-width:620px}
+  .month-calendar,.correction-month-grid,.student-learning-calendar-panel{overflow-x:auto!important;overscroll-behavior-x:contain}
+
+  /* 모달·팝업은 모바일 바텀시트로 통일 */
+  .modal-backdrop,.nested-modal-backdrop,.attendance-editor-backdrop,.correction-history-backdrop{align-items:end!important;padding:0!important;background:rgba(39,24,32,.46)!important;backdrop-filter:blur(3px)}
+  .student-modal,.modal,.class-creator,.subject-editor,.roster-editor,.class-manager-modal,.attendance-editor-modal,.consultation-editor,.exam-category-modal,.class-month-modal,.correction-month-modal,.correction-slot-roster-modal,.manual-vehicle-modal,.special-lesson-modal,.fee-policy-modal,.tuition-settings-modal{width:100%!important;max-width:none!important;max-height:calc(94dvh - env(safe-area-inset-top))!important;margin:0!important;border-radius:20px 20px 0 0!important;overflow:auto!important;box-shadow:0 -18px 60px rgba(45,27,36,.2)!important}
+  .student-modal>header,.modal>header,.class-creator>header,.subject-editor>header,.roster-editor>header,.class-manager-modal>header{position:sticky;top:0;z-index:3;min-height:66px;padding:16px 17px!important;border-bottom:1px solid #eee7ea;background:rgba(255,255,255,.97);backdrop-filter:blur(10px)}
+  .student-modal>header h2,.modal>header h2{font-size:20px!important;line-height:1.3}.student-modal>header span,.modal>header span{font-size:11px!important;line-height:1.45}
+  .student-modal>header>button,.modal>header>button,.modal-close{width:38px!important;min-width:38px!important;height:38px!important;padding:0!important;border-radius:11px!important;font-size:21px!important}
+  .student-modal form,.student-modal>.modal-body,.class-creator>.modal-body,.subject-editor>.modal-body,.roster-editor>.modal-body,.class-manager-modal>.modal-body{padding:16px 17px!important}
+  .student-modal>footer,.student-modal>form>footer,.modal>footer,.class-creator>footer,.subject-editor>footer,.roster-editor>footer,.class-manager-modal>footer{position:sticky;bottom:0;z-index:3;display:grid!important;grid-template-columns:1fr 1.35fr;gap:8px;padding:12px 17px calc(12px + env(safe-area-inset-bottom))!important;border-top:1px solid #eee7ea;background:rgba(255,255,255,.97);backdrop-filter:blur(10px)}
+  .student-modal>footer button,.student-modal>form>footer button,.modal>footer button,.class-creator>footer button,.subject-editor>footer button,.roster-editor>footer button,.class-manager-modal>footer button{width:100%!important;min-width:0!important;min-height:44px!important;margin:0!important}
+  .delete-confirm{width:calc(100% - 24px)!important;margin:0 12px 12px!important;border-radius:18px!important}
+
+  .menu-editor{width:100%!important;height:min(92dvh,780px)!important;max-height:calc(100dvh - env(safe-area-inset-top))!important;border-radius:20px 20px 0 0!important}
+  .menu-editor-backdrop{align-items:end!important;padding:0!important}
+  .menu-editor>header{padding:17px!important}.menu-editor-toolbar{padding:12px 17px!important}.menu-folder-editor-list{padding:0 17px 14px!important}
+  .menu-editor>footer{padding:12px 17px calc(12px + env(safe-area-inset-bottom))!important}.menu-editor>footer button{min-height:44px}
+  .student-hub-modal{height:min(94dvh,900px);display:flex;flex-direction:column;overflow:hidden!important}.student-hub-tabs{flex:0 0 auto;padding:0 12px!important}.student-hub-tabs button{padding:11px 10px!important;font-size:11px!important}
+  .student-hub-body{min-height:0!important;padding:15px!important;overflow:auto}
+  .student-record-list article{grid-template-columns:65px minmax(0,1fr) auto!important;gap:8px!important;padding:10px!important}
+  .class-day-workspace>header{padding:17px!important;display:grid!important;gap:12px!important}.class-day-workspace>header .class-header-actions{display:none!important}
+  .class-day-workspace .class-roster-shortcut>button{position:static!important;width:100%!important;min-height:44px!important;margin:0!important}
+  .class-day-workspace>header{padding-right:17px!important}
+
+  /* 인증 */
+  .auth-shell{min-height:100dvh;padding:max(18px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}
+  .auth-card{width:100%!important;max-width:430px;min-height:0!important;padding:27px 20px 24px!important;border:1px solid var(--line)!important;border-radius:20px!important;box-shadow:0 18px 55px rgba(64,13,35,.1)!important}
+  .auth-card.login-card{padding-top:31px!important}.auth-brand-lockup img{width:66px!important;height:66px!important}
+  .auth-card h1{font-size:25px}.auth-copy{margin-bottom:22px;font-size:12px}.auth-card form{gap:13px}.auth-card input{height:48px!important}
+  .auth-card form .primary,.auth-signup-link{min-height:48px}.signup-card{max-height:calc(100dvh - 24px);overflow:auto}.signup-progress{gap:4px}.signup-progress li span{font-size:9px!important}
+}
+
+@media (max-width:430px){
+  :root{--mobile-gutter:12px}
+  .topbar{padding-right:10px!important;padding-left:10px!important}
+  .page-heading>div>h1{font-size:23px!important}
+  .stats-grid,.stats-grid.family-stats{grid-template-columns:1fr 1fr!important}
+  .stats-grid .stat-card{min-height:106px!important;padding:12px!important;grid-template-columns:34px minmax(0,1fr)}
+  .stats-grid .stat-icon{width:34px!important;height:34px!important}.stats-grid .stat-card strong{font-size:22px!important}
+  .student-list-filters,.student-record-selects,.consultation-period-filters{grid-template-columns:1fr!important}
+  .makeup-list article{grid-template-columns:1fr!important}.makeup-student,.makeup-actions,.makeup-note{grid-column:1!important}
+  .tuition-heading-actions{grid-template-columns:1fr!important}.tuition-month-picker,.tuition-heading-actions>.primary{grid-column:1!important}
+  .tuition-summary-five{grid-template-columns:1fr 1fr!important}
+  .student-modal footer,.modal>footer{grid-template-columns:1fr 1.2fr}
+}
+
+@media (hover:none) and (pointer:coarse){
+  button:hover{transform:none!important}
+  .sidebar nav button,.hub-tabs button,.student-hub-tabs button{min-height:44px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .sidebar{transition:none}
+}
