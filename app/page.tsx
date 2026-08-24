@@ -419,6 +419,7 @@ export default function Home() {
           {view === "settings" && <><SettingsBoard supabase={supabase} /><AccountDeletionPanel supabase={supabase} /></>}
           {view === "audit" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, display_name:displayName } : current)} />}
+          {view === "my-account" && familyAccount && <section className="family-signout-card" aria-label="로그인 관리"><div><b>로그인 관리</b><span>현재 계정에서 안전하게 로그아웃합니다.</span></div><button type="button" onClick={()=>void supabase.auth.signOut()}><span aria-hidden="true">↪</span>로그아웃</button></section>}
         </div>
         {familyAccount&&<FamilyBottomNavigation role={profile.role==="guardian"?"guardian":"student"} activeView={view} onSelect={selectView}/>} 
         {staffAccount&&<StaffBottomNavigation role={profile.role as "admin"|"teacher"} activeView={view} onSelect={selectView} onMore={()=>setStaffMoreOpen(true)}/>} 
