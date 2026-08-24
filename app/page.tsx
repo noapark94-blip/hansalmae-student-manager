@@ -158,12 +158,12 @@ const roleLabels: Record<string, string> = {
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
-  assistant: ["corrections", "assignments", "my-account"],
+  assistant: ["dashboard", "corrections", "assignments", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "reports", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "reports", "consultations", "communications", "my-account"],
 };
-const defaultViewForRole = (role: UserRole): View => role === "assistant" ? "assignments" : "dashboard";
+const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
 const notices = [
   {
@@ -262,8 +262,7 @@ export default function Home() {
         setProfile(null);
       } else {
         if (deepReportId) setView("reports");
-        else if (role === "assistant") setView("assignments");
-        else if (role === "student" || role === "guardian" || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
+        else if (["assistant","student","guardian"].includes(role) || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -723,7 +722,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}`}>
-          {view === "dashboard" && staffAccount && profile.role !== "assistant" && <StaffMobileHomeHero role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
+          {view === "dashboard" && staffAccount && <StaffMobileHomeHero role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
               <div className="admin-home-switch">
@@ -776,7 +775,7 @@ export default function Home() {
                 <span>현재 계정에서 안전하게 로그아웃합니다.</span>
               </div>
               <button type="button" onClick={() => void supabase.auth.signOut()}>
-                <span aria-hidden="true">↪</span>로그아웃
+                <span aria-hidden="true">⏻</span>로그아웃
               </button>
             </section>
           )}
@@ -876,6 +875,12 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
           { id: "tuition" as View, label: "원비 정산", tone: "amber" },
           { id: "settings" as View, label: "계정·역할", tone: "gray" },
         ]
+      : role === "assistant"
+        ? [
+            { id: "assignments" as View, label: "첨삭 관리", tone: "wine" },
+            { id: "corrections" as View, label: "첨삭 시간표", tone: "amber" },
+            { id: "my-account" as View, label: "내 계정", tone: "gray" },
+          ]
       : role === "manager"
         ? [
             { id: "class-management" as View, label: "내 수업", tone: "blue" },
@@ -883,7 +888,7 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
             { id: "transport" as View, label: "차량 운행", tone: "amber" },
             { id: "reports" as View, label: "리포트", tone: "violet" },
             { id: "consultations" as View, label: "상담", tone: "wine" },
-            { id: "students" as View, label: "학생", tone: "gray" },
+            { id: "makeups" as View, label: "결석·보강", tone: "gray" },
           ]
       : [
           { id: "class-management" as View, label: "내 수업", tone: "blue" },
@@ -891,7 +896,7 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
           { id: "corrections" as View, label: "첨삭 시간표", tone: "amber" },
           { id: "reports" as View, label: "리포트", tone: "violet" },
           { id: "consultations" as View, label: "상담", tone: "wine" },
-          { id: "students" as View, label: "학생", tone: "gray" },
+          { id: "makeups" as View, label: "결석·보강", tone: "gray" },
         ];
   return (
     <section className="staff-mobile-home" aria-label="모바일 업무 홈">
@@ -908,9 +913,9 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
             <em>명</em>
           </b>
         </div>
-        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate("students")}>
-          <HansalmaeIcon name={role === "admin" ? "plus" : "students"} size={19} />
-          <span>{role === "admin" ? "학생 등록" : "학생 보기"}</span>
+        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" ? "my-account" : "students")}>
+          <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" ? "user" : "students"} size={19} />
+          <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
       <div className="staff-mobile-quick-links">
@@ -937,6 +942,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
           { id: "analytics", label: "학원 운영" },
         ]
       : role === "assistant" ? [
+          { id: "dashboard", label: "홈" },
           { id: "assignments", label: "첨삭 관리" },
           { id: "corrections", label: "첨삭 시간표" },
           { id: "my-account", label: "내 계정" },
@@ -963,6 +969,24 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 }
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
+  const mobileMenuByRole: Record<UserRole, View[]> = {
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account"],
+    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "my-account"],
+    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "my-account"],
+    assistant: ["dashboard", "assignments", "corrections", "my-account"],
+    student: [],
+    guardian: [],
+  };
+  const mobileLabels: Partial<Record<View, string>> = {
+    "class-management": "클래스 관리",
+    schedule: "시간표 허브",
+    corrections: "첨삭 시간표",
+    makeups: "결석·보강",
+    assignments: "첨삭 관리",
+  };
+  const visibleItems = items
+    .filter((item) => mobileMenuByRole[role].includes(item.id))
+    .map((item) => ({ ...item, label: mobileLabels[item.id] ?? item.label }));
   return (
     <div className="staff-sheet-layer" role="presentation">
       <button type="button" className="staff-sheet-backdrop" aria-label="전체 메뉴 닫기" onClick={onClose} />
@@ -978,7 +1002,7 @@ function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClos
           </button>
         </header>
         <div className="staff-sheet-grid">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <button type="button" key={item.id} className={activeView === item.id ? "active" : ""} onClick={() => onSelect(item.id)}>
               <i>
                 <HansalmaeIcon name={viewIcon[item.id]} size={20} />
@@ -997,7 +1021,7 @@ function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClos
             <em>내 계정 ›</em>
           </button>
           <button type="button" className="staff-sheet-signout" onClick={onSignOut}>
-            <span aria-hidden="true">↪</span>
+            <span aria-hidden="true">⏻</span>
             <b>로그아웃</b>
           </button>
         </footer>
