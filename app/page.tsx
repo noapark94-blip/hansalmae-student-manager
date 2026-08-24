@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
 import { TeacherScheduleHub } from "./teacher-schedule-hub";
@@ -101,6 +101,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authError, setAuthError] = useState("");
+  const profileLoadSequence = useRef(0);
   const [view, setView] = useState<View>("dashboard");
   const [viewRestored, setViewRestored] = useState(false);
   const [query, setQuery] = useState("");
@@ -142,6 +143,7 @@ export default function Home() {
     }
 
     const loadProfile = async (nextUser: User | null) => {
+      const loadSequence = ++profileLoadSequence.current;
       setAuthReady(false);
       setUser(nextUser);
       if (!nextUser) {
@@ -151,12 +153,27 @@ export default function Home() {
         return;
       }
 
-      const [{ data: role, error }, { data: ownProfile }] = await Promise.all([
-        supabase.rpc("current_user_role"),
-        supabase.from("profiles").select("display_name").eq("id", nextUser.id).maybeSingle(),
-      ]);
+      let role: string | null = null;
+      let roleError = false;
+      let ownProfile: { display_name: string } | null = null;
+      const retryDelays = [0, 250, 650];
 
-      if (error || !role || !roleViews[role as UserRole]) {
+      for (const retryDelay of retryDelays) {
+        if (retryDelay) await new Promise((resolve) => window.setTimeout(resolve, retryDelay));
+        if (loadSequence !== profileLoadSequence.current) return;
+        const [roleResult, profileResult] = await Promise.all([
+          supabase.rpc("current_user_role"),
+          supabase.from("profiles").select("display_name").eq("id", nextUser.id).maybeSingle(),
+        ]);
+        role = typeof roleResult.data === "string" ? roleResult.data : null;
+        roleError = Boolean(roleResult.error);
+        if (profileResult.data) ownProfile = profileResult.data;
+        if (!roleError && role && roleViews[role as UserRole]) break;
+      }
+
+      if (loadSequence !== profileLoadSequence.current) return;
+
+      if (roleError || !role || !roleViews[role as UserRole]) {
         setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
@@ -178,7 +195,7 @@ export default function Home() {
 
     void supabase.auth.getUser().then(({ data }) => loadProfile(data.user));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      void loadProfile(session?.user ?? null);
+      window.setTimeout(() => void loadProfile(session?.user ?? null), 0);
     });
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
