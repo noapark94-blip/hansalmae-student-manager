@@ -1,0 +1,173 @@
+/* Mobile-only geometry normalization. No component behavior is changed here. */
+@media (max-width:760px){
+  :root{--mobile-gutter:13px;--mobile-section-gap:12px}
+  .content{padding-right:var(--mobile-gutter)!important;padding-left:var(--mobile-gutter)!important}
+  .content>*{min-width:0;max-width:100%}
+  .panel{box-sizing:border-box}
+
+  /* Student list: prevent desktop flex-basis from turning into a 220px-tall search box. */
+  .student-page-layout{gap:0;width:100%}
+  .student-page-layout>.grade-progression-card{order:0;margin-bottom:12px}
+  .student-page-layout>.page-heading{order:1}
+  .student-page-layout>.lifecycle-dashboard>header{padding:13px 14px 0!important}
+  .student-page-layout>.lifecycle-dashboard>.lifecycle-status-cards{padding:11px 14px 14px!important}
+  .lifecycle-dashboard>header{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:end!important;gap:10px!important}
+  .lifecycle-dashboard>header select{width:auto;min-width:104px;height:38px}
+  .lifecycle-status-cards{gap:8px!important}
+  .lifecycle-status-cards button{min-height:74px!important;padding:10px!important;gap:9px!important}
+  .lifecycle-status-cards button>i{width:34px;height:34px;flex:0 0 34px}
+  .lifecycle-status-cards b{font-size:17px}
+  .student-page-layout>.table-panel{width:100%;margin:12px 0 0!important;border-radius:16px!important}
+  .student-list-tools{padding:12px!important;gap:9px!important}
+  .student-list-tools>.search-wrap{flex:0 0 44px!important;min-height:44px!important;height:44px!important;align-self:stretch;padding:0 12px!important}
+  .student-list-tools>.search-wrap input{height:42px!important}
+  .student-list-filters{gap:7px!important}
+  .student-list-filters label>span{font-size:9px}
+  .student-list-filters select{height:42px!important;min-height:42px!important;padding-left:11px;font-size:13px!important}
+  .student-result-count{width:100%;margin:0!important;text-align:right}
+  .student-filter-chips{min-height:36px;padding:6px 12px!important}
+
+  /* School calendar: fit seven equal columns to the device instead of a fixed 720px canvas. */
+  .academic-panel{width:100%!important;margin:0!important;padding:0!important;border-radius:16px!important;overflow:hidden!important}
+  .academic-header{padding:15px!important;gap:12px!important}
+  .academic-header h2{font-size:18px}.academic-header p{font-size:11px;line-height:1.5}
+  .academic-header .primary{min-height:42px!important}
+  .academic-filters{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;padding:11px!important}
+  .academic-filters select{width:100%;height:42px;font-size:13px!important}
+  .academic-filters select:nth-child(3),.academic-filters label{grid-column:1/-1}
+  .academic-filters label{min-height:36px;margin:0;padding:0 2px;justify-content:flex-start!important;font-size:12px}
+  .academic-layout{display:block!important;min-height:0!important}
+  .academic-calendar{width:100%;min-width:0!important;overflow:hidden!important;border:0!important}
+  .academic-calendar>nav,.academic-weekdays,.academic-days{width:100%!important;min-width:0!important;max-width:100%!important}
+  .academic-calendar>nav{height:54px!important;gap:15px!important;border-bottom:1px solid #eee5e8}
+  .academic-calendar>nav button{width:36px;height:36px}.academic-calendar>nav b{min-width:118px;font-size:16px}
+  .academic-weekdays b{min-width:0;padding:9px 0!important;font-size:10px}
+  .academic-days>i,.academic-days>button{min-width:0!important;min-height:70px!important;height:70px!important}
+  .academic-days>button{padding:6px 5px!important}
+  .academic-days strong{font-size:11px}.academic-days>button.today>strong{width:21px;height:21px}
+  .academic-days .holiday-name{margin:2px 0;font-size:6px}
+  .academic-days>button>span{gap:2px;margin-top:3px}
+  .academic-days em{padding:2px 3px;font-size:6px}
+  .academic-agenda{border-top:1px solid #eee5e8!important}
+  .academic-agenda>header{height:56px;padding:0 14px}.academic-agenda h3{font-size:15px}
+  .academic-agenda>div{padding:11px}.academic-empty{min-height:120px;padding:18px;text-align:center}
+
+  /* Operations details: one frame, aligned controls and compact rows. */
+  .operations-overview{width:100%;min-width:0}
+  .operations-overview .operations-details{padding:0!important;border-radius:16px!important}
+  .operations-details-toggle{min-height:58px;padding:13px 14px!important;gap:10px}
+  .operations-details-toggle>span{min-width:0}.operations-details-toggle small{line-height:1.4}
+  .operations-details-body{padding:0 11px 12px!important}
+  .analytics-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;padding:11px 0!important}
+  .analytics-actions label,.analytics-actions>.secondary-button{width:100%!important;min-width:0}
+  .analytics-actions>.secondary-button{grid-column:1/-1}
+  .analytics-actions input{min-width:0;height:42px!important;padding:0 8px!important;font-size:13px!important}
+  .analytics-monthly{margin-bottom:11px;border-radius:11px}
+  .analytics-monthly>header,.analytics-table>header{padding:11px 12px!important}
+  .analytics-monthly>div{padding:10px 12px!important;gap:9px!important}
+  .analytics-monthly article{grid-template-columns:64px minmax(0,1fr)!important;gap:5px 8px!important}
+  .analytics-monthly article>span{height:14px}.analytics-monthly article>span i,.analytics-monthly article>span em{height:7px}
+  .analytics-monthly article>small{grid-column:1/-1!important;line-height:1.35}
+  .analytics-tables{gap:11px!important}
+  .analytics-table{width:100%;min-width:0;border-radius:11px}
+  .analytics-table-row{min-height:38px;padding:0 10px!important;grid-template-columns:minmax(110px,1.35fr) repeat(3,minmax(42px,.55fr))!important;gap:5px!important}
+  .analytics-table-row b,.analytics-table-row span{min-width:0;font-size:8px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Shared mobile blocks: remove accidental double padding and keep edges aligned. */
+  .operations-checks,.attendance-panel,.makeup-panel,.assignment-list,.assignment-detail,.consultation-panel,.billing-rule-panel,.billing-receipt-panel{border-radius:16px!important;overflow:hidden}
+  .operations-checks{padding:0!important}.operations-checks>header{padding:15px!important}.operations-check-grid{padding:11px!important}
+  .overview-kpis{gap:8px!important}.overview-kpis>article,.overview-kpis>button{min-height:102px!important;padding:14px!important;border-radius:13px!important}
+  .overview-secondary{margin-bottom:12px;padding:10px 12px!important}
+  .table-tools,.hub-toolbar,.consultation-toolbar{box-sizing:border-box}
+  .staff-more-sheet{max-height:min(88dvh,760px)!important}
+  .staff-sheet-grid{gap:7px!important}.staff-sheet-grid>button{min-height:74px!important}
+
+  /* Dashboard, class and schedule hubs. */
+  .dashboard-grid,.dashboard-focus-grid,.teacher-workspace-grid,.teacher-class-cards,.teacher-schedule-shortcuts{min-width:0}
+  .teacher-class-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .teacher-class-cards>button{min-width:0!important;min-height:104px!important;padding:13px!important}
+  .teacher-schedule-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .teacher-schedule-shortcuts>button{min-width:0!important;min-height:88px!important;padding:12px!important}
+  .teacher-special-workspace,.class-day-workspace,.correction-management-workspace{width:100%;min-width:0;border-radius:16px!important;overflow:hidden}
+  .teacher-special-workspace>header,.class-day-workspace>header{padding:15px!important}
+  .hub-tabs,.schedule-tabs{width:100%;max-width:100%;padding-bottom:2px;overflow-x:auto!important}
+  .hub-tabs button,.schedule-tabs button{flex:0 0 auto;white-space:nowrap}
+  .class-week-navigation,.special-week-navigation,.correction-week-navigation{width:100%;min-width:0}
+  .class-week-strip,.special-week-strip,.correction-week-strip{min-width:0;overflow-x:auto}
+
+  /* Attendance, makeup, correction and consultation work cards. */
+  .attendance-class-tabs,.consultation-class-cards{width:100%;max-width:100%;overflow-x:auto!important}
+  .attendance-class-tabs>button,.consultation-class-cards>button{flex:0 0 min(76vw,280px)!important;min-width:0!important}
+  .attendance-list,.makeup-list,.consultation-list,.assignment-list{min-width:0}
+  .learning-person-card,.correction-student-card,.assignment-detail section{min-width:0}
+  .learning-person-card{padding:13px!important;border-radius:14px!important}
+  .learning-fields,.correction-report-fields{grid-template-columns:1fr!important;gap:9px!important}
+  .learning-fields textarea,.correction-report-fields textarea{min-height:82px!important}
+  .consultation-summary{width:100%;gap:7px!important;overflow-x:auto;scrollbar-width:none}
+  .consultation-summary>*{flex:0 0 auto}
+
+  /* Tuition and billing: keep each row inside one phone width. */
+  .tuition-summary{gap:8px!important}.tuition-summary>article{min-width:0;min-height:92px!important;padding:13px!important}
+  .tuition-table{width:100%;margin:0!important;border-radius:16px!important}
+  .tuition-table article{min-width:0!important;gap:9px!important;padding:13px!important}
+  .tuition-table article>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .tuition-table article button{min-height:40px!important}
+  .billing-rule-panel>header,.billing-receipt-panel>header{padding:14px!important;align-items:stretch;flex-direction:column}
+  .billing-rule-panel>header select,.billing-receipt-panel>header input{width:100%;height:42px}
+  .billing-enrollment-list,.billing-rule-list{padding:14px!important}
+  .billing-enrollment-list label{grid-template-columns:minmax(0,1fr) 104px 16px!important}
+  .billing-rule-list>div{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .billing-rule-list>div label{grid-column:1/-1}
+  .billing-rule-panel>footer{padding:13px 14px!important;align-items:stretch;flex-direction:column;gap:10px}
+  .billing-rule-panel>footer button{width:100%}
+  .billing-receipt-panel article{grid-template-columns:minmax(0,1fr) auto!important;padding:12px 14px!important}
+  .billing-receipt-panel article button{grid-column:1/-1;min-height:38px}
+
+  /* Notice/message, account and bulk tools. */
+  .account-import-guide,.account-import-preview,.account-import-result{padding:15px!important;margin-bottom:12px!important}
+  .account-import-guide{gap:8px!important}.account-import-guide p{padding:11px!important}
+  .account-import-preview article{min-width:0;gap:8px!important;padding:12px 2px!important}
+  .account-toolbar,.account-heading-actions{width:100%}
+  .account-toolbar>*{min-width:0}.account-table{margin:0!important;padding:0!important;width:100%!important}
+  .account-table>article{grid-template-columns:minmax(0,1fr) auto!important;padding:13px!important;gap:9px!important}
+  .account-table>article>div:last-child{grid-column:1/-1;width:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .account-table>article button{min-height:40px}
+  .menu-editor,.settings-grid,.my-account-grid{grid-template-columns:1fr!important;gap:11px!important}
+
+  /* Backup and long-form utility pages. */
+  .backup-hero{min-height:0!important;padding:20px!important;gap:18px!important;border-radius:18px!important}
+  .backup-hero h1{font-size:25px!important}.backup-summary{margin-top:18px!important;gap:10px!important}
+  .backup-summary span{min-width:0;padding-right:10px!important}.backup-main-action{min-height:64px!important}
+  .backup-grid,.backup-tools{gap:10px!important}.backup-card{min-height:0!important;padding:17px!important;border-radius:15px!important}
+  .backup-card h3{margin-top:13px}.backup-card>p{margin-bottom:14px}.backup-card footer button{min-height:40px}
+  .backup-tool{min-height:0!important;padding:16px!important;gap:11px!important;border-radius:15px!important}
+  .backup-history>header{padding:15px!important}.backup-history-list article{padding:11px 14px!important;gap:9px!important}
+  .backup-sql code{max-width:100%;overflow-x:auto;white-space:pre}
+
+  /* Student detail and family screens. */
+  .student-hub-modal,.student-hub-body,.student-summary,.student-unified-learning{width:100%;min-width:0;max-width:100%}
+  .student-summary-cards,.student-consultation-summary{gap:8px!important}
+  .student-summary-cards>article,.student-consultation-summary>article{min-width:0;min-height:72px!important;padding:12px!important}
+  .student-correction-learning-cards>article>div{grid-template-columns:1fr!important;padding:11px!important}
+  .student-learning-history-grid{min-height:0!important}
+  .student-exam-bars{height:172px!important;margin-right:0!important;margin-left:0!important;padding:10px 8px!important}
+  .family-mobile-home,.family-dashboard-grid,.family-score-trends{width:100%;min-width:0}
+  .family-profile-card,.family-learning-note,.family-correction-feed,.family-learning-report-feed{box-sizing:border-box;max-width:100%}
+  .family-quick-links{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px 3px!important}
+
+  /* Every dialog uses the available viewport and consistent internal rails. */
+  .modal-backdrop,.nested-modal-backdrop{max-width:100vw;overflow:hidden}
+  .student-modal,.modal,.class-creator,.subject-editor,.roster-editor,.class-manager-modal,.academic-editor{box-sizing:border-box;min-width:0!important}
+  .student-modal>header,.modal>header{padding-right:15px!important;padding-left:15px!important}
+  .student-modal form,.student-modal>.modal-body,.modal>.modal-body{padding-right:15px!important;padding-left:15px!important}
+  .academic-editor .academic-form{padding:15px!important;gap:11px!important}
+  .academic-editor>footer{grid-template-columns:1fr 1fr!important;padding:11px 15px calc(11px + env(safe-area-inset-bottom))!important}
+  .academic-editor>footer .danger-link{grid-column:1/-1}.academic-editor>footer>span{display:none}
+}
+
+@media (max-width:390px){
+  .academic-days>i,.academic-days>button{min-height:66px!important;height:66px!important}
+  .academic-days .holiday-name,.academic-days em{display:none}
+  .lifecycle-status-cards button{padding:9px 8px!important}
+  .analytics-table-row{grid-template-columns:minmax(96px,1.3fr) repeat(3,minmax(38px,.55fr))!important}
+}
