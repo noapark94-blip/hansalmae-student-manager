@@ -41,6 +41,7 @@ import "./class-record-compact.css";
 import "./invite-signup.css";
 import "./account-settings-polish.css";
 import "./desktop-design-system.css";
+import "./mobile-design-system.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
