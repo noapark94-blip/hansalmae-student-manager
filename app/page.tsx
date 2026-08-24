@@ -134,7 +134,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "corrections", label: "첨삭 시간표", icon: "✎" },
   { id: "transport", label: "차량 운행표", icon: "◇" },
   { id: "attendance", label: "출결 입력", icon: "✓" },
-  { id: "makeups", label: "보강 일정", icon: "↻" },
+  { id: "makeups", label: "결석·보강", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "reports", label: "데일리·위클리 리포트", icon: "▥" },
   { id: "consultations", label: "상담", icon: "☏" },
