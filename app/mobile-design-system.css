@@ -12,7 +12,7 @@
   /* 상단 앱 바 */
   .topbar{height:62px!important;min-height:62px;padding:0 max(var(--mobile-gutter),env(safe-area-inset-left))!important;gap:8px!important;top:0;border-bottom-color:#ebe5e7!important;background:rgba(255,255,255,.96)!important}
   .menu-button{width:42px;height:42px;flex:0 0 42px;display:grid!important;place-items:center;padding:0;border:1px solid #ece5e8!important;border-radius:12px!important;background:#fff!important;color:#51474c;font-size:0!important;box-shadow:0 3px 12px rgba(55,35,45,.04)}
-  .menu-button::before{content:"";width:18px;height:12px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;background:linear-gradient(currentColor,currentColor) center/18px 2px no-repeat}
+  .menu-button::before{content:"";width:18px;height:12px;border-top:2px solid currentColor;border-bottom:2px solid currentColor;background:linear-gradient(currentColor,currentColor) center/18px 2px no-repeat;transform:translateY(2px)}
   .global-search{min-width:0;flex:1}
   .search-wrap,.global-search .search-wrap{width:100%!important;height:42px!important;padding:0 12px!important;border:1px solid #ece7e8!important;border-radius:12px!important;background:#f8f6f5!important}
   .search-wrap input{min-width:0;height:40px!important;margin:0!important;padding:0!important;font-size:14px!important}
