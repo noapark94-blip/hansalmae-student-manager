@@ -67,9 +67,21 @@
 }
 
 @media (min-width:761px){
-  .auth-card.login-card{width:430px;padding:40px 46px 36px;background:rgba(255,255,255,.965)}
+  .auth-card.login-card{width:510px;padding:50px 55px 44px;background:rgba(255,255,255,.965)}
   .auth-card.signup-card{width:500px;padding:31px 46px 38px;background:rgba(255,255,255,.97)}
-  .auth-card.login-card .auth-copy{margin:13px 0 25px!important;font-size:12px!important}
+  .login-card .auth-brand-lockup{gap:13px;margin-bottom:13px}
+  .login-card .auth-brand-lockup>img{width:82px;height:82px}
+  .login-card .auth-brand-lockup strong,.login-card .auth-brand-lockup span{font-size:28px}
+  .auth-card.login-card .auth-copy{margin:15px 0 30px!important;font-size:14px!important}
+  .auth-card.login-card form{gap:18px}
+  .auth-card.login-card form label{font-size:13px}
+  .auth-card.login-card input:not([type="checkbox"]){height:54px;padding:0 16px;font-size:15px}
+  .auth-card.login-card .remember-email{font-size:13px}
+  .auth-card.login-card .remember-email input{width:19px;height:19px}
+  .auth-card.login-card form .primary{height:54px;font-size:14px}
+  .auth-card.login-card .auth-divider{margin-top:21px;font-size:10px}
+  .auth-card.login-card .auth-signup-link{min-height:50px;margin-top:13px;font-size:13px!important}
+  .auth-card.login-card>small{margin-top:24px;font-size:11px}
   .auth-card.signup-card .auth-copy{font-size:12px!important}
   .signup-card .signup-heading h1{font-size:25px!important;letter-spacing:-.7px!important}
   .signup-card .signup-back{top:24px;left:24px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;line-height:1}
