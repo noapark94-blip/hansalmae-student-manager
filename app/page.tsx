@@ -1160,7 +1160,8 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
       rows
         .filter((student) => {
           const enrollments = activeEnrollments(student);
-          return (subject === "all" || enrollments.some((item) => item.classes?.subject === subject)) && (classId === "all" || enrollments.some((item) => item.class_id === classId)) && (grade === "all" || student.grade === grade) && (school === "all" || student.school === school);
+          const matchesClass = classId === "all" || (classId === "unassigned" ? enrollments.length === 0 : enrollments.some((item) => item.class_id === classId));
+          return (subject === "all" || enrollments.some((item) => item.classes?.subject === subject)) && matchesClass && (grade === "all" || student.grade === grade) && (school === "all" || student.school === school);
         })
         .sort((a, b) => (sort === "attendance" ? (b.attendanceRate ?? -1) - (a.attendanceRate ?? -1) || a.name.localeCompare(b.name, "ko") : sort === "school" ? (a.school ?? "").localeCompare(b.school ?? "", "ko") || a.name.localeCompare(b.name, "ko") : sort === "grade" ? (a.grade ?? "").localeCompare(b.grade ?? "", "ko") || a.name.localeCompare(b.name, "ko") : a.name.localeCompare(b.name, "ko"))),
     [rows, subject, classId, grade, school, sort],
@@ -1209,8 +1210,9 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
             </label>
             <label>
               <span>클래스</span>
-              <select value={classId} onChange={(event) => setClassId(event.target.value)}>
+              <select value={classId} onChange={(event) => {const value=event.target.value;setClassId(value);if(value==="unassigned")setSubject("all");}}>
                 <option value="all">전체 클래스</option>
+                <option value="unassigned">미배정</option>
                 {classes.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
@@ -1262,7 +1264,7 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
                 {subject} ×
               </button>
             )}
-            {classId !== "all" && <button onClick={() => setClassId("all")}>{selectedClass?.name ?? "선택 클래스"} ×</button>}
+            {classId !== "all" && <button onClick={() => setClassId("all")}>{classId === "unassigned" ? "미배정" : selectedClass?.name ?? "선택 클래스"} ×</button>}
             {grade !== "all" && <button onClick={() => setGrade("all")}>{grade} ×</button>}
             {school !== "all" && <button onClick={() => setSchool("all")}>{school} ×</button>}
             <button className="reset" onClick={reset}>
