@@ -44,6 +44,7 @@ import "./desktop-design-system.css";
 import "./mobile-design-system.css";
 import "./family-mobile-app.css";
 import "./staff-mobile-app.css";
+import "./grade-progression-board.css";
 import "./absence-makeup.css";
 import "./academic-calendar.css";
 import { EscapeModalCloser } from "./escape-modal-closer";

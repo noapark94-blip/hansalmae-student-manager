@@ -31,6 +31,7 @@ import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
 import { useMobileGreeting } from "./mobile-greeting";
 import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
+import { GradeProgressionBoard } from "./grade-progression-board";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
@@ -116,7 +117,7 @@ type MobileVehicleRow = {
 };
 type MobileManualVehicleRow = { studentId: string; weekday: number; direction: "pickup" | "dropoff"; time: string };
 type MobileVehicleSummary = { pickup: number; dropoff: number; excluded: number; missingLocations: number; hasNote: boolean; nextTime: string | null };
-type MobileAdminSummary = { accountRequests: number; unpaidStudents: number; overdueConsultations: number };
+type MobileAdminSummary = { accountRequests: number; unpaidStudents: number; overdueConsultations: number; gradeTransitions: number };
 type AssignmentCount = {
   unsubmitted: number;
   reviewPending: number;
@@ -758,6 +759,7 @@ export default function Home() {
           {view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
           {view === "students" && (
             <div className="student-page-layout">
+              {profile.role === "admin" && <GradeProgressionBoard supabase={supabase} onChanged={() => window.location.reload()} />}
               {profile.role === "admin" && <StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter} />}
               <Students rows={filteredStudents} allRows={students} total={students.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} onOpen={openStudentDetails} />
             </div>
@@ -910,7 +912,8 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
       supabase.rpc("admin_account_invite_board"),
       supabase.rpc("tuition_board", { p_month: `${month}-01` }),
       supabase.rpc("consultation_dashboard_count"),
-    ]).then(([requestsResult, invitesResult, tuitionResult, consultationResult]) => {
+      supabase.rpc("admin_grade_progression_board"),
+    ]).then(([requestsResult, invitesResult, tuitionResult, consultationResult, progressionResult]) => {
       if (!active) return;
       const requests = requestsResult.error ? [] : ((requestsResult.data ?? []) as unknown[]);
       const invites = invitesResult.error ? [] : (((invitesResult.data as { invites?: { status: string }[] } | null)?.invites ?? []));
@@ -920,6 +923,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
         accountRequests: requests.length + invites.filter((item) => item.status === "active").length,
         unpaidStudents: charges.filter((item) => item.balance > 0 && item.status !== "waived").length,
         overdueConsultations: consultations?.overdue ?? 0,
+        gradeTransitions: progressionResult.error ? 0 : Number((progressionResult.data as { pendingCount?:number } | null)?.pendingCount ?? 0),
       });
     });
     return () => { active = false; };
@@ -1085,7 +1089,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
             </div>
             <small>{todayClasses && todayClasses.length > 3 ? `전체 ${todayClasses.length}개 수업 · 더보기 ›` : "전체 시간표 보기 ›"}</small>
           </button>
-          <button type="button" className="staff-mobile-glance-card admin-operations" onClick={() => onNavigate("analytics")}>
+          <button type="button" className="staff-mobile-glance-card admin-operations" onClick={() => onNavigate(adminSummary?.gradeTransitions ? "students" : "analytics")}>
             <header><span>운영 확인</span><HansalmaeIcon name={viewIcon.analytics} size={17} /></header>
             {adminSummary === null || makeupItems === null ? <p className="staff-mobile-glance-loading">운영 항목 확인 중…</p> : (
               <div className="staff-mobile-operation-counts">
@@ -1093,9 +1097,10 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
                 <span className={adminSummary.accountRequests ? "attention" : ""}><small>계정 요청</small><b>{adminSummary.accountRequests}</b></span>
                 <span className={adminSummary.unpaidStudents ? "attention" : ""}><small>미납 학생</small><b>{adminSummary.unpaidStudents}</b></span>
                 <span className={adminSummary.overdueConsultations ? "attention" : ""}><small>장기 미상담</small><b>{adminSummary.overdueConsultations}</b></span>
+                <span className={adminSummary.gradeTransitions ? "attention" : ""}><small>학년 승인</small><b>{adminSummary.gradeTransitions}</b></span>
               </div>
             )}
-            <small>학원 운영 전체보기 ›</small>
+            <small>{adminSummary?.gradeTransitions ? "학년 전환 승인하기 ›" : "학원 운영 전체보기 ›"}</small>
           </button>
         </div>
       )}
@@ -1901,7 +1906,7 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
   );
 }
 
-const studentGrades = ["초6", "중1", "중2", "중3", "고1", "고2", "고3", "재수", "검정고시"];
+const studentGrades = ["초1", "초2", "초3", "초4", "초5", "초6", "중1", "중2", "중3", "고1", "고2", "고3", "재수", "검정고시"];
 function gradeCode(value: string) {
   return value.replace(/\s/g, "").match(/(?:초6|중[1-3]|고[1-3]|재수|검정고시)/)?.[0] ?? "";
 }
