@@ -871,9 +871,15 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
           { id: "students" as View, label: "학생 관리", tone: "blue" },
           { id: "class-management" as View, label: "클래스", tone: "wine" },
           { id: "schedule" as View, label: "시간표", tone: "green" },
+          { id: "attendance" as View, label: "출결", tone: "amber" },
+          { id: "makeups" as View, label: "결석·보강", tone: "violet" },
+          { id: "corrections" as View, label: "첨삭 시간표", tone: "gray" },
+          { id: "assignments" as View, label: "첨삭 관리", tone: "wine" },
           { id: "reports" as View, label: "리포트", tone: "violet" },
+          { id: "consultations" as View, label: "상담", tone: "blue" },
+          { id: "transport" as View, label: "차량 운행", tone: "green" },
           { id: "tuition" as View, label: "원비 정산", tone: "amber" },
-          { id: "settings" as View, label: "계정·역할", tone: "gray" },
+          { id: "analytics" as View, label: "운영 현황", tone: "gray" },
         ]
       : role === "assistant"
         ? [
@@ -889,6 +895,9 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
             { id: "reports" as View, label: "리포트", tone: "violet" },
             { id: "consultations" as View, label: "상담", tone: "wine" },
             { id: "makeups" as View, label: "결석·보강", tone: "gray" },
+            { id: "attendance" as View, label: "출결", tone: "green" },
+            { id: "assignments" as View, label: "첨삭 관리", tone: "blue" },
+            { id: "students" as View, label: "학생", tone: "violet" },
           ]
       : [
           { id: "class-management" as View, label: "내 수업", tone: "blue" },
@@ -897,28 +906,30 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
           { id: "reports" as View, label: "리포트", tone: "violet" },
           { id: "consultations" as View, label: "상담", tone: "wine" },
           { id: "makeups" as View, label: "결석·보강", tone: "gray" },
+          { id: "attendance" as View, label: "출결", tone: "green" },
+          { id: "assignments" as View, label: "첨삭 관리", tone: "blue" },
+          { id: "transport" as View, label: "차량 운행", tone: "violet" },
+          { id: "students" as View, label: "학생", tone: "amber" },
         ];
   return (
     <section className="staff-mobile-home" aria-label="모바일 업무 홈">
       <div className="staff-mobile-welcome">
-        <p>{roleLabels[role]} 홈</p>
-        <h1>{displayName}님, 안녕하세요</h1>
-        <span>오늘 필요한 학원 업무를 빠르게 확인하세요.</span>
+        <p>한살매 수업노트</p>
+        <h1>오늘도 반갑습니다</h1>
       </div>
-      <div className="staff-mobile-summary">
+      <div className="staff-mobile-profile-card">
+        <i aria-hidden="true">{displayName.slice(0, 1)}</i>
         <div>
-          <small>재원 학생</small>
-          <b>
-            {studentsLoading ? "…" : activeStudentCount}
-            <em>명</em>
-          </b>
+          <b>{displayName}</b>
+          <span>{roleLabels[role]}</span>
+          <small>{role === "assistant" ? "첨삭 업무 전용 계정" : `재원 학생 ${studentsLoading ? "…" : activeStudentCount}명`}</small>
         </div>
         <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" ? "my-account" : "students")}>
           <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" ? "user" : "students"} size={19} />
           <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
-      <div className="staff-mobile-quick-links">
+      <div className={`staff-mobile-quick-links ${role === "assistant" ? "compact" : ""}`}>
         {actions.map((item) => (
           <button type="button" key={item.id} onClick={() => onNavigate(item.id)}>
             <i className={item.tone}>
@@ -931,6 +942,7 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
     </section>
   );
 }
+
 
 function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: UserRole; activeView: View; onSelect: (view: View) => void; onMore: () => void }) {
   const items: { id: View; label: string }[] =
