@@ -10,7 +10,7 @@ type MenuItem = { id: View; label: string; icon: string };
 type MenuFolder = { id: string; name: string; itemIds: View[] };
 type MenuLayout = { folders: MenuFolder[]; labels?: Partial<Record<View, string>> };
 
-const hiddenStandaloneViews = new Set<View>(["bulk-import", "bulk-accounts", "guide", "attendance", "makeups"]);
+const hiddenStandaloneViews = new Set<View>(["bulk-import", "bulk-accounts", "guide", "attendance"]);
 const defaultMenuLabel = (item: MenuItem) => item.id === "assignments" ? "첨삭 관리" : item.label;
 
 const defaultLayout: MenuLayout = {
@@ -19,7 +19,8 @@ const defaultLayout: MenuLayout = {
     { id: "classes", name: "클래스 관리", itemIds: ["class-management", "assignments"] },
     { id: "students", name: "학생 관리", itemIds: ["students"] },
     { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
-    { id: "operations", name: "학원 운영", itemIds: ["consultations", "communications", "tuition", "analytics", "backup", "audit"] },
+    { id: "lessons", name: "수업 관리", itemIds: ["makeups", "consultations"] },
+    { id: "operations", name: "학원 운영", itemIds: ["communications", "tuition", "analytics", "backup", "audit"] },
     { id: "accounts", name: "계정 설정", itemIds: ["settings", "my-account"] },
   ],
   labels: {},
@@ -38,7 +39,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   useEffect(() => {
     let active = true;
     void supabase.rpc("get_app_menu_layout").then(({ data }) => {
-      if (active && isMenuLayout(data)) setLayout(mergeMissingItems(removeLessonFolder(data), usableItems));
+      if (active && isMenuLayout(data)) setLayout(mergeMissingItems(data, usableItems));
     });
     return () => { active = false; };
   }, [supabase, usableItems]);
@@ -177,16 +178,6 @@ function mergeMissingItems(layout: MenuLayout, items: MenuItem[]): MenuLayout {
   if (missing.length) folders[0] = { ...folders[0], itemIds:[...folders[0].itemIds,...missing] };
   const validLabelEntries = Object.entries(layout.labels ?? {}).filter(([id]) => validIds.has(id as View));
   return { folders, labels: Object.fromEntries(validLabelEntries) as Partial<Record<View, string>> };
-}
-
-function removeLessonFolder(layout: MenuLayout): MenuLayout {
-  const lessonFolders = layout.folders.filter((folder) => folder.name.trim() === "수업 관리");
-  if (!lessonFolders.length) return layout;
-  const movedIds = lessonFolders.flatMap((folder) => folder.itemIds);
-  const remaining = layout.folders.filter((folder) => folder.name.trim() !== "수업 관리");
-  const operationsIndex = remaining.findIndex((folder) => folder.id === "operations" || folder.name.trim() === "학원 운영");
-  if (operationsIndex < 0) return { ...layout, folders: [...remaining, { id: "operations", name: "학원 운영", itemIds: movedIds }] };
-  return { ...layout, folders: remaining.map((folder, index) => index === operationsIndex ? { ...folder, itemIds: [...movedIds, ...folder.itemIds.filter((id) => !movedIds.includes(id))] } : folder) };
 }
 
 function isMenuLayout(value: unknown): value is MenuLayout {
