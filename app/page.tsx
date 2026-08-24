@@ -381,10 +381,9 @@ export default function Home() {
       showToast("이 역할에서는 접근할 수 없는 메뉴예요.");
       return;
     }
-    if (next === "corrections" || next === "assignments") {
-      window.sessionStorage.setItem("hansalmae:correction-mode", next === "corrections" ? "timetable" : "management");
+    if (next === "assignments") {
+      window.sessionStorage.setItem("hansalmae:correction-mode", "management");
       window.dispatchEvent(new Event("hansalmae-correction-mode"));
-      next = "assignments";
     }
     setView(next);
     setMobileNav(false);
