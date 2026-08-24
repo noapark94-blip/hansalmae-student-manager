@@ -20,6 +20,7 @@ export function ReportCenter({supabase,profile,students,initialReportId}:{supaba
   const [type,setType]=useState<ReportType>("daily");
   const [anchor,setAnchor]=useState(today());
   const [studentId,setStudentId]=useState("");
+  const [studentQuery,setStudentQuery]=useState("");
   const [items,setItems]=useState<ListItem[]>([]);
   const [detail,setDetail]=useState<Detail|null>(null);
   const [snapshot,setSnapshot]=useState<Lesson[]>([]);
@@ -45,7 +46,12 @@ export function ReportCenter({supabase,profile,students,initialReportId}:{supaba
   },[staff,supabase]);
 
   useEffect(()=>{void (async()=>{const rows=await loadList();if(initialReportId)await openReport(initialReportId);else if(!staff&&rows[0])await openReport(rows[0].id);else setLoading(false)})()},[initialReportId,loadList,openReport,staff]);
-  const selectedStudentId=studentId||students[0]?.id||"";
+  const selectedStudentId=studentId||(!studentQuery?students[0]?.id:"")||"";
+  const visibleStudents=useMemo(()=>{
+    const query=studentQuery.trim().toLowerCase();
+    if(!query)return students;
+    return students.filter(student=>[student.name,student.school??"",student.grade??""].some(value=>value.toLowerCase().includes(query)));
+  },[studentQuery,students]);
 
   async function preview(){
     if(!selectedStudentId)return;setLoading(true);setMessage("");setDetail(null);
@@ -80,7 +86,8 @@ export function ReportCenter({supabase,profile,students,initialReportId}:{supaba
     <nav className={styles.tabs}><button className={type==="daily"?styles.active:""} onClick={()=>{setType("daily");setDetail(null)}}>데일리</button><button className={type==="weekly"?styles.active:""} onClick={()=>{setType("weekly");setDetail(null)}}>위클리</button></nav>
     {staff?<div className={styles.workspace}>
       <aside className={styles.controls}>
-        <label>학생<select value={selectedStudentId} onChange={e=>{setStudentId(e.target.value);setDetail(null)}}><option value="">학생 선택</option>{students.map(s=><option key={s.id} value={s.id}>{s.name} · {s.school??"학교 미입력"} {s.grade??""}</option>)}</select></label>
+        <label className={styles.studentSearch}>학생 검색<span><HansalmaeIcon name="students" size={16}/><input value={studentQuery} onChange={e=>{setStudentQuery(e.target.value);setStudentId("");setDetail(null)}} placeholder="이름, 학교, 학년 검색" aria-label="리포트 학생 검색"/>{studentQuery&&<button type="button" onClick={()=>setStudentQuery("")} aria-label="학생 검색어 지우기">×</button>}</span></label>
+        <label>학생<select value={selectedStudentId} onChange={e=>{setStudentId(e.target.value);setDetail(null)}}><option value="">학생 선택</option>{visibleStudents.map(s=><option key={s.id} value={s.id}>{s.name} · {s.school??"학교 미입력"} {s.grade??""}</option>)}</select><small>{studentQuery?`검색 결과 ${visibleStudents.length}명`:`전체 ${students.length}명`}</small></label>
         <label>{type==="daily"?"날짜":"주간 기준일"}<input type="date" value={anchor} onChange={e=>{setAnchor(e.target.value);setDetail(null)}}/></label>
         <small>{formatPeriod(period.start,period.end)}</small><button className={styles.primary} onClick={()=>void preview()} disabled={!selectedStudentId||loading}>{loading?"불러오는 중…":"리포트 미리보기"}</button>
         <hr/><b>최근 리포트</b><div className={styles.history}>{items.filter(i=>i.reportType===type).slice(0,12).map(item=><button key={item.id} onClick={()=>void openReport(item.id)}><span>{item.studentName}<small>{formatPeriod(item.periodStart,item.periodEnd)}</small></span><em className={item.status===dayStatus("published")?styles.published:styles.draft}>{item.status==="published"?(item.viewedAt?"열람":"발행"):"임시"}</em></button>)}</div>
