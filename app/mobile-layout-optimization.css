@@ -192,5 +192,30 @@
   .mobile-daily-main b,.mobile-daily-main small,.mobile-daily-main em{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}.mobile-daily-main b{font-size:11px}.mobile-daily-main small{font-size:8px;color:#64585e;white-space:normal}.mobile-daily-main em{font-size:8px;color:var(--muted);font-style:normal;white-space:nowrap}
   .mobile-daily-edit{position:absolute;right:6px;bottom:6px;padding:3px 7px;border:1px solid color-mix(in srgb,var(--schedule-color) 35%,white);border-radius:6px;background:#fff;color:var(--wine);font-size:8px}
   .mobile-daily-empty{margin:0;padding:28px 16px;text-align:center;color:var(--muted);font-size:11px}
-  .weekly-schedule-view{display:none}.weekly-schedule-view.mobile-visible{display:block;max-width:100%;overflow-x:auto}
+  .weekly-schedule-view{display:none}
+  .weekly-schedule-view.mobile-visible{display:block;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;touch-action:pan-x;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .weekly-schedule-view.mobile-visible .aligned-schedule{width:max-content!important;min-width:920px!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+
+  /* Mobile correction timetable: compact time rails and card-like assignment rows. */
+  .correction-timetable-mode .correction-management-workspace{padding:0!important;border:0!important;background:transparent!important}
+  .correction-timetable-mode .correction-mobile-days{position:sticky;top:0;z-index:8;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:0 0 10px;padding:7px;background:rgba(250,247,248,.96);border:1px solid #eee3e8;border-radius:14px;box-shadow:0 5px 18px rgba(63,37,48,.06);backdrop-filter:blur(10px)}
+  .correction-timetable-mode .correction-mobile-days button{min-width:0;min-height:42px;padding:0;border:0;border-radius:10px;background:transparent;color:#71646a;font-size:12px;font-weight:800;box-shadow:none}
+  .correction-timetable-mode .correction-mobile-days button.active{background:var(--wine);color:#fff;box-shadow:0 5px 12px rgba(146,45,97,.2)}
+  .correction-timetable-mode .correction-timetable-subject-filter{margin:0 0 10px!important;padding:0!important;gap:6px!important;overflow-x:auto;scrollbar-width:none}
+  .correction-timetable-mode .correction-week-board{display:block!important;padding:0!important}
+  .correction-timetable-mode .correction-day.mobile-active{border:1px solid #eadfe4!important;border-radius:16px!important;box-shadow:0 8px 24px rgba(62,38,48,.06);overflow:hidden!important}
+  .correction-timetable-mode .correction-day>header{min-height:50px;padding:0 14px!important;background:linear-gradient(135deg,#fff,#fbf5f8)!important}
+  .correction-timetable-mode .correction-day>header b{font-size:14px!important}.correction-timetable-mode .correction-day>header em{padding:5px 9px!important;background:#f8eaf1!important;font-size:9px!important}
+  .correction-timetable-mode .correction-slot{grid-template-columns:62px minmax(0,1fr)!important;min-height:78px!important;background:#fff;border-bottom-color:#eee5e9!important}
+  .correction-timetable-mode .correction-slot-time{padding:12px 7px!important;background:#fcfafb!important;border-right-color:#eee5e9!important;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px}
+  .correction-timetable-mode .correction-slot-time b{font-size:10px!important;color:#463940!important}.correction-timetable-mode .correction-slot-time span{font-size:8px!important;color:#a09299!important}
+  .correction-timetable-mode .correction-slot-content{min-height:78px!important;padding:7px!important;align-content:center!important;background:#fff}
+  .correction-timetable-mode .correction-slot-empty{margin:auto!important;padding:8px 10px;border:1px dashed #e2cbd6;border-radius:9px;color:#a06d85!important;background:#fffafd;font-size:9px!important}
+  .correction-timetable-mode .correction-slot-roster{display:grid;gap:6px}.correction-timetable-mode .correction-slot-summary{min-height:26px;padding:0 2px;display:flex;align-items:center;justify-content:space-between}
+  .correction-timetable-mode .correction-slot-summary>span{display:flex;align-items:center;gap:5px}.correction-timetable-mode .correction-slot-summary>span>b{font-size:9px}.correction-timetable-mode .correction-slot-summary small{padding:3px 5px;border-radius:999px;font-size:7px}
+  .correction-timetable-mode .correction-slot-summary>button{width:26px;height:26px;border:1px solid #e3cbd6;border-radius:8px;background:#fff;color:var(--wine);font-size:14px}
+  .correction-timetable-mode .correction-slot-students{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  .correction-timetable-mode button.correction-student{min-height:40px!important;padding:7px 8px!important;border:1px solid #eee4e8!important;border-left:3px solid #b35a83!important;border-radius:9px!important;background:#fbf6f8!important;text-align:left!important;justify-content:flex-start!important}
+  .correction-timetable-mode button.correction-student.subject-수학{border-left-color:#537ba3!important;background:#f5f8fb!important}.correction-timetable-mode button.correction-student.subject-국어{border-left-color:#aa7e3f!important;background:#fbf8f2!important}
+  .correction-timetable-mode button.correction-student b{font-size:10px!important}.correction-timetable-mode button.correction-student small{margin-top:2px;font-size:7px!important;color:#8a7d83!important}
 }
