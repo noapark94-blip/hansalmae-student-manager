@@ -83,9 +83,9 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "communications", "tuition", "my-account"],
-  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "communications", "tuition", "my-account"],
-  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "communications", "tuition", "my-account"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "consultations", "my-account"],
+  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "my-account"],
+  guardian: ["dashboard", "schedule", "attendance", "makeups", "consultations", "my-account"],
 };
 
 const notices = [
@@ -129,6 +129,10 @@ export default function Home() {
   useEffect(() => {
     if (viewRestored) window.localStorage.setItem(VIEW_STORAGE_KEY, view);
   }, [view, viewRestored]);
+
+  useEffect(() => {
+    if (profile && !roleViews[profile.role].includes(view)) setView("dashboard");
+  }, [profile, view]);
 
   useEffect(() => {
     if (!supabase) {
