@@ -75,13 +75,13 @@ export const metadata: Metadata = {
     siteName: "한살매 수업노트",
     title: "한살매 수업노트",
     description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
-    images: [{ url: "/og-hansalmae-note-v2.png", width: 1200, height: 630, alt: "한살매 노트" }],
+    images: [{ url: "/og-hansalmae-note-v5.png", width: 1200, height: 630, alt: "한살매노트" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "한살매 수업노트",
     description: "학생·학부모·선생님을 위한 수업, 시간표, 출결 및 학습 기록 서비스",
-    images: ["/og-hansalmae-note-v2.png"],
+    images: ["/og-hansalmae-note-v5.png"],
   },
   other: { "codex-preview": "development" },
 };
