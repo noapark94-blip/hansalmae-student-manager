@@ -100,6 +100,10 @@ type LiveDashboard = {
   attendance: LiveAttendance & { makeup: number };
   weekAttendance: (LiveAttendance & { weekday: number })[];
 };
+type MobileMakeupItem = {
+  recordKind?: "absence" | "schedule";
+  status?: "scheduled" | "completed" | "cancelled" | null;
+};
 type AssignmentCount = {
   unsubmitted: number;
   reviewPending: number;
@@ -723,7 +727,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}`}>
-          {view === "dashboard" && staffAccount && <StaffMobileHomeHero role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
+          {view === "dashboard" && staffAccount && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
               <div className="admin-home-switch">
@@ -865,8 +869,27 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
   );
 }
 
-function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLoading, onNavigate, onRegister }: { role: UserRole; displayName: string; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onRegister: () => void }) {
+function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, studentsLoading, onNavigate, onRegister }: { supabase: SupabaseClient; role: UserRole; displayName: string; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; onRegister: () => void }) {
   const greeting = useMobileGreeting();
+  const [todayClasses, setTodayClasses] = useState<LiveTodayClass[] | null>(null);
+  const [makeupItems, setMakeupItems] = useState<MobileMakeupItem[] | null>(null);
+  useEffect(() => {
+    if (role !== "teacher") return;
+    let active = true;
+    void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("absence_makeup_board")]).then(([dashboardResult, makeupResult]) => {
+      if (!active) return;
+      setTodayClasses(dashboardResult.error ? [] : ((dashboardResult.data as LiveDashboard | null)?.todayClasses ?? []));
+      const makeupData = makeupResult.data as { items?: MobileMakeupItem[] } | null;
+      setMakeupItems(makeupResult.error ? [] : (makeupData?.items ?? []));
+    });
+    return () => {
+      active = false;
+    };
+  }, [role, supabase]);
+  const activeMakeups = makeupItems?.filter((item) => item.status !== "cancelled") ?? [];
+  const absenceCount = activeMakeups.filter((item) => (item.recordKind ?? "absence") === "absence").length;
+  const waitingCount = activeMakeups.filter((item) => item.status !== "scheduled" && item.status !== "completed").length;
+  const scheduledCount = activeMakeups.filter((item) => item.status === "scheduled").length;
   const actions =
     role === "admin"
       ? [
@@ -941,6 +964,30 @@ function StaffMobileHomeHero({ role, displayName, activeStudentCount, studentsLo
           </button>
         ))}
       </div>
+      {role === "teacher" && (
+        <div className="staff-mobile-glance" aria-label="오늘 수업과 결석 보강 요약">
+          <button type="button" className="staff-mobile-glance-card schedule" onClick={() => onNavigate("schedule")}>
+            <header><span>오늘 수업</span><HansalmaeIcon name={viewIcon.schedule} size={17} /></header>
+            <div className="staff-mobile-class-list">
+              {todayClasses === null ? <p>시간표 확인 중…</p> : todayClasses.length ? todayClasses.slice(0, 3).map((item) => (
+                <span key={item.id}><time>{item.time.slice(0, 5)}</time><i style={{ background: item.color }} /><b>{item.name}</b></span>
+              )) : <p>오늘 수업이 없어요</p>}
+            </div>
+            <small>{todayClasses && todayClasses.length > 3 ? `외 ${todayClasses.length - 3}개 수업` : "시간표 전체보기 ›"}</small>
+          </button>
+          <button type="button" className="staff-mobile-glance-card makeup" onClick={() => onNavigate("makeups")}>
+            <header><span>결석·보강</span><HansalmaeIcon name={viewIcon.makeups} size={17} /></header>
+            {makeupItems === null ? <p className="staff-mobile-glance-loading">내역 확인 중…</p> : (
+              <div className="staff-mobile-makeup-counts">
+                <span><small>전체 결석</small><b>{absenceCount}</b></span>
+                <span className={waitingCount ? "attention" : ""}><small>보강 대기</small><b>{waitingCount}</b></span>
+                <span><small>예약</small><b>{scheduledCount}</b></span>
+              </div>
+            )}
+            <small>담당 클래스 확인 ›</small>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
