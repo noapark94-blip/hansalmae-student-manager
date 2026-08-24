@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
+import { AcademicCalendar } from "./academic-calendar";
 
-type HubTab = "all" | "teacher" | "correction" | "vehicle";
+type HubTab = "all" | "teacher" | "correction" | "vehicle" | "academic";
 type Named = { id: string; name: string };
 type ClassSchedule = { id: string; classId: string; className: string; subject: string; color: string; weekday: number; startTime: string; endTime: string; room: string | null; teachers: Named[]; students:Named[] };
 type Correction = { id: string; studentId: string; studentName: string; teacherId: string; teacherName: string; weekday: number; slotIndex: number };
@@ -56,16 +57,18 @@ export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase
   if (error) return <ScheduleMessage text={error} error />;
 
   return <>
-    <div className="page-heading compact"><div><p className="eyebrow">선생님 통합 일정</p><h1>시간표 허브</h1><p>전과목 일정과 개인 배정, 첨삭, 차량 운행을 등록하고 함께 관리합니다.</p></div></div>
+    <div className="page-heading compact"><div><p className="eyebrow">선생님 통합 일정</p><h1>시간표 허브</h1><p>전과목 일정과 개인 배정, 첨삭, 차량 운행, 학교 학사일정을 함께 관리합니다.</p></div></div>
     <div className="schedule-tabs" role="tablist">
       <button className={tab === "all" ? "active" : ""} onClick={() => setTab("all")}>전과목 시간표</button>
       <button className={tab === "teacher" ? "active" : ""} onClick={() => setTab("teacher")}>선생님별 시간표</button>
       <button className={tab === "correction" ? "active" : ""} onClick={() => setTab("correction")}>첨삭 시간표</button>
       <button className={tab === "vehicle" ? "active" : ""} onClick={() => setTab("vehicle")}>차량 운행표</button>
+      <button className={tab === "academic" ? "active" : ""} onClick={() => setTab("academic")}>학사·시험 일정</button>
     </div>
     {(tab === "all" || tab === "teacher") && <ClassScheduleBoard rows={visibleClasses} teachers={data.teachers} teacherId={teacherId} setTeacherId={setTeacherId} personal={tab === "teacher"} onAdd={() => setEditor({ kind: "class" })} onEdit={(row) => setEditor({ kind: "class", row })} onRoster={setRoster} />}
     {tab === "correction" && <CorrectionBoard rows={data.corrections} exceptions={data.correctionExceptions} profile={profile} onAdd={() => setEditor({ kind: "correction" })} onEdit={(row) => setEditor({ kind: "correction", row })} onException={(row) => setEditor({ kind: "exception", row })} />}
     {tab === "vehicle" && <VehicleBoard rows={data.autoVehicles} studentOptions={data.vehicleStudents} supabase={supabase} canEdit={profile.role === "admin" || profile.role === "manager"} onChanged={loadData} />}
+    {tab === "academic" && <AcademicCalendar supabase={supabase} profile={profile} />}
     {editor?.kind === "class" && <ClassEditor supabase={supabase} data={data} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
     {editor?.kind === "correction" && <CorrectionEditor supabase={supabase} data={data} profile={profile} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
     {editor?.kind === "exception" && <ExceptionEditor supabase={supabase} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
