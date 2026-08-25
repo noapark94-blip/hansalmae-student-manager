@@ -8,10 +8,10 @@ async function authorization(apiKey:string,apiSecret:string){const date=new Date
 Deno.serve(async request=>{
   if(request.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
   if(request.method!=="POST")return json({error:"지원하지 않는 요청입니다."},405);
-  const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
-  const bearer=request.headers.get("Authorization");if(!url||!anon||!service||!apiKey||!apiSecret||!sender)return json({error:"서버 설정을 확인해 주세요."},500);if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
-  const auth=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false}}),admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
-  const{data:{user}}=await auth.auth.getUser();if(!user)return json({error:"로그인이 필요합니다."},401);const{data:actor}=await admin.from("profiles").select("role,is_active").eq("id",user.id).single();if(actor?.role!=="admin"||!actor.is_active)return json({error:"관리자만 처리할 수 있습니다."},403);
+  const url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
+  const bearer=request.headers.get("Authorization");if(!url||!service||!apiKey||!apiSecret||!sender)return json({error:"서버 설정을 확인해 주세요."},500);if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
+  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),token=bearer.slice(7).trim();
+  const{data:{user},error:userError}=await admin.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);const{data:actor}=await admin.from("profiles").select("role,is_active").eq("id",user.id).maybeSingle();if(actor?.role!=="admin"||!actor.is_active)return json({error:"관리자만 처리할 수 있습니다."},403);
   let input:{action?:"approve"|"reject";requestId?:string;profileId?:string};try{input=await request.json()}catch{return json({error:"요청 정보를 확인해 주세요."},400)}
   const{data:help}=await admin.from("account_help_requests").select("*").eq("id",input.requestId??"").eq("status","pending").maybeSingle();if(!help)return json({error:"처리할 요청을 찾지 못했습니다."},404);
   if(input.action==="reject"){await admin.from("account_help_requests").update({status:"rejected",processed_at:new Date().toISOString(),processed_by:user.id}).eq("id",help.id).eq("status","pending");return json({success:true})}
