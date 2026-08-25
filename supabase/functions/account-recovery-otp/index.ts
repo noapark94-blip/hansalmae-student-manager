@@ -21,12 +21,14 @@ Deno.serve(async request=>{
     if(profilesError)throw profilesError;
     const matches:{id:string;display_name:string|null;phone:string|null;is_active:boolean}[]=[];
     for(const profile of profiles??[]){
+      if(digits(profile.phone??"")===phone){matches.push(profile);continue}
       const[{data:students,error:studentError},{data:guardians,error:guardianError}]=await Promise.all([
         admin.from("students").select("phone").eq("profile_id",profile.id),
         admin.from("guardians").select("phone").eq("profile_id",profile.id)
       ]);
-      if(studentError||guardianError)throw studentError??guardianError;
-      const registeredPhones=[profile.phone,...(students??[]).map(row=>row.phone),...(guardians??[]).map(row=>row.phone)].map(value=>digits(value??"")).filter(Boolean);
+      if(studentError)console.warn("[account-recovery-otp] student phone lookup skipped",{profileId:profile.id,code:studentError.code});
+      if(guardianError)console.warn("[account-recovery-otp] guardian phone lookup skipped",{profileId:profile.id,code:guardianError.code});
+      const registeredPhones=[...(students??[]).map(row=>row.phone),...(guardians??[]).map(row=>row.phone)].map(value=>digits(value??"")).filter(Boolean);
       if(registeredPhones.includes(phone))matches.push(profile);
     }
     return matches;
