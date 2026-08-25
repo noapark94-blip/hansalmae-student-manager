@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { InviteManager } from "./invite-manager";
+import { GuardianLinkRequests } from "./guardian-link-requests";
 
 type UserRole = "admin"|"teacher"|"assistant"|"manager"|"student"|"guardian";
 type Child = { id:string; name:string };
@@ -28,7 +29,7 @@ function AccountSettingsContent({ supabase }: { supabase:SupabaseClient }) {
 
 type ResetRequest={id:string;profileId:string;displayName:string;role:UserRole;phone:string;requestedAt:string;status:string};
 export function SettingsBoard({supabase}:{supabase:SupabaseClient}){
-  return <><PasswordResetRequests supabase={supabase}/><AccountSettingsContent supabase={supabase}/></>;
+  return <><GuardianLinkRequests supabase={supabase}/><PasswordResetRequests supabase={supabase}/><AccountSettingsContent supabase={supabase}/></>;
 }
 function PasswordResetRequests({supabase}:{supabase:SupabaseClient}){
   const[rows,setRows]=useState<ResetRequest[]>([]),[loading,setLoading]=useState(true),[processing,setProcessing]=useState(""),[message,setMessage]=useState("");

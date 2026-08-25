@@ -262,13 +262,13 @@ export default function Home() {
 
       let role: string | null = null;
       let roleError = false;
-      let ownProfile: { display_name: string; must_change_password: boolean } | null = null;
+      let ownProfile: { display_name: string; must_change_password: boolean; role: string; is_active: boolean } | null = null;
       const retryDelays = [0, 250, 650];
 
       for (const retryDelay of retryDelays) {
         if (retryDelay) await new Promise((resolve) => window.setTimeout(resolve, retryDelay));
         if (loadSequence !== profileLoadSequence.current) return;
-        const [roleResult, profileResult] = await Promise.all([supabase.rpc("current_user_role"), supabase.from("profiles").select("display_name,must_change_password").eq("id", nextUser.id).maybeSingle()]);
+        const [roleResult, profileResult] = await Promise.all([supabase.rpc("current_user_role"), supabase.from("profiles").select("display_name,must_change_password,role,is_active").eq("id", nextUser.id).maybeSingle()]);
         role = typeof roleResult.data === "string" ? roleResult.data : null;
         roleError = Boolean(roleResult.error);
         if (profileResult.data) ownProfile = profileResult.data;
@@ -278,7 +278,7 @@ export default function Home() {
       if (loadSequence !== profileLoadSequence.current) return;
 
       if (roleError || !role || !roleViews[role as UserRole]) {
-        setAuthError("계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
+        setAuthError(ownProfile?.role === "guardian" && !ownProfile.is_active ? "자녀 연결 승인 대기 중입니다. 관리자가 확인한 뒤 로그인할 수 있습니다." : "계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
         if (deepReportId) setView("reports");
@@ -2269,6 +2269,7 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
   const [rememberEmail, setRememberEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [signup, setSignup] = useState(false);
+  const [guardianRequest, setGuardianRequest] = useState(false);
   const [recovery, setRecovery] = useState(false);
   useEffect(() => {
     const savedEmail = window.localStorage.getItem("hansalmae-saved-email");
@@ -2286,6 +2287,7 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
     setSubmitting(false);
   };
   if (signup) return <InviteSignup supabase={supabase} onBack={() => setSignup(false)} />;
+  if (guardianRequest) return <GuardianSelfSignup supabase={supabase} onBack={() => setGuardianRequest(false)} />;
   return (
     <main className="auth-shell">
       <section className="auth-card login-card">
@@ -2317,10 +2319,11 @@ function LoginScreen({ supabase, onSubmit, error }: { supabase: SupabaseClient; 
         <div className="auth-divider">
           <span>처음 이용하시나요?</span>
         </div>
-        <button className="auth-signup-link" onClick={() => setSignup(true)}>
-          초대코드로 회원가입
-        </button>
-        <small>초대코드는 학원 관리자에게 문의해 주세요.</small>
+        <div className="auth-signup-options">
+          <button className="auth-signup-link" onClick={() => setSignup(true)}>학원에서 받은 초대코드로 가입</button>
+          <button className="auth-guardian-request-link" onClick={() => setGuardianRequest(true)}>초대코드가 없어요 · 자녀 연결 요청</button>
+        </div>
+        <small>학생은 학원에서 받은 학생 전용 초대코드로 가입해 주세요.</small>
       </section>
       {recovery && <AccountRecovery supabase={supabase} onClose={() => setRecovery(false)} />}
     </main>
@@ -2504,6 +2507,13 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
       </section>
     </main>
   );
+}
+
+function GuardianSelfSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()=>void}){
+  const[done,setDone]=useState(false),[loading,setLoading]=useState(false),[message,setMessage]=useState("");
+  const[email,setEmail]=useState(""),[password,setPassword]=useState(""),[confirm,setConfirm]=useState(""),[guardianName,setGuardianName]=useState(""),[guardianPhone,setGuardianPhone]=useState(""),[studentName,setStudentName]=useState(""),[school,setSchool]=useState(""),[grade,setGrade]=useState("");
+  const submit=async(event:FormEvent)=>{event.preventDefault();if(password!==confirm){setMessage("비밀번호가 서로 일치하지 않습니다.");return}setLoading(true);setMessage("");const{error}=await supabase.functions.invoke("guardian-self-signup",{body:{email,password,guardianName,guardianPhone,studentName,school,grade}});if(error){let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json()as{error?:string};if(body.error)text=body.error}catch{}setMessage(text)}else setDone(true);setLoading(false)};
+  return <main className="auth-shell"><section className="auth-card signup-card guardian-self-signup"><button type="button" className="signup-back" aria-label="로그인으로 돌아가기" onClick={onBack}>‹</button><AuthBrand compact/><header className="signup-heading"><p className="signup-eyebrow">학부모 회원가입</p><h1>{done?"연결 요청을 보냈어요":"자녀 연결 요청"}</h1></header>{done?<div className="signup-complete"><i>✓</i><p className="auth-copy">관리자가 학생 정보를 확인한 뒤 승인합니다.<br/>승인 후 등록한 이메일과 비밀번호로 로그인해 주세요.</p><button className="primary signup-finish" onClick={onBack}>로그인으로 돌아가기</button></div>:<><p className="auth-copy guardian-request-copy">학생부와 안전하게 연결할 수 있도록 학부모님과 자녀 정보를 입력해 주세요.</p><form onSubmit={submit}><div className="guardian-request-grid"><label>학부모 이름<input required value={guardianName} onChange={event=>setGuardianName(event.target.value)} placeholder="실명을 입력해 주세요"/></label><label>학부모 연락처<input required inputMode="tel" value={guardianPhone} onChange={event=>setGuardianPhone(formatPhoneNumber(event.target.value))} placeholder="010-0000-0000"/></label><label>자녀 이름<input required value={studentName} onChange={event=>setStudentName(event.target.value)} placeholder="학생 이름"/></label><label>학교<input value={school} onChange={event=>setSchool(event.target.value)} placeholder="예: 서해고등학교"/></label><label>학년<input value={grade} onChange={event=>setGrade(event.target.value)} placeholder="예: 고1"/></label><label>이메일<input required type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@example.com"/></label></div><div className="signup-passwords"><label>비밀번호<input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={event=>setPassword(event.target.value)} placeholder="8자 이상"/></label><label>비밀번호 확인<input required minLength={8} type="password" autoComplete="new-password" value={confirm} onChange={event=>setConfirm(event.target.value)} placeholder="한 번 더 입력"/></label></div>{message&&<p className="auth-error">{message}</p>}<button className="primary" disabled={loading}>{loading?"요청 등록 중…":"회원가입·자녀 연결 요청"}</button></form></>}</section></main>;
 }
 
 function LoadingScreen() {
