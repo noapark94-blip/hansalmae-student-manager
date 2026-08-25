@@ -27,16 +27,8 @@ function AccountSettingsContent({ supabase }: { supabase:SupabaseClient }) {
     <section className="panel account-history"><header><h2>최근 변경 이력</h2><span>최근 50건</span></header>{data.logs.length === 0 ? <p className="settings-empty">아직 계정 변경 이력이 없습니다.</p> : <div>{data.logs.map((log) => <article key={log.id}><i>⚙</i><span><b>{log.targetName} · {actionLabels[log.action] ?? log.action}</b><small>{log.changedByName} 관리자 · {formatDateTime(log.createdAt)}</small></span></article>)}</div>}</section>{editing && <AccountEditor account={editing} data={data} supabase={supabase} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}{invitesOpen&&<InviteManager supabase={supabase} onClose={()=>setInvitesOpen(false)}/>} {creating&&<AccountCreator data={data} supabase={supabase} onClose={()=>setCreating(false)} onCreated={async credentials=>{setCreating(false);setCreated(credentials);await load()}}/>}</>;
 }
 
-type ResetRequest={id:string;profileId:string;displayName:string;role:UserRole;phone:string;requestedAt:string;status:string};
 export function SettingsBoard({supabase}:{supabase:SupabaseClient}){
-  return <><GuardianLinkRequests supabase={supabase}/><PasswordResetRequests supabase={supabase}/><AccountSettingsContent supabase={supabase}/></>;
-}
-function PasswordResetRequests({supabase}:{supabase:SupabaseClient}){
-  const[rows,setRows]=useState<ResetRequest[]>([]),[loading,setLoading]=useState(true),[processing,setProcessing]=useState(""),[message,setMessage]=useState("");
-  const load=useCallback(async()=>{setLoading(true);const{data,error}=await supabase.rpc("admin_password_reset_board");if(!error)setRows((data??[]) as ResetRequest[]);setLoading(false)},[supabase]);
-  useEffect(()=>{void load()},[load]);
-  const issue=async(row:ResetRequest)=>{if(!window.confirm(`${row.displayName} 계정의 비밀번호를 임시 비밀번호로 변경하고 ${row.phone} 번호로 문자를 보낼까요?`))return;setProcessing(row.id);setMessage("");const{data,error}=await supabase.functions.invoke("admin-reset-password",{body:{requestId:row.id}});if(error){let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}setMessage(text)}else{const result=data as{recipientPhone?:string};setMessage(`${row.displayName}님 ${result.recipientPhone??row.phone} 번호로 임시 비밀번호를 발송했습니다.`);await load()}setProcessing("")};
-  return <section className="panel password-reset-panel"><header><div><p className="eyebrow">관리자 확인 필요</p><h2>비밀번호 재발급 요청</h2><span>사용자가 이름과 연락처로 요청한 내역입니다. 확인 후 임시 비밀번호를 문자로 보내 주세요.</span></div><em>{rows.length}건 대기</em></header>{message?<p className="password-reset-message">{message}</p>:null}{loading?<p className="settings-empty">재발급 요청을 확인하는 중이에요…</p>:rows.length===0?<p className="settings-empty">대기 중인 비밀번호 재발급 요청이 없습니다.</p>:<div className="password-reset-list">{rows.map(row=><article key={row.id}><div><b>{row.displayName}</b><small>{roleLabels[row.role]} · {row.phone}</small></div><time>{formatDateTime(row.requestedAt)}</time><button className="primary" disabled={processing===row.id} onClick={()=>void issue(row)}>{processing===row.id?"발급·발송 중…":"임시 비밀번호 발급·문자 전송"}</button></article>)}</div>}</section>;
+  return <><GuardianLinkRequests supabase={supabase}/><AccountSettingsContent supabase={supabase}/></>;
 }
 
 function AccountCreator({ data,supabase,onClose,onCreated }: { data:BoardData; supabase:SupabaseClient; onClose:()=>void; onCreated:(credentials:{ email:string; password:string })=>Promise<void> }) {
