@@ -155,7 +155,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   const saveAttendance=async(row:Row,status:Status)=>{
     if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
     setSaving(row.id);setError("");
-    if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});setLessonState("draft");await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:"draft"});await loadWeek()}setSaving("");return}
+    if(row.status===status){const{error:clearError}=await supabase.rpc("staff_clear_class_attendance",{p_class_id:classId,p_date:date,p_student_id:row.id});if(clearError)setError(clearError.message);else{update(row.id,{status:null,lateMinutes:null,absenceReason:null});await loadWeek()}setSaving("");return}
     let late:number|null=null,reason:string|null=null;
     if(status==="late"){setAttendanceEditor({row,status,value:String(row.lateMinutes??10)});setSaving("");return}
     if(status==="absent"){setAttendanceEditor({row,status,value:row.absenceReason??""});setSaving("");return}
