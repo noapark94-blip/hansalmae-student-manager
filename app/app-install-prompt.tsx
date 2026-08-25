@@ -111,9 +111,10 @@ function SafariIcon({ className }: { className: string }) {
 
 function SafariShareMenu() {
   return <div className="share-menu-preview" aria-label="Safari로 열기 선택 화면">
-    <span className="selected"><SafariIcon className="safari-share-icon" /><b>Safari로 열기</b></span>
-    <span><i className="link-preview">↗</i><b>URL 복사하기</b></span>
-    <span><i>⌄</i><b>더 보기</b></span>
+    <span className="selected"><i className="mono-safari-icon"><b /></i><b>Safari로 열기</b></span>
+    <span><i className="mono-link-icon" /><b>URL 복사하기</b></span>
+    <span><i className="mono-note-icon">〰</i><b>새로운 빠른<br/>메모에 추가</b></span>
+    <span><i className="mono-more-icon">⌄</i><b>더 보기</b></span>
   </div>;
 }
 
