@@ -118,15 +118,20 @@ function InstallButtonPreview() {
 
 function SafariInstallSteps() {
   return <>
-    <p className="install-guide-lead">아래 순서대로 누르면 홈 화면에 아이콘이 생깁니다.</p>
-    <ol className="install-steps">
-      <li><em>1</em><span><b>아래쪽 공유 버튼을 눌러 주세요</b><small>네모 위로 화살표가 올라가는 모양입니다.</small></span><i className="share-symbol" aria-label="공유 아이콘">↥</i></li>
-      <li><em>2</em><span><b>메뉴를 위로 올려 주세요</b><small>아래쪽 메뉴가 더 보이도록 손가락으로 밀어 올립니다.</small></span><i className="swipe-symbol" aria-hidden="true">↑</i></li>
-      <li><em>3</em><span><b>‘홈 화면에 추가’를 눌러 주세요</b><small>＋ 표시가 있는 메뉴를 선택합니다.</small></span><i className="home-add-symbol" aria-hidden="true">＋</i></li>
-      <li><em>4</em><span><b>오른쪽 위 ‘추가’를 눌러 주세요</b><small>설치가 끝나면 홈 화면의 한살매 아이콘으로 접속하세요.</small></span><i className="done-symbol" aria-hidden="true">✓</i></li>
+    <p className="install-guide-lead">Safari에서 아래 순서대로 누르면 홈 화면에 한살매 아이콘이 생깁니다.</p>
+    <ol className="install-steps safari-install-steps">
+      <li><em>1</em><span><b>오른쪽 아래의 ‘···’를 눌러 주세요</b><small>Safari 주소창 오른쪽에 있는 점 세 개 버튼입니다.</small></span><SafariStepImage src="/ios-safari-more-button.jpeg" width={220} height={302} alt="Safari 오른쪽 아래 점 세 개 버튼" marker="more-button" /></li>
+      <li><em>2</em><span><b>메뉴 맨 위의 ‘공유’를 눌러 주세요</b><small>네모 위로 화살표가 올라가는 항목입니다.</small></span><SafariStepImage src="/ios-safari-share-action.jpeg" width={734} height={1045} alt="Safari 메뉴의 공유 항목" marker="share-action" /></li>
+      <li><em>3</em><span><b>가로 메뉴 오른쪽의 ‘더 보기’를 눌러 주세요</b><small>아래쪽 화살표 모양의 마지막 항목입니다.</small></span><SafariStepImage src="/ios-safari-more-action.jpeg" width={1206} height={445} alt="공유 가로 메뉴의 더 보기 항목" marker="more-action" /></li>
+      <li><em>4</em><span><b>펼쳐진 메뉴에서 ‘홈 화면에 추가’를 눌러 주세요</b><small>목록 아래쪽의 네모 안 ＋ 표시 항목입니다.</small></span><SafariStepImage src="/ios-safari-home-action.jpeg" width={1206} height={1251} alt="공유 메뉴의 홈 화면에 추가 항목" marker="home-action" /></li>
+      <li><em>5</em><span><b>오른쪽 위의 파란색 ‘추가’를 눌러 주세요</b><small>완료되면 홈 화면의 한살매노트 아이콘으로 접속하세요.</small></span><SafariStepImage src="/ios-safari-add-action.jpeg" width={1206} height={907} alt="홈 화면에 추가 화면의 추가 버튼" marker="add-action" /></li>
     </ol>
     <p className="install-safe-note">App Store 검색은 필요 없으며, 기존 학생 정보와 로그인 정보는 그대로 유지됩니다.</p>
   </>;
+}
+
+function SafariStepImage({ src, width, height, alt, marker }: { src: string; width: number; height: number; alt: string; marker: string }) {
+  return <span className={`safari-step-image ${marker}`}><Image src={src} width={width} height={height} sizes="(max-width: 520px) 82vw, 390px" alt={alt} /><i aria-hidden="true" /></span>;
 }
 
 function AndroidGuide() {
