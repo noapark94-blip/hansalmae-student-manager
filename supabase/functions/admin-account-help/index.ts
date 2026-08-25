@@ -12,7 +12,7 @@ Deno.serve(async request=>{
   const bearer=request.headers.get("Authorization");if(!url||!service||!anon||!apiKey||!apiSecret||!sender)return json({error:"서버 설정을 확인해 주세요."},500);if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
   const token=bearer.slice(7).trim(),verifier=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
   const{data:{user},error:userError}=await verifier.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);
-  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+  const admin=createClient(url,service,{global:{headers:{Authorization:`Bearer ${service}`}},auth:{persistSession:false,autoRefreshToken:false}});
   const authClient=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
   const[{data:actor,error:actorError},{data:actorRole,error:roleError}]=await Promise.all([
     admin.from("profiles").select("role,is_active").eq("id",user.id).maybeSingle(),
@@ -21,10 +21,10 @@ Deno.serve(async request=>{
   const isAdmin=(actor?.role==="admin"&&actor.is_active===true)||actorRole==="admin";
   if(!isAdmin){console.error("[admin-account-help] admin authorization failed",{userId:user.id,profileRole:actor?.role??null,isActive:actor?.is_active??null,actorError:actorError?.message??null,rpcRole:actorRole??null,roleError:roleError?.message??null});return json({error:"관리자 권한을 확인하지 못했습니다. 다시 로그인한 뒤 시도해 주세요."},403)}
   let input:{action?:"approve"|"reject";requestId?:string;profileId?:string};try{input=await request.json()}catch{return json({error:"요청 정보를 확인해 주세요."},400)}
-  const{data:help}=await admin.from("account_help_requests").select("*").eq("id",input.requestId??"").eq("status","pending").maybeSingle();if(!help)return json({error:"처리할 요청을 찾지 못했습니다."},404);
+  const{data:help,error:helpError}=await admin.from("account_help_requests").select("*").eq("id",input.requestId??"").eq("status","pending").maybeSingle();if(helpError){console.error("[admin-account-help] help lookup failed",{requestId:input.requestId??null,error:helpError.message,code:helpError.code});return json({error:"요청 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."},500)}if(!help)return json({error:"이미 처리됐거나 존재하지 않는 요청입니다. 화면을 새로고침해 주세요."},404);
   if(input.action==="reject"){await admin.from("account_help_requests").update({status:"rejected",processed_at:new Date().toISOString(),processed_by:user.id}).eq("id",help.id).eq("status","pending");return json({success:true})}
   if(input.action!=="approve"||!input.profileId)return json({error:"확인된 계정을 선택해 주세요."},400);
-  const{data:profile}=await admin.from("profiles").select("id,display_name,role").eq("id",input.profileId).eq("is_active",true).maybeSingle();if(!profile)return json({error:"처리할 계정을 찾지 못했습니다."},404);
+  const{data:profile,error:profileError}=await admin.from("profiles").select("id,display_name,role").eq("id",input.profileId).eq("is_active",true).maybeSingle();if(profileError){console.error("[admin-account-help] profile lookup failed",{profileId:input.profileId,error:profileError.message,code:profileError.code});return json({error:"선택한 계정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."},500)}if(!profile)return json({error:"선택한 계정이 비활성화됐거나 삭제되었습니다. 다른 계정을 선택해 주세요."},404);
   const phone=digits(help.reachable_phone),temporary=password();if(phone.length<10)return json({error:"현재 연락 가능한 번호를 확인해 주세요."},400);
   const{error:updateError}=await admin.auth.admin.updateUserById(profile.id,{password:temporary});if(updateError)return json({error:"임시 비밀번호를 적용하지 못했습니다."},500);
   await admin.from("profiles").update({phone:help.reachable_phone,must_change_password:true}).eq("id",profile.id);
