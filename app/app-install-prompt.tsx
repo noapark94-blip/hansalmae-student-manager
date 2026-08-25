@@ -80,9 +80,28 @@ export function AppInstallPrompt() {
 }
 
 function IosGuide() {
-  const safari = /Safari/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  const inAppBrowser = /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\/|GSA|CriOS|FxiOS|EdgiOS/i.test(ua);
+  const safari = /Safari/i.test(ua) && !inAppBrowser;
   return <div className="install-guide-body">
-    {!safari && <p className="install-browser-notice"><b>먼저 Safari로 열어 주세요</b><span>문자나 카카오톡에서 열었다면 화면의 <strong>···</strong>를 누르고 <strong>Safari로 열기</strong>를 선택해 주세요.</span></p>}
+    {!safari ? <SafariHandoff isKakao={/KAKAOTALK|DaumApps/i.test(ua)} /> : <SafariInstallSteps />}
+  </div>;
+}
+
+function SafariHandoff({ isKakao }: { isKakao: boolean }) {
+  return <div className="safari-handoff">
+    <span className="safari-compass" aria-hidden="true"><i /></span>
+    <p className="install-guide-lead"><b>지금은 {isKakao ? "카카오톡" : "앱 내부"} 화면입니다.</b><br/>아이폰 설치는 Safari에서 진행해 주세요.</p>
+    <ol className="install-steps handoff">
+      <li><em>1</em><span><b>{isKakao ? "오른쪽 위의 ∨ 버튼을 눌러 주세요" : "화면의 ··· 또는 공유 버튼을 눌러 주세요"}</b><small>{isKakao ? "주소창 오른쪽의 아래쪽 화살표 모양입니다." : "현재 앱의 브라우저 메뉴를 엽니다."}</small></span><i aria-hidden="true">{isKakao ? "⌄" : "···"}</i></li>
+      <li><em>2</em><span><b>‘Safari로 열기’를 눌러 주세요</b><small>Safari가 열리면 로그인 화면의 <strong>한살매 수업노트 설치</strong>를 다시 누르세요.</small></span><i className="safari-mini" aria-hidden="true"><i /></i></li>
+    </ol>
+    <p className="install-safe-note emphasis">Safari에서 설치 버튼을 다시 누르면 홈 화면에 추가하는 방법이 이어서 나옵니다.</p>
+  </div>;
+}
+
+function SafariInstallSteps() {
+  return <>
     <p className="install-guide-lead">아래 순서대로 누르면 홈 화면에 아이콘이 생깁니다.</p>
     <ol className="install-steps">
       <li><em>1</em><span><b>아래쪽 공유 버튼을 눌러 주세요</b><small>네모 위로 화살표가 올라가는 모양입니다.</small></span><i className="share-symbol" aria-label="공유 아이콘">↥</i></li>
@@ -91,7 +110,7 @@ function IosGuide() {
       <li><em>4</em><span><b>오른쪽 위 ‘추가’를 눌러 주세요</b><small>설치가 끝나면 홈 화면의 한살매 아이콘으로 접속하세요.</small></span><i className="done-symbol" aria-hidden="true">✓</i></li>
     </ol>
     <p className="install-safe-note">App Store 검색은 필요 없으며, 기존 학생 정보와 로그인 정보는 그대로 유지됩니다.</p>
-  </div>;
+  </>;
 }
 
 function AndroidGuide() {
