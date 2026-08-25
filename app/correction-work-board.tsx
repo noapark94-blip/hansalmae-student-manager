@@ -54,6 +54,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
 
   useEffect(()=>{void load()},[load]);
   const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
+  const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
   const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>({...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}}));
 
   const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
@@ -81,7 +82,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     if(nextStatus==="late"){setAttendanceEditor({row,status:"late",value:String(current.lateMinutes??10)});return}
     if(nextStatus==="absent"){setAttendanceEditor({row,status:"absent",value:current.absenceReason??""});return}
     setSaving(key);setError("");
-    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:null,absenceReason:""},false)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
+    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:null,absenceReason:""},current.published===true)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
     setSaving("");
   };
 
@@ -93,7 +94,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     if(status==="late"){late=Number(value);if(!Number.isFinite(late)||late<1){setError("지각 시간을 1분 이상의 숫자로 입력해 주세요.");return}}
     else{reason=value;if(!reason){setError("결석 사유를 입력해 주세요.");return}}
     setSaving(key);setError("");
-    try{await persist(row,{...current,attendanceStatus:status,lateMinutes:late,absenceReason:reason},false);setAttendanceEditor(null)}
+    try{await persist(row,{...current,attendanceStatus:status,lateMinutes:late,absenceReason:reason},current.published===true);setAttendanceEditor(null)}
     catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
     setSaving("");
   };
@@ -104,6 +105,14 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{},complete)}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
     await load();setSaving("");
+  };
+
+  const deleteRecords=async()=>{
+    if(!confirm("이 날짜의 첨삭 기록을 삭제할까요?\n출결·시험·첨삭 내용과 학생·학부모 리포트 반영이 모두 삭제됩니다."))return;
+    setSaving("all");setError("");
+    const{error:deleteError}=await supabase.rpc("staff_delete_correction_reports",{p_records:rows.map(row=>({assignmentId:row.assignment.id,date:row.date,startTime:row.startTime}))});
+    if(deleteError)setError(deleteError.message);else await load();
+    setSaving("");
   };
 
   const renderRow=(row:Occurrence)=>{
@@ -125,7 +134,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span>시험 기록</span><span>오늘 한 첨삭과제</span></div>
     {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=rows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    {rows.length?<footer><span>출결을 모두 입력하고 완료해야 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"첨삭 완료"}</button></span></footer>:null}
+    {rows.length?<footer><span><b>{completed?"첨삭 완료":"기록 중"}</b> · 완료해야 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions">{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"첨삭 완료"}</button></>}</span></footer>:null}
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
     {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
     {scheduleChangeRow?.exception?<CorrectionScheduleChangeModal row={scheduleChangeRow} supabase={supabase} onClose={()=>setScheduleChangeRow(null)} onReverted={async()=>{setScheduleChangeRow(null);await load();}}/>:null}

@@ -196,6 +196,16 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     setSaving("");
   };
 
+  const deleteRecord=async()=>{
+    if(!confirm("이 수업 기록을 삭제할까요?\n출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다."))return;
+    setSaving("all");setError("");
+    const{error:deleteError}=await supabase.rpc("staff_delete_class_lesson_record",{p_class_id:classId,p_date:date});
+    if(deleteError){setError(deleteError.message);setSaving("");return}
+    setLessonState("draft");
+    await onReload();
+    setSaving("");
+  };
+
   return <section className="class-learning-board" ref={rootRef}>
     <header><div><h3>이번 주 수업 기록</h3><p>출결·수업내용·시험·숙제를 한 화면에서 기록하고 학부모 학습리포트로 연결합니다.</p></div><div className="learning-header-actions"><button className="secondary-button" onClick={()=>setMonthOpen(true)}>전체 출석 캘린더</button></div></header>
     <div className="class-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>onDate(shiftIsoDate(date,-7))}>‹</button><div className="class-week-strip">{week.map((day,index)=><button key={day.date} className={`${day.date===date?"active":""} ${day.scheduled?"scheduled":""}`} aria-current={day.date===date?"date":undefined} onClick={()=>onDate(day.date)}><span>{weekdays[index]}</span><b>{+day.date.slice(8)}</b><small className="class-mobile-day-count">{day.students.length?`${day.students.length}명`:day.scheduled?"출석 전":"없음"}</small><div>{day.students.slice(0,4).map(student=><em className={student.status==="excused"?"absent":student.status} key={student.id}>{student.name}</em>)}{!day.students.length?<small>{day.scheduled?"출석 전":"수업 없음"}</small>:null}</div></button>)}</div><button type="button" aria-label="다음 주" onClick={()=>onDate(shiftIsoDate(date,7))}>›</button></div>
@@ -222,7 +232,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
       <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={e=>update(row.id,{assignedHomework:e.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
     </article>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 등록된 수강생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    {rows.length?<footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>{if(lessonState==="completed"&&!confirm("수업 완료 기록을 취소할까요?\n입력 내용은 남아 있고 학생 누적 기록과 학부모 리포트에서만 빠집니다."))return;void save(false)}}>{lessonState==="completed"?"완료 취소":"임시저장"}</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></span></footer>:null}
+    {rows.length?<footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions">{lessonState==="completed"?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecord()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void save(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></>}</span></footer>:null}
     </>}
     {monthOpen?<Month supabase={supabase} classId={classId} anchor={date} onDate={value=>{onDate(value);setMonthOpen(false)}} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={loadCategories}/>:null}
