@@ -16,13 +16,27 @@ Deno.serve(async request=>{
   const apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
   if(!url||!service||!pepper||!apiKey||!apiSecret||!sender)return json({error:"문자 인증 서버 설정을 확인해 주세요."},500);
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+  const matchingProfiles=async(name:string,phone:string)=>{
+    const{data:profiles,error:profilesError}=await admin.from("profiles").select("id,display_name,phone,is_active").eq("is_active",true).ilike("display_name",name);
+    if(profilesError)throw profilesError;
+    const matches:{id:string;display_name:string|null;phone:string|null;is_active:boolean}[]=[];
+    for(const profile of profiles??[]){
+      const[{data:students,error:studentError},{data:guardians,error:guardianError}]=await Promise.all([
+        admin.from("students").select("phone").eq("profile_id",profile.id),
+        admin.from("guardians").select("phone").eq("profile_id",profile.id)
+      ]);
+      if(studentError||guardianError)throw studentError??guardianError;
+      const registeredPhones=[profile.phone,...(students??[]).map(row=>row.phone),...(guardians??[]).map(row=>row.phone)].map(value=>digits(value??"")).filter(Boolean);
+      if(registeredPhones.includes(phone))matches.push(profile);
+    }
+    return matches;
+  };
   let input:{action?:string;purpose?:"id"|"password";name?:string;phone?:string;challengeId?:string;code?:string;password?:string;accountType?:"student"|"guardian"|"staff";registeredPhone?:string;reachablePhone?:string;reason?:"phone_changed"|"sms_unavailable"|"other"};
   try{input=await request.json()}catch{return json({error:"요청 정보를 확인해 주세요."},400)}
 
   if(input.action==="lookup-id"){
     const name=(input.name??"").trim(),phone=digits(input.phone??"");if(!name||phone.length<10)return json({error:"이름과 연락처를 정확히 입력해 주세요."},400);
-    const{data:profiles}=await admin.from("profiles").select("id,phone,is_active").eq("is_active",true).ilike("display_name",name);const matches:{id:string}[]=[];
-    for(const profile of profiles??[]){const[{data:student},{data:guardian}]=await Promise.all([admin.from("students").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle(),admin.from("guardians").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle()]);if(digits(profile.phone??student?.phone??guardian?.phone??"")===phone)matches.push(profile)}
+    let matches:{id:string}[];try{matches=await matchingProfiles(name,phone)}catch(error){console.error("[account-recovery-otp] lookup failed",error);return json({error:"계정 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."},500)}
     if(matches.length!==1)return json({error:"입력한 정보와 일치하는 계정을 찾지 못했습니다."},404);const{data:userData}=await admin.auth.admin.getUserById(matches[0].id);if(!userData.user?.email)return json({error:"로그인 아이디를 확인하지 못했습니다."},500);return json({success:true,loginId:userData.user.email});
   }
 
@@ -40,12 +54,7 @@ Deno.serve(async request=>{
     const {data:recent}=await admin.from("account_recovery_challenges").select("created_at").eq("phone_hash",phoneHash).eq("purpose","password").gte("created_at",new Date(now-60*60*1000).toISOString()).order("created_at",{ascending:false});
     if(recent?.[0]&&now-new Date(recent[0].created_at).getTime()<60_000)return json({error:"인증번호는 1분 뒤 다시 요청할 수 있습니다."},429);
     if((recent?.length??0)>=5)return json({error:"인증 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."},429);
-    const {data:profiles}=await admin.from("profiles").select("id,display_name,phone,is_active").eq("is_active",true).ilike("display_name",name);
-    const matches:{id:string}[]=[];
-    for(const profile of profiles??[]){
-      const [{data:student},{data:guardian}]=await Promise.all([admin.from("students").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle(),admin.from("guardians").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle()]);
-      if(digits(profile.phone??student?.phone??guardian?.phone??"")===phone)matches.push(profile);
-    }
+    let matches:{id:string}[];try{matches=await matchingProfiles(name,phone)}catch(error){console.error("[account-recovery-otp] recovery lookup failed",error);return json({error:"계정 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."},500)}
     const target=matches.length===1?matches[0]:null,otp=code(),challengeId=crypto.randomUUID();
     const {error:insertError}=await admin.from("account_recovery_challenges").insert({id:challengeId,profile_id:target?.id??null,purpose,phone_hash:phoneHash,code_hash:await hash(`${challengeId}:${otp}:${pepper}`),expires_at:new Date(now+5*60*1000).toISOString()});
     if(insertError)return json({error:"인증 요청을 저장하지 못했습니다."},500);
