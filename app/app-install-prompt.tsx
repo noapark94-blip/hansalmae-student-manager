@@ -67,7 +67,7 @@ export function AppInstallPrompt() {
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setGuide(null); }}>
           <section className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
             <header>
-              <span className="install-guide-logo" aria-hidden="true">HSN</span>
+              <Image className="install-guide-logo" src="/hansalmae-logo.png" width={42} height={42} alt="" aria-hidden="true" />
               <div><small>한살매 수업노트</small><h2 id="install-guide-title">{guide === "ios" ? "아이폰에 설치하기" : "안드로이드에 설치하기"}</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>

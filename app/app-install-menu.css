@@ -121,3 +121,6 @@
 
 /* The screenshots are self-explanatory; do not draw overlay markers on them. */
 .safari-install-steps .safari-step-image>i{display:none!important}
+
+/* Use the academy's real circular brand mark in the install guide. */
+img.install-guide-logo{border-radius:50%;background:#fff;object-fit:contain;padding:2px;box-shadow:0 4px 12px rgba(92,42,66,.12)}
