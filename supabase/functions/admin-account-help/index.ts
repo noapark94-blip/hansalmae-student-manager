@@ -10,8 +10,9 @@ Deno.serve(async request=>{
   if(request.method!=="POST")return json({error:"지원하지 않는 요청입니다."},405);
   const url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),anon=Deno.env.get("SUPABASE_ANON_KEY"),apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
   const bearer=request.headers.get("Authorization");if(!url||!service||!anon||!apiKey||!apiSecret||!sender)return json({error:"서버 설정을 확인해 주세요."},500);if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
-  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),token=bearer.slice(7).trim();
-  const{data:{user},error:userError}=await admin.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);
+  const token=bearer.slice(7).trim(),verifier=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+  const{data:{user},error:userError}=await verifier.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);
+  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   const authClient=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
   const[{data:actor,error:actorError},{data:actorRole,error:roleError}]=await Promise.all([
     admin.from("profiles").select("role,is_active").eq("id",user.id).maybeSingle(),
