@@ -119,18 +119,5 @@
   .safari-install-steps>li small{font-size:9px}
 }
 
-/* Only the actual actions that need emphasis keep a marker. */
-@media(max-width:520px){
-  .safari-install-steps .safari-step-image.more-button>i,
-  .safari-install-steps .safari-step-image.more-action>i{display:none}
-
-  .safari-install-steps .safari-step-image.share-action>i{
-    display:block;left:4px;right:4px;top:4px;width:auto;height:31px;border-radius:9px
-  }
-  .safari-install-steps .safari-step-image.home-action>i{
-    display:block;left:5px;right:5px;bottom:5px;width:auto;height:29px;border-radius:9px
-  }
-  .safari-install-steps .safari-step-image.add-action>i{
-    display:block;left:auto;right:5px;top:5px;width:25px;height:25px;border-radius:9px
-  }
-}
+/* The screenshots are self-explanatory; do not draw overlay markers on them. */
+.safari-install-steps .safari-step-image>i{display:none!important}
