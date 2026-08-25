@@ -692,3 +692,37 @@ button:disabled { cursor:wait; opacity:.7; }
  .guardian-child-picker>.guardian-child-toolbar{align-items:stretch;flex-direction:column}
  .guardian-child-toolbar>em{align-self:flex-start}
 }
+
+
+/* Account recovery: compact, aligned mobile bottom sheets. */
+@media(max-width:600px){
+ .modal-backdrop:has(.recovery-modal){place-items:end center;padding:0;background:rgba(35,19,27,.38)}
+ .recovery-modal{
+  width:100%;max-height:min(82dvh,720px);overflow:hidden;display:flex;flex-direction:column;
+  border-radius:24px 24px 0 0;box-shadow:0 -18px 50px rgba(48,18,33,.18)
+ }
+ .recovery-modal.recovery-modal-help{max-height:min(91dvh,780px)}
+ .recovery-modal>header{flex:0 0 auto;align-items:flex-start;padding:20px 20px 16px;gap:14px}
+ .recovery-modal>header .eyebrow{display:none}
+ .recovery-modal h2{font-family:inherit;font-size:24px;line-height:1.25;letter-spacing:-.035em}
+ .recovery-modal header span{max-width:calc(100vw - 100px);margin-top:6px;font-size:13px;line-height:1.45;word-break:keep-all}
+ .recovery-modal header>button{flex:0 0 42px;width:42px;height:42px;border-radius:12px;font-size:24px}
+ .recovery-tabs{flex:0 0 auto;gap:4px;margin:12px 14px 0;padding:4px;border-radius:14px}
+ .recovery-tabs button{min-height:46px;border-radius:11px;font-size:15px}
+ .recovery-modal form{min-height:0;overflow-y:auto;align-content:start;gap:13px;padding:18px 20px calc(20px + env(safe-area-inset-bottom))}
+ .recovery-modal form label{gap:6px;font-size:13px;line-height:1.25}
+ .recovery-modal form input,.recovery-modal form select{width:100%;min-height:48px;height:48px;padding:0 14px;border-radius:12px;font-size:15px}
+ .recovery-modal form .primary{width:100%;min-height:48px;height:48px;margin-top:2px;border-radius:12px;font-size:14px}
+ .recovery-help-button{min-height:30px;padding:0 6px;font-size:11px;line-height:1.35}
+ .recovery-code-field{grid-template-columns:minmax(0,1fr) 112px;gap:8px}
+ .recovery-code-field button{min-width:0;min-height:48px;border-radius:12px;font-size:11px}
+ .recovery-message{font-size:11px!important;line-height:1.45;white-space:normal!important}
+ .recovery-result{padding:13px;border-radius:12px}
+ .recovery-result strong{font-size:16px}
+ .recovery-modal label small{display:inline;margin-left:3px;font-size:10px}
+}
+@media(max-width:370px){
+ .recovery-modal>header{padding-left:16px;padding-right:16px}
+ .recovery-modal form{padding-left:16px;padding-right:16px}
+ .recovery-tabs{margin-left:10px;margin-right:10px}
+}
