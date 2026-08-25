@@ -12,7 +12,7 @@ function code(){return String(crypto.getRandomValues(new Uint32Array(1))[0]%1_00
 Deno.serve(async request=>{
   if(request.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
   if(request.method!=="POST")return json({error:"지원하지 않는 요청입니다."},405);
-  const url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),pepper=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url=credential(Deno.env.get("SUPABASE_URL")),service=credential(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),pepper=service;
   const apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
   if(!url||!service||!pepper||!apiKey||!apiSecret||!sender)return json({error:"문자 인증 서버 설정을 확인해 주세요."},500);
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
