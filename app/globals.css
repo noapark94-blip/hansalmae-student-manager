@@ -24,10 +24,10 @@ button:disabled { cursor:wait; opacity:.7; }
 .auth-card form .primary { height:47px; margin-top:3px; }
 .auth-recovery-link { margin:14px auto 0; border:0; background:transparent; color:var(--wine); font-size:13px; font-weight:750; text-decoration:none; }
 .recovery-modal { width:min(92vw,520px); }
-.recovery-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:22px 0; padding:5px; border-radius:14px; background:#f7f2f4; }
+.recovery-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:22px 0 0; padding:5px; border-radius:14px; background:#f7f2f4; }
 .recovery-tabs button { min-height:42px; border:0; border-radius:10px; background:transparent; color:#796b71; font-weight:800; }
 .recovery-tabs button.active { background:#fff; color:var(--wine); box-shadow:0 3px 12px rgba(72,25,46,.1); }
-.recovery-modal form { display:grid; gap:14px; }
+.recovery-modal form { display:grid; gap:12px; padding-top:14px; }
 .recovery-modal form label { display:grid; gap:7px; color:#51484c; font-size:13px; font-weight:800; }
 .recovery-modal form input { min-height:50px; padding:0 15px; border:1px solid #ded6d9; border-radius:12px; font-size:15px; }
 .recovery-result { display:grid; gap:5px; padding:16px; border-radius:13px; background:#f8edf2; text-align:center; }
