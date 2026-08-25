@@ -342,7 +342,7 @@ button:disabled { cursor:wait; opacity:.7; }
 .special-lesson-form-card>header>em{margin-left:auto;padding:4px 8px;border-radius:999px;background:#f5e8ee;color:var(--wine);font-size:8px;font-style:normal;font-weight:850}
 .special-lesson-primary-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .special-lesson-date-time{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:10px;margin:10px 0}
-.special-lesson-date-time>label>small{display:none}
+.special-lesson-form-card .special-lesson-date-time>label>small{display:none!important}
 .special-lesson-form-card label{gap:5px;color:#51484c;font-size:9px;font-weight:800}.special-lesson-form-card label>small{display:inline;color:#a79ca1;font-size:7px;font-weight:650}
 .special-lesson-form-card input,.special-lesson-form-card select{height:40px;padding:0 11px;border:1px solid #ded5d9;border-radius:9px;background:#fff;color:#30282c;font-size:10px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
 .special-lesson-form-card input:focus,.special-lesson-form-card select:focus{border-color:var(--wine);box-shadow:0 0 0 3px rgba(146,45,97,.09)}
