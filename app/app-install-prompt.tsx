@@ -90,14 +90,35 @@ function IosGuide() {
 
 function SafariHandoff({ isKakao }: { isKakao: boolean }) {
   return <div className="safari-handoff">
-    <span className="safari-compass" aria-hidden="true"><i /></span>
+    <SafariIcon className="safari-compass" />
     <p className="install-guide-lead"><b>지금은 {isKakao ? "카카오톡" : "앱 내부"} 화면입니다.</b><br/>아이폰 설치는 Safari에서 진행해 주세요.</p>
     <ol className="install-steps handoff">
-      <li><em>1</em><span><b>{isKakao ? "오른쪽 아래의 공유 버튼을 눌러 주세요" : "화면의 공유 버튼을 눌러 주세요"}</b><small>네모 위로 화살표가 올라가는 <strong>□↑</strong> 모양입니다.</small></span><i className="share-symbol" aria-hidden="true">↥</i></li>
-      <li><em>2</em><span><b>공유 메뉴에서 ‘Safari로 열기’를 눌러 주세요</b><small>Safari가 열리면 로그인 화면의 <strong>한살매 수업노트 설치</strong>를 다시 누르세요.</small></span><i className="safari-mini" aria-hidden="true"><i /></i></li>
+      <li><em>1</em><span><b>{isKakao ? "오른쪽 아래의 공유 버튼을 눌러 주세요" : "화면의 공유 버튼을 눌러 주세요"}</b><small>아래 그림과 같은 네모 위 화살표 모양입니다.</small></span><ShareIcon /></li>
+      <li className="safari-choice-step"><em>2</em><span><b>공유 메뉴에서 ‘Safari로 열기’를 눌러 주세요</b><small>파란색 나침반 아이콘에 자주색 테두리가 표시된 항목입니다.</small></span><SafariShareMenu /></li>
+      <li><em>3</em><span><b>Safari에서 설치 버튼을 다시 눌러 주세요</b><small>로그인 화면으로 이동하면 아래 설치 버튼을 한 번 더 누릅니다.</small></span><InstallButtonPreview /></li>
     </ol>
-    <p className="install-safe-note emphasis">Safari에서 설치 버튼을 다시 누르면 홈 화면에 추가하는 방법이 이어서 나옵니다.</p>
+    <p className="install-safe-note emphasis">Safari에서 설치 버튼을 다시 누르면 ‘홈 화면에 추가’ 방법이 이어서 나옵니다.</p>
   </div>;
+}
+
+function ShareIcon() {
+  return <i className="ios-share-icon" aria-label="아이폰 공유 아이콘"><svg viewBox="0 0 32 32" fill="none"><path d="M16 20V3m0 0-6 6m6-6 6 6M7 14H5.5A2.5 2.5 0 0 0 3 16.5v10A2.5 2.5 0 0 0 5.5 29h21a2.5 2.5 0 0 0 2.5-2.5v-10a2.5 2.5 0 0 0-2.5-2.5H25" /></svg></i>;
+}
+
+function SafariIcon({ className }: { className: string }) {
+  return <i className={className} aria-label="Safari 아이콘"><span className="safari-dial"><b /><em /></span></i>;
+}
+
+function SafariShareMenu() {
+  return <div className="share-menu-preview" aria-label="Safari로 열기 선택 화면">
+    <span className="selected"><SafariIcon className="safari-share-icon" /><b>Safari로 열기</b></span>
+    <span><i className="link-preview">↗</i><b>URL 복사하기</b></span>
+    <span><i>⌄</i><b>더 보기</b></span>
+  </div>;
+}
+
+function InstallButtonPreview() {
+  return <span className="install-button-preview"><i className="app-install-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg></i><b>한살매 수업노트 설치</b></span>;
 }
 
 function SafariInstallSteps() {
