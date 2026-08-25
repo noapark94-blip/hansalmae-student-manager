@@ -45,7 +45,7 @@
 .learning-common-card>header span,.learning-card-disclosure>span{display:grid;gap:2px}
 .learning-common-card>header small,.learning-card-disclosure small{color:#a04470;font-size:8px;font-weight:850}
 .learning-common-card>header b,.learning-card-disclosure b{color:#3c3237;font-size:12px;line-height:1.35}
-.learning-common-card>header em,.learning-card-disclosure>em{max-width:95px;padding:4px 7px;border-radius:999px;background:#f3eff1;color:#887b81;font-size:8px;font-style:normal;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.learning-common-card>header em,.learning-card-disclosure>em{max-width:78px;padding:2px 5px;border-radius:999px;background:#f3eff1;color:#887b81;font-size:7px;line-height:1.2;font-style:normal;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .learning-common-card.filled>header em,.learning-common-card.filled .learning-card-disclosure>em{background:#f3e2ea;color:#922d61}
 .learning-common-card>textarea,.learning-card-exam input,.learning-card-exam select{width:100%;min-width:0;box-sizing:border-box;border:1px solid #e3d7dc;border-radius:9px;background:#fff;padding:9px 10px;outline:none;font:inherit;font-size:10px;line-height:1.5}
 .learning-common-card>textarea{flex:1;min-height:68px;resize:vertical}
