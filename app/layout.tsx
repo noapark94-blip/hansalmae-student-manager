@@ -50,6 +50,7 @@ import "./academic-calendar.css";
 import "./mobile-layout-optimization.css";
 import "./mobile-correction-workspace.css";
 import "./class-subject-filters.css";
+import "./app-install-prompt.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
