@@ -20,22 +20,41 @@
 .safari-install-steps>li{align-items:flex-start;flex-wrap:wrap}.safari-install-steps>li>span:not(.safari-step-image){padding-top:5px}.safari-step-image{position:relative;width:100%;margin:5px 0 0 38px;border:1px solid #ded8db;border-radius:16px;overflow:hidden;background:#f3f1f2;box-shadow:0 5px 15px rgba(50,38,44,.08)}.safari-step-image img{display:block;width:100%;height:auto}.safari-step-image.more-button{width:112px;margin-left:auto;margin-right:auto}.safari-step-image>i{position:absolute;border:3px solid #a22d66;box-shadow:0 0 0 3px rgba(162,45,102,.1);pointer-events:none}.safari-step-image.more-button>i{inset:4%;border-radius:50%}.safari-step-image.share-action>i{left:4%;top:2.5%;width:78%;height:14%;border-radius:16px}.safari-step-image.more-action>i{left:74%;top:3%;width:22%;height:80%;border-radius:18px}.safari-step-image.home-action>i{left:4%;top:83%;width:92%;height:13%;border-radius:17px}.safari-step-image.add-action>i{left:79%;top:3%;width:18%;height:17%;border-radius:20px}
 @media(max-width:520px){.safari-step-image{margin-left:0;border-radius:13px}.safari-step-image>i{border-width:3px}.safari-step-image.share-action{width:82%;margin-left:auto;margin-right:auto}.safari-step-image.add-action{width:92%;margin-left:auto;margin-right:auto}}
 
-/* Keep the iPhone walkthrough calm and readable on narrow screens. */
-.safari-install-steps{counter-reset:install-step;gap:12px}
-.safari-install-steps>li{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:start;gap:4px 12px;padding:14px;border-color:#eadde3;background:#fff;box-shadow:0 4px 14px rgba(70,39,53,.035)}
+/* Compact crop windows: show only the control the user needs to tap. */
+.safari-install-steps{gap:10px}
+.safari-install-steps>li{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:start;gap:3px 11px;min-height:0;padding:13px;border-color:#eadde3;background:#fff;box-shadow:0 4px 14px rgba(70,39,53,.035)}
 .safari-install-steps>li>em{grid-column:1;grid-row:1;width:30px;height:30px;margin-top:1px}
-.safari-install-steps>li>span:not(.safari-step-image){grid-column:2;grid-row:1;padding:0;align-self:center;gap:3px;min-width:0}
-.safari-install-steps>li b{line-height:1.45;word-break:keep-all}
-.safari-install-steps>li small{line-height:1.55;word-break:keep-all}
-.safari-install-steps .safari-step-image{grid-column:1/-1;grid-row:2;display:block;flex:none;width:100%;min-width:0;margin:10px 0 0;border-color:#e6dde1;border-radius:14px;background:#f7f5f6;box-shadow:none}
-.safari-install-steps .safari-step-image img{width:100%;height:auto;max-height:230px;object-fit:contain;background:#f7f5f6}
-.safari-install-steps .safari-step-image.more-button{width:128px;margin:10px auto 0}
-.safari-install-steps .safari-step-image.more-button img{max-height:176px}
-.safari-install-steps .safari-step-image.share-action,.safari-install-steps .safari-step-image.add-action{width:min(100%,320px);margin-left:auto;margin-right:auto}
-.safari-install-steps .safari-step-image.share-action img{max-height:260px;object-fit:cover;object-position:top}
-.safari-install-steps .safari-step-image.more-action img{max-height:145px}
-.safari-install-steps .safari-step-image.home-action img{max-height:280px;object-fit:cover;object-position:bottom}
-.safari-install-steps .safari-step-image.add-action img{max-height:235px;object-fit:cover;object-position:top}
+.safari-install-steps>li>span:not(.safari-step-image){grid-column:2;grid-row:1;padding:0;align-self:center;gap:2px;min-width:0}
+.safari-install-steps>li b{line-height:1.4;word-break:keep-all}
+.safari-install-steps>li small{line-height:1.5;word-break:keep-all}
+.safari-install-steps .safari-step-image{position:relative;grid-column:1/-1;grid-row:2;display:block;flex:none;width:100%;min-width:0;height:110px;margin:8px 0 0;border:1px solid #e6dde1;border-radius:13px;overflow:hidden;background:#f5f3f4;box-shadow:none}
+.safari-install-steps .safari-step-image img{position:absolute;display:block;width:100%;max-width:none;height:auto;background:#f5f3f4}
+.safari-install-steps .safari-step-image>i{z-index:1;border:2px solid #a22d66;box-shadow:0 0 0 3px rgba(162,45,102,.08)}
+
+/* 1. Crop the tall source to the single circular Safari menu button. */
+.safari-install-steps .safari-step-image.more-button{width:104px;height:104px;margin:8px auto 0;border-radius:24px}
+.safari-install-steps .safari-step-image.more-button img{width:104px;left:0;top:-20px}
+.safari-install-steps .safari-step-image.more-button>i{inset:8px;border-radius:50%}
+
+/* 2. Keep only the top Share row. */
+.safari-install-steps .safari-step-image.share-action{width:min(100%,330px);height:122px;margin-left:auto;margin-right:auto}
+.safari-install-steps .safari-step-image.share-action img{left:0;top:0}
+.safari-install-steps .safari-step-image.share-action>i{left:3.5%;top:5%;width:80%;height:37%;border-radius:14px}
+
+/* 3. Zoom into the last item of the horizontal action strip. */
+.safari-install-steps .safari-step-image.more-action{width:126px;height:104px;margin-left:auto;margin-right:auto}
+.safari-install-steps .safari-step-image.more-action img{width:385px;right:-2px;top:0}
+.safari-install-steps .safari-step-image.more-action>i{left:34px;top:7px;width:54px;height:54px;border-radius:50%}
+
+/* 4. Keep only the bottom Home Screen row. */
+.safari-install-steps .safari-step-image.home-action{width:min(100%,330px);height:118px;margin-left:auto;margin-right:auto}
+.safari-install-steps .safari-step-image.home-action img{left:0;bottom:0}
+.safari-install-steps .safari-step-image.home-action>i{left:3.5%;bottom:5%;width:93%;height:48%;border-radius:14px}
+
+/* 5. Keep the title bar and blue Add button only. */
+.safari-install-steps .safari-step-image.add-action{width:min(100%,330px);height:112px;margin-left:auto;margin-right:auto}
+.safari-install-steps .safari-step-image.add-action img{left:0;top:0}
+.safari-install-steps .safari-step-image.add-action>i{left:auto;right:3.2%;top:5%;width:18%;height:42%;border-radius:16px}
 
 @media(max-width:520px){
   .install-guide-backdrop{padding:8px;align-items:end}
@@ -46,11 +65,11 @@
   .install-guide>header>button{width:40px;height:40px;border-radius:13px}
   .install-guide-body{padding:16px}
   .install-guide-lead{margin-bottom:12px;padding:0 2px;font-size:12px;line-height:1.6;word-break:keep-all}
-  .safari-install-steps{gap:11px}
+  .safari-install-steps{gap:10px}
   .safari-install-steps>li{min-height:0;padding:13px;gap:3px 11px;border-radius:17px}
   .safari-install-steps>li b{font-size:14px}
   .safari-install-steps>li small{font-size:11px}
-  .safari-install-steps .safari-step-image{margin-top:9px;border-radius:12px}
+  .safari-install-steps .safari-step-image{margin-top:8px;border-radius:12px}
   .install-safe-note{margin-top:12px;padding:12px 13px;border-radius:12px;text-align:center;word-break:keep-all}
   .install-guide>footer{padding:11px 16px calc(11px + env(safe-area-inset-bottom));background:#fff;box-shadow:0 -7px 18px rgba(55,34,43,.06)}
   .install-guide>footer button{height:50px;border-radius:14px;font-size:14px}
