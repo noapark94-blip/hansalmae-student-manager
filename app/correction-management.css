@@ -110,3 +110,43 @@
   flex:0 0 116px!important;
  }
 }
+
+
+/* Searchable student picker in the correction assignment editor. */
+.correction-student-search-field{position:relative;z-index:6}
+.correction-student-picker{position:relative}
+.correction-student-picker>input{width:100%;box-sizing:border-box}
+.correction-student-search-results{
+ position:absolute;
+ top:calc(100% + 6px);
+ left:0;
+ right:0;
+ z-index:30;
+ max-height:220px;
+ overflow-y:auto;
+ padding:6px;
+ border:1px solid #dfd2d8;
+ border-radius:12px;
+ background:#fff;
+ box-shadow:0 14px 34px rgba(61,35,47,.16);
+}
+.correction-student-search-results>button{
+ width:100%;
+ display:grid;
+ grid-template-columns:minmax(70px,auto) minmax(0,1fr);
+ align-items:center;
+ gap:10px;
+ min-height:42px;
+ padding:8px 10px;
+ border:0;
+ border-radius:8px;
+ background:#fff;
+ color:#30282c;
+ text-align:left;
+ cursor:pointer;
+}
+.correction-student-search-results>button:hover,
+.correction-student-search-results>button.selected{background:#fbf0f5;color:#922d61}
+.correction-student-search-results>button b{font-size:12px}
+.correction-student-search-results>button small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8d7f86;font-size:10px}
+.correction-student-search-results>p{margin:0;padding:16px 10px;text-align:center;color:#94878d;font-size:11px}
