@@ -15,6 +15,7 @@ type Subject = {
   mainSubject: "국어" | "영어" | "수학";
   parentId: string | null;
 };
+type MainSubjectFilter = "전체" | "국어" | "영어" | "수학";
 type Schedule = {
   id: string;
   weekday: number;
@@ -510,10 +511,16 @@ function ClassManager({ supabase, profile, subjects, onClose, onSaved }: { supab
   const [classes,setClasses]=useState<ManagedClass[]>([]);
   const [loading,setLoading]=useState(true);
   const [editing,setEditing]=useState<ManagedClass|null>(null);
+  const [subjectFilter,setSubjectFilter]=useState<MainSubjectFilter>("전체");
   const [error,setError]=useState("");
   const load=useCallback(async()=>{setLoading(true);setError("");const{data:rows,error:loadError}=await supabase.rpc("staff_manage_classes");if(loadError)setError(loadError.message);else setClasses((rows as ManagedClass[])??[]);setLoading(false)},[supabase]);
   useEffect(()=>{void load()},[load]);
-  return <div className="modal-backdrop"><div className="modal class-manager-modal"><header><div><p className="eyebrow">전체 클래스</p><h2>클래스 관리</h2><p>클래스를 수정하거나 운영 종료할 수 있습니다.</p></div><button className="modal-close" onClick={onClose}>×</button></header><div className="modal-body">{loading?<p className="empty-state">클래스를 불러오는 중이에요…</p>:<div className="managed-class-list">{classes.map((item)=><button type="button" key={item.id} onClick={()=>setEditing(item)}><i style={{background:item.color}}/><span><b>{item.name}</b><small>{item.subject} · {item.teachers.map((teacher)=>teacher.name).join(", ")||"담당 미정"}</small><em>{item.schedules.length?scheduleText(item.schedules):"시간 미배정"}</em></span><strong>{item.enrollmentCount}명</strong></button>)}</div>}{error&&<p className="form-error">{error}</p>}</div><footer><button className="primary" onClick={onClose}>완료</button></footer>{editing&&<ClassEditor supabase={supabase} profile={profile} subjects={subjects} classes={classes} classRoom={editing} onClose={()=>setEditing(null)} onSaved={async()=>{setEditing(null);await load();await onSaved()}}/>}</div></div>
+  const subjectById=useMemo(()=>new Map(subjects.map((item)=>[item.id,item.mainSubject])),[subjects]);
+  const classMainSubject=(item:ManagedClass)=>subjectById.get(item.subjectId??"")??(["국어","영어","수학"].includes(item.subject)?item.subject:"");
+  const subjectFilters:MainSubjectFilter[]=["전체","국어","영어","수학"];
+  const visibleClasses=subjectFilter==="전체"?classes:classes.filter((item)=>classMainSubject(item)===subjectFilter);
+  const subjectCount=(subject:MainSubjectFilter)=>subject==="전체"?classes.length:classes.filter((item)=>classMainSubject(item)===subject).length;
+  return <div className="modal-backdrop"><div className="modal class-manager-modal"><header><div><p className="eyebrow">전체 클래스</p><h2>클래스 관리</h2><p>클래스를 수정하거나 운영 종료할 수 있습니다.</p></div><button className="modal-close" onClick={onClose}>×</button></header><div className="modal-body">{loading?<p className="empty-state">클래스를 불러오는 중이에요…</p>:<><nav className="class-subject-filter manager-subject-filter" aria-label="전체 클래스 과목 필터">{subjectFilters.map((subject)=><button type="button" key={subject} className={subjectFilter===subject?"active":""} aria-pressed={subjectFilter===subject} onClick={()=>setSubjectFilter(subject)}><span>{subject}</span><em>{subjectCount(subject)}</em></button>)}</nav><div className="managed-class-list">{visibleClasses.map((item)=><button type="button" key={item.id} onClick={()=>setEditing(item)}><i style={{background:item.color}}/><span><b>{item.name}</b><small>{item.subject} · {item.teachers.map((teacher)=>teacher.name).join(", ")||"담당 미정"}</small><em>{item.schedules.length?scheduleText(item.schedules):"시간 미배정"}</em></span><strong>{item.enrollmentCount}명</strong></button>)}{!visibleClasses.length&&<p className="modal-empty subject-filter-empty">{subjectFilter} 과목에 등록된 클래스가 없습니다.</p>}</div></>}{error&&<p className="form-error">{error}</p>}</div><footer><button className="primary" onClick={onClose}>완료</button></footer>{editing&&<ClassEditor supabase={supabase} profile={profile} subjects={subjects} classes={classes} classRoom={editing} onClose={()=>setEditing(null)} onSaved={async()=>{setEditing(null);await load();await onSaved()}}/>}</div></div>
 }
 
 function ClassEditor({ supabase, profile, subjects, classes, classRoom, onClose, onSaved }: { supabase: SupabaseClient; profile: Profile; subjects: Subject[]; classes: ManagedClass[]; classRoom: ManagedClass; onClose: () => void; onSaved: () => Promise<void> }) {

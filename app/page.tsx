@@ -79,6 +79,7 @@ type SubjectOption = {
   main_subject: string;
   parent_id: string | null;
 };
+type MainSubjectFilter = "전체" | "국어" | "영어" | "수학";
 type SchoolOption = { id: string; name: string };
 type LiveTodayClass = {
   id: string;
@@ -805,7 +806,7 @@ export default function Home() {
       {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={profile.display_name} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
-      {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
+      {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
       {studentDetails && (
         <StudentDetailHub
           supabase={supabase}
@@ -2000,12 +2001,13 @@ type StudentScheduleChoice = {
   endTime: string;
   assigned: boolean;
 };
-function EnrollmentModal({ supabase, student, classes, onClose, onSubmit }: { supabase: SupabaseClient; student: StudentRow; classes: AcademyClass[]; onClose: () => void; onSubmit: (classIds: string[]) => Promise<void> }) {
+function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubmit }: { supabase: SupabaseClient; student: StudentRow; classes: AcademyClass[]; subjects: SubjectOption[]; onClose: () => void; onSubmit: (classIds: string[]) => Promise<void> }) {
   const assigned = new Set(student.enrollments.filter((item) => item.status === "active").map((item) => item.class_id));
   const [classIds, setClassIds] = useState([...assigned]);
   const [scheduleChoices, setScheduleChoices] = useState<StudentScheduleChoice[]>([]);
   const [scheduleIds, setScheduleIds] = useState<string[]>([]);
   const [step, setStep] = useState<"classes" | "schedules">("classes");
+  const [subjectFilter, setSubjectFilter] = useState<MainSubjectFilter>("전체");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const loadSchedules = async () => {
@@ -2037,13 +2039,22 @@ function EnrollmentModal({ supabase, student, classes, onClose, onSubmit }: { su
   };
   const toggle = (id: string) => setClassIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   const toggleSchedule = (id: string) => setScheduleIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  const subjectById = useMemo(() => new Map(subjects.map((item) => [item.id, item.main_subject])), [subjects]);
+  const classMainSubject = (item: AcademyClass) => subjectById.get(item.subject_id ?? "") ?? (["국어", "영어", "수학"].includes(item.subject) ? item.subject : "");
+  const subjectFilters: MainSubjectFilter[] = ["전체", "국어", "영어", "수학"];
+  const visibleClasses = subjectFilter === "전체" ? classes : classes.filter((item) => classMainSubject(item) === subjectFilter);
+  const subjectCount = (subject: MainSubjectFilter) => subject === "전체" ? classes.length : classes.filter((item) => classMainSubject(item) === subject).length;
   return (
     <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description={step === "classes" ? "한 학생에게 여러 과목·세부 반을 동시에 배정합니다." : "실제로 참석하는 요일별 반을 선택하세요. 선택하지 않으면 기존처럼 모든 수강 반에 표시됩니다."} onClose={onClose}>
       <form onSubmit={submit}>
         {step === "classes" ? (
           classes.length ? (
-            <div className="class-choice-list">
-              {classes.map((item) => (
+            <>
+              <nav className="class-subject-filter" aria-label="클래스 과목 필터">
+                {subjectFilters.map((subject) => <button type="button" key={subject} className={subjectFilter === subject ? "active" : ""} aria-pressed={subjectFilter === subject} onClick={() => setSubjectFilter(subject)}><span>{subject}</span><em>{subjectCount(subject)}</em></button>)}
+              </nav>
+              <div className="class-choice-list">
+              {visibleClasses.map((item) => (
                 <label key={item.id} className={classIds.includes(item.id) ? "selected" : ""}>
                   <input type="checkbox" checked={classIds.includes(item.id)} onChange={() => toggle(item.id)} />
                   <i style={{ background: item.color }} />
@@ -2056,7 +2067,9 @@ function EnrollmentModal({ supabase, student, classes, onClose, onSubmit }: { su
                   </span>
                 </label>
               ))}
-            </div>
+              {!visibleClasses.length && <p className="modal-empty subject-filter-empty">{subjectFilter} 과목에 등록된 클래스가 없습니다.</p>}
+              </div>
+            </>
           ) : (
             <p className="modal-empty">등록된 클래스가 없습니다.</p>
           )
