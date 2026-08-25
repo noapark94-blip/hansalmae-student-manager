@@ -82,3 +82,39 @@
 .safari-install-steps .safari-step-image>i{display:none}
 .install-guide>header{z-index:30;background:#fff}
 .install-guide>footer{z-index:30;background:#fff}
+
+/* Final mobile layout: number | explanation | highlighted preview. */
+@media(max-width:520px){
+  .safari-install-steps>li{grid-template-columns:28px minmax(0,1fr) 122px;grid-template-rows:auto;align-items:center;column-gap:9px;padding:12px}
+  .safari-install-steps>li>em{grid-column:1;grid-row:1;width:28px;height:28px;margin:0;align-self:start}
+  .safari-install-steps>li>span:not(.safari-step-image){grid-column:2;grid-row:1;align-self:center;gap:4px;text-align:left}
+  .safari-install-steps>li b{font-size:13px;line-height:1.4}
+  .safari-install-steps>li small{font-size:10px;line-height:1.45}
+  .safari-install-steps .safari-step-image{grid-column:3;grid-row:1;width:122px;height:88px;margin:0;border-radius:12px;background:#f4f2f3}
+  .safari-install-steps .safari-step-image>i{display:block;z-index:1;border:2px solid #a22d66;box-shadow:0 0 0 2px rgba(162,45,102,.08)}
+
+  .safari-install-steps .safari-step-image.more-button{width:88px;height:88px;margin:0 auto;border-radius:22px}
+  .safari-install-steps .safari-step-image.more-button img{width:88px;top:-17px}
+  .safari-install-steps .safari-step-image.more-button>i{inset:6px;border-radius:50%}
+
+  .safari-install-steps .safari-step-image.share-action{width:122px;height:88px;margin:0}
+  .safari-install-steps .safari-step-image.share-action>i{left:3%;top:5%;width:80%;height:40%;border-radius:10px}
+
+  .safari-install-steps .safari-step-image.more-action{width:88px;height:88px;margin:0 auto}
+  .safari-install-steps .safari-step-image.more-action img{width:268px;right:-1px;top:0}
+  .safari-install-steps .safari-step-image.more-action>i{left:18px;top:5px;width:48px;height:48px;border-radius:50%}
+
+  .safari-install-steps .safari-step-image.home-action{width:122px;height:88px;margin:0}
+  .safari-install-steps .safari-step-image.home-action>i{left:3%;bottom:4%;width:94%;height:43%;border-radius:10px}
+
+  .safari-install-steps .safari-step-image.add-action{width:122px;height:88px;margin:0}
+  .safari-install-steps .safari-step-image.add-action>i{left:auto;right:3%;top:5%;width:19%;height:40%;border-radius:11px}
+}
+
+@media(max-width:380px){
+  .safari-install-steps>li{grid-template-columns:26px minmax(0,1fr) 104px;column-gap:7px;padding:10px}
+  .safari-install-steps>li>em{width:26px;height:26px}
+  .safari-install-steps .safari-step-image,.safari-install-steps .safari-step-image.share-action,.safari-install-steps .safari-step-image.home-action,.safari-install-steps .safari-step-image.add-action{width:104px}
+  .safari-install-steps>li b{font-size:12px}
+  .safari-install-steps>li small{font-size:9px}
+}
