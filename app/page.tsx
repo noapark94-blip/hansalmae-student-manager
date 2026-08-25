@@ -209,6 +209,7 @@ export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authError, setAuthError] = useState("");
   const profileLoadSequence = useRef(0);
+  const loadedUserIdRef = useRef<string | null>(null);
   const [view, setView] = useState<View>("dashboard");
   const [deepReportId] = useState<string | null>(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("report")));
   const [viewRestored, setViewRestored] = useState(false);
@@ -252,6 +253,7 @@ export default function Home() {
 
     const loadProfile = async (nextUser: User | null) => {
       const loadSequence = ++profileLoadSequence.current;
+      loadedUserIdRef.current = nextUser?.id ?? null;
       setAuthReady(false);
       setUser(nextUser);
       if (!nextUser) {
@@ -296,8 +298,13 @@ export default function Home() {
     };
 
     void supabase.auth.getUser().then(({ data }) => loadProfile(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      window.setTimeout(() => void loadProfile(session?.user ?? null), 0);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUser = session?.user ?? null;
+
+      if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+      if (event === "SIGNED_IN" && nextUser?.id === loadedUserIdRef.current) return;
+
+      window.setTimeout(() => void loadProfile(nextUser), 0);
     });
     return () => listener.subscription.unsubscribe();
   }, [deepReportId, supabase]);
