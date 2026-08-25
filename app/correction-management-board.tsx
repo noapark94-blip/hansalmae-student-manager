@@ -88,7 +88,23 @@ function SlotRosterModal({value,onClose,onSelect}:{value:NonNullable<SlotRosterS
 }
 
 function AssignmentEditor({row,initialWeekday,initialSlot,data,supabase,onClose,onSaved}:{row?:Assignment;initialWeekday?:number;initialSlot?:string;data:Board;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
-  const[studentId,setStudentId]=useState(row?.studentId??data.students[0]?.id??"");
+  const initialStudentId=row?.studentId??"";
+  const[studentId,setStudentId]=useState(initialStudentId);
+  const[studentQuery,setStudentQuery]=useState(()=>{
+    const selected=data.students.find(item=>item.id===initialStudentId);
+    return selected?`${selected.name} · ${[selected.school,selected.grade].filter(Boolean).join(" ")}`:"";
+  });
+  const[studentPickerOpen,setStudentPickerOpen]=useState(false);
+  const visibleStudents=useMemo(()=>{
+    const query=studentQuery.trim().toLowerCase();
+    if(!query)return data.students.slice(0,8);
+    return data.students.filter(item=>[item.name,item.school,item.grade].filter(Boolean).join(" ").toLowerCase().includes(query)).slice(0,8);
+  },[data.students,studentQuery]);
+  const chooseStudent=(item:Student)=>{
+    setStudentId(item.id);
+    setStudentQuery(`${item.name} · ${[item.school,item.grade].filter(Boolean).join(" ")}`);
+    setStudentPickerOpen(false);
+  };
   const[subject,setSubject]=useState<"국어"|"영어"|"수학">(row?.subject??"영어");
   const[weekday,setWeekday]=useState(row?.weekday??initialWeekday??1);
   const initial=findSlot(row?.weekday??initialWeekday??1,row?.startTime?.slice(0,5)??initialSlot);
@@ -115,7 +131,7 @@ function AssignmentEditor({row,initialWeekday,initialSlot,data,supabase,onClose,
     if(removeError){setError(removeError.message);setSaving(false);}else await onSaved();
   };
 
-  return <div className="modal-backdrop"><section className="student-modal correction-editor"><header><div><p className="eyebrow">고정 첨삭 일정</p><h2>{row?"첨삭 배정 수정":"학생 첨삭 배정"}</h2><span>{row?"기본 일정은 매주 반복됩니다. 특정 주 변경은 별도 예외 일정으로 처리합니다.":`${days[weekday-1]}요일 ${slot} 시간에 학생을 추가합니다.`}</span></div><button onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label>학생<select required value={studentId} onChange={e=>setStudentId(e.target.value)}>{data.students.map(item=><option key={item.id} value={item.id}>{item.name} · {[item.school,item.grade].filter(Boolean).join(" ")}</option>)}</select></label><label>첨삭 과목<select value={subject} onChange={e=>setSubject(e.target.value as "국어"|"영어"|"수학")}><option>국어</option><option>영어</option><option>수학</option></select></label><label>요일<select value={weekday} onChange={e=>setWeekday(Number(e.target.value))}>{days.map((day,index)=><option key={day} value={index+1}>{day}요일</option>)}</select></label><label>시간<select value={slot} onChange={e=>setSlot(e.target.value)}>{slots.map(([start,end])=><option value={start} key={start}>{start}–{end}</option>)}</select></label><label>첨삭 담당<select value={tutorId} onChange={e=>setTutorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>감독 선생님<select value={supervisorId} onChange={e=>setSupervisorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="full">특이사항<input value={note} onChange={e=>setNote(e.target.value)} placeholder="예: 주간 테스트 · 내신 과제 확인"/></label></div>{error&&<p className="form-error">{error}</p>}<footer>{row?<button type="button" className="danger-link" onClick={()=>void remove()}>고정 배정 삭제</button>:<span/>}<span><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving||!studentId}>{saving?"저장 중…":"저장"}</button></span></footer></form></section></div>;
+  return <div className="modal-backdrop"><section className="student-modal correction-editor"><header><div><p className="eyebrow">고정 첨삭 일정</p><h2>{row?"첨삭 배정 수정":"학생 첨삭 배정"}</h2><span>{row?"기본 일정은 매주 반복됩니다. 특정 주 변경은 별도 예외 일정으로 처리합니다.":`${days[weekday-1]}요일 ${slot} 시간에 학생을 추가합니다.`}</span></div><button onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label className="correction-student-search-field">학생<div className="correction-student-picker"><input required value={studentQuery} autoComplete="off" placeholder="학생 이름·학교·학년 검색" onFocus={()=>setStudentPickerOpen(true)} onChange={e=>{setStudentQuery(e.target.value);setStudentId("");setStudentPickerOpen(true)}} />{studentPickerOpen?<div className="correction-student-search-results">{visibleStudents.length?visibleStudents.map(item=><button type="button" key={item.id} className={studentId===item.id?"selected":""} onMouseDown={e=>e.preventDefault()} onClick={()=>chooseStudent(item)}><b>{item.name}</b><small>{[item.school,item.grade].filter(Boolean).join(" · ")||"학교·학년 미등록"}</small></button>):<p>검색 결과가 없습니다.</p>}</div>:null}</div></label><label>첨삭 과목<select value={subject} onChange={e=>setSubject(e.target.value as "국어"|"영어"|"수학")}><option>국어</option><option>영어</option><option>수학</option></select></label><label>요일<select value={weekday} onChange={e=>setWeekday(Number(e.target.value))}>{days.map((day,index)=><option key={day} value={index+1}>{day}요일</option>)}</select></label><label>시간<select value={slot} onChange={e=>setSlot(e.target.value)}>{slots.map(([start,end])=><option value={start} key={start}>{start}–{end}</option>)}</select></label><label>첨삭 담당<select value={tutorId} onChange={e=>setTutorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>감독 선생님<select value={supervisorId} onChange={e=>setSupervisorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="full">특이사항<input value={note} onChange={e=>setNote(e.target.value)} placeholder="예: 주간 테스트 · 내신 과제 확인"/></label></div>{error&&<p className="form-error">{error}</p>}<footer>{row?<button type="button" className="danger-link" onClick={()=>void remove()}>고정 배정 삭제</button>:<span/>}<span><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving||!studentId}>{saving?"저장 중…":"저장"}</button></span></footer></form></section></div>;
 }
 
 function ScheduleActionModal({assignment,originalDate,supabase,onEdit,onClose,onSaved}:{assignment:Assignment;originalDate:string;supabase:SupabaseClient;onEdit:()=>void;onClose:()=>void;onSaved:()=>Promise<void>}){
