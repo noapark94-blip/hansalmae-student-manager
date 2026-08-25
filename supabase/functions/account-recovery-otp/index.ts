@@ -31,10 +31,23 @@ Deno.serve(async request=>{
   }
 
   if(input.action==="help-request"){
-    const requesterName=(input.name??"").trim(),reachable=digits(input.reachablePhone??"");if(!requesterName||reachable.length<10||!input.accountType||!input.reason)return json({error:"도움 요청 정보를 정확히 입력해 주세요."},400);
-    const old=digits(input.registeredPhone??"");let profileId:string|null=null;const{data:profiles}=await admin.from("profiles").select("id,phone").eq("is_active",true).ilike("display_name",requesterName);
-    if(old){const matched=[];for(const profile of profiles??[]){const[{data:student},{data:guardian}]=await Promise.all([admin.from("students").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle(),admin.from("guardians").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle()]);if(digits(profile.phone??student?.phone??guardian?.phone??"")===old)matched.push(profile)}if(matched.length===1)profileId=matched[0].id}else if(profiles?.length===1)profileId=profiles[0].id;
-    const{error}=await admin.from("account_help_requests").insert({requester_name:requesterName,account_type:input.accountType,registered_phone:input.registeredPhone||null,reachable_phone:input.reachablePhone,reason:input.reason,profile_id:profileId});if(error)return json({error:"도움 요청을 등록하지 못했습니다."},500);return json({success:true});
+    const requesterName=(input.name??"").trim(),reachable=digits(input.reachablePhone??"");
+    if(!requesterName||reachable.length<10||!input.accountType||!input.reason)return json({error:"도움 요청 정보를 정확히 입력해 주세요."},400);
+    const{error}=await admin.rpc("account_help_request_create",{
+      p_requester_name:requesterName,
+      p_account_type:input.accountType,
+      p_registered_phone:digits(input.registeredPhone??""),
+      p_reachable_phone:reachable,
+      p_reason:input.reason
+    });
+    if(error){
+      const message=String(error.message??"");
+      if(message.includes("RATE_LIMIT_MINUTE"))return json({error:"도움 요청은 1분 뒤 다시 등록할 수 있습니다."},429);
+      if(message.includes("RATE_LIMIT_HOUR"))return json({error:"도움 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."},429);
+      console.error("[account-recovery-otp] help request failed",error);
+      return json({error:"도움 요청을 등록하지 못했습니다."},500);
+    }
+    return json({success:true});
   }
 
   if(input.action==="send"){
