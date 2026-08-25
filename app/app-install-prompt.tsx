@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -90,11 +91,10 @@ function IosGuide() {
 
 function SafariHandoff({ isKakao }: { isKakao: boolean }) {
   return <div className="safari-handoff">
-    <SafariIcon className="safari-compass" />
     <p className="install-guide-lead"><b>지금은 {isKakao ? "카카오톡" : "앱 내부"} 화면입니다.</b><br/>아이폰 설치는 Safari에서 진행해 주세요.</p>
     <ol className="install-steps handoff">
       <li><em>1</em><span><b>{isKakao ? "오른쪽 아래의 공유 버튼을 눌러 주세요" : "화면의 공유 버튼을 눌러 주세요"}</b><small>아래 그림과 같은 네모 위 화살표 모양입니다.</small></span><ShareIcon /></li>
-      <li className="safari-choice-step"><em>2</em><span><b>공유 메뉴에서 ‘Safari로 열기’를 눌러 주세요</b><small>파란색 나침반 아이콘에 자주색 테두리가 표시된 항목입니다.</small></span><SafariShareMenu /></li>
+      <li className="safari-choice-step"><em>2</em><span><b>공유 메뉴에서 ‘Safari로 열기’를 눌러 주세요</b></span><SafariShareMenu /></li>
       <li><em>3</em><span><b>Safari에서 설치 버튼을 다시 눌러 주세요</b><small>로그인 화면으로 이동하면 아래 설치 버튼을 한 번 더 누릅니다.</small></span><InstallButtonPreview /></li>
     </ol>
     <p className="install-safe-note emphasis">Safari에서 설치 버튼을 다시 누르면 ‘홈 화면에 추가’ 방법이 이어서 나옵니다.</p>
@@ -105,16 +105,10 @@ function ShareIcon() {
   return <i className="ios-share-icon" aria-label="아이폰 공유 아이콘"><svg viewBox="0 0 32 32" fill="none"><path d="M16 20V3m0 0-6 6m6-6 6 6M7 14H5.5A2.5 2.5 0 0 0 3 16.5v10A2.5 2.5 0 0 0 5.5 29h21a2.5 2.5 0 0 0 2.5-2.5v-10a2.5 2.5 0 0 0-2.5-2.5H25" /></svg></i>;
 }
 
-function SafariIcon({ className }: { className: string }) {
-  return <i className={className} aria-label="Safari 아이콘"><span className="safari-dial"><b /><em /></span></i>;
-}
-
 function SafariShareMenu() {
-  return <div className="share-menu-preview" aria-label="Safari로 열기 선택 화면">
-    <span className="selected"><i className="mono-safari-icon"><b /></i><b>Safari로 열기</b></span>
-    <span><i className="mono-link-icon" /><b>URL 복사하기</b></span>
-    <span><i className="mono-note-icon">〰</i><b>새로운 빠른<br/>메모에 추가</b></span>
-    <span><i className="mono-more-icon">⌄</i><b>더 보기</b></span>
+  return <div className="share-menu-photo" aria-label="공유 메뉴에서 Safari로 열기 선택">
+    <Image src="/kakao-safari-share-menu.jpeg" width={1206} height={400} sizes="(max-width: 520px) 90vw, 420px" alt="Safari로 열기, URL 복사하기, 새로운 빠른 메모에 추가, 더 보기 메뉴" />
+    <i aria-hidden="true" />
   </div>;
 }
 
