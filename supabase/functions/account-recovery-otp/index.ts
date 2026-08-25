@@ -16,14 +16,28 @@ Deno.serve(async request=>{
   const apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
   if(!url||!service||!pepper||!apiKey||!apiSecret||!sender)return json({error:"문자 인증 서버 설정을 확인해 주세요."},500);
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
-  let input:{action?:string;purpose?:"id"|"password";name?:string;phone?:string;challengeId?:string;code?:string;password?:string};
+  let input:{action?:string;purpose?:"id"|"password";name?:string;phone?:string;challengeId?:string;code?:string;password?:string;accountType?:"student"|"guardian"|"staff";registeredPhone?:string;reachablePhone?:string;reason?:"phone_changed"|"sms_unavailable"|"other"};
   try{input=await request.json()}catch{return json({error:"요청 정보를 확인해 주세요."},400)}
+
+  if(input.action==="lookup-id"){
+    const name=(input.name??"").trim(),phone=digits(input.phone??"");if(!name||phone.length<10)return json({error:"이름과 연락처를 정확히 입력해 주세요."},400);
+    const{data:profiles}=await admin.from("profiles").select("id,phone,is_active").eq("is_active",true).ilike("display_name",name);const matches:{id:string}[]=[];
+    for(const profile of profiles??[]){const[{data:student},{data:guardian}]=await Promise.all([admin.from("students").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle(),admin.from("guardians").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle()]);if(digits(profile.phone??student?.phone??guardian?.phone??"")===phone)matches.push(profile)}
+    if(matches.length!==1)return json({error:"입력한 정보와 일치하는 계정을 찾지 못했습니다."},404);const{data:userData}=await admin.auth.admin.getUserById(matches[0].id);if(!userData.user?.email)return json({error:"로그인 아이디를 확인하지 못했습니다."},500);return json({success:true,loginId:userData.user.email});
+  }
+
+  if(input.action==="help-request"){
+    const requesterName=(input.name??"").trim(),reachable=digits(input.reachablePhone??"");if(!requesterName||reachable.length<10||!input.accountType||!input.reason)return json({error:"도움 요청 정보를 정확히 입력해 주세요."},400);
+    const old=digits(input.registeredPhone??"");let profileId:string|null=null;const{data:profiles}=await admin.from("profiles").select("id,phone").eq("is_active",true).ilike("display_name",requesterName);
+    if(old){const matched=[];for(const profile of profiles??[]){const[{data:student},{data:guardian}]=await Promise.all([admin.from("students").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle(),admin.from("guardians").select("phone").eq("profile_id",profile.id).limit(1).maybeSingle()]);if(digits(profile.phone??student?.phone??guardian?.phone??"")===old)matched.push(profile)}if(matched.length===1)profileId=matched[0].id}else if(profiles?.length===1)profileId=profiles[0].id;
+    const{error}=await admin.from("account_help_requests").insert({requester_name:requesterName,account_type:input.accountType,registered_phone:input.registeredPhone||null,reachable_phone:input.reachablePhone,reason:input.reason,profile_id:profileId});if(error)return json({error:"도움 요청을 등록하지 못했습니다."},500);return json({success:true});
+  }
 
   if(input.action==="send"){
     const name=(input.name??"").trim(),phone=digits(input.phone??""),purpose=input.purpose;
-    if(!name||phone.length<10||!purpose)return json({error:"이름과 연락처를 정확히 입력해 주세요."},400);
+    if(!name||phone.length<10||purpose!=="password")return json({error:"이름과 연락처를 정확히 입력해 주세요."},400);
     const phoneHash=await hash(`${phone}:${pepper}`),now=Date.now();
-    const {data:recent}=await admin.from("account_recovery_challenges").select("created_at").eq("phone_hash",phoneHash).gte("created_at",new Date(now-60*60*1000).toISOString()).order("created_at",{ascending:false});
+    const {data:recent}=await admin.from("account_recovery_challenges").select("created_at").eq("phone_hash",phoneHash).eq("purpose","password").gte("created_at",new Date(now-60*60*1000).toISOString()).order("created_at",{ascending:false});
     if(recent?.[0]&&now-new Date(recent[0].created_at).getTime()<60_000)return json({error:"인증번호는 1분 뒤 다시 요청할 수 있습니다."},429);
     if((recent?.length??0)>=5)return json({error:"인증 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."},429);
     const {data:profiles}=await admin.from("profiles").select("id,display_name,phone,is_active").eq("is_active",true).ilike("display_name",name);
