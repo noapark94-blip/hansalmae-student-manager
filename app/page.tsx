@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 31969)
-Total output lines: 2590
-
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
@@ -1157,7 +1154,143 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
           { id: "attendance", label: "출결" },
         ];
   return (
-    <nav className="st…1969 tokens truncated…
+    <nav className="staff-bottom-nav" aria-label={`${roleLabels[role]} 주요 메뉴`}>
+      {items.map((item) => (
+        <button type="button" key={item.id} className={activeView === item.id ? "active" : ""} aria-current={activeView === item.id ? "page" : undefined} onClick={() => onSelect(item.id)}>
+          <HansalmaeIcon name={viewIcon[item.id]} size={21} />
+          <span>{item.label}</span>
+        </button>
+      ))}
+      <button type="button" onClick={onMore} aria-label="전체 메뉴 열기">
+        <HansalmaeIcon name="menu" size={21} />
+        <span>전체</span>
+      </button>
+    </nav>
+  );
+}
+
+function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
+  const mobileMenuByRole: Record<UserRole, View[]> = {
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings"],
+    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations"],
+    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations"],
+    assistant: ["dashboard", "assignments", "corrections", "my-account"],
+    student: [],
+    guardian: [],
+  };
+  const mobileLabels: Partial<Record<View, string>> = {
+    "class-management": "클래스 관리",
+    schedule: "시간표 허브",
+    corrections: "첨삭 시간표",
+    makeups: "결석·보강",
+    assignments: "첨삭 관리",
+  };
+  const visibleItems = items
+    .filter((item) => mobileMenuByRole[role].includes(item.id))
+    .map((item) => ({ ...item, label: mobileLabels[item.id] ?? item.label }));
+  return (
+    <div className="staff-sheet-layer" role="presentation">
+      <button type="button" className="staff-sheet-backdrop" aria-label="전체 메뉴 닫기" onClick={onClose} />
+      <section className="staff-more-sheet" role="dialog" aria-modal="true" aria-labelledby="staff-menu-title">
+        <div className="staff-sheet-handle" />
+        <header>
+          <div>
+            <p>한살매 수업노트</p>
+            <h2 id="staff-menu-title">전체 메뉴</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="닫기">
+            ×
+          </button>
+        </header>
+        <div className="staff-sheet-grid">
+          {visibleItems.map((item) => (
+            <button type="button" key={item.id} className={activeView === item.id ? "active" : ""} onClick={() => onSelect(item.id)}>
+              <i>
+                <HansalmaeIcon name={viewIcon[item.id]} size={20} />
+              </i>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+        <footer className="staff-sheet-account">
+          <button type="button" className="staff-sheet-profile" onClick={() => onSelect("my-account")}>
+            <i>{displayName.slice(0, 1)}</i>
+            <span>
+              <b>{displayName}</b>
+              <small>{roleLabels[role]} 계정</small>
+            </span>
+            <em>내 계정 ›</em>
+          </button>
+          <button type="button" className="staff-sheet-signout" onClick={onSignOut}>
+            <span aria-hidden="true">⏻</span>
+            <b>로그아웃</b>
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void }) {
+  const [live, setLive] = useState<LiveDashboard | null>(null);
+  const [assignmentCount, setAssignmentCount] = useState<AssignmentCount | null>(null);
+  const [consultationCount, setConsultationCount] = useState<ConsultationCount | null>(null);
+  const [pauseReturns, setPauseReturns] = useState<PauseReturnAlerts | null>(null);
+  const [liveError, setLiveError] = useState(false);
+  useEffect(() => {
+    if (profile.role === "student" || profile.role === "guardian") return;
+    let active = true;
+    void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("assignment_dashboard_count"), supabase.rpc("consultation_dashboard_count"), supabase.rpc("staff_pause_return_alerts", { p_days: 7 })]).then(([dashboard, assignments, consultations, pauseAlerts]) => {
+      if (!active) return;
+      if (dashboard.error || !dashboard.data) setLiveError(true);
+      else setLive(dashboard.data as LiveDashboard);
+      if (!assignments.error && assignments.data) setAssignmentCount(assignments.data as AssignmentCount);
+      if (!consultations.error && consultations.data) setConsultationCount(consultations.data as ConsultationCount);
+      if (!pauseAlerts.error && pauseAlerts.data) setPauseReturns(pauseAlerts.data as PauseReturnAlerts);
+    });
+    return () => {
+      active = false;
+    };
+  }, [profile.role, supabase]);
+  if (profile.role === "student" || profile.role === "guardian") {
+    return <FamilyLiveDashboard supabase={supabase} profile={profile} onNavigate={onNavigate} />;
+  }
+  const attendance = live?.attendance;
+  const nextClass = live?.todayClasses.find(
+    (item) =>
+      item.time.slice(0, 5) >=
+      new Date().toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Seoul",
+      }),
+  );
+  const attendanceMissing = Math.max(0, (live?.todayClasses.reduce((sum, item) => sum + item.enrolled, 0) ?? 0) - (attendance?.checked ?? 0));
+  const urgentTotal = (assignmentCount?.total ?? 0) + (consultationCount?.overdue ?? 0) + (attendance?.makeup ?? 0);
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">역할 · {roleLabels[profile.role]}</p>
+          <h1>안녕하세요, {profile.display_name}님</h1>
+          <p>오늘 학원 운영 현황을 한눈에 확인하세요.</p>
+        </div>
+      </div>
+      <section className="stats-grid">
+        <Stat label="오늘 수업" value={live ? String(live.todayClasses.length) : "…"} unit="개" detail={nextClass ? `다음 수업 ${nextClass.time.slice(0, 5)}` : live ? "오늘 남은 수업 없음" : "Supabase 확인 중"} icon="▦" tone="blue" />
+        <Stat label="출결 미입력" value={live ? String(attendanceMissing) : "…"} unit="명" detail={attendance?.checked ? `입력 완료 ${attendance.checked}명` : "아직 기록된 출결 없음"} icon="✓" tone="green" />
+        <Stat label="확인할 과제" value={assignmentCount ? String(assignmentCount.total) : "…"} unit="건" detail={assignmentCount ? `미제출 ${assignmentCount.unsubmitted} · 첨삭 대기 ${assignmentCount.reviewPending}` : "과제 현황 확인 중"} icon="✎" tone="wine" />
+        <Stat label="상담 필요" value={consultationCount ? String(consultationCount.overdue) : "…"} unit="명" detail={consultationCount ? `30일 경과 · 예정 ${consultationCount.upcoming}건` : "상담 현황 확인 중"} icon="☏" tone="amber" />
+      </section>
+      {pauseReturns && pauseReturns.overdue + pauseReturns.upcoming > 0 && (
+        <button className={`pause-return-banner${pauseReturns.overdue ? " overdue" : ""}`} onClick={() => onNavigate("students")}>
+          <span>↗</span>
+          <div>
+            <b>{pauseReturns.overdue ? `복귀 예정일이 지난 휴원생 ${pauseReturns.overdue}명` : `7일 이내 복귀 예정 휴원생 ${pauseReturns.upcoming}명`}</b>
+            <small>
+              {pauseReturns.students
+                .slice(0, 4)
                 .map((item) => `${item.name} ${formatShortDate(item.expectedOn)}`)
                 .join(" · ")}
             </small>
