@@ -33,12 +33,13 @@ import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 import { AppInstallPrompt } from "./app-install-prompt";
 import { GradeProgressionBoard } from "./grade-progression-board";
+import { VocabularyTestGenerator } from "./vocabulary-test-generator";
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -158,6 +159,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "attendance", label: "출결 입력", icon: "✓" },
   { id: "makeups", label: "결석·보강", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
+  { id: "vocabulary-tests", label: "단어 시험 출제", icon: "▥" },
   { id: "reports", label: "데일리·위클리 리포트", icon: "▥" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
@@ -182,10 +184,10 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 }
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "my-account"],
-  manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
+  manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
   student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "reports", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "attendance", "makeups", "reports", "consultations", "communications", "my-account"],
 };
@@ -790,6 +792,7 @@ export default function Home() {
           {view === "attendance" && (["admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
+          {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
           {view === "reports" && <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}

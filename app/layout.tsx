@@ -52,6 +52,7 @@ import "./mobile-correction-workspace.css";
 import "./class-subject-filters.css";
 import "./app-install-prompt.css";
 import "./app-install-menu.css";
+import "./vocabulary-test-generator.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { AppDialogHost } from "./app-dialog";

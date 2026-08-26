@@ -16,7 +16,7 @@ const defaultMenuLabel = (item: MenuItem) => item.id === "assignments" ? "첨삭
 const defaultLayout: MenuLayout = {
   folders: [
     { id: "main", name: "바로가기", itemIds: ["dashboard"] },
-    { id: "classes", name: "클래스 관리", itemIds: ["class-management", "assignments"] },
+    { id: "classes", name: "클래스 관리", itemIds: ["class-management", "assignments", "vocabulary-tests"] },
     { id: "students", name: "학생 관리", itemIds: ["students"] },
     { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
     { id: "lessons", name: "수업 관리", itemIds: ["makeups", "consultations"] },
