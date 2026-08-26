@@ -40,7 +40,7 @@ export function FamilyLearningReportFeed({supabase,studentId}:{supabase:Supabase
         setReads(next);setReadTracking(true);
       }
       setLoading(false);
-    })();
+    });
     return()=>{active=false};
   },[studentId,supabase]);
 
