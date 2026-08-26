@@ -35,8 +35,8 @@
   .vocab-history article button{padding:7px 8px;font-size:10px}
   .vocab-preview>header{gap:12px}
   .vocab-preview>header>div:first-child>span{font-size:11px}
-  .vocab-preview>header>div:last-child{gap:7px}
-  .vocab-preview>header button{min-height:40px;padding:8px 5px;border-radius:10px;font-size:12px}
+  .vocab-preview>header>div:last-child{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .vocab-preview>header button{width:100%;min-width:0;min-height:38px;padding:7px 2px;border-radius:9px;font-size:10px;white-space:nowrap}
   .vocab-preview-sheet{box-sizing:border-box;width:100%;max-width:none;aspect-ratio:210/297;overflow:hidden;padding:5.2% 5.5% 4%;box-shadow:0 7px 22px rgba(50,20,32,.07);container-type:inline-size}
   .vocab-preview-sheet h3{margin:0 0 2.2cqw;font-size:3.4cqw}
   .vocab-preview-identity{margin:0 .6cqw 5cqw;font-size:2.1cqw}
