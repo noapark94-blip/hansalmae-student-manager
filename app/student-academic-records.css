@@ -1,17 +1,17 @@
 .academic-records,.academic-records *{box-sizing:border-box}
-.academic-records{width:100%;max-width:100%;min-width:0;display:grid;gap:12px;overflow:hidden}
-.academic-heading{width:100%;min-width:0;margin:0!important}
+.academic-records{width:100%;max-width:100%;min-width:0;display:grid;gap:10px;overflow:hidden}
+.academic-heading{width:100%;min-width:0;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;align-items:center!important}
 .academic-heading>div{min-width:0}
-.academic-heading .academic-add-button{flex:0 0 auto;width:auto!important;min-width:82px!important;height:34px!important;min-height:34px!important;padding:0 12px!important;border:1px solid #a72b62!important;border-radius:10px!important;background:#fff!important;color:#992b61!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap}
+.academic-heading .academic-add-button{flex:0 0 auto;width:auto!important;min-width:76px!important;max-width:none!important;height:32px!important;min-height:32px!important;padding:0 11px!important;border:1px solid #d7b6c5!important;border-radius:9px!important;background:#fff!important;color:#992b61!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap}
 .academic-heading .academic-add-button:hover{background:#fff6fa!important}
 
-.academic-toolbar{width:100%;min-width:0;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding:9px 0 12px;border-bottom:1px solid #eee6e9}
-.academic-toolbar nav{display:flex;flex:0 0 auto;gap:5px;padding:3px;border-radius:10px;background:#f4ebef}
+.academic-toolbar{width:100%!important;min-width:0!important;height:auto!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:0!important;padding:7px 0 10px!important;border:0!important;border-bottom:1px solid #eee6e9!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.academic-toolbar nav{display:flex!important;flex:0 0 auto;align-items:center!important;gap:4px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:3px!important;border:0!important;border-radius:9px!important;background:#f4ebef!important}
 .academic-toolbar nav button{width:auto!important;height:34px!important;min-height:34px!important;padding:0 13px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#695d62!important;font-size:9px!important;font-weight:800!important;white-space:nowrap}
 .academic-toolbar nav button.active{background:#fff!important;color:#992b61!important;box-shadow:0 1px 3px rgba(74,36,50,.12)}
-.academic-filters{display:flex;flex:0 0 auto;gap:8px}
-.academic-filters label{display:grid;gap:4px;min-width:0;color:#80747a;font-size:8px;font-weight:750}
-.academic-filters select{width:112px!important;min-width:0!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 28px 0 10px!important;border:1px solid #e2d6db!important;border-radius:9px!important;background-color:#fff!important;color:#4b4145!important;font-size:9px!important;font-weight:700!important;box-shadow:none!important}
+.academic-filters{display:flex!important;flex:0 0 auto!important;align-items:flex-end!important;gap:7px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.academic-filters label{display:grid!important;gap:3px!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:#80747a;font-size:8px;font-weight:750}
+.academic-filters select{width:108px!important;min-width:0!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 28px 0 10px!important;border:1px solid #e2d6db!important;border-radius:9px!important;background-color:#fff!important;color:#4b4145!important;font-size:9px!important;font-weight:700!important;box-shadow:none!important}
 .academic-message{width:100%;margin:0;padding:9px 12px;border-radius:8px;background:#fff4f8;color:#992b61;font-size:9px}
 
 .academic-empty{width:100%;min-height:190px;margin:0;display:grid;place-items:center;padding:24px;border:1px solid #ece4e7;background:#fff;color:#95898e;font-size:9px;text-align:center}
