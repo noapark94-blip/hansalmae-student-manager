@@ -1,0 +1,66 @@
+/* 학생 상세 모달의 조회 필터만 작고 일정한 크기로 유지합니다. */
+.student-hub-modal .student-exam-selects label,
+.student-hub-modal .student-record-selects label,
+.student-hub-modal .student-record-period-select,
+.student-hub-modal .consultation-period-filters label {
+  min-width: 0;
+}
+
+.student-hub-modal .student-exam-selects select,
+.student-hub-modal .student-record-selects select,
+.student-hub-modal .student-record-period-select select,
+.student-hub-modal .consultation-period-filters select {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 25px 0 9px;
+  border-radius: 8px;
+  font-size: 8px;
+}
+
+.student-hub-modal .student-exam-selects label,
+.student-hub-modal .student-record-selects label {
+  width: 112px;
+}
+
+.student-hub-modal .student-record-period-select {
+  width: 132px;
+  min-width: 132px;
+}
+
+.student-hub-modal .consultation-period-filters label:first-child { width: 106px; }
+.student-hub-modal .consultation-period-filters label:last-child { width: 96px; }
+
+@media (max-width: 760px) {
+  .student-hub-modal .student-exam-selects,
+  .student-hub-modal .student-record-selects,
+  .student-hub-modal .consultation-period-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    width: 100%;
+  }
+
+  .student-hub-modal .student-exam-selects label,
+  .student-hub-modal .student-record-selects label,
+  .student-hub-modal .consultation-period-filters label {
+    width: auto !important;
+  }
+
+  .student-hub-modal .student-exam-selects select,
+  .student-hub-modal .student-record-selects select,
+  .student-hub-modal .student-record-period-select select,
+  .student-hub-modal .consultation-period-filters select {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 27px 0 10px;
+    border-radius: 9px;
+    font-size: 13px !important;
+  }
+
+  .student-hub-modal .student-record-period-select {
+    width: min(148px, 100%) !important;
+    min-width: 0;
+    align-self: flex-end;
+  }
+}
