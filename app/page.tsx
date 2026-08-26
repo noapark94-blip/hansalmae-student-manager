@@ -33,6 +33,7 @@ import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 import { AppInstallPrompt } from "./app-install-prompt";
 import { GradeProgressionBoard } from "./grade-progression-board";
+import confirmStyles from "./message-confirm.module.css";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "reports" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
@@ -1855,6 +1856,9 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
   const [items, setItems] = useState(schools);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SchoolOption | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   useEffect(() => setItems(schools), [schools]);
   const sortable = useSortableOrder((activeId, overId) => setItems((current) => reorderById(current, activeId, overId)));
   const save = async () => {
@@ -1869,14 +1873,16 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
     }
   };
   const remove = async (item: SchoolOption) => {
-    if (!window.confirm(`${item.name} 학교를 목록에서 삭제할까요?`)) return;
-    setError("");
+    setDeleting(true);
+    setDeleteError("");
     try {
       await onDelete(item.id);
       setItems((current) => current.filter((school) => school.id !== item.id));
+      setDeleteTarget(null);
     } catch (next) {
-      setError(next instanceof Error ? next.message : "학교를 삭제하지 못했습니다.");
+      setDeleteError(next instanceof Error ? next.message : "학교를 삭제하지 못했습니다.");
     }
+    setDeleting(false);
   };
   return (
     <div className="modal-backdrop nested">
@@ -1898,7 +1904,7 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
                 ☷
               </button>
               <b>{item.name}</b>
-              <button type="button" className="danger" onClick={() => void remove(item)}>
+              <button type="button" className="danger" disabled={deleting} onClick={() => { setDeleteError(""); setDeleteTarget(item); }}>
                 삭제
               </button>
             </article>
@@ -1914,6 +1920,7 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
           </button>
         </footer>
       </section>
+      {deleteTarget && <div className={confirmStyles.backdrop} onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setDeleteTarget(null); }}><section className={`${confirmStyles.dialog} ${confirmStyles.danger}`} role="alertdialog" aria-modal="true" aria-labelledby="school-delete-confirm-title"><button type="button" className={confirmStyles.close} aria-label="학교 삭제 확인창 닫기" disabled={deleting} onClick={() => setDeleteTarget(null)}>×</button><div className={confirmStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg></div><p className={confirmStyles.eyebrow}>학교 목록 삭제</p><h3 id="school-delete-confirm-title">{deleteTarget.name}을 삭제할까요?</h3><p className={confirmStyles.copy}>학생 등록과 검색에 사용하는 학교 목록에서 제외합니다.</p><div className={confirmStyles.stats}><span><small>대상</small><b>{deleteTarget.name}</b></span><span><small>처리</small><b>목록 제외</b></span><span><small>학생 기록</small><b>변경 없음</b></span></div><div className={confirmStyles.notice}><i aria-hidden="true">i</i><span>{deleteError || "이 학교를 사용 중인 학생이 있으면 삭제되지 않습니다."}</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={deleting} onClick={() => setDeleteTarget(null)}>돌아가기</button><button type="button" className={confirmStyles.primary} disabled={deleting} onClick={() => void remove(deleteTarget)}>{deleting ? "확인 중…" : "학교 삭제"}</button></footer></section></div>}
     </div>
   );
 }
