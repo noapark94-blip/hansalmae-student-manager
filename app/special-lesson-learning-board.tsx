@@ -130,7 +130,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     else { setLessonState("draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     setSaving("");
   };
-  return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`}>
+  return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`} spellCheck={false}>
     <SpecialFamilyReportReadStatus supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {

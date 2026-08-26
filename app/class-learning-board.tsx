@@ -207,7 +207,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     setSaving("");
   };
 
-  return <section className="class-learning-board" ref={rootRef}>
+  return <section className="class-learning-board" ref={rootRef} spellCheck={false}>
     <header><div><h3>이번 주 수업 기록</h3><p>출결·수업내용·시험·숙제를 한 화면에서 기록하고 학부모 학습리포트로 연결합니다.</p></div><div className="learning-header-actions"><button className="secondary-button" onClick={()=>setMonthOpen(true)}>전체 출석 캘린더</button></div></header>
     <div className="class-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>onDate(shiftIsoDate(date,-7))}>‹</button><div className="class-week-strip">{week.map((day,index)=><button key={day.date} className={`${day.date===date?"active":""} ${day.scheduled?"scheduled":""}`} aria-current={day.date===date?"date":undefined} onClick={()=>onDate(day.date)}><span>{weekdays[index]}</span><b>{+day.date.slice(8)}</b><small className="class-mobile-day-count">{day.students.length?`${day.students.length}명`:day.scheduled?"출석 전":"없음"}</small><div>{day.students.slice(0,4).map(student=><em className={student.status==="excused"?"absent":student.status} key={student.id}>{student.name}</em>)}{!day.students.length?<small>{day.scheduled?"출석 전":"수업 없음"}</small>:null}</div></button>)}</div><button type="button" aria-label="다음 주" onClick={()=>onDate(shiftIsoDate(date,7))}>›</button></div>
 
