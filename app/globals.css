@@ -781,3 +781,5 @@ button:disabled { cursor:wait; opacity:.7; }
  .account-table>article>i{grid-column:3;grid-row:2;align-self:center;padding:4px 7px;font-size:8px;white-space:nowrap}
  .account-table>.settings-empty{padding:28px 12px;border:1px solid #ebe3e7;border-radius:12px;background:#fff}
 }
+
+.class-roster-student{width:100%;min-height:45px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:#fff;display:flex;align-items:center;gap:10px;text-align:left;color:var(--text);cursor:pointer}.class-roster-student:first-child{border-top:0}.class-roster-student:hover,.class-roster-student:focus-visible{background:#fff8fb;outline:0}.class-roster-student i{width:24px;height:24px;border-radius:50%;background:#f4e5ed;color:var(--wine);display:grid;place-items:center;font-size:8px;font-style:normal}.class-roster-student b{font-size:10px}.class-roster-student span{margin-left:auto;color:var(--wine);font-size:8px;font-weight:800}.class-roster-student:disabled{cursor:default}
