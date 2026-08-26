@@ -54,6 +54,7 @@ import "./app-install-prompt.css";
 import "./app-install-menu.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
+import { AppDialogHost } from "./app-dialog";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
 
@@ -102,5 +103,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
+  return <html lang="ko"><body><AppDialogHost /><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
 }

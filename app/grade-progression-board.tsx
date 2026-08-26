@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { appConfirm } from "./app-dialog";
 
 type ProgressionItem = { id:string; studentName:string; previousGrade:string; previousSchool:string|null; proposedGrade:string|null; proposedSchool:string|null; transitionKind:"automatic"|"school_change"|"graduation"|"repeat_year"; decision:string|null; approvalStatus:"automatic"|"pending"|"approved"; appliedAt:string|null };
 type ProgressionBoard = { academicYear:number; available:boolean; prepared:boolean; earlyApplied:boolean; pendingCount:number; readyCount:number; items:ProgressionItem[]; schools:string[] };
@@ -19,7 +20,7 @@ export function GradeProgressionBoard({ supabase, onChanged }: { supabase:Supaba
   useEffect(()=>{void load();},[load]);
   const prepare=async()=>{setBusy(true);setError("");const {error}=await supabase.rpc("prepare_grade_progression",{p_force:false});setBusy(false);if(error)setError(error.message);else await load();};
   const approve=async(item:ProgressionItem,decision:string,school?:string)=>{setBusy(true);setError("");const {error}=await supabase.rpc("admin_approve_grade_progression",{p_item_id:item.id,p_decision:decision,p_school:school||null});setBusy(false);if(error)setError(error.message);else await load();};
-  const applyNow=async()=>{if(!board||!window.confirm(`${board.academicYear}학년도 정보로 지금 전환할까요?\n적용 후에는 자동으로 되돌릴 수 없습니다.`))return;setBusy(true);setError("");const {error}=await supabase.rpc("admin_apply_grade_progression_now");setBusy(false);if(error)setError(error.message);else{await load();onChanged?.();}};
+  const applyNow=async()=>{if(!board||!await appConfirm({eyebrow:"학년 정보 전환",title:`${board.academicYear}학년도 정보로 지금 전환할까요?`,notice:"적용 후에는 자동으로 되돌릴 수 없습니다. 승인 내용을 한 번 더 확인해 주세요.",confirmLabel:"지금 전환",tone:"danger"}))return;setBusy(true);setError("");const {error}=await supabase.rpc("admin_apply_grade_progression_now");setBusy(false);if(error)setError(error.message);else{await load();onChanged?.();}};
   if(!board)return <section className="grade-progression-card"><p>학년 전환 정보를 확인하는 중…</p></section>;
   const pending=board.items.filter(i=>i.approvalStatus==="pending"&&!i.appliedAt);
   return <section className="grade-progression-card">

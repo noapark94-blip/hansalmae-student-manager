@@ -4,6 +4,7 @@ import { useCallback,useEffect,useMemo,useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
+import { appConfirm } from "./app-dialog";
 
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;tutorName:string|null;supervisorName:string|null;note:string|null};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
@@ -108,7 +109,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   const deleteRecords=async()=>{
-    if(!confirm("이 날짜의 첨삭 기록을 삭제할까요?\n출결·시험·첨삭 내용과 학생·학부모 리포트 반영이 모두 삭제됩니다."))return;
+    if(!await appConfirm({eyebrow:"첨삭 기록 삭제",title:"이 날짜의 첨삭 기록을 삭제할까요?",notice:"출결·시험·첨삭 내용과 학생·학부모 리포트 반영이 모두 삭제됩니다.",confirmLabel:"기록 삭제",tone:"danger"}))return;
     setSaving("all");setError("");
     const{error:deleteError}=await supabase.rpc("staff_delete_correction_reports",{p_records:rows.map(row=>({assignmentId:row.assignment.id,date:row.date,startTime:row.startTime}))});
     if(deleteError)setError(deleteError.message);else await load();
@@ -158,7 +159,7 @@ function CorrectionScheduleChangeModal({row,supabase,onClose,onReverted}:{row:Oc
   const original=`${weekdays[isoWeekday(exception.originalDate)-1]} ${row.assignment.startTime.slice(0,5)}–${row.assignment.endTime.slice(0,5)}`;
   const changed=`${weekdays[isoWeekday(row.date)-1]} ${row.startTime.slice(0,5)}–${row.endTime.slice(0,5)}`;
   const revert=async()=>{
-    if(!confirm(`${row.assignment.studentName} 학생의 이번 주 일정 변경을 취소하고 ${original} 정규 일정으로 되돌릴까요?`))return;
+    if(!await appConfirm({eyebrow:"일정 변경 취소",title:`${row.assignment.studentName} 학생 일정을 정규 시간으로 되돌릴까요?`,copy:`정규 일정 · ${original}`,notice:"이번 주에만 적용한 변경 일정이 취소됩니다.",confirmLabel:"정규 일정으로 복원",tone:"danger"}))return;
     setSaving(true);setError("");
     const{error:removeError}=await supabase.rpc("staff_delete_correction_exception",{p_id:exception.id});
     if(removeError){setError(removeError.message);setSaving(false);return}

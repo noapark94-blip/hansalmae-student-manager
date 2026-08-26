@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
+import { appConfirm } from "./app-dialog";
 
 type Status = "present" | "late" | "absent";
 type ExamCategory = { id: string; name: string; isActive: boolean; sortOrder: number };
@@ -80,7 +81,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     setCategorySaving(false);
   };
   const removeCategory = async (category: ExamCategory) => {
-    if (!confirm(`시험 종류 '${category.name}'을 목록에서 삭제할까요? 기존 시험 기록은 유지됩니다.`)) return;
+    if (!await appConfirm({eyebrow:"시험 종류 삭제",title:`‘${category.name}’을 목록에서 삭제할까요?`,notice:"기존 시험 기록은 그대로 유지됩니다.",confirmLabel:"종류 삭제",tone:"danger"})) return;
     setCategorySaving(true); setError("");
     const { error: categoryError } = await supabase.rpc("staff_set_exam_category", { p_id: category.id, p_name: category.name, p_active: false });
     if (categoryError) setError(categoryError.message); else await refreshCategories();
@@ -122,7 +123,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     setSaving("");
   };
   const deleteRecord = async () => {
-    if (!confirm("이 수업 기록을 삭제할까요?\n출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다.")) return;
+    if (!await appConfirm({eyebrow:"수업 기록 삭제",title:"이 보강·추가수업 기록을 삭제할까요?",notice:"출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다.",confirmLabel:"기록 삭제",tone:"danger"})) return;
     setSaving("all"); setError("");
     const { error: deleteError } = await supabase.rpc("staff_delete_special_lesson_record", { p_session_id: sessionId });
     if (deleteError) setError(deleteError.message);

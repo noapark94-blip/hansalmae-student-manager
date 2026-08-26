@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import dateStyles from "./communication-board.module.css";
+import { appConfirm } from "./app-dialog";
 
 type Named={id:string;name:string};
 type OverdueStudent=Named&{lastGuardianConsultedAt:string|null;daysSinceGuardian:number|null};
@@ -25,7 +26,7 @@ export function ConsultationBoard({supabase}:{supabase:SupabaseClient}){
   const visible=useMemo(()=>{const text=query.trim().toLowerCase();return classItems.filter((item)=>(typeFilter==="all"||item.consultationType===typeFilter)&&(!text||[item.studentName,item.consultantName,typeLabels[item.consultationType]??""].some((value)=>value.toLowerCase().includes(text)))).sort((a,b)=>(sortOrder==="latest"?-1:1)*a.consultedAt.localeCompare(b.consultedAt));},[classItems,query,sortOrder,typeFilter]);
   const selectedStudents=selectedClass==="all"?data.students:classes.find((item)=>item.id===selectedClass)?.students??[];
   const overdue=data.overdueStudents.filter((student)=>!data.isStaff||selectedClass==="all"||classStudentIds.has(student.id));
-  const remove=async(row:Consultation)=>{if(!confirm(`${row.studentName} 학생의 ${formatDate(row.consultedAt)} 상담 기록을 삭제할까요?`))return;const{error:deleteError}=await supabase.rpc("staff_delete_consultation",{p_consultation_id:row.id});if(deleteError)setError("상담 기록을 삭제하지 못했습니다.");else await load();};
+  const remove=async(row:Consultation)=>{if(!await appConfirm({eyebrow:"상담 기록 삭제",title:`${row.studentName} 학생의 상담 기록을 삭제할까요?`,copy:`상담일 · ${formatDate(row.consultedAt)}`,notice:"삭제한 상담 내용은 복구할 수 없습니다.",confirmLabel:"기록 삭제",tone:"danger"}))return;const{error:deleteError}=await supabase.rpc("staff_delete_consultation",{p_consultation_id:row.id});if(deleteError)setError("상담 기록을 삭제하지 못했습니다.");else await load();};
   if(loading)return<section className="panel consultation-empty">상담 기록을 불러오는 중이에요…</section>;
   return<><div className="page-heading compact consultation-heading"><div><h1>상담 관리</h1><p>{data.isStaff?"학생·학부모 상담 기록을 클래스별로 관리합니다.":"학원에서 공유한 자녀의 상담 내용을 확인합니다."}</p></div>{data.isStaff&&<button className="primary" onClick={()=>setEditor({consultationType:"guardian"})}>＋ 상담 기록</button>}</div>
     {error&&<p className="attendance-error">{error}</p>}

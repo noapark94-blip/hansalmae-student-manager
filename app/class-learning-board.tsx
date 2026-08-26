@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
+import { appConfirm, appPrompt } from "./app-dialog";
 
 type Status="present"|"late"|"absent";
 type Student={id:string;name:string;school:string|null;grade:string|null;status:Status|"excused"|null;lateMinutes:number|null;absenceReason:string|null;note:string|null};
@@ -108,7 +109,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     if(validDay||makeupEnabled)return;
     const ids=makeupOptions.map(item=>item.id);
     if(!ids.length){setError("현재 등록된 수강생이 없어 보강 수업을 만들 수 없습니다.");return}
-    if(!confirm(`${date}을(를) 이 클래스의 보강 수업일로 등록할까요?\n현재 수강생 ${ids.length}명이 이 날짜 수업 기록 대상에 추가됩니다.`))return;
+    if(!await appConfirm({eyebrow:"보강 수업 등록",title:`${date}을 보강 수업일로 등록할까요?`,copy:`현재 수강생 ${ids.length}명이 수업 기록 대상에 추가됩니다.`,confirmLabel:"보강 등록"}))return;
     setMakeupLoading(true);setError("");
     const{error:saveError}=await supabase.rpc("staff_save_class_makeup_students",{p_class_id:classId,p_date:date,p_student_ids:ids});
     if(saveError){setError(saveError.message);setMakeupLoading(false);return}
@@ -121,7 +122,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
 
   const deactivateMakeupDay=async()=>{
     if(validDay||!makeupEnabled)return;
-    if(!confirm(`${date} 보강 수업 기록을 해제할까요?\\n출결·수업내용·숙제·시험 등 실제 기록이 있으면 해제되지 않습니다.`))return;
+    if(!await appConfirm({eyebrow:"보강 수업 해제",title:`${date} 보강 수업을 해제할까요?`,notice:"출결·수업 내용·숙제·시험 등 실제 기록이 있으면 해제되지 않습니다.",confirmLabel:"보강 해제",tone:"danger"}))return;
     setMakeupLoading(true);setError("");
     const{error:clearError}=await supabase.rpc("staff_clear_empty_class_makeup_day",{p_class_id:classId,p_date:date});
     if(clearError){setError(clearError.message);setMakeupLoading(false);return}
@@ -197,7 +198,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   };
 
   const deleteRecord=async()=>{
-    if(!confirm("이 수업 기록을 삭제할까요?\n출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다."))return;
+    if(!await appConfirm({eyebrow:"수업 기록 삭제",title:"이 수업 기록을 삭제할까요?",notice:"출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다.",confirmLabel:"기록 삭제",tone:"danger"}))return;
     setSaving("all");setError("");
     const{error:deleteError}=await supabase.rpc("staff_delete_class_lesson_record",{p_class_id:classId,p_date:date});
     if(deleteError){setError(deleteError.message);setSaving("");return}
@@ -252,8 +253,8 @@ function FamilyReportReadStatus({supabase,classId,date}:{supabase:SupabaseClient
 function ExamCategoryModal({supabase,categories,onClose,onChanged}:{supabase:SupabaseClient;categories:ExamCategory[];onClose:()=>void;onChanged:()=>Promise<void>}){
   const[name,setName]=useState("");const[saving,setSaving]=useState("");const[error,setError]=useState("");
   const add=async()=>{if(!name.trim())return;setSaving("new");const{error:addError}=await supabase.rpc("staff_add_exam_category",{p_name:name.trim()});if(addError)setError(addError.message);else{setName("");await onChanged()}setSaving("")};
-  const rename=async(category:ExamCategory)=>{const value=prompt("시험 카테고리 이름",category.name);if(value===null||!value.trim())return;setSaving(category.id);const{error:changeError}=await supabase.rpc("staff_set_exam_category",{p_id:category.id,p_name:value.trim(),p_active:true});if(changeError)setError(changeError.message);else await onChanged();setSaving("")};
-  const remove=async(category:ExamCategory)=>{if(!confirm(`‘${category.name}’ 카테고리를 영구 삭제할까요?\n과거 시험 기록은 그대로 보존됩니다.`))return;setSaving(category.id);const{error:deleteError}=await supabase.rpc("staff_set_exam_category",{p_id:category.id,p_name:category.name,p_active:false});if(deleteError)setError(deleteError.message);else await onChanged();setSaving("")};
+  const rename=async(category:ExamCategory)=>{const value=await appPrompt({eyebrow:"시험 종류 이름 변경",title:`‘${category.name}’의 새 이름을 입력해 주세요`,inputLabel:"시험 종류 이름",initialValue:category.name,confirmLabel:"이름 변경"});if(value===null||!value.trim())return;setSaving(category.id);const{error:changeError}=await supabase.rpc("staff_set_exam_category",{p_id:category.id,p_name:value.trim(),p_active:true});if(changeError)setError(changeError.message);else await onChanged();setSaving("")};
+  const remove=async(category:ExamCategory)=>{if(!await appConfirm({eyebrow:"시험 종류 삭제",title:`‘${category.name}’ 카테고리를 삭제할까요?`,notice:"목록에서는 사라지지만 과거 시험 기록은 그대로 보존됩니다.",confirmLabel:"카테고리 삭제",tone:"danger"}))return;setSaving(category.id);const{error:deleteError}=await supabase.rpc("staff_set_exam_category",{p_id:category.id,p_name:category.name,p_active:false});if(deleteError)setError(deleteError.message);else await onChanged();setSaving("")};
   return <div className="modal-backdrop nested"><section className="student-modal exam-category-modal"><header><div><p className="eyebrow">개인 설정</p><h2>시험 카테고리 관리</h2><span>선생님별 시험 종류를 추가·이름 변경하거나 영구 삭제할 수 있습니다.</span></div><button onClick={onClose}>×</button></header><div className="exam-category-add"><input autoFocus value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void add()}} placeholder="새 시험 카테고리"/><button className="primary" disabled={saving==="new"} onClick={()=>void add()}>추가</button></div><div className="exam-category-list">{categories.map(category=><article key={category.id}><b>{category.name}</b><span><button className="secondary-button" disabled={saving===category.id} onClick={()=>void rename(category)}>이름 변경</button><button className="danger-button" disabled={saving===category.id} onClick={()=>void remove(category)}>영구 삭제</button></span></article>)}</div>{error?<p className="form-error">{error}</p>:null}<footer><button className="primary" onClick={onClose}>완료</button></footer></section></div>;
 }
 

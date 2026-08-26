@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { appConfirm, appPrompt } from "./app-dialog";
 
 type AttendanceStatus = "present" | "late" | "absent";
 type AttendanceStudent = {
@@ -120,7 +121,7 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
     }
     let note = notes[student.id] ?? "";
     if (status === "late") {
-      const value = prompt(`${student.name} 학생은 몇 분 지각했나요?`, "10");
+      const value = await appPrompt({eyebrow:"지각 시간 기록",title:`${student.name} 학생은 몇 분 지각했나요?`,inputLabel:"지각 시간",initialValue:"10",placeholder:"예: 10",inputMode:"numeric",confirmLabel:"기록하기"});
       if (value === null) {
         setSavingId("");
         return;
@@ -128,7 +129,7 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
       note = `${value}분 지각${note ? ` · ${note}` : ""}`;
     }
     if (status === "absent") {
-      const value = prompt(`${student.name} 학생의 결석 사유`, note);
+      const value = await appPrompt({eyebrow:"결석 사유 기록",title:`${student.name} 학생의 결석 사유를 입력해 주세요`,inputLabel:"결석 사유",initialValue:note,placeholder:"예: 병원 진료, 개인 사정",confirmLabel:"기록하기"});
       if (value === null) {
         setSavingId("");
         return;
@@ -173,7 +174,7 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
   };
 
   const markAllPresent = async () => {
-    if (!selected || !confirm(`${selected.className} 학생을 모두 출석으로 표시할까요?`)) return;
+    if (!selected || !await appConfirm({eyebrow:"전체 출석 처리",title:`${selected.className} 학생을 모두 출석으로 표시할까요?`,notice:"기존 지각·결석 기록도 모두 출석으로 변경됩니다.",confirmLabel:"모두 출석"})) return;
     setSavingId("all");
     setError("");
     const { error: saveError } = await supabase.rpc("staff_mark_class_present", { p_schedule_id: selected.scheduleId, p_date: date });

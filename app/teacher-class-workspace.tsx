@@ -8,6 +8,7 @@ import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
 import { TeacherSpecialLessons } from "./teacher-special-lessons";
+import { appConfirm } from "./app-dialog";
 
 type Subject = {
   id: string;
@@ -270,7 +271,7 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
   const [rosterOpen, setRosterOpen] = useState(false);
   const validDay = useMemo(() => classRoom.schedules.some((item) => item.weekday === isoWeekday(date)), [classRoom.schedules, date]);
   const archive = async () => {
-    if (!window.confirm(`${classRoom.name} 클래스를 운영 종료할까요?\n학생·출결·수업 기록은 보존됩니다.`)) return;
+    if (!await appConfirm({eyebrow:"클래스 운영 종료",title:`${classRoom.name} 클래스 운영을 종료할까요?`,notice:"학생·출결·수업 기록은 보존되며 활성 목록에서만 숨겨집니다.",confirmLabel:"운영 종료",tone:"danger"})) return;
     setSaving("archive");
     const { error: archiveError } = await supabase.rpc("staff_archive_class", {
       p_class_id: classRoom.id,
@@ -283,7 +284,7 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
     window.location.reload();
   };
   const remove = async () => {
-    if (!window.confirm(`${classRoom.name} 클래스를 완전히 삭제할까요?\n기록이 하나라도 있으면 삭제되지 않습니다.`)) return;
+    if (!await appConfirm({eyebrow:"클래스 완전 삭제",title:`${classRoom.name} 클래스를 완전히 삭제할까요?`,notice:"연결된 기록이 하나라도 있으면 안전을 위해 삭제되지 않습니다.",confirmLabel:"완전 삭제",tone:"danger"})) return;
     setSaving("delete");
     const { error: deleteError } = await supabase.rpc("admin_delete_empty_class", { p_class_id: classRoom.id });
     if (deleteError) {
