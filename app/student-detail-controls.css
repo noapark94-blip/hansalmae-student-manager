@@ -42,8 +42,17 @@
 
   .student-hub-modal .student-exam-selects label,
   .student-hub-modal .student-record-selects label,
+  .student-hub-modal .student-record-period-select,
   .student-hub-modal .consultation-period-filters label {
     width: auto !important;
+    font-size: 10px !important;
+    line-height: 1.2;
+  }
+
+  .student-hub-modal .student-record-selects label>span,
+  .student-hub-modal .student-record-period-select>span,
+  .student-hub-modal .consultation-period-filters label>span {
+    font-size: 10px !important;
   }
 
   .student-hub-modal .student-exam-selects select,
@@ -55,7 +64,8 @@
     min-height: 36px !important;
     padding: 0 27px 0 10px;
     border-radius: 9px;
-    font-size: 13px !important;
+    font-size: 12px !important;
+    font-weight: 750;
   }
 
   .student-hub-modal .student-record-period-select {
