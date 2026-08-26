@@ -84,10 +84,10 @@ export function StudentAcademicRecords({supabase,studentId}:{supabase:SupabaseCl
   };
 
   return <section className="academic-records">
-    <header className="academic-heading"><div><p className="eyebrow">학교 성적 기록</p><h3>성적 관리</h3><span>학원 수업 시험과 분리해 내신·모의고사 성적 변화를 관리합니다.</span></div><button type="button" className="academic-primary" onClick={openNew}>+ 성적 등록</button></header>
+    <header className="academic-heading"><div><h3>성적 관리</h3><span>내신과 모의고사 성적을 학원 수업 시험과 구분해 관리합니다.</span></div><button type="button" className="academic-add-button" onClick={openNew}>성적 등록</button></header>
     <div className="academic-toolbar"><nav aria-label="성적 종류">{([['school','내신 성적'],['mock','모의고사 성적']] as [RecordType,string][]).map(([id,label])=><button type="button" key={id} className={type===id?"active":""} onClick={()=>switchType(id)}>{label}</button>)}</nav><div className="academic-filters"><label><span>연도</span><select value={year} onChange={e=>setYear(e.target.value)}><option value="all">전체</option>{years.map(value=><option key={value}>{value}</option>)}</select></label><label><span>과목</span><select value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">전체</option>{subjects.map(value=><option key={value}>{value}</option>)}</select></label></div></div>
     {message?<p className="academic-message">{message}</p>:null}
-    {editorOpen?<form className="academic-editor" onSubmit={save}><header><div><b>{editingId?"성적 수정":"새 성적 등록"}</b><span>{type==="school"?"학교 내신 시험 정보":"전국 모의고사 정보"}</span></div><button type="button" aria-label="닫기" onClick={()=>setEditorOpen(false)}>×</button></header><div className="academic-form-grid">
+    {editorOpen?<form className="academic-editor" onSubmit={save}><header><div><b>{editingId?"성적 수정":"새 성적 등록"}</b><span>{type==="school"?"학교 내신 시험 정보를 입력합니다.":"전국 모의고사 정보를 입력합니다."}</span></div><button type="button" aria-label="등록 창 닫기" onClick={()=>setEditorOpen(false)}>×</button></header><div className="academic-form-grid">
       <label><span>연도 *</span><input type="number" min="2000" max="2100" required value={form.academicYear} onChange={e=>update("academicYear",e.target.value)}/></label>
       {type==="school"?<label><span>학기 *</span><select value={form.semester} onChange={e=>update("semester",e.target.value)}><option value="1">1학기</option><option value="2">2학기</option></select></label>:null}
       <label><span>{type==="school"?"시험일":"시행일"} *</span><input type="date" required value={form.examDate} onChange={e=>update("examDate",e.target.value)}/></label>
