@@ -159,7 +159,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "attendance", label: "출결 입력", icon: "✓" },
   { id: "makeups", label: "결석·보강", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
-  { id: "vocabulary-tests", label: "단어 시험 출제", icon: "▥" },
+  { id: "vocabulary-tests", label: "단어 시험 출제", icon: "☷" },
   { id: "reports", label: "데일리·위클리 리포트", icon: "▥" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
