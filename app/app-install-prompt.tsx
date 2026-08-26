@@ -11,8 +11,9 @@ type InstallPromptEvent = Event & {
 export function AppInstallPrompt() {
   const [device, setDevice] = useState<"android" | "ios" | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const [guide, setGuide] = useState<"ios" | "android" | null>(null);
+  const [guide, setGuide] = useState<"ios" | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches ||
@@ -43,23 +44,27 @@ export function AppInstallPrompt() {
       setGuide("ios");
       return;
     }
-    if (!installPrompt) {
-      setGuide("android");
-      return;
+    if (!installPrompt || installing) return;
+    setInstalling(true);
+    try {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === "accepted") setInstalled(true);
+      setInstallPrompt(null);
+    } finally {
+      setInstalling(false);
     }
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === "accepted") setInstalled(true);
-    setInstallPrompt(null);
   };
+
+  const androidReady = device !== "android" || Boolean(installPrompt);
 
   return (
     <>
-      <button type="button" className="app-install-button" onClick={() => void openInstall()}>
+      <button type="button" className="app-install-button" disabled={!androidReady || installing} onClick={() => void openInstall()}>
         <span className="app-install-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg>
         </span>
-        <span><b>한살매 수업노트 설치</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "안드로이드 앱으로 간편하게 설치"}</small></span>
+        <span><b>{installing ? "설치창 여는 중…" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : androidReady ? "버튼을 누르면 바로 설치창이 열립니다" : "안드로이드 설치 준비 중…"}</small></span>
         <i aria-hidden="true">›</i>
       </button>
 
@@ -68,10 +73,10 @@ export function AppInstallPrompt() {
           <section className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
             <header>
               <Image className="install-guide-logo" src="/hansalmae-logo.png" width={42} height={42} alt="" aria-hidden="true" />
-              <div><small>한살매 수업노트</small><h2 id="install-guide-title">{guide === "ios" ? "아이폰에 설치하기" : "안드로이드에 설치하기"}</h2></div>
+              <div><small>한살매 수업노트</small><h2 id="install-guide-title">아이폰에 설치하기</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>
-            {guide === "ios" ? <IosGuide /> : <AndroidGuide />}
+            <IosGuide />
             <footer><button type="button" onClick={() => setGuide(null)}>확인했어요</button></footer>
           </section>
         </div>
@@ -132,15 +137,4 @@ function SafariInstallSteps() {
 
 function SafariStepImage({ src, width, height, alt, marker }: { src: string; width: number; height: number; alt: string; marker: string }) {
   return <span className={`safari-step-image ${marker}`}><Image src={src} width={width} height={height} sizes="(max-width: 520px) 82vw, 390px" alt={alt} /><i aria-hidden="true" /></span>;
-}
-
-function AndroidGuide() {
-  return <div className="install-guide-body">
-    <p className="install-browser-notice"><b>Chrome에서 열어 주세요</b><span>오른쪽 위 <strong>⋮</strong>를 누른 뒤 <strong>앱 설치</strong> 또는 <strong>홈 화면에 추가</strong>를 선택해 주세요.</span></p>
-    <ol className="install-steps android">
-      <li><em>1</em><span><b>Chrome 오른쪽 위 ⋮ 누르기</b><small>브라우저 메뉴를 엽니다.</small></span><i aria-hidden="true">⋮</i></li>
-      <li><em>2</em><span><b>‘앱 설치’ 누르기</b><small>확인창에서 설치를 한 번 더 누르면 완료됩니다.</small></span><i className="done-symbol" aria-hidden="true">✓</i></li>
-    </ol>
-    <p className="install-safe-note">APK 파일을 내려받지 않는 Chrome 공식 설치 방식입니다.</p>
-  </div>;
 }
