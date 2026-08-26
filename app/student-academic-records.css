@@ -1,43 +1,60 @@
-.academic-records{display:grid;gap:18px}.academic-heading,.academic-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.academic-heading h3{font-size:22px;margin:3px 0 5px}.academic-heading span,.academic-editor header span{color:#8b7c83;font-size:13px}.academic-primary{background:#992b64!important;color:#fff!important;border-color:#992b64!important}.academic-toolbar{padding:14px 16px;background:#fbf8f9;border:1px solid #eee3e7;border-radius:14px}.academic-toolbar nav{display:flex;gap:5px;background:#f1e8ec;padding:4px;border-radius:11px}.academic-toolbar nav button{height:36px;padding:0 18px;border:0;background:transparent}.academic-toolbar nav button.active{background:#fff;color:#992b64;box-shadow:0 1px 4px #4a24321a}.academic-filters{display:flex;gap:8px}.academic-filters label{display:grid;gap:3px}.academic-filters span{font-size:10px;color:#7e7076}.academic-filters select{height:36px;min-width:104px;padding:0 30px 0 11px}.academic-message{padding:11px 14px;margin:0;color:#992b64;background:#fbf1f6;border-radius:10px}.academic-editor{border:1px solid #e6d8de;border-radius:16px;padding:18px;background:#fff;box-shadow:0 12px 30px #4a243210}.academic-editor>header,.academic-editor>footer{display:flex;justify-content:space-between;align-items:center;gap:12px}.academic-editor header div{display:grid;gap:3px}.academic-editor header>button{border:0;font-size:23px;background:#f5f1f3;width:34px;height:34px}.academic-form-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}.academic-form-grid label{display:grid;gap:6px;font-size:12px;font-weight:700}.academic-form-grid input,.academic-form-grid select,.academic-form-grid textarea{width:100%;min-width:0}.academic-form-grid .wide{grid-column:span 5}.academic-editor>footer small{color:#97858d}.academic-editor>footer div{display:flex;gap:8px}.academic-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.academic-summary article{display:grid;gap:7px;border:1px solid #ede2e6;border-radius:14px;padding:15px}.academic-summary span,.academic-summary small{font-size:11px;color:#8e7f85}.academic-summary b{font-size:20px}.academic-summary b small{margin-left:3px}.academic-trend{border:1px solid #ede2e6;border-radius:14px;padding:16px}.academic-trend>header{display:flex;justify-content:space-between;margin-bottom:13px}.academic-trend>header span{font-size:11px;color:#99878f}.academic-trend>div{display:grid;gap:9px}.academic-trend article{display:grid;grid-template-columns:150px 1fr 38px;align-items:center;gap:10px;font-size:12px}.academic-trend article>span{display:flex;justify-content:space-between}.academic-trend small{color:#9c8b92}.academic-trend i{height:7px;background:#f2e8ec;border-radius:9px;overflow:hidden}.academic-trend em{display:block;height:100%;background:#b44378;border-radius:9px}.academic-list{display:grid;gap:9px}.academic-list>article{position:relative;display:flex;justify-content:space-between;gap:16px;border:1px solid #eadfe3;border-radius:13px;padding:15px}.academic-list article>div:first-child{display:grid;gap:5px}.academic-list span,.academic-list p,.academic-list small{margin:0;font-size:12px;color:#8f7c84}.academic-list b{font-size:15px}.academic-list footer{display:flex;align-items:center;gap:6px}.academic-list footer button{height:34px;padding:0 12px}.academic-list .danger{color:#c02d4f;border-color:#edbcc9}.academic-delete{position:absolute;inset:0!important;display:flex!important;align-items:center;justify-content:flex-end;gap:15px;padding:12px 15px;background:#fffafc;border-radius:13px}.academic-delete div{display:flex;gap:6px}.academic-delete .danger-fill{background:#c73355;color:#fff;border-color:#c73355}.academic-empty{text-align:center;padding:60px 20px;color:#97878e;border:1px dashed #dfd1d7;border-radius:14px}
-@media(max-width:720px){.academic-records{gap:13px}.academic-heading{align-items:flex-start}.academic-heading h3{font-size:19px}.academic-heading span{display:block;max-width:230px}.academic-heading .academic-primary{height:38px;padding:0 12px;white-space:nowrap}.academic-toolbar{display:grid;align-items:stretch;padding:10px}.academic-toolbar nav{display:grid;grid-template-columns:1fr 1fr}.academic-toolbar nav button{padding:0 8px}.academic-filters{display:grid;grid-template-columns:1fr 1fr}.academic-filters select{width:100%;min-width:0}.academic-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.academic-form-grid .wide{grid-column:span 2}.academic-editor{padding:14px}.academic-editor>footer{align-items:flex-end}.academic-editor>footer small{max-width:150px}.academic-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.academic-summary article{padding:11px 9px}.academic-summary b{font-size:17px}.academic-trend article{grid-template-columns:105px 1fr 28px;gap:7px}.academic-trend article>span{display:grid}.academic-list>article{display:grid}.academic-list footer{justify-content:flex-end}.academic-delete{justify-content:space-between}.student-hub-tabs{overflow-x:auto;scrollbar-width:none}.student-hub-tabs button{flex:0 0 auto}}
+.academic-records,.academic-records *{box-sizing:border-box}
+.academic-records{width:100%;max-width:100%;min-width:0;display:grid;gap:12px;overflow:hidden}
+.academic-heading{width:100%;min-width:0;margin:0!important}
+.academic-heading>div{min-width:0}
+.academic-heading .academic-add-button{flex:0 0 auto;width:auto!important;min-width:82px!important;height:34px!important;min-height:34px!important;padding:0 12px!important;border:1px solid #a72b62!important;border-radius:10px!important;background:#fff!important;color:#992b61!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap}
+.academic-heading .academic-add-button:hover{background:#fff6fa!important}
 
-/* 학생 상세의 다른 탭과 동일한 밀도와 입력 컨트롤을 유지합니다. */
-.student-hub-body .academic-records{gap:14px}
-.student-hub-body .academic-heading{align-items:center;min-height:58px;padding:0}
-.student-hub-body .academic-heading h3{margin:0 0 5px;font-size:20px;font-weight:700;letter-spacing:-.02em}
-.student-hub-body .academic-heading span{font-size:12px;color:#8d8086}
-.student-hub-body .academic-add-button{height:42px;padding:0 18px;border:1px solid #b02c67;border-radius:12px;background:#fff;color:#a52861;font-size:13px;font-weight:700;white-space:nowrap}
-.student-hub-body .academic-add-button:hover{background:#fbf2f6}
-.student-hub-body .academic-toolbar{align-items:center;padding:10px 12px;border-radius:12px;background:#fbf9fa}
-.student-hub-body .academic-toolbar nav{padding:3px;border-radius:9px}
-.student-hub-body .academic-toolbar nav button{height:34px;border-radius:7px;font-size:13px}
-.student-hub-body .academic-filters label{gap:4px}
-.student-hub-body .academic-filters select{height:36px!important;min-height:36px!important;border:1px solid #dfd2d7!important;border-radius:9px!important;background-color:#fff!important;font-size:12px!important}
-.student-hub-body .academic-empty{min-height:180px;display:grid;place-items:center;padding:30px 20px;border-color:#e7dbe0;border-radius:12px;background:#fff;font-size:13px}
-.student-hub-body .academic-editor{padding:20px;border-radius:14px;box-shadow:none;background:#fff}
-.student-hub-body .academic-editor>header{padding-bottom:15px;border-bottom:1px solid #eee3e7}
-.student-hub-body .academic-editor>header b{font-size:17px}
-.student-hub-body .academic-editor>header>button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0!important;border-radius:9px;background:#f5f1f3!important;color:#786b70;font-size:22px;line-height:1}
-.student-hub-body .academic-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 12px;margin:18px 0}
-.student-hub-body .academic-form-grid label{gap:7px;color:#40363a;font-size:12px;font-weight:700}
-.student-hub-body .academic-form-grid input,
-.student-hub-body .academic-form-grid select,
-.student-hub-body .academic-form-grid textarea{display:block!important;width:100%!important;min-width:0!important;height:42px!important;min-height:42px!important;margin:0!important;padding:0 12px!important;border:1px solid #ded1d6!important;border-radius:10px!important;background:#fff!important;color:#30282b!important;font-size:13px!important;font-weight:500!important;box-shadow:none!important;outline:none}
-.student-hub-body .academic-form-grid textarea{height:72px!important;padding:11px 12px!important;resize:vertical}
-.student-hub-body .academic-form-grid input:focus,
-.student-hub-body .academic-form-grid select:focus,
-.student-hub-body .academic-form-grid textarea:focus{border-color:#ad2d66!important;box-shadow:0 0 0 3px rgba(173,45,102,.08)!important}
-.student-hub-body .academic-form-grid .wide{grid-column:1/-1}
-.student-hub-body .academic-editor>footer{padding-top:14px;border-top:1px solid #eee3e7}
-.student-hub-body .academic-editor>footer button{height:40px;min-width:82px;border-radius:10px;font-size:13px;font-weight:700}
-.student-hub-body .academic-editor>footer small{font-size:11px}
+.academic-toolbar{width:100%;min-width:0;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding:9px 0 12px;border-bottom:1px solid #eee6e9}
+.academic-toolbar nav{display:flex;flex:0 0 auto;gap:5px;padding:3px;border-radius:10px;background:#f4ebef}
+.academic-toolbar nav button{width:auto!important;height:34px!important;min-height:34px!important;padding:0 13px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#695d62!important;font-size:9px!important;font-weight:800!important;white-space:nowrap}
+.academic-toolbar nav button.active{background:#fff!important;color:#992b61!important;box-shadow:0 1px 3px rgba(74,36,50,.12)}
+.academic-filters{display:flex;flex:0 0 auto;gap:8px}
+.academic-filters label{display:grid;gap:4px;min-width:0;color:#80747a;font-size:8px;font-weight:750}
+.academic-filters select{width:112px!important;min-width:0!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 28px 0 10px!important;border:1px solid #e2d6db!important;border-radius:9px!important;background-color:#fff!important;color:#4b4145!important;font-size:9px!important;font-weight:700!important;box-shadow:none!important}
+.academic-message{width:100%;margin:0;padding:9px 12px;border-radius:8px;background:#fff4f8;color:#992b61;font-size:9px}
 
-@media(max-width:720px){
- .student-hub-body .academic-heading{align-items:flex-start;min-height:52px}
- .student-hub-body .academic-heading h3{font-size:18px}
- .student-hub-body .academic-heading span{max-width:240px;line-height:1.5}
- .student-hub-body .academic-add-button{height:38px;padding:0 12px}
- .student-hub-body .academic-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 9px}
- .student-hub-body .academic-editor{padding:14px}
- .student-hub-body .academic-empty{min-height:150px}
+.academic-empty{width:100%;min-height:190px;margin:0;display:grid;place-items:center;padding:24px;border:1px solid #ece4e7;background:#fff;color:#95898e;font-size:9px;text-align:center}
+.academic-editor{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:16px!important;border:1px solid #e7dce0!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important;overflow:hidden}
+.academic-editor-heading{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #eee6e9}
+.academic-editor-heading>div{min-width:0;display:grid;gap:4px}
+.academic-editor-heading b{font-size:12px}
+.academic-editor-heading span{color:#8b7e84;font-size:8px}
+.academic-editor-heading>button{flex:0 0 auto;display:grid!important;place-items:center;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;margin:0!important;padding:0!important;border:0!important;border-radius:8px!important;background:#f5f1f3!important;color:#776a70!important;font-size:19px!important;font-weight:400!important;line-height:1!important}
+.academic-form-grid{width:100%;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 10px;margin:14px 0}
+.academic-form-grid label{min-width:0;display:grid;gap:6px;color:#40363a;font-size:9px;font-weight:800}
+.academic-form-grid input,.academic-form-grid select,.academic-form-grid textarea{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;height:38px!important;min-height:38px!important;margin:0!important;padding:0 10px!important;border:1px solid #ded3d7!important;border-radius:9px!important;background:#fff!important;color:#30282b!important;font-size:10px!important;font-weight:600!important;box-shadow:none!important;outline:none}
+.academic-form-grid textarea{height:62px!important;padding:9px 10px!important;resize:vertical}
+.academic-form-grid input:focus,.academic-form-grid select:focus,.academic-form-grid textarea:focus{border-color:#a92d63!important;box-shadow:0 0 0 2px rgba(169,45,99,.08)!important}
+.academic-form-grid .wide{grid-column:1/-1}
+.academic-editor-actions{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid #eee6e9}
+.academic-editor-actions>small{color:#94868c;font-size:8px}
+.academic-editor-actions>div{display:flex;gap:7px}
+.academic-editor-actions button{width:auto!important;min-width:68px!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 12px!important;border-radius:9px!important;font-size:9px!important;font-weight:800!important}
+.academic-primary{border-color:#992b61!important;background:#992b61!important;color:#fff!important}
+
+.academic-summary{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.academic-summary article{min-width:0;display:grid;gap:6px;padding:12px 14px;border:1px solid #ece3e6;background:#fff}
+.academic-summary span,.academic-summary small{color:#8e8186;font-size:8px}
+.academic-summary b{font-size:15px}.academic-summary b small{margin-left:3px}
+.academic-trend{width:100%;min-width:0;padding:13px 14px;border:1px solid #ece3e6;background:#fff}
+.academic-trend>header{display:flex;justify-content:space-between;margin-bottom:11px}.academic-trend>header b{font-size:10px}.academic-trend>header span{color:#95888e;font-size:8px}
+.academic-trend>div{display:grid;gap:8px}.academic-trend article{min-width:0;display:grid;grid-template-columns:125px minmax(0,1fr) 32px;align-items:center;gap:8px;font-size:9px}.academic-trend article>span{display:flex;justify-content:space-between}.academic-trend small{color:#9a8c92;font-size:8px}.academic-trend i{height:6px;overflow:hidden;border-radius:8px;background:#f2e8ec}.academic-trend em{display:block;height:100%;border-radius:8px;background:#ae3e73}
+.academic-list{width:100%;min-width:0;display:grid;gap:8px}.academic-list>article{position:relative;min-width:0;display:flex;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #e9dfe3;background:#fff}.academic-list article>div:first-child{min-width:0;display:grid;gap:4px}.academic-list span,.academic-list p,.academic-list small{margin:0;color:#8e8086;font-size:8px}.academic-list b{font-size:10px}.academic-list footer{display:flex;align-items:center;gap:5px}.academic-list footer button{width:auto!important;height:30px!important;min-height:30px!important;padding:0 9px!important;font-size:8px!important}.academic-list .danger{border-color:#ecc0cd;color:#bd3151}.academic-delete{position:absolute;inset:0!important;display:flex!important;align-items:center;justify-content:flex-end;gap:12px;padding:10px 13px;background:#fffafd}.academic-delete div{display:flex;gap:5px}.academic-delete .danger-fill{border-color:#c73355;background:#c73355;color:#fff}
+
+@media(max-width:760px){
+ .academic-records{gap:10px}
+ .academic-heading{align-items:stretch!important;flex-direction:row!important;gap:10px!important}
+ .academic-heading>div{flex:1}
+ .academic-toolbar{align-items:stretch;display:grid;gap:9px}
+ .academic-toolbar nav{display:grid;grid-template-columns:1fr 1fr}
+ .academic-filters{display:grid;grid-template-columns:1fr 1fr}
+ .academic-filters select{width:100%!important}
+ .academic-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px}
+ .academic-editor{padding:13px!important}
+ .academic-editor-actions{align-items:flex-end}.academic-editor-actions>small{max-width:145px;line-height:1.45}
+ .academic-summary{gap:6px}.academic-summary article{padding:10px 8px}.academic-summary b{font-size:13px}
+ .academic-trend article{grid-template-columns:92px minmax(0,1fr) 26px;gap:6px}.academic-trend article>span{display:grid}
+ .academic-list>article{display:grid}.academic-list footer{justify-content:flex-end}
+ .academic-delete{justify-content:space-between}
 }
