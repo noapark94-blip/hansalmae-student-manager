@@ -11,7 +11,7 @@ type Assignment={id:string;studentId:string;studentName:string;school:string|nul
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={weekStart:string;students:Student[];staff:Staff[];assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={key:string;assignment:Assignment;date:string;startTime:string;endTime:string;state:"fixed"|"moved"|"extra";exception?:Exception};
-type EditorState={row?:Assignment;weekday?:number;slot?:string}|null;
+type EditorState={row?:Assignment;weekday?:number;slot?:string;overrideDate?:string}|null;
 type SubjectFilter="전체"|Assignment["subject"];
 type SlotRosterState={day:string;date:string;start:string;end:string;entries:{key:string;assignment:Assignment;state:Occurrence["state"]|"ghost"}[]}|null;
 
@@ -58,7 +58,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
       const date=addDays(data.weekStart,index);
       const slots=weekday<=5?weekdaySlots:weekendSlots;
       return <section key={day} className={`correction-day ${selectedDay===weekday?"mobile-active":""}`}>
-        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><em>{occurrences.filter(item=>item.date===date&&(subjectFilter==="전체"||item.assignment.subject===subjectFilter)).length}명</em></header>
+        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><div className="correction-day-actions"><em>{occurrences.filter(item=>item.date===date&&(subjectFilter==="전체"||item.assignment.subject===subjectFilter)).length}명</em>{date<koreaToday()?<button type="button" onClick={()=>setEditor({weekday,overrideDate:date})}>이 날짜 누락 학생</button>:null}</div></header>
         <div className="correction-slot-list">{slots.map(([start,end])=>{
           const inSlot=occurrences.filter(item=>item.date===date&&item.startTime.slice(0,5)===start);
           const fixedMoved=(data.assignments??[]).filter(item=>item.weekday===weekday&&item.startTime.slice(0,5)===start).map(item=>({item,exception:movedFrom.get(`${item.id}-${date}`)})).filter(row=>row.exception);
@@ -78,7 +78,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
         })}</div>
       </section>;
     })}</section>}
-    {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await load();}}/>:null}
+    {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} overrideDate={editor.overrideDate} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await load();}}/>:null}
     {action&&data?<ScheduleActionModal assignment={action.assignment} originalDate={action.date} supabase={supabase} onEdit={()=>{setEditor({row:action.assignment});setAction(null);}} onClose={()=>setAction(null)} onSaved={async()=>{setAction(null);await load();}}/>:null}
     {slotRoster?<SlotRosterModal value={slotRoster} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
   </>;
@@ -88,7 +88,7 @@ function SlotRosterModal({value,onClose,onSelect}:{value:NonNullable<SlotRosterS
   return <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}><section className="student-modal correction-slot-roster-modal"><header><div><p className="eyebrow">첨삭 시간 전체 명단</p><h2>{value.day}요일 {value.start}–{value.end}</h2><span>학생을 누르면 이번 주 일정 변경·취소 메뉴를 열 수 있습니다.</span></div><button type="button" onClick={onClose}>×</button></header><div className="correction-slot-roster-groups">{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const entries=value.entries.filter(entry=>entry.assignment.subject===subject);if(!entries.length)return null;return <section className={`subject-${subject}`} key={subject}><header><b>{subject}</b><span>{entries.length}명</span></header><div>{entries.map(entry=><button type="button" key={entry.key} onClick={()=>onSelect(entry.assignment)}><b>{entry.assignment.studentName}</b><small>{[entry.assignment.school,entry.assignment.grade].filter(Boolean).join(" · ")||"학생 정보 없음"}</small></button>)}</div></section>})}</div><footer><button type="button" className="primary" onClick={onClose}>확인</button></footer></section></div>;
 }
 
-function AssignmentEditor({row,initialWeekday,initialSlot,data,supabase,onClose,onSaved}:{row?:Assignment;initialWeekday?:number;initialSlot?:string;data:Board;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
+function AssignmentEditor({row,initialWeekday,initialSlot,overrideDate,data,supabase,onClose,onSaved}:{row?:Assignment;initialWeekday?:number;initialSlot?:string;overrideDate?:string;data:Board;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
   const initialStudentId=row?.studentId??"";
   const[studentId,setStudentId]=useState(initialStudentId);
   const[studentQuery,setStudentQuery]=useState(()=>{
@@ -123,7 +123,9 @@ function AssignmentEditor({row,initialWeekday,initialSlot,data,supabase,onClose,
   const submit=async(event:FormEvent)=>{
     event.preventDefault();setSaving(true);setError("");
     const picked=slots.find(item=>item[0]===slot)??slots[0];
-    const{error:saveError}=await supabase.rpc("staff_save_correction_assignment",{p_id:row?.id??null,p_student_id:studentId,p_subject:subject,p_weekday:weekday,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null});
+    const{error:saveError}=overrideDate
+      ?await supabase.rpc("staff_add_correction_date_assignment",{p_date:overrideDate,p_student_id:studentId,p_subject:subject,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null})
+      :await supabase.rpc("staff_save_correction_assignment",{p_id:row?.id??null,p_student_id:studentId,p_subject:subject,p_weekday:weekday,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null});
     if(saveError){setError(saveError.message.includes("duplicate")?"이미 같은 학생의 같은 과목 첨삭이 이 시간에 배정되어 있습니다.":saveError.message);setSaving(false);}else await onSaved();
   };
   const remove=async()=>{
