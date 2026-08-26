@@ -176,6 +176,10 @@ const roleLabels: Record<string, string> = {
   guardian: "학부모",
 };
 
+function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
+  return profile.role === "teacher" ? `${profile.display_name} 선생님` : profile.display_name;
+}
+
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "reports", "consultations", "my-account"],
@@ -265,6 +269,7 @@ export default function Home() {
 
       let role: string | null = null;
       let roleError = false;
+      let profileError = false;
       let ownProfile: { display_name: string; must_change_password: boolean; role: string; is_active: boolean } | null = null;
       const retryDelays = [0, 250, 650];
 
@@ -274,13 +279,14 @@ export default function Home() {
         const [roleResult, profileResult] = await Promise.all([supabase.rpc("current_user_role"), supabase.from("profiles").select("display_name,must_change_password,role,is_active").eq("id", nextUser.id).maybeSingle()]);
         role = typeof roleResult.data === "string" ? roleResult.data : null;
         roleError = Boolean(roleResult.error);
+        profileError = Boolean(profileResult.error);
         if (profileResult.data) ownProfile = profileResult.data;
-        if (!roleError && role && roleViews[role as UserRole]) break;
+        if (!roleError && !profileError && role && roleViews[role as UserRole] && ownProfile) break;
       }
 
       if (loadSequence !== profileLoadSequence.current) return;
 
-      if (roleError || !role || !roleViews[role as UserRole]) {
+      if (roleError || profileError || !ownProfile || !role || !roleViews[role as UserRole]) {
         setAuthError(ownProfile?.role === "guardian" && !ownProfile.is_active ? "자녀 연결 승인 대기 중입니다. 관리자가 확인한 뒤 로그인할 수 있습니다." : "계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
@@ -290,8 +296,8 @@ export default function Home() {
         setProfile({
           id: nextUser.id,
           role: role as UserRole,
-          display_name: ownProfile?.display_name ?? nextUser.user_metadata.display_name ?? nextUser.user_metadata.full_name ?? nextUser.email?.split("@")[0] ?? "사용자",
-          must_change_password: ownProfile?.must_change_password ?? false,
+          display_name: ownProfile.display_name,
+          must_change_password: ownProfile.must_change_password,
         });
       }
       setAuthReady(true);
@@ -604,6 +610,7 @@ export default function Home() {
 
   const familyAccount = profile.role === "student" || profile.role === "guardian";
   const staffAccount = ["admin","teacher","assistant","manager"].includes(profile.role);
+  const signedInDisplayName = accountDisplayName(profile);
 
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
@@ -621,7 +628,7 @@ export default function Home() {
             <div className="teacher-card">
               <div className="avatar">{profile.display_name.slice(0, 1)}</div>
               <div>
-                <b>{profile.display_name}</b>
+                <b>{signedInDisplayName}</b>
                 <span>{roleLabels[profile.role]}</span>
               </div>
               <button className="signout-button" onClick={() => void supabase.auth.signOut()}>
@@ -749,7 +756,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}`}>
-          {view === "dashboard" && staffAccount && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={profile.display_name} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
+          {view === "dashboard" && staffAccount && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
               <div className="admin-home-switch">
@@ -811,7 +818,7 @@ export default function Home() {
         {familyAccount && <FamilyBottomNavigation role={profile.role === "guardian" ? "guardian" : "student"} activeView={view} onSelect={selectView} />}
         {staffAccount && <StaffBottomNavigation role={profile.role} activeView={view} onSelect={selectView} onMore={() => setStaffMoreOpen(true)} />}
       </section>
-      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={profile.display_name} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
+      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
@@ -1280,7 +1287,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
       <div className="page-heading">
         <div>
           <p className="eyebrow">역할 · {roleLabels[profile.role]}</p>
-          <h1>안녕하세요, {profile.display_name}님</h1>
+          <h1>안녕하세요, {accountDisplayName(profile)}님</h1>
           <p>오늘 학원 운영 현황을 한눈에 확인하세요.</p>
         </div>
       </div>
