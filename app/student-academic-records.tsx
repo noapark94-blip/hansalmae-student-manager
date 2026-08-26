@@ -90,8 +90,8 @@ export function StudentAcademicRecords({supabase,studentId}:{supabase:SupabaseCl
     {editorOpen?<form className="academic-editor" onSubmit={save}><div className="academic-editor-heading"><div><b>{editingId?"성적 수정":"새 성적 등록"}</b><span>{type==="school"?"학교 내신 시험 정보를 입력합니다.":"전국 모의고사 정보를 입력합니다."}</span></div><button type="button" aria-label="등록 창 닫기" onClick={()=>setEditorOpen(false)}>×</button></div><div className="academic-form-grid">
       <label><span>연도 *</span><input type="number" min="2000" max="2100" required value={form.academicYear} onChange={e=>update("academicYear",e.target.value)}/></label>
       {type==="school"?<label><span>학기 *</span><select value={form.semester} onChange={e=>update("semester",e.target.value)}><option value="1">1학기</option><option value="2">2학기</option></select></label>:null}
-      <label><span>{type==="school"?"시험일":"시행일"} *</span><input type="date" required value={form.examDate} onChange={e=>update("examDate",e.target.value)}/></label>
-      <label><span>시험명 *</span><input required value={form.examName} onChange={e=>update("examName",e.target.value)} placeholder={type==="school"?"중간고사":"6월 모의고사"}/></label>
+      <label className="mobile-wide"><span>{type==="school"?"시험일":"시행일"} *</span><input type="date" required value={form.examDate} onChange={e=>update("examDate",e.target.value)}/></label>
+      <label className="mobile-wide"><span>시험명 *</span><input required value={form.examName} onChange={e=>update("examName",e.target.value)} placeholder={type==="school"?"중간고사":"6월 모의고사"}/></label>
       <label><span>과목 *</span><input required value={form.subject} onChange={e=>update("subject",e.target.value)} placeholder="영어"/></label>
       <label><span>원점수</span><input type="number" min="0" max="100" step="0.01" value={form.score} onChange={e=>update("score",e.target.value)}/></label>
       <label><span>등급</span><input type="number" min="1" max="9" value={form.grade} onChange={e=>update("grade",e.target.value)}/></label>

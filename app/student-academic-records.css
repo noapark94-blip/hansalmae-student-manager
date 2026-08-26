@@ -51,6 +51,8 @@
  .academic-filters{display:grid;grid-template-columns:1fr 1fr}
  .academic-filters select{width:100%!important}
  .academic-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px}
+ .academic-form-grid .mobile-wide{grid-column:1/-1}
+ .academic-form-grid input[type="date"]{min-width:0!important;width:100%!important;max-width:100%!important;-webkit-appearance:none;appearance:none}
  .academic-editor{padding:13px!important}
  .academic-editor-actions{align-items:flex-end}.academic-editor-actions>small{max-width:145px;line-height:1.45}
  .academic-summary{gap:6px}.academic-summary article{padding:10px 8px}.academic-summary b{font-size:13px}
