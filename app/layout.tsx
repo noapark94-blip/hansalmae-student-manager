@@ -54,6 +54,7 @@ import "./app-install-prompt.css";
 import "./app-install-menu.css";
 import "./vocabulary-test-generator.css";
 import "./student-detail-controls.css";
+import "./student-academic-records.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { AppDialogHost } from "./app-dialog";

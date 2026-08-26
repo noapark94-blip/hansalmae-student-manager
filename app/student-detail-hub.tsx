@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLifecyclePanel } from "./student-lifecycle-panel";
 import { StudentLearningHistory } from "./student-learning-history";
+import { StudentAcademicRecords } from "./student-academic-records";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
 
@@ -133,7 +134,7 @@ type AttendanceHistory = {
   correctionAttendance: CorrectionAttendanceItem[];
   makeups: MakeupItem[];
 };
-type Tab = "summary" | "profile" | "classes" | "attendance" | "learning" | "consultations";
+type Tab = "summary" | "profile" | "classes" | "attendance" | "learning" | "academics" | "consultations";
 const statusLabels = {
   present: "출석",
   late: "지각",
@@ -252,6 +253,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               ["classes", "수강 클래스"],
               ["attendance", "출결·보강"],
               ["learning", "학습 기록"],
+              ["academics", "성적 관리"],
               ["consultations", "상담 기록"],
             ] as [Tab, string][]
           ).map(([id, label]) => (
@@ -339,7 +341,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               />
             </div>
           )}
-          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} student={student} corrections={data.insights.correctionLearning} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
+          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} student={student} corrections={data.insights.correctionLearning} />} {tab === "academics" && <StudentAcademicRecords supabase={supabase} studentId={student.id} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
         </div>
       </section>
     </div>
