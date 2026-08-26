@@ -13,3 +13,8 @@
 .correction-management-workspace .correction-work-heading > label {
   display: none !important;
 }
+
+.correction-day-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px;min-width:0}
+.correction-day-actions>button{min-width:0;padding:4px 6px;border:1px solid #dfc8d3;border-radius:7px;background:#fff;color:#922d61;font-size:7px;font-weight:850;line-height:1.2;white-space:nowrap;cursor:pointer}
+.correction-day-actions>button:hover{border-color:#bd7597;background:#fff7fb}
+@media(max-width:720px){.correction-day-actions>button{padding:6px 8px;font-size:9px}.correction-day-actions{gap:7px}}
