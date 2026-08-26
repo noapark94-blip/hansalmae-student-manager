@@ -259,7 +259,11 @@
   .class-day-workspace .family-read-status{border-radius:0!important}
   .class-day-workspace .family-read-summary{padding:11px 14px!important}
   .class-day-workspace .learning-board-heading{display:none!important}
-  .class-day-workspace .learning-board-rows{padding:10px!important;background:#faf8f9!important}
+  .class-day-workspace .learning-board-rows{
+    padding:10px 10px 82px!important;
+    scroll-padding-bottom:82px!important;
+    background:#faf8f9!important;
+  }
   .class-day-workspace .learning-board-rows>article{
     margin-bottom:10px!important;
     border:1px solid #eadfe4!important;
