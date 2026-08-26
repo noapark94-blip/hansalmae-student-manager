@@ -9,6 +9,7 @@
 .academic-toolbar nav{display:flex!important;flex:0 0 auto;align-items:center!important;gap:4px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:3px!important;border:0!important;border-radius:9px!important;background:#f4ebef!important}
 .academic-toolbar nav button{width:auto!important;height:34px!important;min-height:34px!important;padding:0 13px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#695d62!important;font-size:9px!important;font-weight:800!important;white-space:nowrap}
 .academic-toolbar nav button.active{background:#fff!important;color:#992b61!important;box-shadow:0 1px 3px rgba(74,36,50,.12)}
+.academic-toolbar nav button:disabled{cursor:default;opacity:1}
 .academic-filters{display:flex!important;flex:0 0 auto!important;align-items:flex-end!important;gap:7px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 .academic-filters label{display:grid!important;gap:3px!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:#80747a;font-size:8px;font-weight:750}
 .academic-filters select{width:108px!important;min-width:0!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 28px 0 10px!important;border:1px solid #e2d6db!important;border-radius:9px!important;background-color:#fff!important;color:#4b4145!important;font-size:9px!important;font-weight:700!important;box-shadow:none!important}
@@ -51,6 +52,7 @@
  .academic-heading>div{flex:1}
  .academic-toolbar{align-items:stretch;display:grid;gap:9px}
  .academic-toolbar nav{display:grid;grid-template-columns:1fr 1fr}
+ .academic-toolbar nav.single{grid-template-columns:1fr}
  .academic-filters{display:grid;grid-template-columns:1fr 1fr}
  .academic-filters select{width:100%!important}
  .academic-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px}

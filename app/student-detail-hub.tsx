@@ -341,7 +341,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
               />
             </div>
           )}
-          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} student={student} corrections={data.insights.correctionLearning} />} {tab === "academics" && <StudentAcademicRecords supabase={supabase} studentId={student.id} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
+          {data && tab === "classes" && <ClassesTab classes={data.classes} onAssign={rosterStudent ? () => onAssign(rosterStudent) : undefined} />} {data && tab === "attendance" && <AttendanceTab attendance={data.attendance} correctionAttendance={data.insights.correctionAttendanceRecords} makeups={data.makeups} />} {data && tab === "learning" && <LearningTab supabase={supabase} student={student} corrections={data.insights.correctionLearning} />} {tab === "academics" && <StudentAcademicRecords supabase={supabase} studentId={student.id} studentGrade={student.grade} />} {data && tab === "consultations" && <ConsultationTab consultations={data.consultations} />}
         </div>
       </section>
     </div>
