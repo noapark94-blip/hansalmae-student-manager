@@ -1,5 +1,14 @@
 .class-roster-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .lesson-roster-button{border-color:#d9b4c6!important;color:#8f285d!important;background:#fff9fb!important}
+.class-day-workspace>.class-workspace-grid.class-log-grid{display:block!important;margin:14px 22px 22px!important}
+.class-day-workspace .class-roster-shortcut{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:16px 18px!important;border:1px solid #eadfe4!important;border-radius:14px!important;background:#fff!important}
+.class-day-workspace .class-roster-shortcut>div{display:block!important}
+.class-day-workspace .class-roster-shortcut>div:first-child{min-width:0}
+.class-day-workspace .class-roster-shortcut h3{padding:0!important;border:0!important;font-size:13px!important}
+.class-day-workspace .class-roster-shortcut p{margin:5px 0 0!important;font-size:9px!important;line-height:1.5!important}
+.class-day-workspace .class-roster-actions{display:flex!important;flex:0 0 auto}
+.class-day-workspace .class-roster-actions>button{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:118px!important;height:40px!important;margin:0!important;padding:0 13px!important;font-size:11px!important;white-space:nowrap!important}
+.class-day-workspace .class-roster-actions>button::before,.class-day-workspace .class-roster-actions>button::after{content:none!important}
 .lesson-roster-editor{width:min(720px,calc(100vw - 26px));max-height:min(820px,calc(100dvh - 26px));display:flex;flex-direction:column;overflow:hidden}
 .lesson-roster-editor>.modal-body{min-height:0;overflow:auto}
 .lesson-roster-notice{margin-bottom:12px;padding:12px 14px;border:1px solid #ecd7e1;border-radius:11px;background:#fff8fb;display:flex;align-items:center;gap:9px;color:#76646d}
@@ -12,4 +21,4 @@
 .lesson-roster-option-list em{padding:6px 8px;border-radius:8px;background:#f0ecee;color:#756a70;font-size:9px;font-style:normal;font-weight:800}
 .lesson-roster-option-list button{min-width:96px;height:36px;padding:0 10px;border:1px solid #ddb7c9;border-radius:9px;background:#fff;color:#9b2b62;font-size:10px;font-weight:850}.lesson-roster-option-list button.remove{border-color:#efbdc8;background:#fff8f9;color:#bd3650}.lesson-roster-option-list button:disabled{opacity:.55}
 .lesson-direct-badge{display:inline-flex;margin-left:6px;padding:2px 5px;border-radius:5px;background:#fae4ed;color:#9b2b62;font-size:8px!important;font-style:normal;font-weight:850;vertical-align:2px}
-@media(max-width:600px){.class-roster-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.class-roster-actions button{width:100%;padding-left:6px;padding-right:6px;font-size:11px}.lesson-roster-editor{width:calc(100vw - 10px);max-height:calc(100dvh - 10px)}.lesson-roster-notice{align-items:flex-start;flex-direction:column}.lesson-roster-option-list>article{grid-template-columns:34px minmax(0,1fr) auto;padding:9px 10px}.lesson-roster-option-list button{min-width:88px;padding:0 7px;font-size:9px}}
+@media(max-width:600px){.class-day-workspace>.class-workspace-grid.class-log-grid{margin:12px 6px 16px!important}.class-day-workspace .class-roster-shortcut{align-items:stretch!important;flex-direction:column!important;padding:14px!important}.class-roster-actions{display:grid!important;grid-template-columns:1fr 1fr;width:100%}.class-day-workspace .class-roster-actions>button{width:100%!important;min-width:0!important;padding-left:6px!important;padding-right:6px!important;font-size:10px!important}.lesson-roster-editor{width:calc(100vw - 10px);max-height:calc(100dvh - 10px)}.lesson-roster-notice{align-items:flex-start;flex-direction:column}.lesson-roster-option-list>article{grid-template-columns:34px minmax(0,1fr) auto;padding:9px 10px}.lesson-roster-option-list button{min-width:88px;padding:0 7px;font-size:9px}}
