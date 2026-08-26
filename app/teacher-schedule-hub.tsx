@@ -30,7 +30,7 @@ const correctionSlots = ["17:30–19:00", "19:00–20:30", "20:30–22:00"];
 const scheduleSubjects = ["전체", "국어", "영어", "수학"] as const;
 type ScheduleSubject = (typeof scheduleSubjects)[number];
 
-export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase: SupabaseClient; profile: Profile; initialTab: HubTab }) {
+export function TeacherScheduleHub({ supabase, profile, initialTab, onStudentOpen }: { supabase: SupabaseClient; profile: Profile; initialTab: HubTab; onStudentOpen?: (studentId: string) => void }) {
   const [tab, setTab] = useState<HubTab>(initialTab);
   const [teacherId, setTeacherId] = useState(profile.id);
   const [data, setData] = useState<HubData>(emptyData);
@@ -75,7 +75,7 @@ export function TeacherScheduleHub({ supabase, profile, initialTab }: { supabase
     {editor?.kind === "exception" && <ExceptionEditor supabase={supabase} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
     {editor?.kind === "vehicle" && <VehicleEditor supabase={supabase} data={data} row={editor.row} onClose={() => setEditor(null)} onSaved={saved} />}
     {editor?.kind==="vehicleException"&&<VehicleExceptionEditor supabase={supabase} row={editor.row} onClose={()=>setEditor(null)} onSaved={saved}/>}
-    {roster&&<ClassRosterModal row={roster} onClose={()=>setRoster(null)} onEdit={()=>{setRoster(null);setEditor({kind:"class",row:roster});}}/>}
+    {roster&&<ClassRosterModal row={roster} onClose={()=>setRoster(null)} onStudentOpen={studentId=>{setRoster(null);onStudentOpen?.(studentId);}} onEdit={()=>{setRoster(null);setEditor({kind:"class",row:roster});}}/>}
   </>;
 }
 
@@ -95,7 +95,7 @@ function ClassScheduleBoard({ rows, teachers, teacherId, setTeacherId, personal,
 
 function scheduleSubject(subject:string){return (["국어","영어","수학"] as const).find((item)=>subject.includes(item))??null}
 
-function ClassRosterModal({row,onClose,onEdit}:{row:ClassSchedule;onClose:()=>void;onEdit:()=>void}){return <EditorModal title={row.className} description={`${weekdays[row.weekday-1]}요일 ${row.startTime.slice(0,5)}–${row.endTime.slice(0,5)} · ${row.subject}`} onClose={onClose}><div className="class-roster-modal"><header><b>수강 학생 명단</b><span>총 {row.students.length}명</span></header>{row.students.length?<div>{row.students.map((student,index)=><p key={student.id}><i>{index+1}</i><b>{student.name}</b></p>)}</div>:<Empty text="현재 수강 중인 학생이 없습니다."/>}<footer><button className="secondary-button" onClick={onClose}>닫기</button><button className="primary" onClick={onEdit}>수업 배정 수정</button></footer></div></EditorModal>}
+function ClassRosterModal({row,onClose,onEdit,onStudentOpen}:{row:ClassSchedule;onClose:()=>void;onEdit:()=>void;onStudentOpen?:(studentId:string)=>void}){return <EditorModal title={row.className} description={`${weekdays[row.weekday-1]}요일 ${row.startTime.slice(0,5)}–${row.endTime.slice(0,5)} · ${row.subject}`} onClose={onClose}><div className="class-roster-modal"><header><b>수강 학생 명단</b><span>총 {row.students.length}명</span></header>{row.students.length?<div>{row.students.map((student,index)=><button type="button" className="class-roster-student" key={student.id} onClick={()=>onStudentOpen?.(student.id)} disabled={!onStudentOpen}><i>{index+1}</i><b>{student.name}</b><span>학생 보기 ›</span></button>)}</div>:<Empty text="현재 수강 중인 학생이 없습니다."/>}<footer><button className="secondary-button" onClick={onClose}>닫기</button><button className="primary" onClick={onEdit}>수업 배정 수정</button></footer></div></EditorModal>}
 
 function CorrectionBoard({ rows, exceptions, profile, onAdd, onEdit, onException }: { rows: Correction[]; exceptions: CorrectionException[]; profile: Profile; onAdd: () => void; onEdit: (row: Correction) => void; onException: (row: Correction) => void }) {
   const upcoming = exceptions.filter((item) => item.weekStart >= getMonday()).slice(0, 6);
