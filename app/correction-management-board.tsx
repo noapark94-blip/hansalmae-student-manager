@@ -58,7 +58,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
       const date=addDays(data.weekStart,index);
       const slots=weekday<=5?weekdaySlots:weekendSlots;
       return <section key={day} className={`correction-day ${selectedDay===weekday?"mobile-active":""}`}>
-        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><div className="correction-day-actions"><em>{occurrences.filter(item=>item.date===date&&(subjectFilter==="전체"||item.assignment.subject===subjectFilter)).length}명</em>{date<koreaToday()?<button type="button" onClick={()=>setEditor({weekday,overrideDate:date})}>이 날짜 누락 학생</button>:null}</div></header>
+        <header><span><b>{day}요일</b><small>{formatShortDate(date)}</small></span><em>{occurrences.filter(item=>item.date===date&&(subjectFilter==="전체"||item.assignment.subject===subjectFilter)).length}명</em></header>
         <div className="correction-slot-list">{slots.map(([start,end])=>{
           const inSlot=occurrences.filter(item=>item.date===date&&item.startTime.slice(0,5)===start);
           const fixedMoved=(data.assignments??[]).filter(item=>item.weekday===weekday&&item.startTime.slice(0,5)===start).map(item=>({item,exception:movedFrom.get(`${item.id}-${date}`)})).filter(row=>row.exception);
@@ -82,6 +82,15 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     {action&&data?<ScheduleActionModal assignment={action.assignment} originalDate={action.date} supabase={supabase} onEdit={()=>{setEditor({row:action.assignment});setAction(null);}} onClose={()=>setAction(null)} onSaved={async()=>{setAction(null);await load();}}/>:null}
     {slotRoster?<SlotRosterModal value={slotRoster} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
   </>;
+}
+
+export function CorrectionDateAssignmentEditor({date,supabase,onClose,onSaved}:{date:string;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
+  const[data,setData]=useState<Board|null>(null);
+  const[error,setError]=useState("");
+  useEffect(()=>{void(async()=>{const{data:next,error:loadError}=await supabase.rpc("correction_management_board_v2",{p_anchor:date});if(loadError)setError(loadError.message);else setData(next as Board)})()},[date,supabase]);
+  if(error)return <div className="modal-backdrop"><section className="student-modal correction-editor"><header><div><p className="eyebrow">과거 기록 보정</p><h2>이 날짜 누락 학생</h2></div><button type="button" onClick={onClose}>×</button></header><p className="form-error">{error}</p></section></div>;
+  if(!data)return <div className="modal-backdrop"><section className="student-modal correction-editor"><p className="settings-empty">학생 명단을 불러오는 중이에요…</p></section></div>;
+  return <AssignmentEditor initialWeekday={isoWeekday(date)} overrideDate={date} data={data} supabase={supabase} onClose={onClose} onSaved={onSaved}/>;
 }
 
 function SlotRosterModal({value,onClose,onSelect}:{value:NonNullable<SlotRosterState>;onClose:()=>void;onSelect:(assignment:Assignment)=>void}){
