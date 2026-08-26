@@ -4,31 +4,41 @@
 .student-hub-modal .student-record-period-select,
 .student-hub-modal .consultation-period-filters label {
   min-width: 0;
+  font-size: 8px !important;
+  line-height: 1.25 !important;
+}
+
+.student-hub-modal .student-record-selects label>span,
+.student-hub-modal .student-record-period-select>span,
+.student-hub-modal .consultation-period-filters label>span {
+  font-size: 8px !important;
 }
 
 .student-hub-modal .student-exam-selects select,
 .student-hub-modal .student-record-selects select,
 .student-hub-modal .student-record-period-select select,
 .student-hub-modal .consultation-period-filters select {
-  height: 32px;
-  min-height: 32px;
-  padding: 0 25px 0 9px;
-  border-radius: 8px;
-  font-size: 8px;
+  width: 100% !important;
+  height: 29px !important;
+  min-height: 29px !important;
+  padding: 0 23px 0 8px !important;
+  border-radius: 7px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
 }
 
 .student-hub-modal .student-exam-selects label,
 .student-hub-modal .student-record-selects label {
-  width: 112px;
+  width: 102px;
 }
 
 .student-hub-modal .student-record-period-select {
-  width: 132px;
-  min-width: 132px;
+  width: 118px;
+  min-width: 118px;
 }
 
-.student-hub-modal .consultation-period-filters label:first-child { width: 106px; }
-.student-hub-modal .consultation-period-filters label:last-child { width: 96px; }
+.student-hub-modal .consultation-period-filters label:first-child { width: 96px; }
+.student-hub-modal .consultation-period-filters label:last-child { width: 86px; }
 
 @media (max-width: 760px) {
   .student-hub-modal .student-exam-selects,
