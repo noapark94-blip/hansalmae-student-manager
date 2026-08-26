@@ -122,6 +122,7 @@ type MobileVehicleRow = {
 type MobileManualVehicleRow = { studentId: string; weekday: number; direction: "pickup" | "dropoff"; time: string };
 type MobileVehicleSummary = { pickup: number; dropoff: number; excluded: number; missingLocations: number; hasNote: boolean; nextTime: string | null };
 type MobileAdminSummary = { accountRequests: number; unpaidStudents: number; overdueConsultations: number; gradeTransitions: number };
+type AssistantCorrectionSummary = { total: number; korean: number; english: number; math: number };
 type AssignmentCount = {
   unsubmitted: number;
   reviewPending: number;
@@ -909,6 +910,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
   const [makeupItems, setMakeupItems] = useState<MobileMakeupItem[] | null>(null);
   const [vehicleSummary, setVehicleSummary] = useState<MobileVehicleSummary | null>(null);
   const [adminSummary, setAdminSummary] = useState<MobileAdminSummary | null>(null);
+  const [assistantSummary, setAssistantSummary] = useState<AssistantCorrectionSummary | null>(null);
   useEffect(() => {
     if (role !== "teacher" && role !== "admin") return;
     let active = true;
@@ -921,6 +923,23 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
     return () => {
       active = false;
     };
+  }, [role, supabase]);
+  useEffect(() => {
+    if (role !== "assistant") return;
+    let active = true;
+    const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    void supabase.rpc("correction_day_board", { p_date: date }).then(({ data, error }) => {
+      if (!active) return;
+      const assignments = error ? [] : (((data as { assignments?: { studentId: string; subject: string }[] } | null)?.assignments) ?? []);
+      const unique = [...new Map(assignments.map((item) => [`${item.studentId}-${item.subject}`, item])).values()];
+      setAssistantSummary({
+        total: unique.length,
+        korean: unique.filter((item) => item.subject === "국어").length,
+        english: unique.filter((item) => item.subject === "영어").length,
+        math: unique.filter((item) => item.subject === "수학").length,
+      });
+    });
+    return () => { active = false; };
   }, [role, supabase]);
   useEffect(() => {
     if (role !== "admin") return;
@@ -1045,7 +1064,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "students" as View, label: "학생", tone: "amber" },
         ];
   return (
-    <section className="staff-mobile-home" aria-label="모바일 업무 홈">
+    <section className={`staff-mobile-home ${role === "assistant" ? "assistant-home" : ""}`} aria-label={role === "assistant" ? "조교 업무 홈" : "모바일 업무 홈"}>
       <div className="staff-mobile-welcome">
         <p>한살매 수업노트</p>
         <h1>{greeting}</h1>
@@ -1062,9 +1081,23 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
+      {role === "assistant" && (
+        <div className="assistant-desktop-summary" aria-label="오늘 첨삭 현황">
+          <div>
+            <span>오늘 첨삭</span>
+            <strong>{assistantSummary ? assistantSummary.total : "…"}<small>명</small></strong>
+            <p>오늘 예정된 첨삭 학생을 확인하고 바로 기록하세요.</p>
+          </div>
+          <dl>
+            <div><dt>국어</dt><dd>{assistantSummary ? assistantSummary.korean : "…"}<small>명</small></dd></div>
+            <div><dt>영어</dt><dd>{assistantSummary ? assistantSummary.english : "…"}<small>명</small></dd></div>
+            <div><dt>수학</dt><dd>{assistantSummary ? assistantSummary.math : "…"}<small>명</small></dd></div>
+          </dl>
+        </div>
+      )}
       <div className={`staff-mobile-quick-links ${role === "assistant" ? "compact" : ""}`}>
         {actions.map((item) => (
-          <button type="button" key={item.id} onClick={() => onNavigate(item.id)}>
+          <button type="button" className={`assistant-action-${item.id}`} key={item.id} onClick={() => onNavigate(item.id)}>
             <i className={item.tone}>
               <HansalmaeIcon name={viewIcon[item.id]} size={22} />
             </i>
