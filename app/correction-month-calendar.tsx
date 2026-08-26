@@ -24,7 +24,7 @@ export function CorrectionMonthCalendar({supabase,anchor,onSelect,onClose}:{supa
     const boards=await Promise.all(anchors.map(p_anchor=>supabase.rpc("correction_management_board",{p_anchor})));
     const failed=boards.find(x=>x.error);if(failed?.error){setError("첨삭 캘린더를 불러오지 못했습니다.");setLoading(false);return}
     const parsed=boards.map(x=>x.data as Board);
-    const first=parsed[0];setAssignments(first?.assignments??[]);
+    const assignmentMap=new Map<string,Assignment>();for(const b of parsed)for(const a of b.assignments??[])assignmentMap.set(a.id,a);setAssignments([...assignmentMap.values()]);
     const exMap=new Map<string,Exception>();for(const b of parsed)for(const e of b.exceptions??[])exMap.set(e.id,e);setExceptions([...exMap.values()]);
     const start=days[0],end=days[days.length-1];
     const result=await supabase.from("correction_reports").select("assignment_id,correction_date,start_time,attendance_status").gte("correction_date",start).lte("correction_date",end);
