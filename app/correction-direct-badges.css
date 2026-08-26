@@ -6,6 +6,16 @@
 .correction-learning-board .correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important}
 .correction-week-strip em>.correction-direct-badge.compact{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;font-size:0!important;line-height:0!important}
 
+/* 과거 누락 명단 보정: 정규 배정과 다른 색으로 기록 화면에서만 구분 */
+.correction-date-override-badge{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin-left:6px;padding:3px 7px;border:1px solid #c9d8ee;border-radius:999px;background:#edf4ff;color:#3c6698;font-size:9px;font-weight:800;line-height:1;white-space:nowrap}
+.correction-date-override-badge.compact{margin-left:4px;padding:2px 5px;font-size:8px}
+.learning-student.date-override .correction-history-trigger>b{color:#3f6794!important}
+.learning-student.date-override .correction-history-trigger>i{background:#e8f0fb!important;color:#426b99!important}
+.correction-date-override-row{background:linear-gradient(90deg,rgba(237,244,255,.48),rgba(255,255,255,0) 36%)!important}
+.correction-learning-board .correction-week-strip em.date-override,.correction-month-grid em.date-override{background:#edf4ff!important;color:#3f6794!important}
+.correction-month-grid em.date-override{display:flex;align-items:center;min-width:0}
+.correction-month-grid em.date-override>.correction-date-override-badge{flex:0 0 auto}
+
 /* 학생 상세 상태 배지는 숨김 */
 .learning-student{position:relative}.learning-student>.correction-direct-badge{display:none!important}
 .learning-student:has(>.correction-direct-badge.move) .correction-history-trigger b,.learning-student:has(>.correction-direct-badge.extra) .correction-history-trigger b{color:inherit!important}
