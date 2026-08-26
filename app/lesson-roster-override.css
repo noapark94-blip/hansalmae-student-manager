@@ -1,0 +1,15 @@
+.class-roster-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.lesson-roster-button{border-color:#d9b4c6!important;color:#8f285d!important;background:#fff9fb!important}
+.lesson-roster-editor{width:min(720px,calc(100vw - 26px));max-height:min(820px,calc(100dvh - 26px));display:flex;flex-direction:column;overflow:hidden}
+.lesson-roster-editor>.modal-body{min-height:0;overflow:auto}
+.lesson-roster-notice{margin-bottom:12px;padding:12px 14px;border:1px solid #ecd7e1;border-radius:11px;background:#fff8fb;display:flex;align-items:center;gap:9px;color:#76646d}
+.lesson-roster-notice b{flex:0 0 auto;color:#9b2b62;font-size:11px}.lesson-roster-notice span{font-size:10px;line-height:1.5}
+.lesson-roster-option-list{margin-top:12px;border:1px solid #eee4e8;border-radius:13px;overflow:hidden}
+.lesson-roster-option-list>article{min-height:64px;padding:10px 12px;border-top:1px solid #f1e9ec;display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;background:#fff}
+.lesson-roster-option-list>article:first-child{border-top:0}.lesson-roster-option-list>article.standard{background:#fcfafb}.lesson-roster-option-list>article.direct-added{background:#fff6fa}
+.lesson-roster-option-list>article>i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#f2e3ea;color:#9a2c61;font-size:11px;font-style:normal;font-weight:850}
+.lesson-roster-option-list>article>span{min-width:0;display:grid;gap:4px}.lesson-roster-option-list b{font-size:12px}.lesson-roster-option-list small{overflow:hidden;color:#8a7d83;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.lesson-roster-option-list em{padding:6px 8px;border-radius:8px;background:#f0ecee;color:#756a70;font-size:9px;font-style:normal;font-weight:800}
+.lesson-roster-option-list button{min-width:96px;height:36px;padding:0 10px;border:1px solid #ddb7c9;border-radius:9px;background:#fff;color:#9b2b62;font-size:10px;font-weight:850}.lesson-roster-option-list button.remove{border-color:#efbdc8;background:#fff8f9;color:#bd3650}.lesson-roster-option-list button:disabled{opacity:.55}
+.lesson-direct-badge{display:inline-flex;margin-left:6px;padding:2px 5px;border-radius:5px;background:#fae4ed;color:#9b2b62;font-size:8px!important;font-style:normal;font-weight:850;vertical-align:2px}
+@media(max-width:600px){.class-roster-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.class-roster-actions button{width:100%;padding-left:6px;padding-right:6px;font-size:11px}.lesson-roster-editor{width:calc(100vw - 10px);max-height:calc(100dvh - 10px)}.lesson-roster-notice{align-items:flex-start;flex-direction:column}.lesson-roster-option-list>article{grid-template-columns:34px minmax(0,1fr) auto;padding:9px 10px}.lesson-roster-option-list button{min-width:88px;padding:0 7px;font-size:9px}}
