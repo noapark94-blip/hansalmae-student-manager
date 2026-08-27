@@ -471,11 +471,13 @@ function CorrectionFeedCard({
         aria-label={`${item.subject} 첨삭 리포트 자세히 보기`}
       >
         <span className="family-report-subject">
-          <span className="family-report-card-labels">
-            <span>{item.subject} 첨삭</span>
-            {!readAt && <em>NEW</em>}
+          <span className="family-report-card-title-row">
+            <strong>{item.subject} 첨삭</strong>
+            <span className="family-report-card-labels">
+              <span>{item.subject} 첨삭</span>
+              {!readAt && <em>NEW</em>}
+            </span>
           </span>
-          <strong>{item.subject} 첨삭</strong>
           <small>
             {item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}
             {item.recordedByName
@@ -710,11 +712,13 @@ function ReportCard({
         aria-label={`${displayTitle} 리포트 자세히 보기`}
       >
         <span className="family-report-subject">
-          <span className="family-report-card-labels">
-            <span>{reportBadgeLabel(item)}</span>
-            {readTracking && !readAt && <em>NEW</em>}
+          <span className="family-report-card-title-row">
+            <strong>{displayTitle}</strong>
+            <span className="family-report-card-labels">
+              <span>{reportBadgeLabel(item)}</span>
+              {readTracking && !readAt && <em>NEW</em>}
+            </span>
           </span>
-          <strong>{displayTitle}</strong>
           <small>
             {formatTime(item.startsAt)} · {familyTeacherName(item.teacherName)}
             {item.room ? ` · ${item.room}` : ""}
