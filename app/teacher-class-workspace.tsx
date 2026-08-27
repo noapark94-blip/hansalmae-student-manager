@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
@@ -175,7 +175,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setSelectedId(lessonTarget.classId);setDate(lessonTarget.date);window.setTimeout(()=>document.querySelector(".class-day-workspace")?.scrollIntoView({behavior:"smooth",block:"start"}),350)},[data,lessonTarget]);
+  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const loadDay = useCallback(async () => {
     if (!selectedId || selectedId === specialLessonsId) return setDay(null);
@@ -230,7 +230,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
           <strong>전용</strong>
         </button>
       </section>
-      {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} />}
+      {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
       {selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
       {subjectOpen && (
         <SubjectEditor
@@ -273,11 +273,13 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   );
 }
 
-function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWorkspaceReload }: { supabase: SupabaseClient; classRoom: ClassRoom; date: string; onDate: (value: string) => void; day: DayData | null; onReload: () => Promise<void>; onWorkspaceReload: () => Promise<void> }) {
+function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWorkspaceReload, focusRequestId }: { supabase: SupabaseClient; classRoom: ClassRoom; date: string; onDate: (value: string) => void; day: DayData | null; onReload: () => Promise<void>; onWorkspaceReload: () => Promise<void>; focusRequestId:number|null }) {
+  const panelRef=useRef<HTMLElement>(null);
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
   const [rosterOpen, setRosterOpen] = useState(false);
   const [lessonRosterOpen, setLessonRosterOpen] = useState(false);
+  useEffect(()=>{if(!focusRequestId)return;let cancelled=false;const move=()=>{if(!cancelled)panelRef.current?.scrollIntoView({behavior:"smooth",block:"start"})};const frame=requestAnimationFrame(()=>requestAnimationFrame(move));const retry=window.setTimeout(move,650);return()=>{cancelled=true;cancelAnimationFrame(frame);window.clearTimeout(retry)}},[focusRequestId]);
   const validDay = useMemo(() => classRoom.schedules.some((item) => item.weekday === isoWeekday(date)), [classRoom.schedules, date]);
   const archive = async () => {
     if (!await appConfirm({eyebrow:"클래스 운영 종료",title:`${classRoom.name} 클래스 운영을 종료할까요?`,notice:"학생·출결·수업 기록은 보존되며 활성 목록에서만 숨겨집니다.",confirmLabel:"운영 종료",tone:"danger"})) return;
@@ -304,7 +306,7 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
     window.location.reload();
   };
   return (
-    <section className="panel class-day-workspace">
+    <section ref={panelRef} className={`panel class-day-workspace${focusRequestId?" comment-linked-lesson":""}`}>
       <header>
         <div>
           <p className="eyebrow">{classRoom.subject}</p>
