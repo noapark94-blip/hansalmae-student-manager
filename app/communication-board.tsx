@@ -7,159 +7,1806 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import styles from "./communication-board.module.css";
 import confirmStyles from "./message-confirm.module.css";
 import { appConfirm } from "./app-dialog";
+import { familyTeacherName } from "./family-teacher-name";
 
-type Named = { id:string; name:string };
-type Announcement = { id:string; title:string; body:string; audience:"all"|"class"|"student"; classId:string|null; className:string|null; studentId:string|null; studentName:string|null; authorName:string; publishedAt:string|null; expiresAt:string|null; createdAt:string };
-type MessageLog = { id:string; studentName:string|null; recipientName:string; recipientPhone:string; messageType:string; body:string; status:string; errorMessage:string|null; approvedBy:string|null; approvedAt:string|null; sentAt:string|null; createdAt:string };
-type Recipient = { studentId:string; studentName:string; recipientName:string; phone:string; kind:"student"|"guardian" };
-type MessageTargetStudent = { id:string; name:string; school:string; grade:string; classIds:string[]; classNames:string[]; subjects:string[] };
-type MessageTargetOptions = { students:MessageTargetStudent[]; classes:Named[]; grades:string[]; schools:string[]; subjects:string[] };
-type BoardData = { isStaff:boolean; classes:Named[]; students:Named[]; announcements:Announcement[]; messageLogs:MessageLog[] };
-type ApprovalData = { pending:number; approved:number; sent:number; failed:number; items:MessageLog[] };
-type ReadReceipt={announcementId:string;viewedAt:string};
-type StaffRead={announcementId:string;recipientCount:number;readCount:number;unreadCount:number};
-const audienceLabels = { all:"전체",class:"클래스",student:"개별 학생" };
+type Named = { id: string; name: string };
+type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "class" | "student";
+  classId: string | null;
+  className: string | null;
+  studentId: string | null;
+  studentName: string | null;
+  authorName: string;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+type MessageLog = {
+  id: string;
+  studentName: string | null;
+  recipientName: string;
+  recipientPhone: string;
+  messageType: string;
+  body: string;
+  status: string;
+  errorMessage: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+};
+type Recipient = {
+  studentId: string;
+  studentName: string;
+  recipientName: string;
+  phone: string;
+  kind: "student" | "guardian";
+};
+type MessageTargetStudent = {
+  id: string;
+  name: string;
+  school: string;
+  grade: string;
+  classIds: string[];
+  classNames: string[];
+  subjects: string[];
+};
+type MessageTargetOptions = {
+  students: MessageTargetStudent[];
+  classes: Named[];
+  grades: string[];
+  schools: string[];
+  subjects: string[];
+};
+type BoardData = {
+  isStaff: boolean;
+  classes: Named[];
+  students: Named[];
+  announcements: Announcement[];
+  messageLogs: MessageLog[];
+};
+type ApprovalData = {
+  pending: number;
+  approved: number;
+  sent: number;
+  failed: number;
+  items: MessageLog[];
+};
+type ReadReceipt = { announcementId: string; viewedAt: string };
+type StaffRead = {
+  announcementId: string;
+  recipientCount: number;
+  readCount: number;
+  unreadCount: number;
+};
+const audienceLabels = { all: "전체", class: "클래스", student: "개별 학생" };
 
-export function CommunicationBoard({ supabase }: { supabase:SupabaseClient }) {
-  const [data,setData] = useState<BoardData>({ isStaff:false,classes:[],students:[],announcements:[],messageLogs:[] });
-  const [approval,setApproval]=useState<ApprovalData>({pending:0,approved:0,sent:0,failed:0,items:[]});
-  const [reads,setReads]=useState<Record<string,string>>({});
-  const [readOverview,setReadOverview]=useState<Record<string,StaffRead>>({});
-  const [confirming,setConfirming]=useState("");
-  const [loading,setLoading] = useState(true); const [error,setError] = useState(""); const [tab,setTab] = useState<"notice"|"message">("notice"); const [noticeFilter,setNoticeFilter] = useState<"all"|"published"|"scheduled"|"draft"|"ended">("all"); const [editor,setEditor] = useState<Announcement|"new"|null>(null); const [composer,setComposer] = useState(false);
+export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
+  const [data, setData] = useState<BoardData>({
+    isStaff: false,
+    classes: [],
+    students: [],
+    announcements: [],
+    messageLogs: [],
+  });
+  const [approval, setApproval] = useState<ApprovalData>({
+    pending: 0,
+    approved: 0,
+    sent: 0,
+    failed: 0,
+    items: [],
+  });
+  const [reads, setReads] = useState<Record<string, string>>({});
+  const [readOverview, setReadOverview] = useState<Record<string, StaffRead>>(
+    {},
+  );
+  const [confirming, setConfirming] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState<"notice" | "message">("notice");
+  const [noticeFilter, setNoticeFilter] = useState<
+    "all" | "published" | "scheduled" | "draft" | "ended"
+  >("all");
+  const [editor, setEditor] = useState<Announcement | "new" | null>(null);
+  const [composer, setComposer] = useState(false);
   const load = useCallback(async () => {
-    setLoading(true);setError("");
-    const {data:next,error:loadError}=await supabase.rpc("communication_board");
-    if(loadError||!next){setError("공지·문자 내역을 불러오지 못했습니다.");setLoading(false);return;}
-    const board=next as BoardData;setData(board);
-    if(board.isStaff){
-      const [{data:approvalNext,error:approvalError},{data:overviewNext}]=await Promise.all([supabase.rpc("staff_message_approval_board"),supabase.rpc("staff_announcement_read_overview")]);
-      if(approvalError)setError("문자 대기 내역 일부를 불러오지 못했습니다.");
-      if(approvalNext)setApproval(approvalNext as ApprovalData);
-      const map:Record<string,StaffRead>={};for(const item of (overviewNext??[]) as StaffRead[])map[item.announcementId]=item;setReadOverview(map);setReads({});
-    }else{
-      const {data:readNext}=await supabase.rpc("family_announcement_reads");const map:Record<string,string>={};for(const item of (readNext??[]) as ReadReceipt[])map[item.announcementId]=item.viewedAt;setReads(map);setReadOverview({});
+    setLoading(true);
+    setError("");
+    const { data: next, error: loadError } = await supabase.rpc(
+      "communication_board",
+    );
+    if (loadError || !next) {
+      setError("공지·문자 내역을 불러오지 못했습니다.");
+      setLoading(false);
+      return;
+    }
+    const board = next as BoardData;
+    setData(board);
+    if (board.isStaff) {
+      const [
+        { data: approvalNext, error: approvalError },
+        { data: overviewNext },
+      ] = await Promise.all([
+        supabase.rpc("staff_message_approval_board"),
+        supabase.rpc("staff_announcement_read_overview"),
+      ]);
+      if (approvalError) setError("문자 대기 내역 일부를 불러오지 못했습니다.");
+      if (approvalNext) setApproval(approvalNext as ApprovalData);
+      const map: Record<string, StaffRead> = {};
+      for (const item of (overviewNext ?? []) as StaffRead[])
+        map[item.announcementId] = item;
+      setReadOverview(map);
+      setReads({});
+    } else {
+      const { data: readNext } = await supabase.rpc(
+        "family_announcement_reads",
+      );
+      const map: Record<string, string> = {};
+      for (const item of (readNext ?? []) as ReadReceipt[])
+        map[item.announcementId] = item.viewedAt;
+      setReads(map);
+      setReadOverview({});
     }
     setLoading(false);
-  },[supabase]);
-  useEffect(() => { void load(); },[load]);
-  const remove = async (row:Announcement) => { if (!await appConfirm({eyebrow:"공지 삭제",title:`“${row.title}” 공지를 삭제할까요?`,notice:"게시된 공지가 즉시 사라지며 복구할 수 없습니다.",confirmLabel:"공지 삭제",tone:"danger"})) return; const { error:deleteError } = await supabase.rpc("staff_delete_announcement",{ p_announcement_id:row.id }); if (deleteError) setError("공지를 삭제하지 못했습니다."); else await load(); };
-  const markRead=async(row:Announcement)=>{if(data.isStaff||reads[row.id]||confirming)return;setConfirming(row.id);const{data:viewed,error:readError}=await supabase.rpc("mark_family_announcement_read",{p_announcement_id:row.id});if(readError)setError("공지 확인 상태를 저장하지 못했습니다.");else setReads(current=>({...current,[row.id]:String(viewed??new Date().toISOString())}));setConfirming("");};
-  if (loading) return <section className="panel communication-empty">공지·문자 내역을 불러오는 중이에요…</section>;
-  const counts=data.announcements.reduce((result,row)=>{result[announcementState(row)]++;return result},{published:0,scheduled:0,draft:0,ended:0} as Record<"published"|"scheduled"|"draft"|"ended",number>);
-  const visibleAnnouncements=noticeFilter==="all"?data.announcements:data.announcements.filter(row=>announcementState(row)===noticeFilter);
-  const unreadTotal=Object.values(readOverview).reduce((sum,item)=>sum+item.unreadCount,0);
-  return <div className={styles.page}>
-    <header className={styles.heading}><div><p className={styles.eyebrow}>대상별 안내 관리</p><h1>{data.isStaff ? "공지·문자" : "학원 공지"}</h1><p>{data.isStaff ? "학원 공지와 문자 발송을 목적에 맞게 나누어 관리합니다." : "학원에서 전달한 중요한 안내를 확인하세요."}</p></div>{data.isStaff&&<button className={`primary ${styles.createButton}`} onClick={()=>tab==="notice"?setEditor("new"):setComposer(true)}>{tab==="notice"?"＋ 공지 작성":"＋ 문자 작성"}</button>}</header>
-    {error&&<p className="attendance-error">{error}</p>}
-    {data.isStaff&&<nav className={styles.tabs} aria-label="공지와 문자 전환"><button type="button" aria-current={tab==="notice"?"page":undefined} className={tab==="notice"?styles.active:""} onClick={()=>setTab("notice")}><b>학원 공지</b><span>앱 게시·확인 현황</span></button><button type="button" aria-current={tab==="message"?"page":undefined} className={tab==="message"?styles.active:""} onClick={()=>setTab("message")}><b>문자 발송</b><span>승인·발송 내역</span></button></nav>}
-    {(!data.isStaff||tab==="notice")?<>
-      {data.isStaff&&<section className={styles.summary}><article><span>전체 공지</span><b>{data.announcements.length}</b></article><article className={styles.live}><span>현재 공개</span><b>{counts.published}</b></article><article><span>예약</span><b>{counts.scheduled}</b></article><article className={unreadTotal?styles.attention:""}><span>미확인</span><b>{unreadTotal}</b></article></section>}
-      {data.isStaff&&<div className={styles.filters}>{([['all','전체'],['published','공개 중'],['scheduled','예약'],['draft','임시 저장'],['ended','종료']] as const).map(([value,label])=><button type="button" aria-pressed={noticeFilter===value} key={value} className={noticeFilter===value?styles.selected:""} onClick={()=>setNoticeFilter(value)}>{label}<span>{value==='all'?data.announcements.length:counts[value]}</span></button>)}</div>}
-      <section className={`${styles.noticeList} communication-notices`}>{visibleAnnouncements.length===0?<div className={`${styles.empty} panel communication-empty`}><i aria-hidden="true">□</i><b>{data.announcements.length?"선택한 상태의 공지가 없습니다.":data.isStaff?"아직 작성된 공지가 없습니다.":"현재 확인할 공지가 없습니다."}</b>{data.isStaff&&!data.announcements.length&&<span>첫 공지를 작성하면 학생·학부모 화면에 바로 전달할 수 있습니다.</span>}</div>:visibleAnnouncements.map(row=>{const overview=readOverview[row.id];const readAt=reads[row.id];return <article className={`panel ${styles.noticeCard} ${!data.isStaff&&!readAt?"announcement-unread":""}`} key={row.id}><header><div><span className="communication-audience">{audienceLabels[row.audience]}{row.className?` · ${row.className}`:row.studentName?` · ${row.studentName}`:""}</span><h2>{row.title}</h2><small>{row.authorName} · {formatDateTime(row.publishedAt??row.createdAt)}</small></div><span className={`announcement-state ${announcementState(row)}`}>{announcementStateLabel(row)}</span></header><p>{row.body}</p>{row.expiresAt&&<footer>공개 종료 {formatDateTime(row.expiresAt)}</footer>}{data.isStaff?<div className="announcement-actions"><span className="announcement-read-overview">{row.publishedAt&&overview?<>확인 <b>{overview.readCount}</b> / {overview.recipientCount}{overview.unreadCount>0&&<em>미확인 {overview.unreadCount}</em>}</>:row.publishedAt?"확인 현황 준비 중":"게시 전"}</span><button className="secondary-button" onClick={()=>setEditor(row)}>수정</button><button className="danger-link" onClick={()=>void remove(row)}>삭제</button></div>:<div className="announcement-family-read"><span>{readAt?`확인 완료 · ${formatShortDateTime(readAt)}`:"아직 확인하지 않은 공지입니다."}</span>{!readAt&&<button disabled={confirming===row.id} onClick={()=>void markRead(row)}>{confirming===row.id?"처리 중…":"확인했어요"}</button>}</div>}</article>})}</section>
-    </>:<section className={styles.messageSection}><div className={styles.messageIntro}><div><b>문자 발송 관리</b><span>작성한 문자를 확인하고 승인한 뒤 발송 상태를 관리합니다.</span></div><em>SOLAPI 연결</em></div><MessageLogBoard data={approval} supabase={supabase} onChanged={load}/></section>}
-    {editor&&<AnnouncementEditor row={editor==="new"?undefined:editor} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await load();}}/>}{composer&&<MessageComposer data={data} supabase={supabase} onClose={()=>setComposer(false)} onSaved={async(count)=>{setComposer(false);await load();setError(`${count}건을 발송 대기열에 등록했습니다. 내용을 확인한 뒤 발송 승인해 주세요.`);}}/>}
-  </div>;
-}
-
-function MessageLogBoard({data,supabase,onChanged}:{data:ApprovalData;supabase:SupabaseClient;onChanged:()=>Promise<void>}) {
-  const [selected,setSelected]=useState<string[]>([]);const [saving,setSaving]=useState(false);const [message,setMessage]=useState("");const [sendConfirm,setSendConfirm]=useState<string[]|null>(null);const [deleteTarget,setDeleteTarget]=useState<MessageLog|null>(null);const actionable=data.items.filter(row=>row.status==="pending_approval"||row.status==="failed");
-  const requestSend=(ids=selected)=>{if(ids.length)setSendConfirm(ids);};
-  const send=async()=>{const ids=sendConfirm;if(!ids?.length)return;setSaving(true);setMessage("");const{data:result,error}=await supabase.functions.invoke("send-solapi-messages",{body:{messageIds:ids}});if(error){let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json()as{error?:string};if(body.error)text=body.error}catch{}setMessage(text);}else{const counts=result as{sent?:number;failed?:number};setMessage(`발송 접수 ${counts.sent??0}건${counts.failed?` · 실패 ${counts.failed}건`:""}`);setSelected([]);}setSendConfirm(null);await onChanged();setSaving(false);};
-  const cancel=async()=>{if(!selected.length||!await appConfirm({eyebrow:"문자 발송 취소",title:`선택한 문자 ${selected.length}건을 취소할까요?`,notice:"이미 발송된 문자는 취소되지 않습니다.",confirmLabel:"발송 취소",tone:"danger"}))return;setSaving(true);setMessage("");const{error}=await supabase.rpc("staff_set_message_approval",{p_message_ids:selected,p_action:"cancel"});if(error)setMessage("선택한 문자를 취소하지 못했습니다.");else{setSelected([]);await onChanged();}setSaving(false);};
-  const remove=async()=>{if(!deleteTarget)return;setSaving(true);setMessage("");const{data:deleted,error}=await supabase.rpc("staff_delete_message_log",{p_message_id:deleteTarget.id});if(error||!deleted)setMessage(error?.message??"발송 중인 문자 내역은 삭제할 수 없습니다.");else{setSelected(current=>current.filter(id=>id!==deleteTarget.id));await onChanged();}setDeleteTarget(null);setSaving(false);};
-  const toggle=(id:string)=>setSelected(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id]);
-  return <><div className="makeup-summary"><span>승인 대기 <b>{data.pending}</b></span><span>발송 중 <b>{data.approved}</b></span><span>발송 접수 <b>{data.sent}</b></span><span>실패 <b>{data.failed}</b></span></div>{message&&<p className="attendance-error">{message}</p>}<div className="message-approval-actions"><label><input type="checkbox" checked={actionable.length>0&&actionable.every(row=>selected.includes(row.id))} onChange={()=>setSelected(actionable.every(row=>selected.includes(row.id))?[]:actionable.map(row=>row.id))}/> 승인 대기·실패 전체 선택</label><span><button disabled={saving||!selected.length} className="secondary-button" onClick={()=>void cancel()}>선택 취소</button><button disabled={saving||!selected.length} className="primary" onClick={()=>requestSend()}>{saving?"처리 중…":"선택 발송 승인"}</button></span></div><section className="panel message-log"><div className="message-log-head"><span>선택·수신자</span><span>문자 내용</span><span>등록/승인</span><span>상태·관리</span></div>{data.items.length === 0 ? <p className="communication-empty">문자 발송 대기 내역이 없습니다.</p> : data.items.map((row) => <article key={row.id}><span className="message-recipient"><input type="checkbox" disabled={!['pending_approval','failed'].includes(row.status)} checked={selected.includes(row.id)} onChange={()=>toggle(row.id)}/><span><b>{row.recipientName}</b><small>{row.studentName && row.studentName !== row.recipientName ? `${row.studentName} 학생 · ` : ""}{row.recipientPhone}</small></span></span><p>{row.body}</p><time>{formatDateTime(row.approvedAt??row.sentAt??row.createdAt)}{row.approvedBy&&<small>{row.approvedBy} 승인</small>}</time><span className="message-row-actions"><i className={row.status}>{messageStatus(row.status)}</i><button type="button" disabled={saving||row.status==="sending"} onClick={()=>setDeleteTarget(row)}>삭제</button></span>{row.errorMessage && <em>{row.errorMessage}<button disabled={saving} onClick={()=>requestSend([row.id])}>재시도</button></em>}</article>)}</section>
-    {sendConfirm&&<ActionConfirm icon="send" eyebrow="실제 문자 발송" title={`${sendConfirm.length}건을 발송할까요?`} copy="확인하면 SOLAPI에 즉시 접수되며 등록된 수신자에게 실제 문자가 발송됩니다." notice="수신자와 문자 내용을 다시 한번 확인해 주세요." confirmLabel="지금 발송" savingLabel="발송 중…" saving={saving} onCancel={()=>setSendConfirm(null)} onConfirm={()=>void send()}/>}
-    {deleteTarget&&<ActionConfirm icon="delete" danger eyebrow="발송 내역 삭제" title="이 내역을 삭제할까요?" copy={`${deleteTarget.recipientName} 수신자에게 등록된 문자 내역을 앱에서 삭제합니다.`} notice="SOLAPI에 이미 접수된 발송 내역은 SOLAPI 사이트에 그대로 남습니다." confirmLabel="내역 삭제" savingLabel="삭제 중…" saving={saving} onCancel={()=>setDeleteTarget(null)} onConfirm={()=>void remove()}/>}
-  </>;
-}
-
-function ActionConfirm({icon,eyebrow,title,copy,notice,confirmLabel,savingLabel,saving,danger=false,onCancel,onConfirm}:{icon:"send"|"delete";eyebrow:string;title:string;copy:string;notice:string;confirmLabel:string;savingLabel:string;saving:boolean;danger?:boolean;onCancel:()=>void;onConfirm:()=>void}) {
-  return <div className={confirmStyles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)onCancel()}}><section className={`${confirmStyles.dialog} ${danger?confirmStyles.danger:""}`} role="alertdialog" aria-modal="true" aria-labelledby={`${icon}-confirm-title`}><button type="button" className={confirmStyles.close} aria-label="확인창 닫기" disabled={saving} onClick={onCancel}>×</button><div className={confirmStyles.icon} aria-hidden="true">{icon==="send"?<svg viewBox="0 0 24 24"><path d="m3.5 11.5 17-8-5.5 17-3.5-6-8-3Z"/><path d="m11.5 14.5 9-11"/></svg>:<svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg>}</div><p className={confirmStyles.eyebrow}>{eyebrow}</p><h3 id={`${icon}-confirm-title`}>{title}</h3><p className={confirmStyles.copy}>{copy}</p><div className={confirmStyles.notice}><i aria-hidden="true">i</i><span>{notice}</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={saving} onClick={onCancel}>취소</button><button type="button" className={confirmStyles.primary} disabled={saving} onClick={onConfirm}>{saving?savingLabel:confirmLabel}</button></footer></section></div>;
-}
-
-function AnnouncementEditor({ row,data,supabase,onClose,onSaved }: { row?:Announcement; data:BoardData; supabase:SupabaseClient; onClose:()=>void; onSaved:()=>Promise<void> }) {
-  const initialMode = !row ? "now" : !row.publishedAt ? "draft" : new Date(row.publishedAt).getTime() <= Date.now() ? "now" : "schedule"; const initialPublish=row?.publishedAt?koreaDateTime(row.publishedAt):`${koreaToday()}T18:00`;const initialExpiry=row?.expiresAt?koreaDateTime(row.expiresAt):""; const [title,setTitle] = useState(row?.title ?? ""); const [body,setBody] = useState(row?.body ?? ""); const [audience,setAudience] = useState<"all"|"class"|"student">(row?.audience ?? "all"); const [targetId,setTargetId] = useState(row?.classId ?? row?.studentId ?? ""); const [publishMode,setPublishMode] = useState(initialMode); const [publishDate,setPublishDate] = useState(initialPublish.slice(0,10)); const [publishTime,setPublishTime] = useState(initialPublish.slice(11,16)); const [expiresDate,setExpiresDate] = useState(initialExpiry.slice(0,10)); const [expiresTime,setExpiresTime] = useState(initialExpiry.slice(11,16)||"23:59"); const [saving,setSaving] = useState(false); const [error,setError] = useState("");
-  const changeAudience = (value:"all"|"class"|"student") => { setAudience(value); setTargetId(value === "class" ? data.classes[0]?.id ?? "" : value === "student" ? data.students[0]?.id ?? "" : ""); };
-  const submit = async (event:FormEvent) => { event.preventDefault(); setSaving(true); setError(""); const published = publishMode === "draft" ? null : publishMode === "now" ? new Date().toISOString() : `${publishDate}T${publishTime}:00+09:00`; const { error:saveError } = await supabase.rpc("staff_save_announcement",{ p_announcement_id:row?.id ?? null,p_title:title,p_body:body,p_audience:audience,p_target_id:targetId || null,p_published_at:published,p_expires_at:expiresDate ? `${expiresDate}T${expiresTime}:00+09:00` : null }); if (saveError) { setError(readError(saveError.message,"공지를 저장하지 못했습니다.")); setSaving(false); } else await onSaved(); };
-  return <Modal title={row ? "공지 수정" : "새 공지 작성"} description="학생과 학부모에게 전달할 안내를 작성합니다." onClose={onClose}><form className={styles.noticeForm} onSubmit={submit}>
-    <div className="form-grid">
-      <label className="full">공지 제목 <b>*</b><input required autoFocus value={title} onChange={(event)=>setTitle(event.target.value)} placeholder="공지 제목을 입력하세요" /></label>
-      <label className="full">공지 내용 <b>*</b><textarea required rows={5} value={body} onChange={(event)=>setBody(event.target.value)} placeholder="학생과 학부모에게 전달할 내용을 입력하세요" /></label>
-      <fieldset className={`${styles.segmentField} full`}><legend>공개 대상</legend><div>{([['all','전체'],['class','클래스'],['student','개별 학생']] as const).map(([value,label])=><button type="button" key={value} className={audience===value?styles.on:""} onClick={()=>changeAudience(value)}>{label}</button>)}</div></fieldset>
-      {audience!=="all"&&<label className="full">{audience==="class"?"공개할 클래스":"공개할 학생"}<select required value={targetId} onChange={(event)=>setTargetId(event.target.value)}><option value="">선택해 주세요</option>{(audience==="class"?data.classes:data.students).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
-      <fieldset className={`${styles.segmentField} full`}><legend>게시 방식</legend><div>{([['now','바로 게시'],['schedule','예약 게시'],['draft','임시 저장']] as const).map(([value,label])=><button type="button" key={value} className={publishMode===value?styles.on:""} onClick={()=>setPublishMode(value)}>{label}</button>)}</div></fieldset>
-      {publishMode==="schedule"&&<DateTimeFields label="예약 일시" date={publishDate} time={publishTime} onDate={setPublishDate} onTime={setPublishTime} required />}
-      <DateTimeFields label="공개 종료" optional date={expiresDate} time={expiresTime} onDate={setExpiresDate} onTime={setExpiresTime} wide={publishMode!=="schedule"} />
-    </div>{error&&<p className="form-error">{error}</p>}<Actions saving={saving} onClose={onClose} label={publishMode==="now"?"공지 게시":"공지 저장"}/>
-  </form></Modal>;
-}
-
-function DateTimeFields({label,date,time,onDate,onTime,required=false,optional=false,wide=false}:{label:string;date:string;time:string;onDate:(value:string)=>void;onTime:(value:string)=>void;required?:boolean;optional?:boolean;wide?:boolean}) {
-  return <fieldset className={`${styles.dateTimeField} ${wide?"full":""}`}><legend>{label}{optional&&<small>선택</small>}</legend><div><PolishedDatePicker value={date} onChange={onDate} optional={optional}/><label><span>시간</span><input type="text" inputMode="numeric" autoComplete="off" required={required||Boolean(date)} disabled={!required&&!date} maxLength={5} pattern="(?:[01]\d|2[0-3]):[0-5]\d" placeholder="18:00" value={time} onChange={(event)=>onTime(event.target.value)} onBlur={(event)=>onTime(normalizeTime(event.target.value))} /></label></div></fieldset>;
-}
-
-function PolishedDatePicker({value,onChange,optional=false}:{value:string;onChange:(value:string)=>void;optional?:boolean}) {
-  const selected=parseDateValue(value);const [open,setOpen]=useState(false);const [view,setView]=useState(()=>selected??new Date());
-  const show=()=>{setView(selected??new Date());setOpen(true);};const choose=(date:Date)=>{onChange(dateValue(date));setOpen(false);};const cells=calendarCells(view);
-  return <div className={styles.datePicker}><button type="button" className={styles.dateTrigger} aria-haspopup="dialog" aria-expanded={open} onClick={show}><span><small>날짜</small><b>{selected?formatPickerDate(selected):"날짜 선택"}</b></span><CalendarIcon/></button>{open&&<><button type="button" className={styles.calendarScrim} aria-label="달력 닫기" onClick={()=>setOpen(false)}/><section className={styles.calendarPopup} role="dialog" aria-label="날짜 선택" onMouseDown={(event)=>event.stopPropagation()}><header><button type="button" aria-label="이전 달" onClick={()=>setView(monthShift(view,-1))}>‹</button><b>{view.getFullYear()}년 {view.getMonth()+1}월</b><button type="button" aria-label="다음 달" onClick={()=>setView(monthShift(view,1))}>›</button></header><div className={styles.weekdays}>{["일","월","화","수","목","금","토"].map(day=><span key={day}>{day}</span>)}</div><div className={styles.calendarDays}>{cells.map((date,index)=>{const currentMonth=date.getMonth()===view.getMonth();const isSelected=selected&&sameDay(date,selected);const today=sameDay(date,new Date());return <button type="button" key={`${dateValue(date)}-${index}`} className={`${currentMonth?"":styles.outside} ${isSelected?styles.chosen:""} ${today?styles.today:""}`} onClick={()=>choose(date)}>{date.getDate()}</button>;})}</div><footer>{optional?<button type="button" onClick={()=>{onChange("");setOpen(false);}}>날짜 지우기</button>:<span/>}<button type="button" onClick={()=>choose(new Date())}>오늘</button></footer></section></>}</div>;
-}
-
-function CalendarIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/></svg>;}
-
-function MessageComposer({ data,supabase,onClose,onSaved }: { data:BoardData; supabase:SupabaseClient; onClose:()=>void; onSaved:(count:number)=>Promise<void> }) {
-  void data;
-  const [targetType,setTargetType] = useState<"all"|"class"|"grade"|"school"|"subject"|"combined"|"student">("all");
-  const [options,setOptions] = useState<MessageTargetOptions>({students:[],classes:[],grades:[],schools:[],subjects:[]});
-  const [classId,setClassId] = useState(""); const [grade,setGrade] = useState(""); const [school,setSchool] = useState(""); const [subject,setSubject] = useState("");
-  const [query,setQuery] = useState(""); const [selected,setSelected] = useState<string[]>([]); const [recipientKind,setRecipientKind] = useState("guardian"); const [body,setBody] = useState(""); const [recipients,setRecipients] = useState<Recipient[]>([]); const [recipientKey,setRecipientKey] = useState(""); const [loading,setLoading] = useState(true); const [saving,setSaving] = useState(false); const [confirmOpen,setConfirmOpen] = useState(false); const [error,setError] = useState("");
-  useEffect(()=>{let active=true;void supabase.rpc("staff_message_target_options").then(({data:next,error:loadError})=>{if(!active)return;if(loadError){setError("발송 대상 정보를 불러오지 못했습니다.");setLoading(false);return;}const loaded=next as MessageTargetOptions;setOptions(loaded);setSelected(loaded.students.map(student=>student.id));setLoading(false);});return()=>{active=false};},[supabase]);
-  const baseStudents=options.students.filter(student=>
-    targetType==="all"||targetType==="student"||
-    (targetType==="class"&&(!classId||student.classIds.includes(classId)))||
-    (targetType==="grade"&&(!grade||student.grade===grade))||
-    (targetType==="school"&&(!school||student.school===school))||
-    (targetType==="subject"&&(!subject||student.subjects.includes(subject)))||
-    (targetType==="combined"&&(!classId||student.classIds.includes(classId))&&(!grade||student.grade===grade)&&(!school||student.school===school)&&(!subject||student.subjects.includes(subject)))
+  }, [supabase]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const remove = async (row: Announcement) => {
+    if (
+      !(await appConfirm({
+        eyebrow: "공지 삭제",
+        title: `“${row.title}” 공지를 삭제할까요?`,
+        notice: "게시된 공지가 즉시 사라지며 복구할 수 없습니다.",
+        confirmLabel: "공지 삭제",
+        tone: "danger",
+      }))
+    )
+      return;
+    const { error: deleteError } = await supabase.rpc(
+      "staff_delete_announcement",
+      { p_announcement_id: row.id },
+    );
+    if (deleteError) setError("공지를 삭제하지 못했습니다.");
+    else await load();
+  };
+  const markRead = async (row: Announcement) => {
+    if (data.isStaff || reads[row.id] || confirming) return;
+    setConfirming(row.id);
+    const { data: viewed, error: readError } = await supabase.rpc(
+      "mark_family_announcement_read",
+      { p_announcement_id: row.id },
+    );
+    if (readError) setError("공지 확인 상태를 저장하지 못했습니다.");
+    else
+      setReads((current) => ({
+        ...current,
+        [row.id]: String(viewed ?? new Date().toISOString()),
+      }));
+    setConfirming("");
+  };
+  if (loading)
+    return (
+      <section className="panel communication-empty">
+        공지·문자 내역을 불러오는 중이에요…
+      </section>
+    );
+  const counts = data.announcements.reduce(
+    (result, row) => {
+      result[announcementState(row)]++;
+      return result;
+    },
+    { published: 0, scheduled: 0, draft: 0, ended: 0 } as Record<
+      "published" | "scheduled" | "draft" | "ended",
+      number
+    >,
   );
-  const normalizedQuery=query.trim().toLocaleLowerCase("ko-KR");
-  const visibleStudents=baseStudents.filter(student=>!normalizedQuery||[student.name,student.school,student.grade,...student.classNames,...student.subjects].join(" ").toLocaleLowerCase("ko-KR").includes(normalizedQuery));
-  const visibleIds=visibleStudents.map(student=>student.id);const allVisibleSelected=visibleIds.length>0&&visibleIds.every(id=>selected.includes(id));
-  const currentRecipientKey=`${recipientKind}:${[...selected].sort().join(",")}`;const previewPending=selected.length>0&&recipientKey!==currentRecipientKey;const selectedRecipients=selected.length&&!previewPending?recipients:[];
-  useEffect(()=>{let active=true;if(!selected.length)return()=>{active=false};const requestKey=`${recipientKind}:${[...selected].sort().join(",")}`;void supabase.rpc("staff_message_recipient_preview_selected",{p_student_ids:selected,p_recipient_kind:recipientKind}).then(({data:next,error:previewError})=>{if(!active)return;if(previewError)setError("수신 연락처를 확인하지 못했습니다.");else{setRecipients((next??[]) as Recipient[]);setRecipientKey(requestKey);}});return()=>{active=false};},[recipientKind,selected,supabase]);
-  const changeTarget=(value:typeof targetType)=>{setTargetType(value);setClassId("");setGrade("");setSchool("");setSubject("");setQuery("");setSelected(value==="all"?options.students.map(student=>student.id):[]);};
-  const toggle=(id:string)=>setSelected(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id]);
-  const toggleVisible=()=>setSelected(current=>allVisibleSelected?current.filter(id=>!visibleIds.includes(id)):Array.from(new Set([...current,...visibleIds])));
-  const submit=(event:FormEvent)=>{event.preventDefault();if(selectedRecipients.length)setConfirmOpen(true);};
-  const queue=async()=>{setSaving(true);setError("");const{data:count,error:saveError}=await supabase.rpc("staff_queue_selected_messages",{p_student_ids:selected,p_recipient_kind:recipientKind,p_body:body});if(saveError){setError(readError(saveError.message,"문자 대기열을 등록하지 못했습니다."));setSaving(false);setConfirmOpen(false);}else await onSaved(Number(count??0));};
-  const filterSelect=(label:string,value:string,onChange:(value:string)=>void,items:Named[]|string[])=><label>{label}<select value={value} onChange={event=>onChange(event.target.value)}><option value="">전체</option>{items.map(item=>typeof item==="string"?<option key={item} value={item}>{item}</option>:<option key={item.id} value={item.id}>{item.name}</option>)}</select></label>;
-  return <Modal title="문자 작성" description="조건에 맞는 학생을 선택한 뒤 실제 수신자를 확인합니다." onClose={onClose}><form className={styles.messageComposer} onSubmit={submit}>
-    <fieldset className={styles.targetModes}><legend>발송 대상</legend><div>{([['all','전체 재원생'],['class','클래스'],['grade','학년'],['school','학교'],['subject','과목'],['combined','조건 조합'],['student','개별 학생']] as const).map(([value,label])=><button type="button" key={value} className={targetType===value?styles.on:""} onClick={()=>changeTarget(value)}>{label}</button>)}</div></fieldset>
-    {targetType!=="all"&&targetType!=="student"&&<div className={styles.targetFilters}>{(targetType==="class"||targetType==="combined")&&filterSelect("클래스",classId,setClassId,options.classes)}{(targetType==="grade"||targetType==="combined")&&filterSelect("학년",grade,setGrade,options.grades)}{(targetType==="school"||targetType==="combined")&&filterSelect("학교",school,setSchool,options.schools)}{(targetType==="subject"||targetType==="combined")&&filterSelect("과목",subject,setSubject,options.subjects)}</div>}
-    <section className={styles.studentPicker}><header><div><b>학생 선택</b><span>선택 {selected.length}명 · 검색 결과 {visibleStudents.length}명</span></div><label className={styles.searchBox}><span aria-hidden="true">⌕</span><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="이름·학교·학년·클래스 검색" aria-label="학생 검색"/></label></header><div className={styles.selectionBar}><label><input type="checkbox" checked={allVisibleSelected} onChange={toggleVisible}/><b>{allVisibleSelected?"검색 결과 전체 해제":"검색 결과 전체 선택"}</b></label>{selected.length>0&&<button type="button" onClick={()=>setSelected([])}>선택 전체 해제</button>}</div><div className={styles.studentResults}>{loading&&!options.students.length?<p>학생 정보를 불러오는 중이에요…</p>:visibleStudents.length?visibleStudents.map(student=><label key={student.id} className={selected.includes(student.id)?styles.checked:""}><input type="checkbox" checked={selected.includes(student.id)} onChange={()=>toggle(student.id)}/><span><b>{student.name}</b><small>{[student.grade,student.school,...student.classNames].filter(Boolean).join(" · ")||"등록된 분류 정보 없음"}</small></span></label>):<p>조건에 맞는 학생이 없습니다.</p>}</div></section>
-    <div className={styles.composerGrid}><label>수신자<select value={recipientKind} onChange={event=>setRecipientKind(event.target.value)}><option value="guardian">학부모</option><option value="student">학생</option><option value="both">학생+학부모 모두</option></select></label><label className="full">문자 내용 <b>*</b><textarea required maxLength={1000} rows={5} value={body} onChange={event=>setBody(event.target.value)} placeholder="발송할 안내 내용을 입력하세요."/><small>{body.length}/1000자</small></label></div>
-    <section className="recipient-preview"><header><b>최종 수신 대상</b><span>{loading||previewPending?"확인 중…":`${selectedRecipients.length}건`}</span></header><div>{selectedRecipients.slice(0,12).map((item,index)=><span key={`${item.studentId}-${item.kind}-${index}`}><b>{item.recipientName}</b><small>{item.studentName}{item.kind==="guardian"?" 학부모":" 학생"} · {item.phone}</small></span>)}{selectedRecipients.length>12&&<em>외 {selectedRecipients.length-12}건</em>}{!loading&&!previewPending&&selected.length>0&&selectedRecipients.length===0&&<p>선택한 학생에게 등록된 수신 연락처가 없습니다.</p>}{!loading&&!selected.length&&<p>문자를 받을 학생을 선택해 주세요.</p>}</div></section>
-    {error&&<p className="form-error">{error}</p>}<Actions saving={saving} onClose={onClose} label="대기열 등록" disabled={!selectedRecipients.length}/>
-    {confirmOpen&&<div className={confirmStyles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)setConfirmOpen(false)}}><section className={confirmStyles.dialog} role="alertdialog" aria-modal="true" aria-labelledby="queue-confirm-title"><button type="button" className={confirmStyles.close} aria-label="확인창 닫기" disabled={saving} onClick={()=>setConfirmOpen(false)}>×</button><div className={confirmStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6.5h16v11H4z"/><path d="m5 8 7 5 7-5"/></svg></div><p className={confirmStyles.eyebrow}>발송 전 마지막 확인</p><h3 id="queue-confirm-title">문자 대기열에 등록할까요?</h3><p className={confirmStyles.copy}>등록 후 발송 관리 화면에서 내용을 다시 확인하고<br/>최종 승인하면 실제 문자가 발송됩니다.</p><div className={confirmStyles.stats}><span><small>선택 학생</small><b>{selected.length}명</b></span><span><small>문자 발송</small><b>{selectedRecipients.length}건</b></span><span><small>수신자</small><b>{recipientKind==="guardian"?"학부모":recipientKind==="student"?"학생":"학생·학부모"}</b></span></div><div className={confirmStyles.notice}><i aria-hidden="true">i</i><span>지금은 대기열 등록 단계이며 바로 발송되지 않습니다.</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={saving} onClick={()=>setConfirmOpen(false)}>취소</button><button type="button" className={confirmStyles.primary} disabled={saving} onClick={()=>void queue()}>{saving?"등록 중…":"대기열에 등록"}</button></footer></section></div>}
-  </form></Modal>;
+  const visibleAnnouncements =
+    noticeFilter === "all"
+      ? data.announcements
+      : data.announcements.filter(
+          (row) => announcementState(row) === noticeFilter,
+        );
+  const unreadTotal = Object.values(readOverview).reduce(
+    (sum, item) => sum + item.unreadCount,
+    0,
+  );
+  return (
+    <div className={styles.page}>
+      <header className={styles.heading}>
+        <div>
+          <p className={styles.eyebrow}>대상별 안내 관리</p>
+          <h1>{data.isStaff ? "공지·문자" : "학원 공지"}</h1>
+          <p>
+            {data.isStaff
+              ? "학원 공지와 문자 발송을 목적에 맞게 나누어 관리합니다."
+              : "학원에서 전달한 중요한 안내를 확인하세요."}
+          </p>
+        </div>
+        {data.isStaff && (
+          <button
+            className={`primary ${styles.createButton}`}
+            onClick={() =>
+              tab === "notice" ? setEditor("new") : setComposer(true)
+            }
+          >
+            {tab === "notice" ? "＋ 공지 작성" : "＋ 문자 작성"}
+          </button>
+        )}
+      </header>
+      {error && <p className="attendance-error">{error}</p>}
+      {data.isStaff && (
+        <nav className={styles.tabs} aria-label="공지와 문자 전환">
+          <button
+            type="button"
+            aria-current={tab === "notice" ? "page" : undefined}
+            className={tab === "notice" ? styles.active : ""}
+            onClick={() => setTab("notice")}
+          >
+            <b>학원 공지</b>
+            <span>앱 게시·확인 현황</span>
+          </button>
+          <button
+            type="button"
+            aria-current={tab === "message" ? "page" : undefined}
+            className={tab === "message" ? styles.active : ""}
+            onClick={() => setTab("message")}
+          >
+            <b>문자 발송</b>
+            <span>승인·발송 내역</span>
+          </button>
+        </nav>
+      )}
+      {!data.isStaff || tab === "notice" ? (
+        <>
+          {data.isStaff && (
+            <section className={styles.summary}>
+              <article>
+                <span>전체 공지</span>
+                <b>{data.announcements.length}</b>
+              </article>
+              <article className={styles.live}>
+                <span>현재 공개</span>
+                <b>{counts.published}</b>
+              </article>
+              <article>
+                <span>예약</span>
+                <b>{counts.scheduled}</b>
+              </article>
+              <article className={unreadTotal ? styles.attention : ""}>
+                <span>미확인</span>
+                <b>{unreadTotal}</b>
+              </article>
+            </section>
+          )}
+          {data.isStaff && (
+            <div className={styles.filters}>
+              {(
+                [
+                  ["all", "전체"],
+                  ["published", "공개 중"],
+                  ["scheduled", "예약"],
+                  ["draft", "임시 저장"],
+                  ["ended", "종료"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  type="button"
+                  aria-pressed={noticeFilter === value}
+                  key={value}
+                  className={noticeFilter === value ? styles.selected : ""}
+                  onClick={() => setNoticeFilter(value)}
+                >
+                  {label}
+                  <span>
+                    {value === "all"
+                      ? data.announcements.length
+                      : counts[value]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <section className={`${styles.noticeList} communication-notices`}>
+            {visibleAnnouncements.length === 0 ? (
+              <div className={`${styles.empty} panel communication-empty`}>
+                <i aria-hidden="true">□</i>
+                <b>
+                  {data.announcements.length
+                    ? "선택한 상태의 공지가 없습니다."
+                    : data.isStaff
+                      ? "아직 작성된 공지가 없습니다."
+                      : "현재 확인할 공지가 없습니다."}
+                </b>
+                {data.isStaff && !data.announcements.length && (
+                  <span>
+                    첫 공지를 작성하면 학생·학부모 화면에 바로 전달할 수
+                    있습니다.
+                  </span>
+                )}
+              </div>
+            ) : (
+              visibleAnnouncements.map((row) => {
+                const overview = readOverview[row.id];
+                const readAt = reads[row.id];
+                return (
+                  <article
+                    className={`panel ${styles.noticeCard} ${!data.isStaff && !readAt ? "announcement-unread" : ""}`}
+                    key={row.id}
+                  >
+                    <header>
+                      <div>
+                        <span className="communication-audience">
+                          {audienceLabels[row.audience]}
+                          {row.className
+                            ? ` · ${row.className}`
+                            : row.studentName
+                              ? ` · ${row.studentName}`
+                              : ""}
+                        </span>
+                        <h2>{row.title}</h2>
+                        <small>
+                          {data.isStaff
+                            ? row.authorName
+                            : familyTeacherName(row.authorName)} ·{" "}
+                          {formatDateTime(row.publishedAt ?? row.createdAt)}
+                        </small>
+                      </div>
+                      <span
+                        className={`announcement-state ${announcementState(row)}`}
+                      >
+                        {announcementStateLabel(row)}
+                      </span>
+                    </header>
+                    <p>{row.body}</p>
+                    {row.expiresAt && (
+                      <footer>공개 종료 {formatDateTime(row.expiresAt)}</footer>
+                    )}
+                    {data.isStaff ? (
+                      <div className="announcement-actions">
+                        <span className="announcement-read-overview">
+                          {row.publishedAt && overview ? (
+                            <>
+                              확인 <b>{overview.readCount}</b> /{" "}
+                              {overview.recipientCount}
+                              {overview.unreadCount > 0 && (
+                                <em>미확인 {overview.unreadCount}</em>
+                              )}
+                            </>
+                          ) : row.publishedAt ? (
+                            "확인 현황 준비 중"
+                          ) : (
+                            "게시 전"
+                          )}
+                        </span>
+                        <button
+                          className="secondary-button"
+                          onClick={() => setEditor(row)}
+                        >
+                          수정
+                        </button>
+                        <button
+                          className="danger-link"
+                          onClick={() => void remove(row)}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="announcement-family-read">
+                        <span>
+                          {readAt
+                            ? `확인 완료 · ${formatShortDateTime(readAt)}`
+                            : "아직 확인하지 않은 공지입니다."}
+                        </span>
+                        {!readAt && (
+                          <button
+                            disabled={confirming === row.id}
+                            onClick={() => void markRead(row)}
+                          >
+                            {confirming === row.id ? "처리 중…" : "확인했어요"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })
+            )}
+          </section>
+        </>
+      ) : (
+        <section className={styles.messageSection}>
+          <div className={styles.messageIntro}>
+            <div>
+              <b>문자 발송 관리</b>
+              <span>
+                작성한 문자를 확인하고 승인한 뒤 발송 상태를 관리합니다.
+              </span>
+            </div>
+            <em>SOLAPI 연결</em>
+          </div>
+          <MessageLogBoard
+            data={approval}
+            supabase={supabase}
+            onChanged={load}
+          />
+        </section>
+      )}
+      {editor && (
+        <AnnouncementEditor
+          row={editor === "new" ? undefined : editor}
+          data={data}
+          supabase={supabase}
+          onClose={() => setEditor(null)}
+          onSaved={async () => {
+            setEditor(null);
+            await load();
+          }}
+        />
+      )}
+      {composer && (
+        <MessageComposer
+          data={data}
+          supabase={supabase}
+          onClose={() => setComposer(false)}
+          onSaved={async (count) => {
+            setComposer(false);
+            await load();
+            setError(
+              `${count}건을 발송 대기열에 등록했습니다. 내용을 확인한 뒤 발송 승인해 주세요.`,
+            );
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
-function Modal({ title,description,onClose,children }: { title:string; description:string; onClose:()=>void; children:React.ReactNode }) { return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="student-modal" style={title==="문자 작성"?{width:"min(100%, 760px)"}:undefined} role="dialog" aria-modal="true"><header><div><p className="eyebrow">공지·문자 관리</p><h2>{title}</h2><span>{description}</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>{children}</section></div>; }
-function Actions({ saving,onClose,label,disabled=false }: { saving:boolean; onClose:()=>void; label:string; disabled?:boolean }) { return <footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving || disabled}>{saving ? "저장 중…" : label}</button></footer>; }
-function announcementState(row:Announcement) { if (!row.publishedAt) return "draft"; if (row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now()) return "ended"; if (new Date(row.publishedAt).getTime() > Date.now()) return "scheduled"; return "published"; }
-function announcementStateLabel(row:Announcement) { return ({ draft:"임시 저장",ended:"종료",scheduled:"예약",published:"공개" } as Record<string,string>)[announcementState(row)]; }
-function messageStatus(status:string) { return ({ pending_approval:"승인 대기",approved:"발송 준비",sending:"발송 중",cancelled:"취소",sent:"발송 접수",failed:"실패" } as Record<string,string>)[status] ?? status; }
-function dateParts(value:Date) { const parts = new Intl.DateTimeFormat("en",{ timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false }).formatToParts(value); return Object.fromEntries(parts.map((part) => [part.type,part.value])); }
-function koreaToday() { const item=dateParts(new Date()); return `${item.year}-${item.month}-${item.day}`; }
-function koreaDateTime(value:string) { const item=dateParts(new Date(value)); return `${item.year}-${item.month}-${item.day}T${item.hour === "24" ? "00" : item.hour}:${item.minute}`; }
-function parseDateValue(value:string){if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;const[year,month,day]=value.split("-").map(Number);return new Date(year,month-1,day);}
-function dateValue(value:Date){return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,"0")}-${String(value.getDate()).padStart(2,"0")}`;}
-function formatPickerDate(value:Date){return `${value.getFullYear()}. ${String(value.getMonth()+1).padStart(2,"0")}. ${String(value.getDate()).padStart(2,"0")}.`;}
-function sameDay(left:Date,right:Date){return left.getFullYear()===right.getFullYear()&&left.getMonth()===right.getMonth()&&left.getDate()===right.getDate();}
-function monthShift(value:Date,amount:number){return new Date(value.getFullYear(),value.getMonth()+amount,1);}
-function calendarCells(value:Date){const first=new Date(value.getFullYear(),value.getMonth(),1);const start=new Date(value.getFullYear(),value.getMonth(),1-first.getDay());return Array.from({length:42},(_,index)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+index));}
-function formatDateTime(value:string) { return new Intl.DateTimeFormat("ko-KR",{ timeZone:"Asia/Seoul",year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false }).format(new Date(value)); }
-function formatShortDateTime(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value));}
-function normalizeTime(value:string){const clean=value.trim();if(/^\d{1,2}$/.test(clean))return `${clean.padStart(2,"0")}:00`;if(/^\d{3,4}$/.test(clean)){const digits=clean.padStart(4,"0");return `${digits.slice(0,2)}:${digits.slice(2)}`;}return clean;}
-function readError(message:string,fallback:string) { return ["입력해","선택해","늦어야","교직원","찾을 수"].some((word) => message.includes(word)) ? message : fallback; }
+function MessageLogBoard({
+  data,
+  supabase,
+  onChanged,
+}: {
+  data: ApprovalData;
+  supabase: SupabaseClient;
+  onChanged: () => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sendConfirm, setSendConfirm] = useState<string[] | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MessageLog | null>(null);
+  const actionable = data.items.filter(
+    (row) => row.status === "pending_approval" || row.status === "failed",
+  );
+  const requestSend = (ids = selected) => {
+    if (ids.length) setSendConfirm(ids);
+  };
+  const send = async () => {
+    const ids = sendConfirm;
+    if (!ids?.length) return;
+    setSaving(true);
+    setMessage("");
+    const { data: result, error } = await supabase.functions.invoke(
+      "send-solapi-messages",
+      { body: { messageIds: ids } },
+    );
+    if (error) {
+      let text = error.message;
+      const context = (error as { context?: Response }).context;
+      if (context)
+        try {
+          const body = (await context.clone().json()) as { error?: string };
+          if (body.error) text = body.error;
+        } catch {}
+      setMessage(text);
+    } else {
+      const counts = result as { sent?: number; failed?: number };
+      setMessage(
+        `발송 접수 ${counts.sent ?? 0}건${counts.failed ? ` · 실패 ${counts.failed}건` : ""}`,
+      );
+      setSelected([]);
+    }
+    setSendConfirm(null);
+    await onChanged();
+    setSaving(false);
+  };
+  const cancel = async () => {
+    if (
+      !selected.length ||
+      !(await appConfirm({
+        eyebrow: "문자 발송 취소",
+        title: `선택한 문자 ${selected.length}건을 취소할까요?`,
+        notice: "이미 발송된 문자는 취소되지 않습니다.",
+        confirmLabel: "발송 취소",
+        tone: "danger",
+      }))
+    )
+      return;
+    setSaving(true);
+    setMessage("");
+    const { error } = await supabase.rpc("staff_set_message_approval", {
+      p_message_ids: selected,
+      p_action: "cancel",
+    });
+    if (error) setMessage("선택한 문자를 취소하지 못했습니다.");
+    else {
+      setSelected([]);
+      await onChanged();
+    }
+    setSaving(false);
+  };
+  const remove = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setMessage("");
+    const { data: deleted, error } = await supabase.rpc(
+      "staff_delete_message_log",
+      { p_message_id: deleteTarget.id },
+    );
+    if (error || !deleted)
+      setMessage(error?.message ?? "발송 중인 문자 내역은 삭제할 수 없습니다.");
+    else {
+      setSelected((current) => current.filter((id) => id !== deleteTarget.id));
+      await onChanged();
+    }
+    setDeleteTarget(null);
+    setSaving(false);
+  };
+  const toggle = (id: string) =>
+    setSelected((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  return (
+    <>
+      <div className="makeup-summary">
+        <span>
+          승인 대기 <b>{data.pending}</b>
+        </span>
+        <span>
+          발송 중 <b>{data.approved}</b>
+        </span>
+        <span>
+          발송 접수 <b>{data.sent}</b>
+        </span>
+        <span>
+          실패 <b>{data.failed}</b>
+        </span>
+      </div>
+      {message && <p className="attendance-error">{message}</p>}
+      <div className="message-approval-actions">
+        <label>
+          <input
+            type="checkbox"
+            checked={
+              actionable.length > 0 &&
+              actionable.every((row) => selected.includes(row.id))
+            }
+            onChange={() =>
+              setSelected(
+                actionable.every((row) => selected.includes(row.id))
+                  ? []
+                  : actionable.map((row) => row.id),
+              )
+            }
+          />{" "}
+          승인 대기·실패 전체 선택
+        </label>
+        <span>
+          <button
+            disabled={saving || !selected.length}
+            className="secondary-button"
+            onClick={() => void cancel()}
+          >
+            선택 취소
+          </button>
+          <button
+            disabled={saving || !selected.length}
+            className="primary"
+            onClick={() => requestSend()}
+          >
+            {saving ? "처리 중…" : "선택 발송 승인"}
+          </button>
+        </span>
+      </div>
+      <section className="panel message-log">
+        <div className="message-log-head">
+          <span>선택·수신자</span>
+          <span>문자 내용</span>
+          <span>등록/승인</span>
+          <span>상태·관리</span>
+        </div>
+        {data.items.length === 0 ? (
+          <p className="communication-empty">문자 발송 대기 내역이 없습니다.</p>
+        ) : (
+          data.items.map((row) => (
+            <article key={row.id}>
+              <span className="message-recipient">
+                <input
+                  type="checkbox"
+                  disabled={
+                    !["pending_approval", "failed"].includes(row.status)
+                  }
+                  checked={selected.includes(row.id)}
+                  onChange={() => toggle(row.id)}
+                />
+                <span>
+                  <b>{row.recipientName}</b>
+                  <small>
+                    {row.studentName && row.studentName !== row.recipientName
+                      ? `${row.studentName} 학생 · `
+                      : ""}
+                    {row.recipientPhone}
+                  </small>
+                </span>
+              </span>
+              <p>{row.body}</p>
+              <time>
+                {formatDateTime(row.approvedAt ?? row.sentAt ?? row.createdAt)}
+                {row.approvedBy && <small>{row.approvedBy} 승인</small>}
+              </time>
+              <span className="message-row-actions">
+                <i className={row.status}>{messageStatus(row.status)}</i>
+                <button
+                  type="button"
+                  disabled={saving || row.status === "sending"}
+                  onClick={() => setDeleteTarget(row)}
+                >
+                  삭제
+                </button>
+              </span>
+              {row.errorMessage && (
+                <em>
+                  {row.errorMessage}
+                  <button
+                    disabled={saving}
+                    onClick={() => requestSend([row.id])}
+                  >
+                    재시도
+                  </button>
+                </em>
+              )}
+            </article>
+          ))
+        )}
+      </section>
+      {sendConfirm && (
+        <ActionConfirm
+          icon="send"
+          eyebrow="실제 문자 발송"
+          title={`${sendConfirm.length}건을 발송할까요?`}
+          copy="확인하면 SOLAPI에 즉시 접수되며 등록된 수신자에게 실제 문자가 발송됩니다."
+          notice="수신자와 문자 내용을 다시 한번 확인해 주세요."
+          confirmLabel="지금 발송"
+          savingLabel="발송 중…"
+          saving={saving}
+          onCancel={() => setSendConfirm(null)}
+          onConfirm={() => void send()}
+        />
+      )}
+      {deleteTarget && (
+        <ActionConfirm
+          icon="delete"
+          danger
+          eyebrow="발송 내역 삭제"
+          title="이 내역을 삭제할까요?"
+          copy={`${deleteTarget.recipientName} 수신자에게 등록된 문자 내역을 앱에서 삭제합니다.`}
+          notice="SOLAPI에 이미 접수된 발송 내역은 SOLAPI 사이트에 그대로 남습니다."
+          confirmLabel="내역 삭제"
+          savingLabel="삭제 중…"
+          saving={saving}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void remove()}
+        />
+      )}
+    </>
+  );
+}
+
+function ActionConfirm({
+  icon,
+  eyebrow,
+  title,
+  copy,
+  notice,
+  confirmLabel,
+  savingLabel,
+  saving,
+  danger = false,
+  onCancel,
+  onConfirm,
+}: {
+  icon: "send" | "delete";
+  eyebrow: string;
+  title: string;
+  copy: string;
+  notice: string;
+  confirmLabel: string;
+  savingLabel: string;
+  saving: boolean;
+  danger?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className={confirmStyles.backdrop}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !saving) onCancel();
+      }}
+    >
+      <section
+        className={`${confirmStyles.dialog} ${danger ? confirmStyles.danger : ""}`}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={`${icon}-confirm-title`}
+      >
+        <button
+          type="button"
+          className={confirmStyles.close}
+          aria-label="확인창 닫기"
+          disabled={saving}
+          onClick={onCancel}
+        >
+          ×
+        </button>
+        <div className={confirmStyles.icon} aria-hidden="true">
+          {icon === "send" ? (
+            <svg viewBox="0 0 24 24">
+              <path d="m3.5 11.5 17-8-5.5 17-3.5-6-8-3Z" />
+              <path d="m11.5 14.5 9-11" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24">
+              <path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6" />
+            </svg>
+          )}
+        </div>
+        <p className={confirmStyles.eyebrow}>{eyebrow}</p>
+        <h3 id={`${icon}-confirm-title`}>{title}</h3>
+        <p className={confirmStyles.copy}>{copy}</p>
+        <div className={confirmStyles.notice}>
+          <i aria-hidden="true">i</i>
+          <span>{notice}</span>
+        </div>
+        <footer>
+          <button
+            type="button"
+            className={confirmStyles.cancel}
+            disabled={saving}
+            onClick={onCancel}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            className={confirmStyles.primary}
+            disabled={saving}
+            onClick={onConfirm}
+          >
+            {saving ? savingLabel : confirmLabel}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function AnnouncementEditor({
+  row,
+  data,
+  supabase,
+  onClose,
+  onSaved,
+}: {
+  row?: Announcement;
+  data: BoardData;
+  supabase: SupabaseClient;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const initialMode = !row
+    ? "now"
+    : !row.publishedAt
+      ? "draft"
+      : new Date(row.publishedAt).getTime() <= Date.now()
+        ? "now"
+        : "schedule";
+  const initialPublish = row?.publishedAt
+    ? koreaDateTime(row.publishedAt)
+    : `${koreaToday()}T18:00`;
+  const initialExpiry = row?.expiresAt ? koreaDateTime(row.expiresAt) : "";
+  const [title, setTitle] = useState(row?.title ?? "");
+  const [body, setBody] = useState(row?.body ?? "");
+  const [audience, setAudience] = useState<"all" | "class" | "student">(
+    row?.audience ?? "all",
+  );
+  const [targetId, setTargetId] = useState(
+    row?.classId ?? row?.studentId ?? "",
+  );
+  const [publishMode, setPublishMode] = useState(initialMode);
+  const [publishDate, setPublishDate] = useState(initialPublish.slice(0, 10));
+  const [publishTime, setPublishTime] = useState(initialPublish.slice(11, 16));
+  const [expiresDate, setExpiresDate] = useState(initialExpiry.slice(0, 10));
+  const [expiresTime, setExpiresTime] = useState(
+    initialExpiry.slice(11, 16) || "23:59",
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const changeAudience = (value: "all" | "class" | "student") => {
+    setAudience(value);
+    setTargetId(
+      value === "class"
+        ? (data.classes[0]?.id ?? "")
+        : value === "student"
+          ? (data.students[0]?.id ?? "")
+          : "",
+    );
+  };
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const published =
+      publishMode === "draft"
+        ? null
+        : publishMode === "now"
+          ? new Date().toISOString()
+          : `${publishDate}T${publishTime}:00+09:00`;
+    const { error: saveError } = await supabase.rpc("staff_save_announcement", {
+      p_announcement_id: row?.id ?? null,
+      p_title: title,
+      p_body: body,
+      p_audience: audience,
+      p_target_id: targetId || null,
+      p_published_at: published,
+      p_expires_at: expiresDate
+        ? `${expiresDate}T${expiresTime}:00+09:00`
+        : null,
+    });
+    if (saveError) {
+      setError(readError(saveError.message, "공지를 저장하지 못했습니다."));
+      setSaving(false);
+    } else await onSaved();
+  };
+  return (
+    <Modal
+      title={row ? "공지 수정" : "새 공지 작성"}
+      description="학생과 학부모에게 전달할 안내를 작성합니다."
+      onClose={onClose}
+    >
+      <form className={styles.noticeForm} onSubmit={submit}>
+        <div className="form-grid">
+          <label className="full">
+            공지 제목 <b>*</b>
+            <input
+              required
+              autoFocus
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="공지 제목을 입력하세요"
+            />
+          </label>
+          <label className="full">
+            공지 내용 <b>*</b>
+            <textarea
+              required
+              rows={5}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder="학생과 학부모에게 전달할 내용을 입력하세요"
+            />
+          </label>
+          <fieldset className={`${styles.segmentField} full`}>
+            <legend>공개 대상</legend>
+            <div>
+              {(
+                [
+                  ["all", "전체"],
+                  ["class", "클래스"],
+                  ["student", "개별 학생"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={audience === value ? styles.on : ""}
+                  onClick={() => changeAudience(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          {audience !== "all" && (
+            <label className="full">
+              {audience === "class" ? "공개할 클래스" : "공개할 학생"}
+              <select
+                required
+                value={targetId}
+                onChange={(event) => setTargetId(event.target.value)}
+              >
+                <option value="">선택해 주세요</option>
+                {(audience === "class" ? data.classes : data.students).map(
+                  (item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+          )}
+          <fieldset className={`${styles.segmentField} full`}>
+            <legend>게시 방식</legend>
+            <div>
+              {(
+                [
+                  ["now", "바로 게시"],
+                  ["schedule", "예약 게시"],
+                  ["draft", "임시 저장"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={publishMode === value ? styles.on : ""}
+                  onClick={() => setPublishMode(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          {publishMode === "schedule" && (
+            <DateTimeFields
+              label="예약 일시"
+              date={publishDate}
+              time={publishTime}
+              onDate={setPublishDate}
+              onTime={setPublishTime}
+              required
+            />
+          )}
+          <DateTimeFields
+            label="공개 종료"
+            optional
+            date={expiresDate}
+            time={expiresTime}
+            onDate={setExpiresDate}
+            onTime={setExpiresTime}
+            wide={publishMode !== "schedule"}
+          />
+        </div>
+        {error && <p className="form-error">{error}</p>}
+        <Actions
+          saving={saving}
+          onClose={onClose}
+          label={publishMode === "now" ? "공지 게시" : "공지 저장"}
+        />
+      </form>
+    </Modal>
+  );
+}
+
+function DateTimeFields({
+  label,
+  date,
+  time,
+  onDate,
+  onTime,
+  required = false,
+  optional = false,
+  wide = false,
+}: {
+  label: string;
+  date: string;
+  time: string;
+  onDate: (value: string) => void;
+  onTime: (value: string) => void;
+  required?: boolean;
+  optional?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    <fieldset className={`${styles.dateTimeField} ${wide ? "full" : ""}`}>
+      <legend>
+        {label}
+        {optional && <small>선택</small>}
+      </legend>
+      <div>
+        <PolishedDatePicker
+          value={date}
+          onChange={onDate}
+          optional={optional}
+        />
+        <label>
+          <span>시간</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            required={required || Boolean(date)}
+            disabled={!required && !date}
+            maxLength={5}
+            pattern="(?:[01]\d|2[0-3]):[0-5]\d"
+            placeholder="18:00"
+            value={time}
+            onChange={(event) => onTime(event.target.value)}
+            onBlur={(event) => onTime(normalizeTime(event.target.value))}
+          />
+        </label>
+      </div>
+    </fieldset>
+  );
+}
+
+function PolishedDatePicker({
+  value,
+  onChange,
+  optional = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  optional?: boolean;
+}) {
+  const selected = parseDateValue(value);
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState(() => selected ?? new Date());
+  const show = () => {
+    setView(selected ?? new Date());
+    setOpen(true);
+  };
+  const choose = (date: Date) => {
+    onChange(dateValue(date));
+    setOpen(false);
+  };
+  const cells = calendarCells(view);
+  return (
+    <div className={styles.datePicker}>
+      <button
+        type="button"
+        className={styles.dateTrigger}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={show}
+      >
+        <span>
+          <small>날짜</small>
+          <b>{selected ? formatPickerDate(selected) : "날짜 선택"}</b>
+        </span>
+        <CalendarIcon />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            className={styles.calendarScrim}
+            aria-label="달력 닫기"
+            onClick={() => setOpen(false)}
+          />
+          <section
+            className={styles.calendarPopup}
+            role="dialog"
+            aria-label="날짜 선택"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <button
+                type="button"
+                aria-label="이전 달"
+                onClick={() => setView(monthShift(view, -1))}
+              >
+                ‹
+              </button>
+              <b>
+                {view.getFullYear()}년 {view.getMonth() + 1}월
+              </b>
+              <button
+                type="button"
+                aria-label="다음 달"
+                onClick={() => setView(monthShift(view, 1))}
+              >
+                ›
+              </button>
+            </header>
+            <div className={styles.weekdays}>
+              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                <span key={day}>{day}</span>
+              ))}
+            </div>
+            <div className={styles.calendarDays}>
+              {cells.map((date, index) => {
+                const currentMonth = date.getMonth() === view.getMonth();
+                const isSelected = selected && sameDay(date, selected);
+                const today = sameDay(date, new Date());
+                return (
+                  <button
+                    type="button"
+                    key={`${dateValue(date)}-${index}`}
+                    className={`${currentMonth ? "" : styles.outside} ${isSelected ? styles.chosen : ""} ${today ? styles.today : ""}`}
+                    onClick={() => choose(date)}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+            <footer>
+              {optional ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  날짜 지우기
+                </button>
+              ) : (
+                <span />
+              )}
+              <button type="button" onClick={() => choose(new Date())}>
+                오늘
+              </button>
+            </footer>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14" rx="2.5" />
+      <path d="M8 3.5v4M16 3.5v4M4 10h16" />
+    </svg>
+  );
+}
+
+function MessageComposer({
+  data,
+  supabase,
+  onClose,
+  onSaved,
+}: {
+  data: BoardData;
+  supabase: SupabaseClient;
+  onClose: () => void;
+  onSaved: (count: number) => Promise<void>;
+}) {
+  void data;
+  const [targetType, setTargetType] = useState<
+    "all" | "class" | "grade" | "school" | "subject" | "combined" | "student"
+  >("all");
+  const [options, setOptions] = useState<MessageTargetOptions>({
+    students: [],
+    classes: [],
+    grades: [],
+    schools: [],
+    subjects: [],
+  });
+  const [classId, setClassId] = useState("");
+  const [grade, setGrade] = useState("");
+  const [school, setSchool] = useState("");
+  const [subject, setSubject] = useState("");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [recipientKind, setRecipientKind] = useState("guardian");
+  const [body, setBody] = useState("");
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientKey, setRecipientKey] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void supabase
+      .rpc("staff_message_target_options")
+      .then(({ data: next, error: loadError }) => {
+        if (!active) return;
+        if (loadError) {
+          setError("발송 대상 정보를 불러오지 못했습니다.");
+          setLoading(false);
+          return;
+        }
+        const loaded = next as MessageTargetOptions;
+        setOptions(loaded);
+        setSelected(loaded.students.map((student) => student.id));
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+  const baseStudents = options.students.filter(
+    (student) =>
+      targetType === "all" ||
+      targetType === "student" ||
+      (targetType === "class" &&
+        (!classId || student.classIds.includes(classId))) ||
+      (targetType === "grade" && (!grade || student.grade === grade)) ||
+      (targetType === "school" && (!school || student.school === school)) ||
+      (targetType === "subject" &&
+        (!subject || student.subjects.includes(subject))) ||
+      (targetType === "combined" &&
+        (!classId || student.classIds.includes(classId)) &&
+        (!grade || student.grade === grade) &&
+        (!school || student.school === school) &&
+        (!subject || student.subjects.includes(subject))),
+  );
+  const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
+  const visibleStudents = baseStudents.filter(
+    (student) =>
+      !normalizedQuery ||
+      [
+        student.name,
+        student.school,
+        student.grade,
+        ...student.classNames,
+        ...student.subjects,
+      ]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR")
+        .includes(normalizedQuery),
+  );
+  const visibleIds = visibleStudents.map((student) => student.id);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+  const currentRecipientKey = `${recipientKind}:${[...selected].sort().join(",")}`;
+  const previewPending =
+    selected.length > 0 && recipientKey !== currentRecipientKey;
+  const selectedRecipients =
+    selected.length && !previewPending ? recipients : [];
+  useEffect(() => {
+    let active = true;
+    if (!selected.length)
+      return () => {
+        active = false;
+      };
+    const requestKey = `${recipientKind}:${[...selected].sort().join(",")}`;
+    void supabase
+      .rpc("staff_message_recipient_preview_selected", {
+        p_student_ids: selected,
+        p_recipient_kind: recipientKind,
+      })
+      .then(({ data: next, error: previewError }) => {
+        if (!active) return;
+        if (previewError) setError("수신 연락처를 확인하지 못했습니다.");
+        else {
+          setRecipients((next ?? []) as Recipient[]);
+          setRecipientKey(requestKey);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [recipientKind, selected, supabase]);
+  const changeTarget = (value: typeof targetType) => {
+    setTargetType(value);
+    setClassId("");
+    setGrade("");
+    setSchool("");
+    setSubject("");
+    setQuery("");
+    setSelected(
+      value === "all" ? options.students.map((student) => student.id) : [],
+    );
+  };
+  const toggle = (id: string) =>
+    setSelected((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  const toggleVisible = () =>
+    setSelected((current) =>
+      allVisibleSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds])),
+    );
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (selectedRecipients.length) setConfirmOpen(true);
+  };
+  const queue = async () => {
+    setSaving(true);
+    setError("");
+    const { data: count, error: saveError } = await supabase.rpc(
+      "staff_queue_selected_messages",
+      {
+        p_student_ids: selected,
+        p_recipient_kind: recipientKind,
+        p_body: body,
+      },
+    );
+    if (saveError) {
+      setError(
+        readError(saveError.message, "문자 대기열을 등록하지 못했습니다."),
+      );
+      setSaving(false);
+      setConfirmOpen(false);
+    } else await onSaved(Number(count ?? 0));
+  };
+  const filterSelect = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    items: Named[] | string[],
+  ) => (
+    <label>
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">전체</option>
+        {items.map((item) =>
+          typeof item === "string" ? (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ) : (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ),
+        )}
+      </select>
+    </label>
+  );
+  return (
+    <Modal
+      title="문자 작성"
+      description="조건에 맞는 학생을 선택한 뒤 실제 수신자를 확인합니다."
+      onClose={onClose}
+    >
+      <form className={styles.messageComposer} onSubmit={submit}>
+        <fieldset className={styles.targetModes}>
+          <legend>발송 대상</legend>
+          <div>
+            {(
+              [
+                ["all", "전체 재원생"],
+                ["class", "클래스"],
+                ["grade", "학년"],
+                ["school", "학교"],
+                ["subject", "과목"],
+                ["combined", "조건 조합"],
+                ["student", "개별 학생"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                type="button"
+                key={value}
+                className={targetType === value ? styles.on : ""}
+                onClick={() => changeTarget(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        {targetType !== "all" && targetType !== "student" && (
+          <div className={styles.targetFilters}>
+            {(targetType === "class" || targetType === "combined") &&
+              filterSelect("클래스", classId, setClassId, options.classes)}
+            {(targetType === "grade" || targetType === "combined") &&
+              filterSelect("학년", grade, setGrade, options.grades)}
+            {(targetType === "school" || targetType === "combined") &&
+              filterSelect("학교", school, setSchool, options.schools)}
+            {(targetType === "subject" || targetType === "combined") &&
+              filterSelect("과목", subject, setSubject, options.subjects)}
+          </div>
+        )}
+        <section className={styles.studentPicker}>
+          <header>
+            <div>
+              <b>학생 선택</b>
+              <span>
+                선택 {selected.length}명 · 검색 결과 {visibleStudents.length}명
+              </span>
+            </div>
+            <label className={styles.searchBox}>
+              <span aria-hidden="true">⌕</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="이름·학교·학년·클래스 검색"
+                aria-label="학생 검색"
+              />
+            </label>
+          </header>
+          <div className={styles.selectionBar}>
+            <label>
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleVisible}
+              />
+              <b>
+                {allVisibleSelected
+                  ? "검색 결과 전체 해제"
+                  : "검색 결과 전체 선택"}
+              </b>
+            </label>
+            {selected.length > 0 && (
+              <button type="button" onClick={() => setSelected([])}>
+                선택 전체 해제
+              </button>
+            )}
+          </div>
+          <div className={styles.studentResults}>
+            {loading && !options.students.length ? (
+              <p>학생 정보를 불러오는 중이에요…</p>
+            ) : visibleStudents.length ? (
+              visibleStudents.map((student) => (
+                <label
+                  key={student.id}
+                  className={
+                    selected.includes(student.id) ? styles.checked : ""
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(student.id)}
+                    onChange={() => toggle(student.id)}
+                  />
+                  <span>
+                    <b>{student.name}</b>
+                    <small>
+                      {[student.grade, student.school, ...student.classNames]
+                        .filter(Boolean)
+                        .join(" · ") || "등록된 분류 정보 없음"}
+                    </small>
+                  </span>
+                </label>
+              ))
+            ) : (
+              <p>조건에 맞는 학생이 없습니다.</p>
+            )}
+          </div>
+        </section>
+        <div className={styles.composerGrid}>
+          <label>
+            수신자
+            <select
+              value={recipientKind}
+              onChange={(event) => setRecipientKind(event.target.value)}
+            >
+              <option value="guardian">학부모</option>
+              <option value="student">학생</option>
+              <option value="both">학생+학부모 모두</option>
+            </select>
+          </label>
+          <label className="full">
+            문자 내용 <b>*</b>
+            <textarea
+              required
+              maxLength={1000}
+              rows={5}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder="발송할 안내 내용을 입력하세요."
+            />
+            <small>{body.length}/1000자</small>
+          </label>
+        </div>
+        <section className="recipient-preview">
+          <header>
+            <b>최종 수신 대상</b>
+            <span>
+              {loading || previewPending
+                ? "확인 중…"
+                : `${selectedRecipients.length}건`}
+            </span>
+          </header>
+          <div>
+            {selectedRecipients.slice(0, 12).map((item, index) => (
+              <span key={`${item.studentId}-${item.kind}-${index}`}>
+                <b>{item.recipientName}</b>
+                <small>
+                  {item.studentName}
+                  {item.kind === "guardian" ? " 학부모" : " 학생"} ·{" "}
+                  {item.phone}
+                </small>
+              </span>
+            ))}
+            {selectedRecipients.length > 12 && (
+              <em>외 {selectedRecipients.length - 12}건</em>
+            )}
+            {!loading &&
+              !previewPending &&
+              selected.length > 0 &&
+              selectedRecipients.length === 0 && (
+                <p>선택한 학생에게 등록된 수신 연락처가 없습니다.</p>
+              )}
+            {!loading && !selected.length && (
+              <p>문자를 받을 학생을 선택해 주세요.</p>
+            )}
+          </div>
+        </section>
+        {error && <p className="form-error">{error}</p>}
+        <Actions
+          saving={saving}
+          onClose={onClose}
+          label="대기열 등록"
+          disabled={!selectedRecipients.length}
+        />
+        {confirmOpen && (
+          <div
+            className={confirmStyles.backdrop}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !saving)
+                setConfirmOpen(false);
+            }}
+          >
+            <section
+              className={confirmStyles.dialog}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="queue-confirm-title"
+            >
+              <button
+                type="button"
+                className={confirmStyles.close}
+                aria-label="확인창 닫기"
+                disabled={saving}
+                onClick={() => setConfirmOpen(false)}
+              >
+                ×
+              </button>
+              <div className={confirmStyles.icon} aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6.5h16v11H4z" />
+                  <path d="m5 8 7 5 7-5" />
+                </svg>
+              </div>
+              <p className={confirmStyles.eyebrow}>발송 전 마지막 확인</p>
+              <h3 id="queue-confirm-title">문자 대기열에 등록할까요?</h3>
+              <p className={confirmStyles.copy}>
+                등록 후 발송 관리 화면에서 내용을 다시 확인하고
+                <br />
+                최종 승인하면 실제 문자가 발송됩니다.
+              </p>
+              <div className={confirmStyles.stats}>
+                <span>
+                  <small>선택 학생</small>
+                  <b>{selected.length}명</b>
+                </span>
+                <span>
+                  <small>문자 발송</small>
+                  <b>{selectedRecipients.length}건</b>
+                </span>
+                <span>
+                  <small>수신자</small>
+                  <b>
+                    {recipientKind === "guardian"
+                      ? "학부모"
+                      : recipientKind === "student"
+                        ? "학생"
+                        : "학생·학부모"}
+                  </b>
+                </span>
+              </div>
+              <div className={confirmStyles.notice}>
+                <i aria-hidden="true">i</i>
+                <span>지금은 대기열 등록 단계이며 바로 발송되지 않습니다.</span>
+              </div>
+              <footer>
+                <button
+                  type="button"
+                  className={confirmStyles.cancel}
+                  disabled={saving}
+                  onClick={() => setConfirmOpen(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className={confirmStyles.primary}
+                  disabled={saving}
+                  onClick={() => void queue()}
+                >
+                  {saving ? "등록 중…" : "대기열에 등록"}
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
+      </form>
+    </Modal>
+  );
+}
+
+function Modal({
+  title,
+  description,
+  onClose,
+  children,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="student-modal"
+        style={
+          title === "문자 작성" ? { width: "min(100%, 760px)" } : undefined
+        }
+        role="dialog"
+        aria-modal="true"
+      >
+        <header>
+          <div>
+            <p className="eyebrow">공지·문자 관리</p>
+            <h2>{title}</h2>
+            <span>{description}</span>
+          </div>
+          <button type="button" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        {children}
+      </section>
+    </div>
+  );
+}
+function Actions({
+  saving,
+  onClose,
+  label,
+  disabled = false,
+}: {
+  saving: boolean;
+  onClose: () => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <footer>
+      <button type="button" className="secondary-button" onClick={onClose}>
+        취소
+      </button>
+      <button className="primary" disabled={saving || disabled}>
+        {saving ? "저장 중…" : label}
+      </button>
+    </footer>
+  );
+}
+function announcementState(row: Announcement) {
+  if (!row.publishedAt) return "draft";
+  if (row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now())
+    return "ended";
+  if (new Date(row.publishedAt).getTime() > Date.now()) return "scheduled";
+  return "published";
+}
+function announcementStateLabel(row: Announcement) {
+  return (
+    {
+      draft: "임시 저장",
+      ended: "종료",
+      scheduled: "예약",
+      published: "공개",
+    } as Record<string, string>
+  )[announcementState(row)];
+}
+function messageStatus(status: string) {
+  return (
+    (
+      {
+        pending_approval: "승인 대기",
+        approved: "발송 준비",
+        sending: "발송 중",
+        cancelled: "취소",
+        sent: "발송 접수",
+        failed: "실패",
+      } as Record<string, string>
+    )[status] ?? status
+  );
+}
+function dateParts(value: Date) {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(value);
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+function koreaToday() {
+  const item = dateParts(new Date());
+  return `${item.year}-${item.month}-${item.day}`;
+}
+function koreaDateTime(value: string) {
+  const item = dateParts(new Date(value));
+  return `${item.year}-${item.month}-${item.day}T${item.hour === "24" ? "00" : item.hour}:${item.minute}`;
+}
+function parseDateValue(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+function dateValue(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}
+function formatPickerDate(value: Date) {
+  return `${value.getFullYear()}. ${String(value.getMonth() + 1).padStart(2, "0")}. ${String(value.getDate()).padStart(2, "0")}.`;
+}
+function sameDay(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+function monthShift(value: Date, amount: number) {
+  return new Date(value.getFullYear(), value.getMonth() + amount, 1);
+}
+function calendarCells(value: Date) {
+  const first = new Date(value.getFullYear(), value.getMonth(), 1);
+  const start = new Date(
+    value.getFullYear(),
+    value.getMonth(),
+    1 - first.getDay(),
+  );
+  return Array.from(
+    { length: 42 },
+    (_, index) =>
+      new Date(start.getFullYear(), start.getMonth(), start.getDate() + index),
+  );
+}
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+function formatShortDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+function normalizeTime(value: string) {
+  const clean = value.trim();
+  if (/^\d{1,2}$/.test(clean)) return `${clean.padStart(2, "0")}:00`;
+  if (/^\d{3,4}$/.test(clean)) {
+    const digits = clean.padStart(4, "0");
+    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  }
+  return clean;
+}
+function readError(message: string, fallback: string) {
+  return ["입력해", "선택해", "늦어야", "교직원", "찾을 수"].some((word) =>
+    message.includes(word),
+  )
+    ? message
+    : fallback;
+}
