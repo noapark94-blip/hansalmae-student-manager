@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
+import { familyTeacherName } from "./family-teacher-name";
 
 type InboxItem = {
   id: string;
@@ -230,7 +231,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       <small>
                         {[
                           item.className,
-                          item.authorName,
+                          mode === "staff" ? item.authorName : familyTeacherName(item.authorName),
                           formatTime(item.createdAt),
                         ]
                           .filter(Boolean)
