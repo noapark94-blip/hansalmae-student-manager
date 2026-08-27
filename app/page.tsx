@@ -661,11 +661,8 @@ export default function Home() {
         {familyAccount ? (
           <header className="family-app-topbar">
             <button type="button" className="family-app-brand" onClick={() => selectView("dashboard")} aria-label="한살매 홈으로 이동">
-              <img src="/hansalmae-logo.png" alt="" />
-              <span>
-                <b>한살매</b>
-                <small>수업노트</small>
-              </span>
+              <b>한살매</b>
+              <span>수업노트</span>
             </button>
             <div>
               <NotificationCenter supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} />
