@@ -9,7 +9,7 @@ type FamilyView = "attendance"|"assignments"|"communications";
 
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 
-export function FamilyLearningNote({studentName,attendance,assignments,announcements,onNavigate}:{studentName:string;attendance:Attendance[];assignments:Assignment[];announcements:Announcement[];onNavigate:(view:FamilyView)=>void}){
+export function FamilyLearningNote({studentName,attendance,assignments,announcements,todayClassCount,onNavigate}:{studentName:string;attendance:Attendance[];assignments:Assignment[];announcements:Announcement[];todayClassCount:number;onNavigate:(view:FamilyView)=>void}){
   const today=seoulDate();
   const todayAttendance=attendance.filter(item=>item.lessonDate.slice(0,10)===today);
   const activeAssignments=assignments.filter(item=>item.status!=="reviewed").slice(0,3);
@@ -22,7 +22,7 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
     </header>
     <div className="family-note-summary">
       <span><HansalmaeIcon name="check" size={17}/><b>{todayAttendance.length?`${completeCount}/${todayAttendance.length} 수업 출석` : "오늘 출결 전"}</b></span>
-      <span><HansalmaeIcon name="edit" size={17}/><b>확인할 과제 {activeAssignments.length}건</b></span>
+      <span><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayClassCount}개</b></span>
     </div>
     <div className="family-note-grid">
       <button type="button" className="family-note-block" onClick={()=>onNavigate("attendance")}>
