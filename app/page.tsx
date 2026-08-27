@@ -14,7 +14,7 @@ import { SettingsBoard } from "./settings-board";
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
-import { FamilyLiveDashboard } from "./family-dashboard";
+import { FamilyLiveDashboard, FamilyScheduleView } from "./family-dashboard";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
@@ -189,8 +189,8 @@ const roleViews: Record<UserRole, View[]> = {
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "attendance", "makeups", "assignments", "reports", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "attendance", "makeups", "reports", "consultations", "communications", "my-account"],
+  student: ["dashboard", "schedule", "reports", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "reports", "consultations", "communications", "my-account"],
 };
 const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
@@ -799,7 +799,7 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : <Schedule classes={academyClasses} onRegister={() => setClassRegistrationOpen(true)} />)}
+          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : <FamilyScheduleView supabase={supabase} profile={profile} />)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
           {view === "attendance" && (["admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
