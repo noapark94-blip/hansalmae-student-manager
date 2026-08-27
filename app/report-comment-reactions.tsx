@@ -23,7 +23,13 @@ export function useReportCommentReactions(supabase: SupabaseClient) {
     const { data, error } = await supabase.rpc("report_comment_reactions", { p_comment_ids: ids });
     if (error) return;
     const rows = (data ?? []) as ReactionRow[];
-    setReactions((current) => ({ ...current, ...Object.fromEntries(rows.map((row) => [row.commentId, row.reactions])) }));
+    const next = Object.fromEntries(rows.map((row) => [row.commentId, row.reactions]));
+    setReactions((current) => {
+      const unchanged = Object.entries(next).every(
+        ([id, value]) => JSON.stringify(current[id] ?? []) === JSON.stringify(value),
+      );
+      return unchanged ? current : { ...current, ...next };
+    });
   }, [supabase]);
   const toggle = useCallback(async (commentId: string, type: ReactionKind) => {
     if (reacting) return;
