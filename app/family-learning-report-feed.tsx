@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
+import { familyTeacherName } from "./family-teacher-name";
 
 type AttendanceInfo={status:string;lateMinutes:number|null;absenceReason:string;note:string}|null;
 type HomeworkResult={status:string;note:string}|null;
@@ -97,7 +98,7 @@ function ReportCard({item,readAt,readTracking,onOpen}:{item:Report;readAt:string
       <span className="family-report-subject">
         <span className="family-report-card-labels"><span>{item.subject}</span>{readTracking&&!readAt&&<em>NEW</em>}</span>
         <strong>{item.className}</strong>
-        <small>{formatTime(item.startsAt)} · {item.teacherName}{item.room?` · ${item.room}`:""}</small>
+        <small>{formatTime(item.startsAt)} · {familyTeacherName(item.teacherName)}{item.room?` · ${item.room}`:""}</small>
         <p>{preview}</p>
         <span className="family-report-card-meta">{firstExam&&<em>{firstExam.score===null?(firstExam.examTitle||"시험 평가"):`${firstExam.examTitle||"시험"} ${formatScore(firstExam.score)}/${formatScore(firstExam.maxScore)}`}</em>}{item.homeworkResult&&<em>숙제 {homeworkLabel[item.homeworkResult.status]??item.homeworkResult.status}</em>}</span>
       </span>
@@ -115,7 +116,7 @@ function ReportDetail({supabase,studentId,item,canComment,readAt,readTracking,co
     <section className="family-report-detail" role="dialog" aria-modal="true" aria-labelledby="family-report-detail-title">
       <header className="family-report-detail-head"><button type="button" onClick={onClose} aria-label="상세 리포트 닫기">‹</button><div><small>{formatFullDate(item.lessonDate)}</small><h2 id="family-report-detail-title">수업 상세 리포트</h2></div><span/></header>
       <div className="family-report-detail-scroll">
-        <section className="family-report-detail-hero"><div className="family-report-card-labels"><span>{item.subject}</span></div><div><h3>{item.className}</h3>{attendance&&<strong className={`family-attendance-badge ${attendance.status}`}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</div><p>{formatTime(item.startsAt)} · {item.teacherName}{item.room?` · ${item.room}`:""}</p></section>
+        <section className="family-report-detail-hero"><div className="family-report-card-labels"><span>{item.subject}</span></div><div><h3>{item.className}</h3>{attendance&&<strong className={`family-attendance-badge ${attendance.status}`}>{attendanceLabel[attendance.status]??attendance.status}{attendance.status==="late"&&attendance.lateMinutes?` ${attendance.lateMinutes}분`:""}</strong>}</div><p>{formatTime(item.startsAt)} · {familyTeacherName(item.teacherName)}{item.room?` · ${item.room}`:""}</p></section>
         <div className="family-report-detail-sections">
           {item.lessonContent&&<ReportSection icon="book" title="오늘 수업" text={item.lessonContent}/>}
           {item.examContent&&<ReportSection icon="chart" title="오늘 시험·평가" text={item.examContent}/>}
@@ -124,7 +125,7 @@ function ReportDetail({supabase,studentId,item,canComment,readAt,readTracking,co
           {item.homeworkContent&&<ReportSection icon="edit" title="과제 및 복습" text={item.homeworkContent}/>}
           {attendanceMemo&&<ReportSection icon="notice" title="출결 메모" text={attendanceMemo}/>}
         </div>
-        {teacherFeedbacks.length>0&&<section className="family-teacher-feedback"><span className="family-teacher-feedback-icon"><HansalmaeIcon name="chat" size={19}/></span><div><b>{item.teacherName} 선생님 한마디</b>{teacherFeedbacks.map((feedback,index)=><p key={`${feedback.label}-${index}`}><strong>{feedback.label}</strong><span>{feedback.text}</span></p>)}</div></section>}
+        {teacherFeedbacks.length>0&&<section className="family-teacher-feedback"><span className="family-teacher-feedback-icon"><HansalmaeIcon name="chat" size={19}/></span><div><b>{familyTeacherName(item.teacherName)} 한마디</b>{teacherFeedbacks.map((feedback,index)=><p key={`${feedback.label}-${index}`}><strong>{feedback.label}</strong><span>{feedback.text}</span></p>)}</div></section>}
         {canComment&&<FamilyReportComments supabase={supabase} studentId={studentId} lessonId={item.lessonId} teacherName={item.teacherName}/>}
       </div>
       {readTracking&&<footer className="family-report-confirm"><span>{readAt?`확인 완료 · ${formatReadTime(readAt)}`:"내용을 확인했다면 표시를 남겨주세요."}</span>{!readAt&&<button type="button" disabled={confirming} onClick={onConfirm}><HansalmaeIcon name="check" size={16}/>{confirming?"처리 중…":"확인했어요"}</button>}</footer>}
@@ -144,7 +145,7 @@ function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabas
     <section className="family-report-comments">
       <header>
         <div className="family-comment-heading-icon"><HansalmaeIcon name="chat" size={18}/></div>
-        <span><b>선생님과 댓글</b><small>{teacherName} 선생님과 수업에 대해 이야기해 보세요.</small></span>
+        <span><b>선생님과 댓글</b><small>{familyTeacherName(teacherName)}와 수업에 대해 이야기해 보세요.</small></span>
         <em>{items.length ? `${items.length}개` : "새 대화"}</em>
       </header>
       {loading ? <p className="family-comment-empty">댓글을 불러오는 중이에요…</p> : roots.length ? (
@@ -157,7 +158,7 @@ function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabas
             </div>
             <p className={`family-comment-bubble ${root.isDeleted?"deleted":""}`}>{root.body}</p>
             {items.filter(reply => reply.parentId === root.id).map(reply => <section key={reply.id}>
-              <div><i>{reply.authorName.slice(0,1)}</i><b>{reply.authorName} 선생님</b></div>
+              <div><i>{familyTeacherName(reply.authorName).slice(0,1)}</i><b>{familyTeacherName(reply.authorName)}</b></div>
               <p>{reply.body}</p>
               <time>{formatCommentTime(reply.createdAt)}</time>
             </section>)}
