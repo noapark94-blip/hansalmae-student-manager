@@ -669,9 +669,6 @@ export default function Home() {
             </button>
             <div>
               <NotificationCenter supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} />
-              <button type="button" className="family-account-button" onClick={() => selectView("my-account")} aria-label="내 정보">
-                <HansalmaeIcon name="user" size={21} />
-              </button>
             </div>
           </header>
         ) : (
