@@ -29,8 +29,9 @@ type ThreadComment = {
   authorRole: string;
   createdAt: string;
 };
+export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
-export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenStaffLesson?: () => void }) {
+export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
@@ -108,11 +109,9 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     if(!selected?.lessonId||!selected.studentId)return;
     const{data,error}=await supabase.rpc("staff_report_comment_lesson_target",{p_student_id:selected.studentId,p_lesson_id:selected.lessonId});
     if(error||!data)return;
-    const target={classId:String((data as {classId:string}).classId),date:String((data as {lessonDate:string}).lessonDate)};
-    sessionStorage.setItem("hansalmae:staff-lesson-target",JSON.stringify(target));
+    const target={classId:String((data as {classId:string}).classId),date:String((data as {lessonDate:string}).lessonDate),requestId:Date.now()};
     setSelected(null);
-    onOpenStaffLesson?.();
-    window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-staff-lesson",{detail:target})),50);
+    onOpenStaffLesson?.(target);
   }
   return (
     <>

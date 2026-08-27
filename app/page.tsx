@@ -16,7 +16,7 @@ import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyLiveDashboard } from "./family-dashboard";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
-import { NotificationCenter } from "./notification-center";
+import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
 import { OperationsAnalytics } from "./operations-analytics";
 import { BackupBoard } from "./backup-board";
@@ -224,6 +224,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [adminHomeMode, setAdminHomeMode] = useState<"operations" | "classes">("operations");
+  const [staffLessonTarget,setStaffLessonTarget]=useState<StaffLessonTarget|null>(null);
   const [mobileNav, setMobileNav] = useState(false);
   const [staffMoreOpen, setStaffMoreOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -671,7 +672,7 @@ export default function Home() {
                 <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
-                <NotificationCenter supabase={supabase} onOpenStaffLesson={()=>selectView("dashboard")} />
+                <NotificationCenter supabase={supabase} onOpenStaffLesson={target=>{setStaffLessonTarget(target);setAdminHomeMode("classes");selectView("dashboard")}} />
                 <button type="button" className="staff-account-button" onClick={() => selectView("my-account")} aria-label="내 계정">
                   <span>{profile.display_name.slice(0, 1)}</span>
                 </button>
@@ -754,7 +755,7 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter supabase={supabase} onOpenStaffLesson={()=>selectView("dashboard")} />
+              <NotificationCenter supabase={supabase} onOpenStaffLesson={target=>{setStaffLessonTarget(target);setAdminHomeMode("classes");selectView("dashboard")}} />
             </header>
           </>
         )}
@@ -771,10 +772,10 @@ export default function Home() {
                   내 수업
                 </button>
               </div>
-              {adminHomeMode === "operations" ? <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} /> : <TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
+              {adminHomeMode === "operations" ? <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} /> : <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
             </>
           )}
-          {view === "dashboard" && (profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
+          {view === "dashboard" && (profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
           {view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
           {view === "students" && (
             <div className="student-page-layout">

@@ -9,6 +9,7 @@ import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
 import { TeacherSpecialLessons } from "./teacher-special-lessons";
 import { appConfirm } from "./app-dialog";
+import type { StaffLessonTarget } from "./notification-center";
 
 type Subject = {
   id: string;
@@ -131,7 +132,7 @@ const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
 const classColors = ["#a92d68", "#4c86a8", "#c85c7d", "#df8658", "#c8952a", "#5f9074", "#7060a7", "#61676f"];
 const specialLessonsId = "__teacher_special_lessons__";
 
-export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; onClassesChanged?: () => void | Promise<void> }) {
+export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, lessonTarget=null, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; lessonTarget?:StaffLessonTarget|null; onClassesChanged?: () => void | Promise<void> }) {
   const [data, setData] = useState<Workspace | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [date, setDate] = useState(today());
@@ -174,7 +175,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(()=>{if(!data)return;const apply=(target:{classId?:string;date?:string}|null)=>{if(!target?.classId||!data.classes.some(item=>item.id===target.classId))return;setSelectedId(target.classId);if(target.date)setDate(target.date);sessionStorage.removeItem("hansalmae:staff-lesson-target");window.setTimeout(()=>document.querySelector(".class-day-workspace")?.scrollIntoView({behavior:"smooth",block:"start"}),100)};try{apply(JSON.parse(sessionStorage.getItem("hansalmae:staff-lesson-target")??"null"))}catch{sessionStorage.removeItem("hansalmae:staff-lesson-target")}const open=(event:Event)=>apply((event as CustomEvent<{classId?:string;date?:string}>).detail);window.addEventListener("hansalmae:open-staff-lesson",open);return()=>window.removeEventListener("hansalmae:open-staff-lesson",open)},[data]);
+  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setSelectedId(lessonTarget.classId);setDate(lessonTarget.date);window.setTimeout(()=>document.querySelector(".class-day-workspace")?.scrollIntoView({behavior:"smooth",block:"start"}),350)},[data,lessonTarget]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const loadDay = useCallback(async () => {
     if (!selectedId || selectedId === specialLessonsId) return setDay(null);
