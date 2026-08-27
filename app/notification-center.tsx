@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
+import { appConfirm } from "./app-dialog";
 
 type InboxItem = {
   id: string;
@@ -28,6 +29,7 @@ type ThreadComment = {
   authorName: string;
   authorRole: string;
   createdAt: string;
+  canDelete: boolean;
 };
 export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
@@ -39,6 +41,8 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   const [thread, setThread] = useState<ThreadComment[]>([]);
   const [reply, setReply] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [threadError, setThreadError] = useState("");
   const load = useCallback(async () => {
     const [staff, family, general] = await Promise.all([
       supabase.rpc("staff_report_comment_inbox"),
@@ -85,12 +89,22 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     setOpen(false);
     setSelected(item);
     setReply("");
+    setThreadError("");
     const { data } = await supabase.rpc("staff_report_comments", {
       p_student_id: item.studentId,
       p_lesson_id: item.lessonId,
     });
     setThread((data ?? []) as ThreadComment[]);
     void load();
+  }
+  async function removeComment(item:ThreadComment) {
+    if (!selected || deleting || !item.canDelete) return;
+    const confirmed=await appConfirm({eyebrow:"댓글 삭제",title:item.parentId?"작성한 답변을 삭제할까요?":"이 댓글을 삭제할까요?",notice:item.parentId?"삭제한 답변은 복구할 수 없습니다.":"연결된 선생님 답변도 함께 삭제되며 복구할 수 없습니다.",confirmLabel:"삭제",tone:"danger"});
+    if(!confirmed)return;
+    setDeleting(item.id);setThreadError("");
+    const{error}=await supabase.rpc("delete_report_comment",{p_comment_id:item.id});
+    if(error)setThreadError("댓글을 삭제하지 못했습니다.");else await openItem(selected);
+    setDeleting(null);
   }
   async function submit() {
     if (!selected || !reply.trim() || saving) return;
@@ -222,21 +236,21 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                   <article key={root.id}>
                     <div>
                       <b>{root.authorName} 학부모님</b>
-                      <time>{formatTime(root.createdAt)}</time>
+                      <span><time>{formatTime(root.createdAt)}</time>{root.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===root.id} onClick={()=>void removeComment(root)}>{deleting===root.id?"삭제 중…":"삭제"}</button>}</span>
                     </div>
                     <p>{root.body}</p>
                     {thread
                       .filter((item) => item.parentId === root.id)
                       .map((item) => (
                         <section key={item.id}>
-                          <b>{item.authorName} 선생님</b>
+                          <div className="comment-reply-meta"><b>{item.authorName} 선생님</b><span><time>{formatTime(item.createdAt)}</time>{item.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===item.id} onClick={()=>void removeComment(item)}>{deleting===item.id?"삭제 중…":"삭제"}</button>}</span></div>
                           <p>{item.body}</p>
-                          <time>{formatTime(item.createdAt)}</time>
                         </section>
                       ))}
                   </article>
                 ))}
             </div>
+            {threadError&&<p className="comment-thread-error">{threadError}</p>}
             <footer>
               <textarea
                 maxLength={500}
