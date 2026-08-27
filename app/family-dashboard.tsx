@@ -5,7 +5,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { FamilyLearningNote } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
-import { FamilyCorrectionReportFeed } from "./family-correction-report-feed";
 import { FamilyExamGrowth } from "./family-exam-growth";
 import { FamilyCorrectionExamGrowth } from "./family-correction-exam-growth";
 import { HansalmaeIcon } from "./hansalmae-icons";
@@ -244,10 +243,6 @@ export function FamilyLiveDashboard({
             onNavigate={onNavigate}
           />
           <FamilyLearningReportFeed
-            supabase={supabase}
-            studentId={selected.id}
-          />
-          <FamilyCorrectionReportFeed
             supabase={supabase}
             studentId={selected.id}
           />
