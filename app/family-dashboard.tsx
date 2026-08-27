@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
-import { FamilyLearningNote } from "./family-learning-note";
+import { FamilyLearningNote, type TodayLesson } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
 import { FamilyExamGrowth } from "./family-exam-growth";
 import { FamilyCorrectionExamGrowth } from "./family-correction-exam-growth";
@@ -142,19 +142,21 @@ export function FamilyLiveDashboard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [todayLessons,setTodayLessons]=useState<TodayLesson[]>([]);
   const load = useCallback(
     async (id: string | null) => {
       setLoading(true);
       setError("");
-      const { data: next, error: e } = await supabase.rpc(
-        "family_live_dashboard",
-        { p_student_id: id },
-      );
+      const [{ data: next, error: e },todayResult] = await Promise.all([
+        supabase.rpc("family_live_dashboard", { p_student_id: id }),
+        supabase.rpc("family_today_lessons", { p_student_id: id }),
+      ]);
       if (e) setError("학습 현황을 불러오지 못했습니다.");
       else {
         const parsed = next as Data;
         setData(parsed);
         setSelectedId(parsed.selectedStudent?.id ?? null);
+        if(!todayResult.error)setTodayLessons((todayResult.data??[]) as TodayLesson[]);
       }
       setLoading(false);
     },
@@ -163,6 +165,13 @@ export function FamilyLiveDashboard({
   useEffect(() => {
     void load(null);
   }, [load]);
+  useEffect(()=>{
+    const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId)};
+    const timer=window.setInterval(refresh,5000);
+    window.addEventListener("focus",refresh);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh)};
+  },[load,selectedId]);
   const selected = data?.selectedStudent;
   const rate = useMemo(
     () =>
@@ -245,7 +254,7 @@ export function FamilyLiveDashboard({
             attendance={data?.recentAttendance ?? []}
             assignments={data?.assignments ?? []}
             announcements={data?.announcements ?? []}
-            todayClassCount={(data?.weekClasses ?? []).filter((item) => item.weekday === seoulWeekday()).length}
+            todayLessons={todayLessons}
             onNavigate={(view) =>
               onNavigate(view === "communications" ? "communications" : "reports")
             }
