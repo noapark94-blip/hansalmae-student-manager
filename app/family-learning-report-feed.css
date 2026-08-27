@@ -46,3 +46,8 @@
 .family-report-date-group>header{padding-top:17px;border-radius:18px 18px 0 0}
 .family-report-date-group>header>div,.family-report-date-group>header>small{transform:translateY(3px)}
 @media(max-width:760px){.family-report-date-group{margin-top:8px}.family-report-date-group::before{top:-9px;left:11px;right:11px;height:18px;background-size:22px 18px}.family-report-date-group>header{padding-top:15px;border-radius:16px 16px 0 0}}
+
+
+/* 상세 리포트 핵심 제목은 크기를 유지하고 한 단계만 선명하게 표시 */
+.family-report-detail-head h2,
+.family-report-detail-hero h3{font-weight:600}
