@@ -409,6 +409,7 @@ export function FamilyLearningReportFeed({
           supabase={supabase}
           studentId={studentId}
           item={selected.report}
+          previousHomework={findPreviousLessonHomework(selected.report, items)}
           canComment={canComment}
           readAt={reads[selected.report.lessonId] ?? null}
           readTracking={readTracking}
@@ -420,6 +421,10 @@ export function FamilyLearningReportFeed({
       {selected?.kind === "correction" && (
         <CorrectionFeedDetail
           item={selected.report}
+          previousHomework={findPreviousCorrectionHomework(
+            selected.report,
+            corrections,
+          )}
           readAt={correctionReads[selected.report.id] ?? null}
           confirming={confirming === selected.report.id}
           onClose={() => setSelected(null)}
@@ -505,12 +510,14 @@ function CorrectionFeedCard({
 
 function CorrectionFeedDetail({
   item,
+  previousHomework,
   readAt,
   confirming,
   onClose,
   onConfirm,
 }: {
   item: CorrectionReport;
+  previousHomework: string;
   readAt: string | null;
   confirming: boolean;
   onClose: () => void;
@@ -580,39 +587,25 @@ function CorrectionFeedDetail({
           </section>
           <div className="family-report-detail-sections">
             {item.examTitle && (
-              <section className="family-report-section family-report-exam-section">
-                <i>
-                  <HansalmaeIcon name="chart" size={18} />
-                </i>
-                <div>
-                  <b>개인별 시험 결과</b>
-                  <div className="family-report-exams">
-                    <div>
-                      <span>
-                        <strong>{item.examTitle}</strong>
-                        {examDescription && <small>{examDescription}</small>}
-                      </span>
-                      <em>
-                        {item.examScore == null ? (
-                          "평가"
-                        ) : (
-                          <>
-                            <strong>
-                              {formatScore(item.examScore)} /{" "}
-                              {formatScore(item.examMaxScore ?? 100)}
-                            </strong>
-                            {convertedExamScore !== null && (
-                              <small>
-                                100점 환산 {formatScore(convertedExamScore)}점
-                              </small>
-                            )}
-                          </>
-                        )}
-                      </em>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <ReportSection
+                icon="chart"
+                title="개인별 시험 결과"
+                text={[
+                  `${item.examTitle}: ${
+                    item.examScore == null
+                      ? "평가"
+                      : `${formatScore(item.examScore)} / ${formatScore(
+                          item.examMaxScore ?? 100,
+                        )}`
+                  }`,
+                  convertedExamScore !== null
+                    ? `100점 환산 ${formatScore(convertedExamScore)}점`
+                    : "",
+                  examDescription,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              />
             )}
             {item.correctionContent && (
               <ReportSection
@@ -633,6 +626,7 @@ function CorrectionFeedDetail({
                 icon="check"
                 title="지난 첨삭과제 검사"
                 text={[
+                  previousHomework,
                   correctionHomeworkLabel(item.homeworkStatus),
                   item.homeworkNote,
                 ]
@@ -785,6 +779,7 @@ function ReportDetail({
   supabase,
   studentId,
   item,
+  previousHomework,
   canComment,
   readAt,
   readTracking,
@@ -795,6 +790,7 @@ function ReportDetail({
   supabase: SupabaseClient;
   studentId: string;
   item: Report;
+  previousHomework: string;
   canComment: boolean;
   readAt: string | null;
   readTracking: boolean;
@@ -876,48 +872,30 @@ function ReportDetail({
               />
             )}
             {item.exams.length > 0 && (
-              <section className="family-report-section family-report-exam-section">
-                <i>
-                  <HansalmaeIcon name="chart" size={18} />
-                </i>
-                <div>
-                  <b>개인별 시험 결과</b>
-                  <div className="family-report-exams">
-                    {item.exams.map((exam) => {
-                      const convertedScore = getConvertedScore(exam);
-                      return (
-                        <div key={exam.id}>
-                          <span>
-                            <strong>
-                              {exam.examTitle || exam.examType || "시험"}
-                            </strong>
-                            {exam.evaluation && (
-                              <small>{exam.evaluation}</small>
-                            )}
-                          </span>
-                          <em>
-                            {exam.score === null ? (
-                              "평가"
-                            ) : (
-                              <>
-                                <strong>
-                                  {formatScore(exam.score)} /{" "}
-                                  {formatScore(exam.maxScore)}
-                                </strong>
-                                {convertedScore !== null && (
-                                  <small>
-                                    100점 환산 {formatScore(convertedScore)}점
-                                  </small>
-                                )}
-                              </>
-                            )}
-                          </em>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
+              <ReportSection
+                icon="chart"
+                title="개인별 시험 결과"
+                text={item.exams
+                  .map((exam) => {
+                    const convertedScore = getConvertedScore(exam);
+                    return [
+                      `${exam.examTitle || exam.examType || "시험"}: ${
+                        exam.score === null
+                          ? "평가"
+                          : `${formatScore(exam.score)} / ${formatScore(
+                              exam.maxScore,
+                            )}`
+                      }`,
+                      convertedScore !== null
+                        ? `100점 환산 ${formatScore(convertedScore)}점`
+                        : "",
+                      exam.evaluation,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                  })
+                  .join("\n")}
+              />
             )}
             {item.homeworkResult && (
               <section className="family-report-section">
@@ -927,6 +905,11 @@ function ReportDetail({
                 <div>
                   <b>지난 숙제 검사</b>
                   <p>
+                    {previousHomework && (
+                      <span className="previous-homework-content">
+                        {previousHomework} ·{" "}
+                      </span>
+                    )}
                     <strong
                       className={`homework-result ${item.homeworkResult.status}`}
                     >
@@ -1271,6 +1254,39 @@ function getConvertedScore(exam: Exam) {
   if (!Number.isFinite(Number(exam.maxScore)) || Number(exam.maxScore) <= 0)
     return null;
   return Math.round((Number(exam.score) / Number(exam.maxScore)) * 1000) / 10;
+}
+function findPreviousLessonHomework(current: Report, reports: Report[]) {
+  return (
+    reports
+      .filter(
+        (report) =>
+          report.classId === current.classId &&
+          report.startsAt < current.startsAt &&
+          report.homeworkContent.trim(),
+      )
+      .sort((left, right) => right.startsAt.localeCompare(left.startsAt))[0]
+      ?.homeworkContent.trim() ?? ""
+  );
+}
+function findPreviousCorrectionHomework(
+  current: CorrectionReport,
+  reports: CorrectionReport[],
+) {
+  const currentTime = `${current.correctionDate}T${current.startTime}`;
+  return (
+    reports
+      .filter(
+        (report) =>
+          report.subject === current.subject &&
+          `${report.correctionDate}T${report.startTime}` < currentTime &&
+          report.homeworkInstruction.trim(),
+      )
+      .sort((left, right) =>
+        `${right.correctionDate}T${right.startTime}`.localeCompare(
+          `${left.correctionDate}T${left.startTime}`,
+        ),
+      )[0]?.homeworkInstruction.trim() ?? ""
+  );
 }
 function formatCommentTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
