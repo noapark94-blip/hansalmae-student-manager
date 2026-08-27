@@ -105,10 +105,10 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     setSaving(false);
   }
   async function openStaffLesson() {
-    if(!selected?.lessonId)return;
-    const{data,error}=await supabase.from("lessons").select("class_id,lesson_date").eq("id",selected.lessonId).maybeSingle();
+    if(!selected?.lessonId||!selected.studentId)return;
+    const{data,error}=await supabase.rpc("staff_report_comment_lesson_target",{p_student_id:selected.studentId,p_lesson_id:selected.lessonId});
     if(error||!data)return;
-    const target={classId:String(data.class_id),date:String(data.lesson_date)};
+    const target={classId:String((data as {classId:string}).classId),date:String((data as {lessonDate:string}).lessonDate)};
     sessionStorage.setItem("hansalmae:staff-lesson-target",JSON.stringify(target));
     setSelected(null);
     onOpenStaffLesson?.();
