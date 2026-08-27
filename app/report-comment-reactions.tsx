@@ -8,10 +8,12 @@ type ReactionCount = { type: ReactionKind; count: number; selected: boolean };
 type ReactionRow = { commentId: string; reactions: ReactionCount[] };
 export type ReactionMap = Record<string, ReactionCount[]>;
 
-const choices: { type: ReactionKind; icon: string; label: string }[] = [
-  { type: "heart", icon: "heart", label: "공감" },
-  { type: "confirm", icon: "thumb", label: "좋아요" },
-  { type: "done", icon: "check", label: "확인" },
+// Keep the same compact reaction set on mobile and desktop. `thanks` remains
+// in ReactionKind only so previously stored reactions can still be read.
+const visibleChoices: ReadonlyArray<{ type: ReactionKind; label: string }> = [
+  { type: "heart", label: "하트" },
+  { type: "confirm", label: "좋아요" },
+  { type: "done", label: "확인" },
 ];
 
 function ReactionIcon({ kind }: { kind: ReactionKind }) {
@@ -70,14 +72,14 @@ export function CommentReactionBar({ commentId, items, disabled, reacting, onTog
   return <div ref={containerRef} className={`comment-reactions${open ? " open" : ""}`}>
     <div className="comment-reaction-totals">
       {items.filter((item) => item.count > 0).map((item) => {
-        const choice = choices.find((choiceItem) => choiceItem.type === item.type);
+        const choice = visibleChoices.find((choiceItem) => choiceItem.type === item.type);
         if (!choice) return null;
         return <button type="button" key={item.type} className={item.selected ? "selected" : ""} title={choice.label} disabled={reacting} onClick={() => onToggle(commentId, item.type)}><i><ReactionIcon kind={item.type}/></i><span>{item.count}</span></button>;
       })}
       <button type="button" className="comment-reaction-trigger" aria-expanded={open} onClick={() => setOpen((value) => !value)}><i>＋</i><span>반응</span></button>
     </div>
     {open && <div className="comment-reaction-picker" role="menu" aria-label="댓글 반응 선택">
-      {choices.map((choice) => <button type="button" role="menuitem" aria-label={choice.label} title={choice.label} key={choice.type} disabled={reacting} onClick={() => { onToggle(commentId, choice.type); setOpen(false); }}><i className={choice.type}><ReactionIcon kind={choice.type}/></i></button>)}
+      {visibleChoices.map((choice) => <button type="button" role="menuitem" aria-label={choice.label} title={choice.label} key={choice.type} disabled={reacting} onClick={() => { onToggle(commentId, choice.type); setOpen(false); }}><i className={choice.type}><ReactionIcon kind={choice.type}/></i></button>)}
     </div>}
   </div>;
 }
