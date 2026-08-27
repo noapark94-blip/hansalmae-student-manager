@@ -32,4 +32,9 @@
   .family-note-summary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0!important;overflow:visible!important}
   .family-note-summary>span{min-width:0;justify-content:center;padding:8px 9px!important;background:#fcfafb}
   .family-note-summary b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+  .family-learning-note.no-lessons{padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+  .family-learning-note.no-lessons .family-note-summary{display:block!important}
+  .family-learning-note.no-lessons .family-note-no-lessons{min-height:60px;border-radius:16px;padding:10px 12px}
+  .family-learning-note.no-lessons .family-note-no-lessons b{font-size:12px}
+  .family-learning-note.no-lessons .family-note-no-lessons small{font-size:9.5px}
 }
