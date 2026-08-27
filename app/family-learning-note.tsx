@@ -31,7 +31,7 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
       </button>
       <button type="button" className="family-note-block" onClick={()=>onNavigate("assignments")}>
         <i className="wine"><HansalmaeIcon name="edit" size={20}/></i>
-        <span><small>해야 할 학습</small>{activeAssignments.length?activeAssignments.map(item=><b key={item.id}>{item.className} · {item.title}</b>):<b>현재 확인할 과제가 없습니다.</b>}<em>과제·첨삭 보기</em></span>
+        <span><small>해야 할 학습</small>{activeAssignments.length?activeAssignments.map(item=><b key={item.id}>{item.className} · {item.title}</b>):<b>현재 진행 중인 과제가 없습니다.</b>}<em>과제·첨삭 보기</em></span>
       </button>
       <button type="button" className="family-note-block wide" onClick={()=>onNavigate("communications")}>
         <i className="blue"><HansalmaeIcon name="notice" size={20}/></i>

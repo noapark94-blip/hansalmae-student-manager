@@ -6,6 +6,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import {
+  CommentReactionBar,
+  useReportCommentReactions,
+} from "./report-comment-reactions";
 
 type InboxItem = {
   id: string;
@@ -45,6 +49,8 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [threadError, setThreadError] = useState("");
+  const { reactions, reacting, load: loadReactions, toggle } =
+    useReportCommentReactions(supabase);
   const load = useCallback(async () => {
     const [staff, family, general] = await Promise.all([
       supabase.rpc("staff_report_comment_inbox"),
@@ -96,11 +102,17 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
         p_student_id: selected.studentId,
         p_lesson_id: selected.lessonId,
       });
-      if (data) setThread(data as ThreadComment[]);
+      if (data) {
+        const nextThread = data as ThreadComment[];
+        setThread(nextThread);
+        await loadReactions(
+          nextThread.filter((item) => !item.isDeleted).map((item) => item.id),
+        );
+      }
     };
     const intervalId = window.setInterval(() => void refreshThread(), 5000);
     return () => window.clearInterval(intervalId);
-  }, [selected?.lessonId, selected?.studentId, supabase]);
+  }, [loadReactions, selected?.lessonId, selected?.studentId, supabase]);
   useEffect(()=>{if(!open&&!selected)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open,selected]);
   function markItemRead(item:InboxItem){
     if(item.readAt)return;
@@ -131,7 +143,11 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
       p_student_id: item.studentId,
       p_lesson_id: item.lessonId,
     });
-    setThread((data ?? []) as ThreadComment[]);
+    const nextThread = (data ?? []) as ThreadComment[];
+    setThread(nextThread);
+    await loadReactions(
+      nextThread.filter((comment) => !comment.isDeleted).map((comment) => comment.id),
+    );
     void load();
   }
   async function removeComment(item:ThreadComment) {
@@ -276,12 +292,14 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       <span><time>{formatTime(root.createdAt)}</time>{root.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===root.id} onClick={()=>void removeComment(root)}>{deleting===root.id?"삭제 중…":"삭제"}</button>}</span>
                     </div>
                     <p className={root.isDeleted?"deleted":""}>{root.body}</p>
+                    <CommentReactionBar commentId={root.id} items={reactions[root.id]??[]} disabled={root.isDeleted} reacting={reacting===root.id} onToggle={(commentId,type)=>void toggle(commentId,type)}/>
                     {thread
                       .filter((item) => item.parentId === root.id)
                       .map((item) => (
                         <section key={item.id}>
                           <div className="comment-reply-meta"><b>{item.authorName} 선생님</b><span><time>{formatTime(item.createdAt)}</time>{item.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===item.id} onClick={()=>void removeComment(item)}>{deleting===item.id?"삭제 중…":"삭제"}</button>}</span></div>
                           <p>{item.body}</p>
+                          <CommentReactionBar commentId={item.id} items={reactions[item.id]??[]} disabled={item.isDeleted} reacting={reacting===item.id} onToggle={(commentId,type)=>void toggle(commentId,type)}/>
                         </section>
                       ))}
                   </article>

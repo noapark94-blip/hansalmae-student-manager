@@ -13,6 +13,7 @@ import "./family-learning-note.css";
 import "./family-learning-report-feed.css";
 import "./family-schedule.css";
 import "./report-comments.css";
+import "./report-comment-reactions.css";
 import "./notification-mobile-fix.css";
 import "./staff-report-read-status.css";
 import "./compact-read-status.css";

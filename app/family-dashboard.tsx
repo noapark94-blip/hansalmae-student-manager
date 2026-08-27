@@ -276,7 +276,7 @@ export function FamilyLiveDashboard({
               tone="green"
             />
             <FamilyStat
-              label="확인할 과제"
+              label="진행 중 과제"
               value={String(
                 data?.assignments.filter((x) => x.status !== "reviewed")
                   .length ?? 0,
@@ -426,7 +426,7 @@ export function FamilyLiveDashboard({
                   meta={
                     data?.assignments[0]
                       ? `${data.assignments[0].title} · ${assignmentLabel(data.assignments[0].status)}`
-                      : "확인할 과제 없음"
+                      : "진행 중인 과제 없음"
                   }
                   count={
                     data?.assignments.filter((x) => x.status !== "reviewed")

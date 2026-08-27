@@ -5,6 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import {
+  CommentReactionBar,
+  useReportCommentReactions,
+} from "./report-comment-reactions";
 
 type AttendanceInfo = {
   status: string;
@@ -958,16 +962,24 @@ function FamilyReportComments({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const { reactions, reacting, load: loadReactions, toggle } =
+    useReportCommentReactions(supabase);
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error: nextError } = await supabase.rpc(
       "family_report_comments",
       { p_student_id: studentId, p_lesson_id: lessonId },
     );
-    setItems(nextError ? [] : ((data ?? []) as ReportComment[]));
+    const nextItems = nextError ? [] : ((data ?? []) as ReportComment[]);
+    setItems(nextItems);
+    if (!nextError) {
+      await loadReactions(
+        nextItems.filter((item) => !item.isDeleted).map((item) => item.id),
+      );
+    }
     setError(nextError ? "댓글을 불러오지 못했습니다." : "");
     setLoading(false);
-  }, [lessonId, studentId, supabase]);
+  }, [lessonId, loadReactions, studentId, supabase]);
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
@@ -1065,6 +1077,13 @@ function FamilyReportComments({
               >
                 {root.body}
               </p>
+              <CommentReactionBar
+                commentId={root.id}
+                items={reactions[root.id] ?? []}
+                disabled={root.isDeleted}
+                reacting={reacting === root.id}
+                onToggle={(commentId, type) => void toggle(commentId, type)}
+              />
               {items
                 .filter((reply) => reply.parentId === root.id)
                 .map((reply) => (
@@ -1075,6 +1094,13 @@ function FamilyReportComments({
                     </div>
                     <p>{reply.body}</p>
                     <time>{formatCommentTime(reply.createdAt)}</time>
+                    <CommentReactionBar
+                      commentId={reply.id}
+                      items={reactions[reply.id] ?? []}
+                      disabled={reply.isDeleted}
+                      reacting={reacting === reply.id}
+                      onToggle={(commentId, type) => void toggle(commentId, type)}
+                    />
                   </section>
                 ))}
             </article>
