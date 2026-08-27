@@ -749,12 +749,12 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <NotificationCenter supabase={supabase} />
               {(profile.role === "admin" || profile.role === "teacher" || profile.role === "manager") && (
                 <button className="primary small" onClick={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))}>
                   ＋ 학생 등록
                 </button>
               )}
+              <NotificationCenter supabase={supabase} />
             </header>
           </>
         )}

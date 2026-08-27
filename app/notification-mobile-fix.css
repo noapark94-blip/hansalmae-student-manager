@@ -1,6 +1,7 @@
 .notification-backdrop{z-index:1000!important}
 .notification-drawer{min-height:100dvh;isolation:isolate}
 .notification-list{flex:1;min-height:0;background:#fff}
+@media(min-width:761px){.topbar>.notification-button{flex:0 0 40px;margin-left:0}.topbar>.notification-button svg{display:block;margin:auto}.topbar>.primary.small+.notification-button{margin-left:-6px}}
 @media(max-width:600px){
   .notification-backdrop{inset:0!important;padding:0;background:#fff!important;display:block!important}
   .notification-drawer{width:100%!important;height:100dvh!important;min-height:100dvh!important;max-width:none!important;box-shadow:none!important;background:#fff!important}
