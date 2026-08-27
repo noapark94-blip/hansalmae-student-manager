@@ -24,3 +24,5 @@
 @media(max-width:760px){.family-report-card-summary{gap:5px;margin-top:10px}.family-report-card-summary p{grid-template-columns:60px minmax(0,1fr);font-size:14px!important}.family-report-card-summary b{font-size:12px}}
 .family-report-section p .previous-homework-content{color:#30282c}
 .family-report-detail-rows{display:grid;gap:4px}.family-report-detail-rows p{display:grid;grid-template-columns:54px minmax(0,1fr);gap:7px}.family-report-detail-rows p strong{color:#8b315d;font-size:.88em;white-space:nowrap}.family-report-detail-rows p span{color:#30282c}.family-report-detail-rows p.complete span{color:#3f765f;font-weight:800}.family-report-detail-rows p.partial span{color:#9a671a;font-weight:800}.family-report-detail-rows p.missing span{color:#a23d55;font-weight:800}
+.family-report-card-main{padding-left:18px}
+@media(max-width:760px){.family-report-card-main{padding-left:16px}}
