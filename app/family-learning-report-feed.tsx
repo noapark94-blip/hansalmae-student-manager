@@ -964,28 +964,32 @@ function FamilyReportComments({
   const [error, setError] = useState("");
   const { reactions, reacting, load: loadReactions, toggle } =
     useReportCommentReactions(supabase);
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
     const { data, error: nextError } = await supabase.rpc(
       "family_report_comments",
       { p_student_id: studentId, p_lesson_id: lessonId },
     );
-    const nextItems = nextError ? [] : ((data ?? []) as ReportComment[]);
-    setItems(nextItems);
-    if (!nextError) {
+    if (nextError) {
+      if (!background) setItems([]);
+    } else {
+      const nextItems = (data ?? []) as ReportComment[];
+      setItems((current) =>
+        JSON.stringify(current) === JSON.stringify(nextItems) ? current : nextItems,
+      );
       await loadReactions(
         nextItems.filter((item) => !item.isDeleted).map((item) => item.id),
       );
     }
     setError(nextError ? "댓글을 불러오지 못했습니다." : "");
-    setLoading(false);
+    if (!background) setLoading(false);
   }, [lessonId, loadReactions, studentId, supabase]);
   useEffect(() => {
-    void Promise.resolve().then(load);
+    void Promise.resolve().then(() => load());
   }, [load]);
   useEffect(() => {
     const refresh = () => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(true);
     };
     const intervalId = window.setInterval(refresh, 5000);
     window.addEventListener("focus", refresh);
@@ -1008,7 +1012,7 @@ function FamilyReportComments({
     if (nextError) setError("댓글을 등록하지 못했습니다.");
     else {
       setBody("");
-      await load();
+      await load(true);
     }
     setSaving(false);
   }
@@ -1031,7 +1035,7 @@ function FamilyReportComments({
       p_comment_id: item.id,
     });
     if (nextError) setError("댓글을 삭제하지 못했습니다.");
-    else await load();
+    else await load(true);
     setDeleting(null);
   }
   const roots = items.filter((item) => !item.parentId);
