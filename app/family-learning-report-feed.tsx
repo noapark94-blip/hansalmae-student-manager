@@ -1112,7 +1112,6 @@ function FamilyReportComments({
                 <i>{root.authorName.slice(0, 1)}</i>
                 <span>
                   <strong>{root.authorName} 학부모님</strong>
-                  <time>{formatCommentTime(root.createdAt)}</time>
                 </span>
                 {root.canDelete && (
                   <button
@@ -1129,13 +1128,16 @@ function FamilyReportComments({
                 className={`family-comment-bubble ${root.isDeleted ? "deleted" : ""}`}
               >
                 <p>{root.body}</p>
-                <CommentReactionBar
-                  commentId={root.id}
-                  items={reactions[root.id] ?? []}
-                  disabled={root.isDeleted}
-                  reacting={reacting === root.id}
-                  onToggle={(commentId, type) => void toggle(commentId, type)}
-                />
+                <div className="family-comment-meta">
+                  <CommentReactionBar
+                    commentId={root.id}
+                    items={reactions[root.id] ?? []}
+                    disabled={root.isDeleted}
+                    reacting={reacting === root.id}
+                    onToggle={(commentId, type) => void toggle(commentId, type)}
+                  />
+                  <time>{formatCommentTime(root.createdAt)}</time>
+                </div>
               </div>
               {items
                 .filter((reply) => reply.parentId === root.id)
@@ -1146,14 +1148,16 @@ function FamilyReportComments({
                       <b>{familyTeacherName(reply.authorName)}</b>
                     </div>
                     <p>{reply.body}</p>
-                    <time>{formatCommentTime(reply.createdAt)}</time>
-                    <CommentReactionBar
-                      commentId={reply.id}
-                      items={reactions[reply.id] ?? []}
-                      disabled={reply.isDeleted}
-                      reacting={reacting === reply.id}
-                      onToggle={(commentId, type) => void toggle(commentId, type)}
-                    />
+                    <div className="family-comment-meta">
+                      <CommentReactionBar
+                        commentId={reply.id}
+                        items={reactions[reply.id] ?? []}
+                        disabled={reply.isDeleted}
+                        reacting={reacting === reply.id}
+                        onToggle={(commentId, type) => void toggle(commentId, type)}
+                      />
+                      <time>{formatCommentTime(reply.createdAt)}</time>
+                    </div>
                   </section>
                 ))}
             </article>
