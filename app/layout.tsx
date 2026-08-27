@@ -11,6 +11,7 @@ import "./class-home-polish.css";
 import "./family-kidsnote.css";
 import "./family-learning-note.css";
 import "./family-learning-report-feed.css";
+import "./family-schedule.css";
 import "./report-comments.css";
 import "./notification-mobile-fix.css";
 import "./staff-report-read-status.css";
