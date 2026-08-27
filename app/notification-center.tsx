@@ -100,7 +100,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   }
   async function removeComment(item:ThreadComment) {
     if (!selected || deleting || !item.canDelete) return;
-    const confirmed=await appConfirm({eyebrow:"댓글 삭제",title:item.parentId?"작성한 답변을 삭제할까요?":"이 댓글을 삭제할까요?",notice:item.parentId?"해당 답변만 삭제되며 복구할 수 없습니다.":"선생님이 남긴 답변은 그대로 유지됩니다.",confirmLabel:"삭제",tone:"danger"});
+    const confirmed=await appConfirm({eyebrow:"댓글 삭제",title:item.parentId?"작성한 답변을 삭제할까요?":"이 댓글을 삭제할까요?",notice:item.parentId?"학부모 댓글도 이미 삭제된 상태라면 빈 대화 전체가 정리됩니다.":"선생님이 남긴 답변은 그대로 유지됩니다.",confirmLabel:"삭제",tone:"danger"});
     if(!confirmed)return;
     setDeleting(item.id);setThreadError("");
     const{error}=await supabase.rpc("delete_report_comment",{p_comment_id:item.id});
