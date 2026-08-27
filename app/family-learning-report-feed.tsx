@@ -30,6 +30,7 @@ type Report = {
   classId: string;
   className: string;
   subject: string;
+  mainSubject?: string;
   room: string | null;
   teacherName: string;
   lessonContent: string;
@@ -657,6 +658,7 @@ function ReportCard({
 }) {
   const attendance = item.attendance;
   const firstExam = item.exams[0] ?? null;
+  const displayTitle = reportDisplayTitle(item);
   const preview =
     item.lessonContent ||
     item.examContent ||
@@ -671,17 +673,17 @@ function ReportCard({
         type="button"
         className="family-report-card-main"
         onClick={onOpen}
-        aria-label={`${item.className} 리포트 자세히 보기`}
+        aria-label={`${displayTitle} 리포트 자세히 보기`}
       >
         <span className="family-report-subject-mark" aria-hidden="true">
-          {item.subject?.slice(0, 1) || "수"}
+          {(item.mainSubject || item.subject)?.slice(0, 1) || "수"}
         </span>
         <span className="family-report-subject">
           <span className="family-report-card-labels">
-            <span>{item.subject}</span>
+            <span>{reportBadgeLabel(item)}</span>
             {readTracking && !readAt && <em>NEW</em>}
           </span>
-          <strong>{item.className}</strong>
+          <strong>{displayTitle}</strong>
           <small>
             {formatTime(item.startsAt)} · {familyTeacherName(item.teacherName)}
             {item.room ? ` · ${item.room}` : ""}
@@ -742,6 +744,7 @@ function ReportDetail({
   onConfirm: () => void;
 }) {
   const attendance = item.attendance;
+  const displayTitle = reportDisplayTitle(item);
   const attendanceMemo = [attendance?.absenceReason, attendance?.note]
     .filter(Boolean)
     .join(" · ");
@@ -777,10 +780,10 @@ function ReportDetail({
         <div className="family-report-detail-scroll">
           <section className="family-report-detail-hero">
             <div className="family-report-card-labels">
-              <span>{item.subject}</span>
+              <span>{reportBadgeLabel(item)}</span>
             </div>
             <div>
-              <h3>{item.className}</h3>
+              <h3>{displayTitle}</h3>
               {attendance && (
                 <strong
                   className={`family-attendance-badge ${attendance.status}`}
@@ -1196,6 +1199,20 @@ function formatCommentTime(value: string) {
 }
 function cleanCorrectionRange(value: string) {
   return (value ?? "").replace(/^\[종류\][^\n]*\n?/, "").trim();
+}
+function reportDisplayTitle(item: Report) {
+  if (
+    item.mainSubject &&
+    (item.subject === "보강" || item.subject === "추가수업")
+  )
+    return `${item.mainSubject} ${item.subject}`;
+  return item.className;
+}
+function reportBadgeLabel(item: Report) {
+  return item.mainSubject &&
+    (item.subject === "보강" || item.subject === "추가수업")
+    ? `${item.mainSubject} ${item.subject}`
+    : item.subject;
 }
 function correctionHomeworkLabel(value: string) {
   return (
