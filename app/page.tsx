@@ -405,7 +405,18 @@ export default function Home() {
       window.sessionStorage.setItem("hansalmae:correction-mode", "management");
       window.dispatchEvent(new Event("hansalmae-correction-mode"));
     }
+    setStaffLessonTarget(null);
     setView(next);
+    setMobileNav(false);
+    setStaffMoreOpen(false);
+    setQuery("");
+    setSearchOpen(false);
+  };
+
+  const openStaffLessonTarget = (target: StaffLessonTarget) => {
+    setStaffLessonTarget(target);
+    setAdminHomeMode("classes");
+    setView("dashboard");
     setMobileNav(false);
     setStaffMoreOpen(false);
     setQuery("");
@@ -672,7 +683,7 @@ export default function Home() {
                 <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
-                <NotificationCenter supabase={supabase} onOpenStaffLesson={target=>{setStaffLessonTarget(target);setAdminHomeMode("classes");selectView("dashboard")}} />
+                <NotificationCenter supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
                 <button type="button" className="staff-account-button" onClick={() => selectView("my-account")} aria-label="내 계정">
                   <span>{profile.display_name.slice(0, 1)}</span>
                 </button>
@@ -755,13 +766,13 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter supabase={supabase} onOpenStaffLesson={target=>{setStaffLessonTarget(target);setAdminHomeMode("classes");selectView("dashboard")}} />
+              <NotificationCenter supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
             </header>
           </>
         )}
 
-        <div className={`content${familyAccount ? " family-app-content" : ""}`}>
-          {view === "dashboard" && staffAccount && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
+        <div className={`content${familyAccount ? " family-app-content" : ""}${staffLessonTarget ? " staff-lesson-deep-link" : ""}`}>
+          {view === "dashboard" && staffAccount && !staffLessonTarget && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
               <div className="admin-home-switch">
