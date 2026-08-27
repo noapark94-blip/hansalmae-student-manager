@@ -174,6 +174,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, o
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(()=>{if(!data)return;const apply=(target:{classId?:string;date?:string}|null)=>{if(!target?.classId||!data.classes.some(item=>item.id===target.classId))return;setSelectedId(target.classId);if(target.date)setDate(target.date);sessionStorage.removeItem("hansalmae:staff-lesson-target");window.setTimeout(()=>document.querySelector(".class-day-workspace")?.scrollIntoView({behavior:"smooth",block:"start"}),100)};try{apply(JSON.parse(sessionStorage.getItem("hansalmae:staff-lesson-target")??"null"))}catch{sessionStorage.removeItem("hansalmae:staff-lesson-target")}const open=(event:Event)=>apply((event as CustomEvent<{classId?:string;date?:string}>).detail);window.addEventListener("hansalmae:open-staff-lesson",open);return()=>window.removeEventListener("hansalmae:open-staff-lesson",open)},[data]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const loadDay = useCallback(async () => {
     if (!selectedId || selectedId === specialLessonsId) return setDay(null);

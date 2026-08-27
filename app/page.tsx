@@ -671,7 +671,7 @@ export default function Home() {
                 <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
-                <NotificationCenter supabase={supabase} />
+                <NotificationCenter supabase={supabase} onOpenStaffLesson={()=>selectView("dashboard")} />
                 <button type="button" className="staff-account-button" onClick={() => selectView("my-account")} aria-label="내 계정">
                   <span>{profile.display_name.slice(0, 1)}</span>
                 </button>
@@ -754,7 +754,7 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter supabase={supabase} />
+              <NotificationCenter supabase={supabase} onOpenStaffLesson={()=>selectView("dashboard")} />
             </header>
           </>
         )}

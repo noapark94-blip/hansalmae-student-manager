@@ -3,8 +3,9 @@
 /* 리포트 댓글 대화창 */
 .comment-thread-backdrop{z-index:140;background:rgba(38,29,34,.32);backdrop-filter:blur(7px)}
 .comment-thread-dialog{width:min(100%,520px);max-height:min(82dvh,720px);border-color:#eadfe4;border-radius:24px;background:#fbf9fa;box-shadow:0 28px 80px rgba(44,28,36,.24)}
-.comment-thread-dialog>header{min-height:76px;padding:12px 16px;border-bottom:1px solid #eee6e9;background:rgba(255,255,255,.96);align-items:center}
+.comment-thread-dialog>header{min-height:76px;padding:12px 16px;border-bottom:1px solid #eee6e9;background:rgba(255,255,255,.96);grid-template-columns:40px minmax(0,1fr) 78px;align-items:center}
 .comment-thread-dialog>header button{display:grid;width:40px;height:40px;place-items:center;border:1px solid #ece3e7;border-radius:13px;background:#fff;color:#554950;font-size:25px;line-height:1;cursor:pointer}
+.comment-thread-dialog>header .comment-thread-lesson-button{display:flex;width:auto;min-width:72px;height:36px;padding:0 9px;align-items:center;justify-content:center;gap:4px;border-color:#ead9e1;border-radius:11px;color:#872a59;font-size:9px;font-weight:800;white-space:nowrap}.comment-thread-dialog>header .comment-thread-lesson-button span{display:inline}
 .comment-thread-dialog>header small{display:block;color:#9a8c93;font-size:9px;font-weight:700}
 .comment-thread-dialog>header h2{margin:3px 0 0;color:#332a2f;font-size:16px;letter-spacing:-.35px}
 .comment-thread-list{align-content:start;padding:18px 16px 22px;gap:16px;background:linear-gradient(180deg,#fcfafb,#faf7f8)}

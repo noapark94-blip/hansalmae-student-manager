@@ -30,7 +30,7 @@ type ThreadComment = {
   createdAt: string;
 };
 
-export function NotificationCenter({ supabase, onOpenFamilyReport }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void }) {
+export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenStaffLesson?: () => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
@@ -103,6 +103,16 @@ export function NotificationCenter({ supabase, onOpenFamilyReport }: { supabase:
       await openItem(selected);
     }
     setSaving(false);
+  }
+  async function openStaffLesson() {
+    if(!selected?.lessonId)return;
+    const{data,error}=await supabase.from("lessons").select("class_id,lesson_date").eq("id",selected.lessonId).maybeSingle();
+    if(error||!data)return;
+    const target={classId:String(data.class_id),date:String(data.lesson_date)};
+    sessionStorage.setItem("hansalmae:staff-lesson-target",JSON.stringify(target));
+    setSelected(null);
+    onOpenStaffLesson?.();
+    window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-staff-lesson",{detail:target})),50);
   }
   return (
     <>
@@ -204,7 +214,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport }: { supabase:
                 </small>
                 <h2>리포트 댓글</h2>
               </div>
-              <span />
+              <button type="button" className="comment-thread-lesson-button" onClick={()=>void openStaffLesson()}><HansalmaeIcon name="book" size={15}/><span>수업 기록</span></button>
             </header>
             <div className="comment-thread-list">
               {thread
