@@ -102,9 +102,11 @@ const homeworkLabel: Record<string, string> = {
 export function FamilyLearningReportFeed({
   supabase,
   studentId,
+  studentName,
 }: {
   supabase: SupabaseClient;
   studentId: string;
+  studentName?: string;
 }) {
   const [items, setItems] = useState<Report[]>([]);
   const [reads, setReads] = useState<Record<string, string>>({});
@@ -335,7 +337,7 @@ export function FamilyLearningReportFeed({
       <header className="family-report-feed-title">
         <div>
           <p className="eyebrow">하루하루 쌓이는 기록</p>
-          <h2>학습 피드</h2>
+          <h2>{studentName ? `${studentName}의 학습 피드` : "학습 피드"}</h2>
           <span>오늘 무엇을 배우고 어떻게 해냈는지 확인하세요.</span>
         </div>
         {readTracking && unreadCount > 0 && (
