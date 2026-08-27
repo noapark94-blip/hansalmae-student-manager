@@ -1125,18 +1125,18 @@ function FamilyReportComments({
                   </button>
                 )}
               </div>
-              <p
+              <div
                 className={`family-comment-bubble ${root.isDeleted ? "deleted" : ""}`}
               >
-                {root.body}
-              </p>
-              <CommentReactionBar
-                commentId={root.id}
-                items={reactions[root.id] ?? []}
-                disabled={root.isDeleted}
-                reacting={reacting === root.id}
-                onToggle={(commentId, type) => void toggle(commentId, type)}
-              />
+                <p>{root.body}</p>
+                <CommentReactionBar
+                  commentId={root.id}
+                  items={reactions[root.id] ?? []}
+                  disabled={root.isDeleted}
+                  reacting={reacting === root.id}
+                  onToggle={(commentId, type) => void toggle(commentId, type)}
+                />
+              </div>
               {items
                 .filter((reply) => reply.parentId === root.id)
                 .map((reply) => (
