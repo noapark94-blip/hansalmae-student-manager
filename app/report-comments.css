@@ -29,7 +29,7 @@
 /* 학부모 리포트 댓글 */
 .family-report-comments{margin-top:14px;border-radius:22px;box-shadow:0 10px 28px rgba(61,39,49,.04)}
 .family-report-comments>header{min-height:74px;padding:14px 16px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:11px}
-.family-comment-heading-icon{width:40px;height:40px;border-radius:14px;background:#f7eaf0;color:#922d61;display:grid;place-items:center}
+.family-report-comments>header>.family-comment-heading-icon{width:40px;height:40px;border-radius:14px;background:#f7eaf0;color:#922d61;display:grid;place-items:center;justify-content:center;gap:0}
 .family-report-comments>header>span{min-width:0;display:grid;gap:3px}.family-report-comments>header b{color:#842653;font-size:12px}.family-report-comments>header small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#988b91;font-size:9px}
 .family-report-comments>header>em{padding:5px 9px;border-radius:99px;background:#f7f1f4;color:#8b6f7c;font-size:8px;font-style:normal;font-weight:800;white-space:nowrap}
 .family-comment-list{padding:16px 14px 18px;background:linear-gradient(180deg,#fff,#fcfafb);display:grid;gap:18px}.family-comment-list>article{padding:0;border:0;display:grid;gap:9px}.family-comment-list>article+article{padding-top:18px;border-top:1px solid #f1eaed}
