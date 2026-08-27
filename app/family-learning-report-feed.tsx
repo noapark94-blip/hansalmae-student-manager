@@ -1124,11 +1124,15 @@ function FamilyReportComments({
                   </button>
                 )}
               </div>
-              <div
-                className={`family-comment-bubble ${root.isDeleted ? "deleted" : ""}`}
-              >
-                <p>{root.body}</p>
-                <div className="family-comment-meta">
+              <div className="family-comment-message family-comment-message-parent">
+                <div
+                  className={`family-comment-bubble ${root.isDeleted ? "deleted" : ""}`}
+                >
+                  <p>{root.body}</p>
+                </div>
+                <time>{formatCommentTime(root.createdAt)}</time>
+              </div>
+              <div className="family-comment-reaction-row family-comment-reaction-parent">
                   <CommentReactionBar
                     commentId={root.id}
                     items={reactions[root.id] ?? []}
@@ -1136,19 +1140,22 @@ function FamilyReportComments({
                     reacting={reacting === root.id}
                     onToggle={(commentId, type) => void toggle(commentId, type)}
                   />
-                  <time>{formatCommentTime(root.createdAt)}</time>
-                </div>
               </div>
               {items
                 .filter((reply) => reply.parentId === root.id)
                 .map((reply) => (
-                  <section key={reply.id}>
-                    <div>
+                  <section className="family-comment-reply" key={reply.id}>
+                    <div className="family-comment-reply-author">
                       <i>{familyTeacherName(reply.authorName).slice(0, 1)}</i>
                       <b>{familyTeacherName(reply.authorName)}</b>
                     </div>
-                    <p>{reply.body}</p>
-                    <div className="family-comment-meta">
+                    <div className="family-comment-message family-comment-message-reply">
+                      <time>{formatCommentTime(reply.createdAt)}</time>
+                      <div className={`family-comment-bubble ${reply.isDeleted ? "deleted" : ""}`}>
+                        <p>{reply.body}</p>
+                      </div>
+                    </div>
+                    <div className="family-comment-reaction-row family-comment-reaction-reply">
                       <CommentReactionBar
                         commentId={reply.id}
                         items={reactions[reply.id] ?? []}
@@ -1156,7 +1163,6 @@ function FamilyReportComments({
                         reacting={reacting === reply.id}
                         onToggle={(commentId, type) => void toggle(commentId, type)}
                       />
-                      <time>{formatCommentTime(reply.createdAt)}</time>
                     </div>
                   </section>
                 ))}
