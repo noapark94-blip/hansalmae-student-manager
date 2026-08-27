@@ -156,7 +156,11 @@ export function FamilyLearningReportFeed({
       }
       setItems((reportResult.data ?? []) as Report[]);
       if (!correctionResult.error)
-        setCorrections((correctionResult.data ?? []) as CorrectionReport[]);
+        setCorrections(
+          ((correctionResult.data ?? []) as CorrectionReport[]).map(
+            normalizeCorrectionReport,
+          ),
+        );
       const [readResult, correctionReadResult] = await Promise.all([
         supabase.rpc("family_learning_report_reads", {
           p_student_id: studentId,
@@ -210,7 +214,11 @@ export function FamilyLearningReportFeed({
     if (!reportResult.error)
       setItems((reportResult.data ?? []) as Report[]);
     if (!correctionResult.error)
-      setCorrections((correctionResult.data ?? []) as CorrectionReport[]);
+      setCorrections(
+        ((correctionResult.data ?? []) as CorrectionReport[]).map(
+          normalizeCorrectionReport,
+        ),
+      );
     if (!readResult.error) {
       const next: Record<string, string> = {};
       for (const receipt of (readResult.data ?? []) as ReadReceipt[])
@@ -1477,6 +1485,24 @@ function formatCommentTime(value: string) {
 }
 function cleanCorrectionRange(value: string) {
   return (value ?? "").replace(/^\[종류\][^\n]*\n?/, "").trim();
+}
+function normalizeCorrectionReport(report: CorrectionReport): CorrectionReport {
+  return {
+    ...report,
+    correctionDate: report.correctionDate ?? "",
+    startTime: report.startTime ?? "",
+    endTime: report.endTime ?? "",
+    subject: report.subject ?? "첨삭",
+    attendanceStatus: report.attendanceStatus ?? "scheduled",
+    examTitle: report.examTitle ?? "",
+    examRange: report.examRange ?? "",
+    evaluation: report.evaluation ?? "",
+    homeworkInstruction: report.homeworkInstruction ?? "",
+    homeworkNote: report.homeworkNote ?? "",
+    correctionContent: report.correctionContent ?? "",
+    assistantFeedback: report.assistantFeedback ?? "",
+    nextPreparation: report.nextPreparation ?? "",
+  };
 }
 function reportDisplayTitle(item: Report) {
   if (
