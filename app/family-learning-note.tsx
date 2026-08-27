@@ -27,9 +27,11 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
       <div className="family-note-date"><span>{formatToday()}</span><b>오늘의 한살매</b></div>
       <div><h2>{studentName} 학습 노트</h2><p>오늘의 수업과 해야 할 일을 한눈에 확인하세요.</p></div>
     </header>
-    <div className="family-note-summary">
-      <button type="button" aria-expanded={summaryOpen==="attendance"} onClick={()=>setSummaryOpen(value=>value==="attendance"?null:"attendance")}><HansalmaeIcon name="check" size={17}/><b>{attendanceText}</b></button>
-      <button type="button" aria-expanded={summaryOpen==="lessons"} onClick={()=>setSummaryOpen(value=>value==="lessons"?null:"lessons")}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b></button>
+    <div className={`family-note-summary${todayLessons.length?"":" empty"}`}>
+      {todayLessons.length?<>
+        <button type="button" aria-expanded={summaryOpen==="attendance"} onClick={()=>setSummaryOpen(value=>value==="attendance"?null:"attendance")}><HansalmaeIcon name="check" size={17}/><b>{attendanceText}</b></button>
+        <button type="button" aria-expanded={summaryOpen==="lessons"} onClick={()=>setSummaryOpen(value=>value==="lessons"?null:"lessons")}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b></button>
+      </>:<div className="family-note-no-lessons"><HansalmaeIcon name="calendar" size={17}/><b>오늘 예정된 수업이 없어요</b></div>}
     </div>
     {summaryOpen&&<section className="family-note-today-detail">
       <header><b>{summaryOpen==="attendance"?"오늘의 출결":"오늘의 수업"}</b><button type="button" onClick={()=>setSummaryOpen(null)}>닫기</button></header>
