@@ -250,6 +250,8 @@ export function FamilyLiveDashboard({
             assignments={data?.assignments ?? []}
             announcements={data?.announcements ?? []}
             todayLessons={todayLessons}
+            nextLesson={data?.upcomingClasses[0] ?? null}
+            onSchedule={() => onNavigate("schedule")}
             onNavigate={(view) =>
               onNavigate(view === "communications" ? "communications" : "reports")
             }
