@@ -81,6 +81,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport }: { supabase:
       return;
     }
     if (!item.studentId || !item.lessonId) return;
+    setOpen(false);
     setSelected(item);
     setReply("");
     const { data } = await supabase.rpc("staff_report_comments", {
