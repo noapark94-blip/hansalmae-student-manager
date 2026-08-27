@@ -10,3 +10,8 @@
 .comment-reaction-picker>button:hover,.comment-reaction-picker>button:focus-visible{background:#faf3f6;transform:translateY(-2px);outline:0}
 .comment-reaction-picker i{width:31px;height:31px;display:grid;place-items:center;font-style:normal;line-height:1}.comment-reaction-picker i svg{width:100%;height:100%;display:block}
 @media(max-width:760px){.comment-reaction-picker{left:0;bottom:38px;width:180px;height:58px;padding:6px 8px;border-radius:20px}.comment-reaction-picker>button{width:46px;height:44px;padding:5px}.comment-reaction-picker>button:hover,.comment-reaction-picker>button:focus-visible{transform:none}.comment-reaction-picker i{width:31px;height:31px}}
+
+/* 말풍선 방향에 맞춰 반응창을 댓글 카드 안쪽으로 연다. */
+.family-comment-action-parent .comment-reaction-picker{right:0;left:auto}
+.family-comment-action-reply .comment-reaction-picker{right:auto;left:0}
+@media(max-width:380px){.comment-reaction-picker{width:168px;height:56px;padding:5px 7px}.comment-reaction-picker>button{width:43px;height:42px}.comment-reaction-picker i{width:29px;height:29px}}
