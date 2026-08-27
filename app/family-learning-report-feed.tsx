@@ -123,8 +123,18 @@ export function FamilyLearningReportFeed({
   const [canComment, setCanComment] = useState(false);
   const [visibleDayCount, setVisibleDayCount] = useState(5);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshComplete, setRefreshComplete] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const pullStartY = useRef<number | null>(null);
+  const refreshCompleteTimer = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (refreshCompleteTimer.current !== null)
+        window.clearTimeout(refreshCompleteTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -193,6 +203,10 @@ export function FamilyLearningReportFeed({
 
   const refreshFeed = useCallback(async () => {
     if (refreshing) return;
+    const startedAt = Date.now();
+    if (refreshCompleteTimer.current !== null)
+      window.clearTimeout(refreshCompleteTimer.current);
+    setRefreshComplete(false);
     setRefreshing(true);
     const [reportResult, correctionResult, readResult, correctionReadResult] =
       await Promise.all([
@@ -233,7 +247,15 @@ export function FamilyLearningReportFeed({
         next[receipt.reportId] = receipt.viewedAt;
       setCorrectionReads(next);
     }
+    const remaining = Math.max(0, 650 - (Date.now() - startedAt));
+    if (remaining > 0)
+      await new Promise((resolve) => window.setTimeout(resolve, remaining));
     setRefreshing(false);
+    setRefreshComplete(true);
+    refreshCompleteTimer.current = window.setTimeout(() => {
+      setRefreshComplete(false);
+      refreshCompleteTimer.current = null;
+    }, 900);
   }, [refreshing, studentId, supabase]);
   useEffect(() => {
     void supabase
@@ -413,13 +435,32 @@ export function FamilyLearningReportFeed({
         if (shouldRefresh) void refreshFeed();
       }}
     >
-      {refreshing && (
+      {(pullDistance > 0 || refreshing || refreshComplete) && (
         <div
-          className="family-report-pull-refresh refreshing"
+          className={`family-report-pull-refresh${refreshing ? " refreshing" : ""}${refreshComplete ? " complete" : ""}`}
           aria-live="polite"
+          role="status"
+          style={{
+            height:
+              refreshing || refreshComplete
+                ? 34
+                : Math.min(34, Math.max(10, pullDistance * 0.48)),
+            opacity: refreshing || refreshComplete ? 1 : Math.min(1, pullDistance / 30),
+          }}
         >
-          <HansalmaeIcon name="refresh" size={16} />
-          <span>새로고침 중</span>
+          <HansalmaeIcon
+            name={refreshComplete ? "check" : "refresh"}
+            size={16}
+          />
+          <span>
+            {refreshComplete
+              ? "새로운 기록을 확인했어요"
+              : refreshing
+                ? "새로운 기록을 확인하는 중"
+                : pullDistance >= 48
+                  ? "놓으면 새 기록을 확인해요"
+                  : "조금 더 당겨주세요"}
+          </span>
         </div>
       )}
       <header className="family-report-feed-title">
