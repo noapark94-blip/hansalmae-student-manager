@@ -13,6 +13,8 @@ type InboxItem = {
   className?: string;
   subject?: string;
   title?: string;
+  sourceType?: string;
+  sourceId?: string;
   body: string;
   authorName?: string;
   readAt: string | null;
@@ -28,7 +30,7 @@ type ThreadComment = {
   createdAt: string;
 };
 
-export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
+export function NotificationCenter({ supabase, onOpenFamilyReport }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
@@ -68,7 +70,17 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
   }, [load]);
   useEffect(()=>{if(!open&&!selected)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open,selected]);
   async function openItem(item: InboxItem) {
-    if (mode !== "staff" || !item.studentId || !item.lessonId) return;
+    if (mode !== "staff") {
+      const lessonId=item.lessonId??(item.sourceType==="learning_report"?item.sourceId:undefined);
+      if(!lessonId)return;
+      if(mode==="general")void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
+      setOpen(false);
+      onOpenFamilyReport?.();
+      sessionStorage.setItem("hansalmae:family-report-target",JSON.stringify({lessonId,studentId:item.studentId}));
+      window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-family-report",{detail:{lessonId,studentId:item.studentId}})),50);
+      return;
+    }
+    if (!item.studentId || !item.lessonId) return;
     setSelected(item);
     setReply("");
     const { data } = await supabase.rpc("staff_report_comments", {
@@ -146,7 +158,7 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
                     key={item.id}
                     className={!item.readAt ? "unread" : ""}
                     onClick={() => void openItem(item)}
-                    role={mode === "staff" ? "button" : undefined}
+                    role={mode === "staff"||item.lessonId||(item.sourceType==="learning_report"&&item.sourceId) ? "button" : undefined}
                   >
                     <i>{mode === "staff" ? "댓" : "알"}</i>
                     <span>
