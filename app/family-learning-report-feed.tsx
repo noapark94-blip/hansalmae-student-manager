@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 
@@ -9,6 +9,7 @@ type HomeworkResult={status:string;note:string}|null;
 type Exam={id:string;examType:string;examTitle:string;score:number|null;maxScore:number;percent:number|null;evaluation:string;feedback:string};
 type Report={lessonId:string;lessonDate:string;startsAt:string;classId:string;className:string;subject:string;room:string|null;teacherName:string;lessonContent:string;homeworkContent:string;examContent:string;attendance:AttendanceInfo;homeworkResult:HomeworkResult;exams:Exam[]};
 type ReadReceipt={lessonId:string;viewedAt:string};
+type ReportComment={id:string;parentId:string|null;body:string;authorName:string;authorRole:string;createdAt:string};
 
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 const homeworkLabel:Record<string,string>={complete:"완료",partial:"일부 완료",missing:"미제출",excused:"확인 제외"};
@@ -22,6 +23,7 @@ export function FamilyLearningReportFeed({supabase,studentId}:{supabase:Supabase
   const [readTracking,setReadTracking]=useState(false);
   const [confirming,setConfirming]=useState<string|null>(null);
   const [selected,setSelected]=useState<Report|null>(null);
+  const [canComment,setCanComment]=useState(false);
 
   useEffect(()=>{
     let active=true;
@@ -43,6 +45,7 @@ export function FamilyLearningReportFeed({supabase,studentId}:{supabase:Supabase
     });
     return()=>{active=false};
   },[studentId,supabase]);
+  useEffect(()=>{void supabase.rpc("family_can_report_comment").then(({data,error})=>setCanComment(!error&&data===true))},[supabase]);
 
   useEffect(()=>{
     if(!selected)return;
@@ -77,7 +80,7 @@ export function FamilyLearningReportFeed({supabase,studentId}:{supabase:Supabase
     </header>
     {subjects.length>1&&<nav className="family-report-subject-filter" aria-label="과목 필터"><button type="button" className={selectedSubject==="전체"?"active":""} onClick={()=>setSubject("전체")}>전체</button>{subjects.map(name=><button type="button" key={name} className={selectedSubject===name?"active":""} onClick={()=>setSubject(name)}>{name}</button>)}</nav>}
     {loading?<p className="family-report-empty">학습 기록을 불러오는 중이에요…</p>:!items.length?<p className="family-report-empty">아직 도착한 학습 기록이 없습니다.</p>:<div className="family-report-date-list">{groups.map(([date,reports])=><section className="family-report-date-group" key={date}><header><div><time>{formatDateTitle(date)}</time><span>{formatDateWeekday(date)}</span></div><small>{reports.length}개 수업</small></header><div className="family-report-list">{reports.map(item=><ReportCard key={item.lessonId} item={item} readAt={reads[item.lessonId]??null} readTracking={readTracking} onOpen={()=>setSelected(item)}/>)}</div></section>)}</div>}
-    {selected&&<ReportDetail item={selected} readAt={reads[selected.lessonId]??null} readTracking={readTracking} confirming={confirming===selected.lessonId} onClose={()=>setSelected(null)} onConfirm={()=>void confirmRead(selected.lessonId)}/>}
+    {selected&&<ReportDetail supabase={supabase} studentId={studentId} item={selected} canComment={canComment} readAt={reads[selected.lessonId]??null} readTracking={readTracking} confirming={confirming===selected.lessonId} onClose={()=>setSelected(null)} onConfirm={()=>void confirmRead(selected.lessonId)}/>}
   </section>;
 }
 
@@ -101,7 +104,7 @@ function ReportCard({item,readAt,readTracking,onOpen}:{item:Report;readAt:string
   </article>;
 }
 
-function ReportDetail({item,readAt,readTracking,confirming,onClose,onConfirm}:{item:Report;readAt:string|null;readTracking:boolean;confirming:boolean;onClose:()=>void;onConfirm:()=>void}){
+function ReportDetail({supabase,studentId,item,canComment,readAt,readTracking,confirming,onClose,onConfirm}:{supabase:SupabaseClient;studentId:string;item:Report;canComment:boolean;readAt:string|null;readTracking:boolean;confirming:boolean;onClose:()=>void;onConfirm:()=>void}){
   const attendance=item.attendance;
   const attendanceMemo=[attendance?.absenceReason,attendance?.note].filter(Boolean).join(" · ");
   const teacherFeedbacks=item.exams.filter(exam=>exam.feedback.trim()).map(exam=>({label:exam.examTitle||exam.examType||"시험",text:exam.feedback.trim()}));
@@ -119,10 +122,20 @@ function ReportDetail({item,readAt,readTracking,confirming,onClose,onConfirm}:{i
           {attendanceMemo&&<ReportSection icon="notice" title="출결 메모" text={attendanceMemo}/>}
         </div>
         {teacherFeedbacks.length>0&&<section className="family-teacher-feedback"><span className="family-teacher-feedback-icon"><HansalmaeIcon name="chat" size={19}/></span><div><b>{item.teacherName} 선생님 한마디</b>{teacherFeedbacks.map((feedback,index)=><p key={`${feedback.label}-${index}`}><strong>{feedback.label}</strong><span>{feedback.text}</span></p>)}</div></section>}
+        {canComment&&<FamilyReportComments supabase={supabase} studentId={studentId} lessonId={item.lessonId} teacherName={item.teacherName}/>}
       </div>
       {readTracking&&<footer className="family-report-confirm"><span>{readAt?`확인 완료 · ${formatReadTime(readAt)}`:"내용을 확인했다면 표시를 남겨주세요."}</span>{!readAt&&<button type="button" disabled={confirming} onClick={onConfirm}><HansalmaeIcon name="check" size={16}/>{confirming?"처리 중…":"확인했어요"}</button>}</footer>}
     </section>
   </div>;
+}
+
+function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabase:SupabaseClient;studentId:string;lessonId:string;teacherName:string}){
+  const[items,setItems]=useState<ReportComment[]>([]);const[body,setBody]=useState("");const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState("");
+  const load=useCallback(async()=>{setLoading(true);const{data,error:nextError}=await supabase.rpc("family_report_comments",{p_student_id:studentId,p_lesson_id:lessonId});setItems(nextError?[]:((data??[]) as ReportComment[]));setError(nextError?"댓글을 불러오지 못했습니다.":"");setLoading(false)},[lessonId,studentId,supabase]);
+  useEffect(()=>{void Promise.resolve().then(load)},[load]);
+  async function submit(){const next=body.trim();if(!next||saving)return;setSaving(true);setError("");const{error:nextError}=await supabase.rpc("family_add_report_comment",{p_student_id:studentId,p_lesson_id:lessonId,p_body:next});if(nextError)setError("댓글을 등록하지 못했습니다.");else{setBody("");await load()}setSaving(false)}
+  const roots=items.filter(item=>!item.parentId);
+  return <section className="family-report-comments"><header><div><HansalmaeIcon name="chat" size={18}/><span><b>선생님과 댓글</b><small>{teacherName} 선생님에게 짧은 질문이나 답글을 남겨주세요.</small></span></div><em>{items.length}</em></header>{loading?<p className="family-comment-empty">댓글을 불러오는 중이에요…</p>:roots.length?<div className="family-comment-list">{roots.map(root=><article key={root.id}><div><strong>{root.authorName} 학부모님</strong><time>{formatCommentTime(root.createdAt)}</time></div><p>{root.body}</p>{items.filter(reply=>reply.parentId===root.id).map(reply=><section key={reply.id}><b>{reply.authorName} 선생님</b><p>{reply.body}</p><time>{formatCommentTime(reply.createdAt)}</time></section>)}</article>)}</div>:<p className="family-comment-empty">아직 댓글이 없습니다.</p>}<div className="family-comment-compose"><textarea maxLength={500} rows={2} value={body} onChange={event=>setBody(event.target.value)} placeholder="선생님께 전할 댓글을 입력하세요"/><footer><span>{body.length}/500</span><button type="button" disabled={!body.trim()||saving} onClick={()=>void submit()}>{saving?"등록 중…":"댓글 등록"}</button></footer></div>{error&&<p className="family-comment-error">{error}</p>}</section>
 }
 
 function ReportSection({icon,title,text}:{icon:"book"|"edit"|"notice"|"chart";title:string;text:string}){return <section className="family-report-section"><i><HansalmaeIcon name={icon} size={18}/></i><div><b>{title}</b><p>{text}</p></div></section>}
@@ -133,3 +146,4 @@ function formatFullDate(value:string){return new Intl.DateTimeFormat("ko-KR",{ti
 function formatTime(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
 function formatReadTime(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
 function formatScore(value:number){return Number.isInteger(Number(value))?String(Number(value)):Number(value).toFixed(1)}
+function formatCommentTime(value:string){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
