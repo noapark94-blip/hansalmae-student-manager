@@ -9,10 +9,10 @@ type ReactionRow = { commentId: string; reactions: ReactionCount[] };
 export type ReactionMap = Record<string, ReactionCount[]>;
 
 const choices: { type: ReactionKind; icon: string; label: string }[] = [
-  { type: "heart", icon: "♥", label: "공감" },
-  { type: "confirm", icon: "✓", label: "확인" },
-  { type: "done", icon: "●", label: "처리" },
-  { type: "thanks", icon: "✦", label: "감사" },
+  { type: "heart", icon: "❤️", label: "공감" },
+  { type: "confirm", icon: "👍", label: "좋아요" },
+  { type: "done", icon: "✅", label: "확인" },
+  { type: "thanks", icon: "🙏", label: "감사" },
 ];
 
 export function useReportCommentReactions(supabase: SupabaseClient) {
