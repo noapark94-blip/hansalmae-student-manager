@@ -595,7 +595,7 @@ function CorrectionFeedDetail({
                   convertedExamScore !== null
                     ? {
                         label: "점수",
-                        value: `${formatScore(convertedExamScore)}점`,
+                        value: `${formatScore(item.examScore!)} / ${formatScore(item.examMaxScore!)} (${Math.round(convertedExamScore)}점)`,
                       }
                     : null,
                   item.evaluation
@@ -880,19 +880,29 @@ function ReportDetail({
                 title="개인별 시험 결과"
                 rows={item.exams.flatMap((exam) => {
                   const convertedScore = getConvertedScore(exam);
+                  const rawScore =
+                    exam.score !== null
+                      ? `${formatScore(exam.score)} / ${formatScore(exam.maxScore)}`
+                      : "";
                   return [
                     {
                       label: "시험",
                       value: exam.examTitle || exam.examType || "시험",
                     },
-                    convertedScore !== null
+                    rawScore
                       ? {
                           label: "점수",
-                          value: `${formatScore(convertedScore)}점`,
+                          value:
+                            convertedScore !== null
+                              ? `${rawScore} (${Math.round(convertedScore)}점)`
+                              : rawScore,
                         }
                       : null,
-                    exam.evaluation
-                      ? { label: "피드백", value: exam.evaluation }
+                    exam.feedback || exam.evaluation
+                      ? {
+                          label: "피드백",
+                          value: exam.feedback || exam.evaluation,
+                        }
                       : null,
                   ];
                 })}
