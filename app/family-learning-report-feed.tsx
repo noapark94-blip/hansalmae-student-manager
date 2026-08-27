@@ -452,7 +452,7 @@ function CorrectionFeedCard({
     ? `${item.examTitle}${
         item.examScore == null
           ? ""
-          : ` ${formatScore(item.examScore)}/${formatScore(item.examMaxScore ?? 100)}`
+          : ` ${formatScore(item.examScore)}개/${formatScore(item.examMaxScore ?? 100)}개`
       }`
     : "";
   const assignmentSummary =
@@ -593,7 +593,7 @@ function CorrectionFeedDetail({
                   convertedExamScore !== null
                     ? {
                         label: "점수",
-                        value: `${formatScore(item.examScore!)} / ${formatScore(item.examMaxScore!)} (${Math.round(convertedExamScore)}점)`,
+                        value: `${formatScore(item.examScore!)}개 / ${formatScore(item.examMaxScore!)}개 (${Math.round(convertedExamScore)}점)`,
                       }
                     : null,
                   item.evaluation
@@ -692,7 +692,7 @@ function ReportCard({
   const examSummary = firstExam
     ? firstExam.score === null
       ? firstExam.examTitle || "시험 평가"
-      : `${firstExam.examTitle || "시험"} ${formatScore(firstExam.score)}/${formatScore(firstExam.maxScore)}`
+      : `${firstExam.examTitle || "시험"} ${formatScore(firstExam.score)}개/${formatScore(firstExam.maxScore)}개`
     : item.examContent;
   const assignmentSummary =
     item.homeworkContent ||
@@ -879,7 +879,7 @@ function ReportDetail({
                   const convertedScore = getConvertedScore(exam);
                   const rawScore =
                     exam.score !== null
-                      ? `${formatScore(exam.score)} / ${formatScore(exam.maxScore)}`
+                      ? `${formatScore(exam.score)}개 / ${formatScore(exam.maxScore)}개`
                       : "";
                   return [
                     {
