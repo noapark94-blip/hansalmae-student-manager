@@ -10,7 +10,7 @@ type HomeworkResult={status:string;note:string}|null;
 type Exam={id:string;examType:string;examTitle:string;score:number|null;maxScore:number;percent:number|null;evaluation:string;feedback:string};
 type Report={lessonId:string;lessonDate:string;startsAt:string;classId:string;className:string;subject:string;room:string|null;teacherName:string;lessonContent:string;homeworkContent:string;examContent:string;attendance:AttendanceInfo;homeworkResult:HomeworkResult;exams:Exam[]};
 type ReadReceipt={lessonId:string;viewedAt:string};
-type ReportComment={id:string;parentId:string|null;body:string;authorName:string;authorRole:string;createdAt:string;canDelete:boolean};
+type ReportComment={id:string;parentId:string|null;body:string;authorName:string;authorRole:string;createdAt:string;canDelete:boolean;isDeleted:boolean};
 
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 const homeworkLabel:Record<string,string>={complete:"완료",partial:"일부 완료",missing:"미제출",excused:"확인 제외"};
@@ -137,7 +137,7 @@ function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabas
   const load=useCallback(async()=>{setLoading(true);const{data,error:nextError}=await supabase.rpc("family_report_comments",{p_student_id:studentId,p_lesson_id:lessonId});setItems(nextError?[]:((data??[]) as ReportComment[]));setError(nextError?"댓글을 불러오지 못했습니다.":"");setLoading(false)},[lessonId,studentId,supabase]);
   useEffect(()=>{void Promise.resolve().then(load)},[load]);
   async function submit(){const next=body.trim();if(!next||saving)return;setSaving(true);setError("");const{error:nextError}=await supabase.rpc("family_add_report_comment",{p_student_id:studentId,p_lesson_id:lessonId,p_body:next});if(nextError)setError("댓글을 등록하지 못했습니다.");else{setBody("");await load()}setSaving(false)}
-  async function remove(item:ReportComment){if(deleting||!item.canDelete||!await appConfirm({eyebrow:"댓글 삭제",title:"작성한 댓글을 삭제할까요?",notice:"선생님이 남긴 답변도 함께 삭제되며 복구할 수 없습니다.",confirmLabel:"댓글 삭제",tone:"danger"}))return;setDeleting(item.id);setError("");const{error:nextError}=await supabase.rpc("delete_report_comment",{p_comment_id:item.id});if(nextError)setError("댓글을 삭제하지 못했습니다.");else await load();setDeleting(null)}
+  async function remove(item:ReportComment){if(deleting||!item.canDelete||!await appConfirm({eyebrow:"댓글 삭제",title:"작성한 댓글을 삭제할까요?",notice:"선생님이 남긴 답변은 그대로 유지됩니다.",confirmLabel:"댓글 삭제",tone:"danger"}))return;setDeleting(item.id);setError("");const{error:nextError}=await supabase.rpc("delete_report_comment",{p_comment_id:item.id});if(nextError)setError("댓글을 삭제하지 못했습니다.");else await load();setDeleting(null)}
   const roots=items.filter(item=>!item.parentId);
   return (
     <section className="family-report-comments">
@@ -154,7 +154,7 @@ function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabas
               <span><strong>{root.authorName} 학부모님</strong><time>{formatCommentTime(root.createdAt)}</time></span>
               {root.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===root.id} onClick={()=>void remove(root)}>{deleting===root.id?"삭제 중…":"삭제"}</button>}
             </div>
-            <p className="family-comment-bubble">{root.body}</p>
+            <p className={`family-comment-bubble ${root.isDeleted?"deleted":""}`}>{root.body}</p>
             {items.filter(reply => reply.parentId === root.id).map(reply => <section key={reply.id}>
               <div><i>{reply.authorName.slice(0,1)}</i><b>{reply.authorName} 선생님</b></div>
               <p>{reply.body}</p>
