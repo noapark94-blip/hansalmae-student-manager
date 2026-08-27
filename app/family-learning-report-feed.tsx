@@ -413,20 +413,13 @@ export function FamilyLearningReportFeed({
         if (shouldRefresh) void refreshFeed();
       }}
     >
-      {(pullDistance > 0 || refreshing) && (
+      {refreshing && (
         <div
-          className={`family-report-pull-refresh ${refreshing ? "refreshing" : ""}`}
-          style={{ height: refreshing ? 34 : Math.round(pullDistance / 2) }}
+          className="family-report-pull-refresh refreshing"
           aria-live="polite"
         >
           <HansalmaeIcon name="refresh" size={16} />
-          <span>
-            {refreshing
-              ? "새 기록을 확인하는 중이에요"
-              : pullDistance >= 48
-                ? "놓아서 새로고침"
-                : "아래로 당겨 새로고침"}
-          </span>
+          <span>새로고침 중</span>
         </div>
       )}
       <header className="family-report-feed-title">
