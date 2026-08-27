@@ -1113,16 +1113,6 @@ function FamilyReportComments({
                 <span>
                   <strong>{root.authorName} 학부모님</strong>
                 </span>
-                {root.canDelete && (
-                  <button
-                    type="button"
-                    className="report-comment-delete"
-                    disabled={deleting === root.id}
-                    onClick={() => void remove(root)}
-                  >
-                    {deleting === root.id ? "삭제 중…" : "삭제"}
-                  </button>
-                )}
               </div>
               <div className="family-comment-message family-comment-message-parent">
                 <div
@@ -1132,7 +1122,7 @@ function FamilyReportComments({
                 </div>
                 <time>{formatCommentTime(root.createdAt)}</time>
               </div>
-              <div className="family-comment-reaction-row family-comment-reaction-parent">
+              <div className="family-comment-action-row family-comment-action-parent">
                   <CommentReactionBar
                     commentId={root.id}
                     items={reactions[root.id] ?? []}
@@ -1140,13 +1130,22 @@ function FamilyReportComments({
                     reacting={reacting === root.id}
                     onToggle={(commentId, type) => void toggle(commentId, type)}
                   />
+                  {root.canDelete && (
+                    <button
+                      type="button"
+                      className="report-comment-delete"
+                      disabled={deleting === root.id}
+                      onClick={() => void remove(root)}
+                    >
+                      {deleting === root.id ? "삭제 중…" : "삭제"}
+                    </button>
+                  )}
               </div>
               {items
                 .filter((reply) => reply.parentId === root.id)
                 .map((reply) => (
                   <section className="family-comment-reply" key={reply.id}>
                     <div className="family-comment-reply-author">
-                      <i>{familyTeacherName(reply.authorName).slice(0, 1)}</i>
                       <b>{familyTeacherName(reply.authorName)}</b>
                     </div>
                     <div className="family-comment-message family-comment-message-reply">
@@ -1155,7 +1154,7 @@ function FamilyReportComments({
                         <p>{reply.body}</p>
                       </div>
                     </div>
-                    <div className="family-comment-reaction-row family-comment-reaction-reply">
+                    <div className="family-comment-action-row family-comment-action-reply">
                       <CommentReactionBar
                         commentId={reply.id}
                         items={reactions[reply.id] ?? []}
