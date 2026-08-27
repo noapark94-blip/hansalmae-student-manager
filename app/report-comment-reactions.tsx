@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ReactionKind = "heart" | "confirm" | "done" | "thanks";
@@ -48,8 +48,26 @@ export function useReportCommentReactions(supabase: SupabaseClient) {
 
 export function CommentReactionBar({ commentId, items, disabled, reacting, onToggle }: { commentId: string; items: ReactionCount[]; disabled?: boolean; reacting: boolean; onToggle: (commentId: string, type: ReactionKind) => void }) {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [open]);
+
   if (disabled) return null;
-  return <div className={`comment-reactions${open ? " open" : ""}`}>
+  return <div ref={containerRef} className={`comment-reactions${open ? " open" : ""}`}>
     <div className="comment-reaction-totals">
       {items.filter((item) => item.count > 0).map((item) => {
         const choice = choices.find((choiceItem) => choiceItem.type === item.type);
