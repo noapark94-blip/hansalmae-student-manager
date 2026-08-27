@@ -443,11 +443,18 @@ function CorrectionFeedCard({
   readAt: string | null;
   onOpen: () => void;
 }) {
-  const preview =
-    item.correctionContent ||
+  const examSummary = item.examTitle
+    ? `${item.examTitle}${
+        item.examScore == null
+          ? ""
+          : ` ${formatScore(item.examScore)}/${formatScore(item.examMaxScore ?? 100)}`
+      }`
+    : "";
+  const assignmentSummary =
     item.homeworkInstruction ||
-    item.evaluation ||
-    "첨삭 기록이 도착했어요.";
+    (item.homeworkStatus
+      ? correctionHomeworkLabel(item.homeworkStatus)
+      : "");
   return (
     <article
       className={`family-report-card correction ${!readAt ? "unread" : ""}`}
@@ -473,20 +480,11 @@ function CorrectionFeedCard({
               ? ` · ${familyTeacherName(item.recordedByName)}`
               : ""}
           </small>
-          <p>{preview}</p>
-          <span className="family-report-card-meta">
-            {item.examTitle && (
-              <em>
-                {item.examTitle}{" "}
-                {item.examScore == null
-                  ? "평가"
-                  : `${formatScore(item.examScore)}/${formatScore(item.examMaxScore ?? 100)}`}
-              </em>
-            )}
-            {item.homeworkStatus && (
-              <em>첨삭과제 {correctionHomeworkLabel(item.homeworkStatus)}</em>
-            )}
-          </span>
+          <FeedSummary
+            lesson={item.correctionContent}
+            exam={examSummary}
+            assignment={assignmentSummary}
+          />
         </span>
         <strong className={`family-attendance-badge ${item.attendanceStatus}`}>
           {attendanceLabel[item.attendanceStatus] ??
@@ -696,12 +694,16 @@ function ReportCard({
   const attendance = item.attendance;
   const firstExam = item.exams[0] ?? null;
   const displayTitle = reportDisplayTitle(item);
-  const preview =
-    item.lessonContent ||
-    item.examContent ||
+  const examSummary = firstExam
+    ? firstExam.score === null
+      ? firstExam.examTitle || "시험 평가"
+      : `${firstExam.examTitle || "시험"} ${formatScore(firstExam.score)}/${formatScore(firstExam.maxScore)}`
+    : item.examContent;
+  const assignmentSummary =
     item.homeworkContent ||
-    firstExam?.evaluation ||
-    "수업 기록이 도착했어요.";
+    (item.homeworkResult
+      ? homeworkLabel[item.homeworkResult.status] ?? item.homeworkResult.status
+      : "");
   return (
     <article
       className={`family-report-card ${readTracking && !readAt ? "unread" : ""}`}
@@ -725,23 +727,11 @@ function ReportCard({
             {formatTime(item.startsAt)} · {familyTeacherName(item.teacherName)}
             {item.room ? ` · ${item.room}` : ""}
           </small>
-          <p>{preview}</p>
-          <span className="family-report-card-meta">
-            {firstExam && (
-              <em>
-                {firstExam.score === null
-                  ? firstExam.examTitle || "시험 평가"
-                  : `${firstExam.examTitle || "시험"} ${formatScore(firstExam.score)}/${formatScore(firstExam.maxScore)}`}
-              </em>
-            )}
-            {item.homeworkResult && (
-              <em>
-                숙제{" "}
-                {homeworkLabel[item.homeworkResult.status] ??
-                  item.homeworkResult.status}
-              </em>
-            )}
-          </span>
+          <FeedSummary
+            lesson={item.lessonContent}
+            exam={examSummary}
+            assignment={assignmentSummary}
+          />
         </span>
         {attendance && (
           <strong className={`family-attendance-badge ${attendance.status}`}>
@@ -756,6 +746,38 @@ function ReportCard({
         </span>
       </button>
     </article>
+  );
+}
+
+function FeedSummary({
+  lesson,
+  exam,
+  assignment,
+}: {
+  lesson: string;
+  exam: string;
+  assignment: string;
+}) {
+  const rows = [
+    ["수업내용", lesson],
+    ["시험", exam],
+    ["과제", assignment],
+  ].filter((row) => row[1]?.trim());
+  if (!rows.length)
+    return (
+      <div className="family-report-card-summary empty">
+        <p>수업 기록이 도착했어요.</p>
+      </div>
+    );
+  return (
+    <div className="family-report-card-summary">
+      {rows.map(([label, value]) => (
+        <p key={label}>
+          <b>{label}</b>
+          <span>{value}</span>
+        </p>
+      ))}
+    </div>
   );
 }
 
