@@ -732,9 +732,10 @@ function CorrectionFeedDetail({
                 icon="check"
                 title="지난 첨삭과제 검사"
                 rows={[
-                  previousHomework
-                    ? { label: "지난 과제", value: previousHomework }
-                    : null,
+                  {
+                    label: "지난 과제",
+                    value: previousHomework || "없음",
+                  },
                   {
                     label: "결과",
                     value: correctionHomeworkLabel(item.homeworkStatus),
@@ -1027,9 +1028,10 @@ function ReportDetail({
                 icon="check"
                 title="지난 숙제 검사"
                 rows={[
-                  previousHomework
-                    ? { label: "지난 숙제", value: previousHomework }
-                    : null,
+                  {
+                    label: "지난 숙제",
+                    value: previousHomework || "없음",
+                  },
                   {
                     label: "결과",
                     value:
