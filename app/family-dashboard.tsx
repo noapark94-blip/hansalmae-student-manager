@@ -144,9 +144,9 @@ export function FamilyLiveDashboard({
   const [error, setError] = useState("");
   const [todayLessons,setTodayLessons]=useState<TodayLesson[]>([]);
   const load = useCallback(
-    async (id: string | null) => {
-      setLoading(true);
-      setError("");
+    async (id: string | null, background = false) => {
+      if (!background) setLoading(true);
+      if (!background) setError("");
       const [{ data: next, error: e },todayResult] = await Promise.all([
         supabase.rpc("family_live_dashboard", { p_student_id: id }),
         supabase.rpc("family_today_lessons", { p_student_id: id }),
@@ -154,11 +154,11 @@ export function FamilyLiveDashboard({
       if (e) setError("학습 현황을 불러오지 못했습니다.");
       else {
         const parsed = next as Data;
-        setData(parsed);
+        setData((current) => JSON.stringify(current) === JSON.stringify(parsed) ? current : parsed);
         setSelectedId(parsed.selectedStudent?.id ?? null);
-        if(!todayResult.error)setTodayLessons((todayResult.data??[]) as TodayLesson[]);
+        if(!todayResult.error){const nextLessons=(todayResult.data??[]) as TodayLesson[];setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons)}
       }
-      setLoading(false);
+      if (!background) setLoading(false);
     },
     [supabase],
   );
@@ -166,7 +166,7 @@ export function FamilyLiveDashboard({
     void load(null);
   }, [load]);
   useEffect(()=>{
-    const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId)};
+    const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId,true)};
     const timer=window.setInterval(refresh,5000);
     window.addEventListener("focus",refresh);
     document.addEventListener("visibilitychange",refresh);
