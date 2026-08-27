@@ -193,7 +193,7 @@ export function FamilyLiveDashboard({
     return <section className="panel hub-message error">{error}</section>;
   return (
     <div className="family-mobile-home">
-      <section className="family-app-welcome">
+      {profile.role === "student" && <section className="family-app-welcome">
         <p>
           {profile.role === "student"
             ? "오늘도 차근차근"
@@ -205,7 +205,7 @@ export function FamilyLiveDashboard({
             : `${studentGivenName(selected?.name) ?? "자녀"}의 학습 공간`}
         </h1>
         <span>수업·출결·시험·숙제를 한곳에서 확인하세요.</span>
-      </section>
+      </section>}
       {error && <p className="attendance-error">{error}</p>}
       {!selected ? (
         <section className="panel family-empty">
@@ -213,7 +213,7 @@ export function FamilyLiveDashboard({
         </section>
       ) : (
         <>
-          <section className="family-profile-card">
+          {profile.role === "student" && <section className="family-profile-card">
             <div className="family-profile-avatar">
               {selected.name.slice(0, 1)}
             </div>
@@ -224,31 +224,26 @@ export function FamilyLiveDashboard({
                   .filter(Boolean)
                   .join(" · ") || "한살매 학생"}
               </span>
-              <small>
-                {profile.role === "guardian"
-                  ? "학부모 계정으로 연결됨"
-                  : "나의 학습 정보"}
-              </small>
+              <small>나의 학습 정보</small>
             </div>
-            {profile.role === "guardian" && (data?.children.length ?? 0) > 1 ? (
-              <label>
-                <span>자녀 선택</span>
-                <select
-                  disabled={loading}
-                  value={selectedId ?? ""}
-                  onChange={(e) => void load(e.target.value)}
-                >
-                  {data?.children.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} · {[c.school, c.grade].filter(Boolean).join(" ")}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <i aria-hidden="true">›</i>
-            )}
-          </section>
+            <i aria-hidden="true">›</i>
+          </section>}
+          {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && (
+            <label className="family-child-switcher">
+              <span>자녀 선택</span>
+              <select
+                disabled={loading}
+                value={selectedId ?? ""}
+                onChange={(e) => void load(e.target.value)}
+              >
+                {data?.children.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {child.name} · {[child.school, child.grade].filter(Boolean).join(" ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <FamilyLearningNote
             studentName={selected.name}
             attendance={data?.recentAttendance ?? []}
@@ -262,6 +257,7 @@ export function FamilyLiveDashboard({
           <FamilyLearningReportFeed
             supabase={supabase}
             studentId={selected.id}
+            studentName={studentGivenName(selected.name) ?? selected.name}
           />
           <section className="stats-grid family-stats">
             <FamilyStat
