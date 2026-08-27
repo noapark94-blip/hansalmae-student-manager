@@ -74,6 +74,32 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    const intervalId = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [load]);
+  useEffect(() => {
+    if (!selected?.studentId || !selected.lessonId) return;
+    const refreshThread = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data } = await supabase.rpc("staff_report_comments", {
+        p_student_id: selected.studentId,
+        p_lesson_id: selected.lessonId,
+      });
+      if (data) setThread(data as ThreadComment[]);
+    };
+    const intervalId = window.setInterval(() => void refreshThread(), 5000);
+    return () => window.clearInterval(intervalId);
+  }, [selected?.lessonId, selected?.studentId, supabase]);
   useEffect(()=>{if(!open&&!selected)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open,selected]);
   function markItemRead(item:InboxItem){
     if(item.readAt)return;
