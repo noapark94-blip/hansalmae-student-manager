@@ -30,6 +30,7 @@ type ThreadComment = {
   authorRole: string;
   createdAt: string;
   canDelete: boolean;
+  isDeleted: boolean;
 };
 export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
@@ -99,7 +100,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   }
   async function removeComment(item:ThreadComment) {
     if (!selected || deleting || !item.canDelete) return;
-    const confirmed=await appConfirm({eyebrow:"댓글 삭제",title:item.parentId?"작성한 답변을 삭제할까요?":"이 댓글을 삭제할까요?",notice:item.parentId?"삭제한 답변은 복구할 수 없습니다.":"연결된 선생님 답변도 함께 삭제되며 복구할 수 없습니다.",confirmLabel:"삭제",tone:"danger"});
+    const confirmed=await appConfirm({eyebrow:"댓글 삭제",title:item.parentId?"작성한 답변을 삭제할까요?":"이 댓글을 삭제할까요?",notice:item.parentId?"해당 답변만 삭제되며 복구할 수 없습니다.":"선생님이 남긴 답변은 그대로 유지됩니다.",confirmLabel:"삭제",tone:"danger"});
     if(!confirmed)return;
     setDeleting(item.id);setThreadError("");
     const{error}=await supabase.rpc("delete_report_comment",{p_comment_id:item.id});
@@ -238,7 +239,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       <b>{root.authorName} 학부모님</b>
                       <span><time>{formatTime(root.createdAt)}</time>{root.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===root.id} onClick={()=>void removeComment(root)}>{deleting===root.id?"삭제 중…":"삭제"}</button>}</span>
                     </div>
-                    <p>{root.body}</p>
+                    <p className={root.isDeleted?"deleted":""}>{root.body}</p>
                     {thread
                       .filter((item) => item.parentId === root.id)
                       .map((item) => (
