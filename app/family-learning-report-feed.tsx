@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
@@ -121,6 +121,10 @@ export function FamilyLearningReportFeed({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [selected, setSelected] = useState<FeedItem | null>(null);
   const [canComment, setCanComment] = useState(false);
+  const [visibleDayCount, setVisibleDayCount] = useState(5);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const pullStartY = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -182,6 +186,47 @@ export function FamilyLearningReportFeed({
       active = false;
     };
   }, [studentId, supabase]);
+
+  const refreshFeed = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    const [reportResult, correctionResult, readResult, correctionReadResult] =
+      await Promise.all([
+        supabase.rpc("family_completed_learning_reports", {
+          p_student_id: studentId,
+          p_limit: 20,
+        }),
+        supabase.rpc("family_correction_reports", {
+          p_student_id: studentId,
+          p_limit: 20,
+        }),
+        supabase.rpc("family_learning_report_reads", {
+          p_student_id: studentId,
+        }),
+        supabase.rpc("family_correction_report_reads", {
+          p_student_id: studentId,
+        }),
+      ]);
+    if (!reportResult.error)
+      setItems((reportResult.data ?? []) as Report[]);
+    if (!correctionResult.error)
+      setCorrections((correctionResult.data ?? []) as CorrectionReport[]);
+    if (!readResult.error) {
+      const next: Record<string, string> = {};
+      for (const receipt of (readResult.data ?? []) as ReadReceipt[])
+        next[receipt.lessonId] = receipt.viewedAt;
+      setReads(next);
+      setReadTracking(true);
+    }
+    if (!correctionReadResult.error) {
+      const next: Record<string, string> = {};
+      for (const receipt of (correctionReadResult.data ??
+        []) as CorrectionReadReceipt[])
+        next[receipt.reportId] = receipt.viewedAt;
+      setCorrectionReads(next);
+    }
+    setRefreshing(false);
+  }, [refreshing, studentId, supabase]);
   useEffect(() => {
     void supabase
       .rpc("family_can_report_comment")
@@ -294,6 +339,11 @@ export function FamilyLearningReportFeed({
           ] as const,
       );
   }, [visibleItems]);
+  const displayedGroups = groups.slice(0, visibleDayCount);
+
+  useEffect(() => {
+    setVisibleDayCount(5);
+  }, [selectedSubject, studentId]);
   const unreadCount =
     (readTracking ? items.filter((item) => !reads[item.lessonId]).length : 0) +
     corrections.filter((item) => !correctionReads[item.id]).length;
@@ -333,7 +383,44 @@ export function FamilyLearningReportFeed({
 
   if (unavailable) return null;
   return (
-    <section className="family-report-feed" aria-label="수업 학습 리포트">
+    <section
+      className="family-report-feed"
+      aria-label="수업 학습 리포트"
+      onTouchStart={(event) => {
+        if (window.scrollY <= 4)
+          pullStartY.current = event.touches[0]?.clientY ?? null;
+      }}
+      onTouchMove={(event) => {
+        if (pullStartY.current === null) return;
+        const distance = Math.max(
+          0,
+          Math.min(72, (event.touches[0]?.clientY ?? 0) - pullStartY.current),
+        );
+        setPullDistance(distance);
+      }}
+      onTouchEnd={() => {
+        const shouldRefresh = pullDistance >= 48;
+        pullStartY.current = null;
+        setPullDistance(0);
+        if (shouldRefresh) void refreshFeed();
+      }}
+    >
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          className={`family-report-pull-refresh ${refreshing ? "refreshing" : ""}`}
+          style={{ height: refreshing ? 34 : Math.round(pullDistance / 2) }}
+          aria-live="polite"
+        >
+          <HansalmaeIcon name="refresh" size={16} />
+          <span>
+            {refreshing
+              ? "새 기록을 확인하는 중이에요"
+              : pullDistance >= 48
+                ? "놓아서 새로고침"
+                : "아래로 당겨 새로고침"}
+          </span>
+        </div>
+      )}
       <header className="family-report-feed-title">
         <div>
           <p className="eyebrow">하루하루 쌓이는 기록</p>
@@ -373,7 +460,7 @@ export function FamilyLearningReportFeed({
         <p className="family-report-empty">아직 도착한 학습 기록이 없습니다.</p>
       ) : (
         <div className="family-report-date-list">
-          {groups.map(([date, reports]) => (
+          {displayedGroups.map(([date, reports]) => (
             <section className="family-report-date-group" key={date}>
               <header>
                 <div>
@@ -404,6 +491,15 @@ export function FamilyLearningReportFeed({
               </div>
             </section>
           ))}
+          {displayedGroups.length < groups.length && (
+            <button
+              type="button"
+              className="family-report-load-more"
+              onClick={() => setVisibleDayCount((count) => count + 5)}
+            >
+              이전 기록 5일 더 보기
+            </button>
+          )}
         </div>
       )}
       {selected?.kind === "lesson" && (
