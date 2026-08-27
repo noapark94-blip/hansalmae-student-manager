@@ -727,15 +727,12 @@ function CorrectionFeedDetail({
                 text={item.homeworkInstruction}
               />
             )}
-            {item.homeworkStatus && (
+            {item.homeworkStatus && previousHomework && (
               <LabeledReportSection
                 icon="check"
                 title="지난 첨삭과제 검사"
                 rows={[
-                  {
-                    label: "지난 과제",
-                    value: previousHomework || "없음",
-                  },
+                  { label: "지난 과제", value: previousHomework },
                   {
                     label: "결과",
                     value: correctionHomeworkLabel(item.homeworkStatus),
@@ -1023,15 +1020,12 @@ function ReportDetail({
                 })}
               />
             )}
-            {item.homeworkResult && (
+            {item.homeworkResult && previousHomework && (
               <LabeledReportSection
                 icon="check"
                 title="지난 숙제 검사"
                 rows={[
-                  {
-                    label: "지난 숙제",
-                    value: previousHomework || "없음",
-                  },
+                  { label: "지난 숙제", value: previousHomework },
                   {
                     label: "결과",
                     value:
