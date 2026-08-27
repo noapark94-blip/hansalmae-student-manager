@@ -86,3 +86,13 @@
 .family-comment-list .family-comment-reply-author>b{order:initial;font-size:14px;line-height:1.3}
 .family-comment-list .family-comment-reply-author>i{display:none!important}
 @media(max-width:600px){.family-comment-list .family-comment-author,.family-comment-list .family-comment-action-parent{padding-left:43px}.family-comment-list .family-comment-action-reply{padding-right:0}}
+
+/* 학부모 화면의 내 댓글은 오른쪽, 선생님 댓글은 왼쪽 */
+.family-comment-list .family-comment-message-parent{justify-content:flex-end!important;padding-left:0}
+.family-comment-list .family-comment-message-reply{justify-content:flex-start!important}
+.family-comment-list .family-comment-message-parent .family-comment-bubble{border-radius:16px 5px 16px 16px;background:#f5f2f3}
+.family-comment-list .family-comment-message-reply .family-comment-bubble{border-radius:5px 16px 16px 16px;background:#f7eaf0}
+.family-comment-list .family-comment-action-parent{justify-content:flex-end!important;padding-left:0}
+.family-comment-list .family-comment-action-reply{justify-content:flex-start!important}
+.family-comment-list .family-comment-reply-author{justify-content:flex-start;padding-right:0}
+@media(max-width:600px){.family-comment-list .family-comment-message-parent,.family-comment-list .family-comment-action-parent{padding-left:0}.family-comment-list .family-comment-message-reply .family-comment-bubble,.family-comment-list .family-comment-message-parent .family-comment-bubble{max-width:74%}}
