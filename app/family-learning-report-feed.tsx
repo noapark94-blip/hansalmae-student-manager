@@ -137,7 +137,36 @@ function FamilyReportComments({supabase,studentId,lessonId,teacherName}:{supabas
   useEffect(()=>{void Promise.resolve().then(load)},[load]);
   async function submit(){const next=body.trim();if(!next||saving)return;setSaving(true);setError("");const{error:nextError}=await supabase.rpc("family_add_report_comment",{p_student_id:studentId,p_lesson_id:lessonId,p_body:next});if(nextError)setError("댓글을 등록하지 못했습니다.");else{setBody("");await load()}setSaving(false)}
   const roots=items.filter(item=>!item.parentId);
-  return <section className="family-report-comments"><header><div><HansalmaeIcon name="chat" size={18}/><span><b>선생님과 댓글</b><small>{teacherName} 선생님에게 짧은 질문이나 답글을 남겨주세요.</small></span></div><em>{items.length}</em></header>{loading?<p className="family-comment-empty">댓글을 불러오는 중이에요…</p>:roots.length?<div className="family-comment-list">{roots.map(root=><article key={root.id}><div><strong>{root.authorName} 학부모님</strong><time>{formatCommentTime(root.createdAt)}</time></div><p>{root.body}</p>{items.filter(reply=>reply.parentId===root.id).map(reply=><section key={reply.id}><b>{reply.authorName} 선생님</b><p>{reply.body}</p><time>{formatCommentTime(reply.createdAt)}</time></section>)}</article>)}</div>:<p className="family-comment-empty">아직 댓글이 없습니다.</p>}<div className="family-comment-compose"><textarea maxLength={500} rows={2} value={body} onChange={event=>setBody(event.target.value)} placeholder="선생님께 전할 댓글을 입력하세요"/><footer><span>{body.length}/500</span><button type="button" disabled={!body.trim()||saving} onClick={()=>void submit()}>{saving?"등록 중…":"댓글 등록"}</button></footer></div>{error&&<p className="family-comment-error">{error}</p>}</section>
+  return (
+    <section className="family-report-comments">
+      <header>
+        <div className="family-comment-heading-icon"><HansalmaeIcon name="chat" size={18}/></div>
+        <span><b>선생님과 댓글</b><small>{teacherName} 선생님과 수업에 대해 이야기해 보세요.</small></span>
+        <em>{items.length ? `${items.length}개` : "새 대화"}</em>
+      </header>
+      {loading ? <p className="family-comment-empty">댓글을 불러오는 중이에요…</p> : roots.length ? (
+        <div className="family-comment-list">
+          {roots.map(root => <article key={root.id}>
+            <div className="family-comment-author">
+              <i>{root.authorName.slice(0,1)}</i>
+              <span><strong>{root.authorName} 학부모님</strong><time>{formatCommentTime(root.createdAt)}</time></span>
+            </div>
+            <p className="family-comment-bubble">{root.body}</p>
+            {items.filter(reply => reply.parentId === root.id).map(reply => <section key={reply.id}>
+              <div><i>{reply.authorName.slice(0,1)}</i><b>{reply.authorName} 선생님</b></div>
+              <p>{reply.body}</p>
+              <time>{formatCommentTime(reply.createdAt)}</time>
+            </section>)}
+          </article>)}
+        </div>
+      ) : <p className="family-comment-empty">아직 댓글이 없어요.<small>수업에 관해 궁금한 점을 편하게 남겨주세요.</small></p>}
+      <div className="family-comment-compose">
+        <textarea maxLength={500} rows={2} value={body} onChange={event=>setBody(event.target.value)} placeholder="선생님께 전할 댓글을 입력하세요"/>
+        <footer><span>{body.length}/500</span><button type="button" disabled={!body.trim()||saving} onClick={()=>void submit()}>{saving?"등록 중…":"댓글 등록"}</button></footer>
+      </div>
+      {error&&<p className="family-comment-error">{error}</p>}
+    </section>
+  )
 }
 
 function ReportSection({icon,title,text}:{icon:"book"|"edit"|"notice"|"chart";title:string;text:string}){return <section className="family-report-section"><i><HansalmaeIcon name={icon} size={18}/></i><div><b>{title}</b><p>{text}</p></div></section>}
