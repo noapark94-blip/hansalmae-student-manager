@@ -470,9 +470,6 @@ function CorrectionFeedCard({
         onClick={onOpen}
         aria-label={`${item.subject} 첨삭 리포트 자세히 보기`}
       >
-        <span className="family-report-subject-mark" aria-hidden="true">
-          첨
-        </span>
         <span className="family-report-subject">
           <span className="family-report-card-labels">
             <span>{item.subject} 첨삭</span>
@@ -712,9 +709,6 @@ function ReportCard({
         onClick={onOpen}
         aria-label={`${displayTitle} 리포트 자세히 보기`}
       >
-        <span className="family-report-subject-mark" aria-hidden="true">
-          {(item.mainSubject || item.subject)?.slice(0, 1) || "수"}
-        </span>
         <span className="family-report-subject">
           <span className="family-report-card-labels">
             <span>{reportBadgeLabel(item)}</span>
