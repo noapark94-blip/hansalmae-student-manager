@@ -437,21 +437,30 @@ export function FamilyLearningReportFeed({
         <nav className="family-report-subject-filter" aria-label="과목 필터">
           <button
             type="button"
-            className={selectedSubject === "전체" ? "active" : ""}
+            className={`family-report-filter-all ${selectedSubject === "전체" ? "active" : ""}`}
             onClick={() => setSubject("전체")}
           >
             전체
           </button>
-          {subjects.map((name) => (
-            <button
-              type="button"
-              key={name}
-              className={selectedSubject === name ? "active" : ""}
-              onClick={() => setSubject(name)}
-            >
-              {name}
-            </button>
-          ))}
+          <div className="family-report-filter-scroll">
+            {subjects.map((name) => (
+              <button
+                type="button"
+                key={name}
+                className={selectedSubject === name ? "active" : ""}
+                onClick={(event) => {
+                  setSubject(name);
+                  event.currentTarget.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "center",
+                  });
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
         </nav>
       )}
       {loading ? (
