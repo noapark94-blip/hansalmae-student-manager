@@ -202,7 +202,7 @@ export function FamilyLiveDashboard({
         <h1>
           {profile.role === "student"
             ? `안녕하세요, ${profile.display_name}님`
-            : `${selected?.name ?? "자녀"}의 학습 공간`}
+            : `${studentGivenName(selected?.name) ?? "자녀"}의 학습 공간`}
         </h1>
         <span>수업·출결·시험·숙제를 한곳에서 확인하세요.</span>
       </section>
@@ -706,6 +706,13 @@ function formatClassDate(value: string) {
 }
 function formatUpcoming(item: Upcoming) {
   return `${formatClassDate(item.classDate)} ${item.startTime.slice(0, 5)}`;
+}
+function studentGivenName(name?: string | null) {
+  const value = name?.trim();
+  if (!value) return null;
+  const compoundSurnames = ["남궁", "황보", "제갈", "선우", "서문", "독고", "동방", "사공"];
+  const surnameLength = compoundSurnames.some((surname) => value.startsWith(surname)) ? 2 : 1;
+  return value.length > surnameLength ? value.slice(surnameLength) : value;
 }
 function assignmentLabel(status: string) {
   return status === "reviewed"
