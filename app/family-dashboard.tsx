@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
@@ -234,13 +235,14 @@ export function FamilyLiveDashboard({
               <i aria-hidden="true">›</i>
             )}
           </section>
-          <FamilyQuickLinks role={profile.role} onNavigate={onNavigate} />
           <FamilyLearningNote
             studentName={selected.name}
             attendance={data?.recentAttendance ?? []}
             assignments={data?.assignments ?? []}
             announcements={data?.announcements ?? []}
-            onNavigate={onNavigate}
+            onNavigate={(view) =>
+              onNavigate(view === "communications" ? "communications" : "reports")
+            }
           />
           <FamilyLearningReportFeed
             supabase={supabase}
@@ -394,7 +396,7 @@ export function FamilyLiveDashboard({
                       : "출결 기록 없음"
                   }
                   count={data?.recentAttendance.length ?? 0}
-                  onClick={() => onNavigate("attendance")}
+                  onClick={() => onNavigate("reports")}
                 />
                 <ProgressButton
                   icon="refresh"
@@ -409,7 +411,7 @@ export function FamilyLiveDashboard({
                     data?.makeups.filter((x) => x.status === "scheduled")
                       .length ?? 0
                   }
-                  onClick={() => onNavigate("makeups")}
+                  onClick={() => onNavigate("schedule")}
                 />
                 <ProgressButton
                   icon="edit"
@@ -424,7 +426,7 @@ export function FamilyLiveDashboard({
                     data?.assignments.filter((x) => x.status !== "reviewed")
                       .length ?? 0
                   }
-                  onClick={() => onNavigate("assignments")}
+                  onClick={() => onNavigate("reports")}
                 />
                 <ProgressButton
                   icon="chat"
@@ -446,115 +448,55 @@ export function FamilyLiveDashboard({
     </div>
   );
 }
-function FamilyQuickLinks({
-  role,
-  onNavigate,
-}: {
-  role: Profile["role"];
-  onNavigate: (view: FamilyView) => void;
-}) {
-  const items =
-    role === "student"
-      ? [
-          {
-            id: "schedule" as const,
-            label: "시간표",
-            icon: "calendar" as const,
-            tone: "blue",
-          },
-          {
-            id: "assignments" as const,
-            label: "과제·시험",
-            icon: "edit" as const,
-            tone: "wine",
-          },
-          {
-            id: "attendance" as const,
-            label: "출결",
-            icon: "check" as const,
-            tone: "green",
-          },
-          {
-            id: "makeups" as const,
-            label: "보강",
-            icon: "refresh" as const,
-            tone: "amber",
-          },
-          {
-            id: "communications" as const,
-            label: "공지",
-            icon: "notice" as const,
-            tone: "violet",
-          },
-          {
-            id: "reports" as const,
-            label: "리포트",
-            icon: "book" as const,
-            tone: "wine",
-          },
-          {
-            id: "my-account" as const,
-            label: "내 정보",
-            icon: "user" as const,
-            tone: "gray",
-          },
-        ]
-      : [
-          {
-            id: "schedule" as const,
-            label: "시간표",
-            icon: "calendar" as const,
-            tone: "blue",
-          },
-          {
-            id: "attendance" as const,
-            label: "출결",
-            icon: "check" as const,
-            tone: "green",
-          },
-          {
-            id: "reports" as const,
-            label: "리포트",
-            icon: "book" as const,
-            tone: "violet",
-          },
-          {
-            id: "consultations" as const,
-            label: "상담",
-            icon: "chat" as const,
-            tone: "wine",
-          },
-          {
-            id: "communications" as const,
-            label: "공지",
-            icon: "notice" as const,
-            tone: "blue",
-          },
-          {
-            id: "makeups" as const,
-            label: "보강",
-            icon: "refresh" as const,
-            tone: "amber",
-          },
-          {
-            id: "my-account" as const,
-            label: "내 정보",
-            icon: "user" as const,
-            tone: "gray",
-          },
-        ];
-  return (
-    <nav className="family-quick-links" aria-label="자주 사용하는 기능">
-      {items.map((item) => (
-        <button type="button" key={item.id} onClick={() => onNavigate(item.id)}>
-          <i className={item.tone}>
-            <HansalmaeIcon name={item.icon} size={21} />
-          </i>
-          <span>{item.label}</span>
-        </button>
-      ))}
-    </nav>
-  );
+export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+  const [data, setData] = useState<Data | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = useCallback(async (studentId: string | null) => {
+    setLoading(true);
+    setError("");
+    const { data: next, error: loadError } = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
+    if (loadError || !next) setError("시간표를 불러오지 못했습니다.");
+    else {
+      const parsed = next as Data;
+      setData(parsed);
+      setSelectedId(parsed.selectedStudent?.id ?? null);
+    }
+    setLoading(false);
+  }, [supabase]);
+  useEffect(() => { void load(null); }, [load]);
+  if (loading && !data) return <section className="panel hub-message">시간표를 불러오는 중이에요…</section>;
+  if (error && !data) return <section className="panel hub-message error">{error}</section>;
+  const selected = data?.selectedStudent;
+  return <div className="family-schedule-page">
+    <header className="family-schedule-heading">
+      <p>{profile.role === "guardian" ? "자녀 일정" : "나의 일정"}</p>
+      <h1>주간 시간표</h1>
+      <span>정규수업과 예정된 수업 시간을 한눈에 확인하세요.</span>
+    </header>
+    {error && <p className="attendance-error">{error}</p>}
+    {selected ? <>
+      <section className="family-schedule-student">
+        <i>{selected.name.slice(0, 1)}</i>
+        <span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span>
+        {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
+      </section>
+      <section className="family-weekly-schedule" aria-label={`${selected.name} 주간 시간표`}>
+        {weekdays.map((day, index) => {
+          const classes = data?.weekClasses.filter((item) => item.weekday === index + 1) ?? [];
+          return <article key={day} className={classes.length ? "has-class" : ""}>
+            <header><b>{day}</b><span>{classes.length ? `${classes.length}개 수업` : "수업 없음"}</span></header>
+            <div>{classes.length ? classes.map((item) => <section key={item.id} style={{ "--family-class-color": item.color } as CSSProperties}>
+              <time>{item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}</time>
+              <span><b>{item.name}</b><small>{item.subject} · {familyTeacherNames(item.teachers)}{item.room ? ` · ${item.room}` : ""}</small></span>
+            </section>) : <p>예정된 수업이 없습니다.</p>}</div>
+          </article>;
+        })}
+      </section>
+      <section className="family-schedule-note"><HansalmaeIcon name="notice" size={18}/><span><b>보강·추가수업·첨삭 일정</b><small>확정된 일정과 완료 기록은 홈 학습 피드와 리포트에서 함께 확인할 수 있어요.</small></span></section>
+    </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
+  </div>;
 }
 function FamilyExamProgress({
   supabase,
