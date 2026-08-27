@@ -12,3 +12,23 @@
 .family-signout-card{margin-top:14px;padding:14px;border:1px solid #eadfe3;border-radius:17px;background:linear-gradient(145deg,#fff,#fcf7f9);display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(58,37,47,.045)}.family-signout-card>div{min-width:0;display:grid;gap:3px}.family-signout-card b{color:#493d43;font-size:12px}.family-signout-card span{color:#978b91;font-size:9px;line-height:1.45}.family-signout-card>button{min-width:106px;min-height:46px;padding:0 13px;border:1px solid #ead5de;border-radius:14px;background:#fff;color:#962758;display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;font-weight:850;white-space:nowrap;box-shadow:0 5px 14px rgba(146,45,97,.07)}.family-signout-card>button span{width:27px;height:27px;border-radius:9px;background:#922d61;color:#fff;display:grid;place-items:center;font-size:14px;line-height:1}
 @media(max-width:760px){.family-mobile-home>.family-learning-note{order:1}.family-mobile-home>.family-report-feed{order:2}.family-mobile-home>.family-quick-links{order:3}.family-mobile-home>.family-correction-report-feed,.family-mobile-home>.family-stats,.family-mobile-home>.family-score-trends,.family-mobile-home>.family-exam-progress,.family-mobile-home>.family-dashboard-grid{display:none!important}.family-learning-note .family-note-grid{display:none}.family-learning-note{padding:13px 14px!important}.family-learning-note>header{padding:0!important}.family-learning-note>header>div:last-child p{display:none}.family-note-date{padding:6px 9px!important}.family-note-summary{padding:10px 0 0!important}.family-quick-links{margin-top:1px}}
 @media(max-width:430px){.family-app-content{padding-right:12px!important;padding-left:12px!important}.family-profile-card{grid-template-columns:47px minmax(0,1fr) auto;padding:14px;gap:10px}.family-profile-avatar{width:47px;height:47px;border-radius:15px}.family-profile-card>label{grid-column:1/-1;width:100%}.family-quick-links{row-gap:11px}.family-app-welcome h1{font-size:22px}}
+
+/* Keep the guardian home focused on the learning feed. */
+@media(max-width:760px){
+  .family-mobile-home{gap:10px}
+  .family-app-welcome{padding:0 3px}
+  .family-app-welcome p{margin-bottom:3px;font-size:9px}
+  .family-app-welcome h1{font-size:20px}
+  .family-app-welcome span{margin-top:3px;font-size:9px}
+  .family-profile-card{min-height:72px;padding:10px 12px;border-radius:17px;grid-template-columns:43px minmax(0,1fr) auto;gap:10px}
+  .family-profile-avatar{width:43px;height:43px;border-radius:14px;font-size:17px;box-shadow:0 5px 13px rgba(146,45,97,.16)}
+  .family-profile-card b{font-size:14px}
+  .family-profile-card span{font-size:9px}
+  .family-profile-card small{font-size:8px}
+  .family-profile-card>i{display:none}
+  .family-learning-note{min-height:0;margin:0!important;padding:10px 12px!important;border-radius:15px!important;background:#fff!important;box-shadow:none!important}
+  .family-learning-note>header{display:none!important}
+  .family-note-summary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0!important;overflow:visible!important}
+  .family-note-summary>span{min-width:0;justify-content:center;padding:8px 9px!important;background:#fcfafb}
+  .family-note-summary b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+}
