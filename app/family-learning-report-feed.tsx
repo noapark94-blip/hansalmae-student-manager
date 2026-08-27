@@ -486,6 +486,7 @@ function CorrectionFeedCard({
               : ""}
           </small>
           <FeedSummary
+            lessonLabel="첨삭내용"
             lesson={item.correctionContent}
             exam={examSummary}
             assignment={assignmentSummary}
@@ -747,16 +748,18 @@ function ReportCard({
 }
 
 function FeedSummary({
+  lessonLabel = "수업내용",
   lesson,
   exam,
   assignment,
 }: {
+  lessonLabel?: string;
   lesson: string;
   exam: string;
   assignment: string;
 }) {
   const rows = [
-    ["수업내용", lesson],
+    [lessonLabel, lesson],
     ["시험", exam],
     ["과제", assignment],
   ].filter((row) => row[1]?.trim());
