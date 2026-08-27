@@ -438,6 +438,7 @@ export function FamilyLearningReportFeed({
           <button
             type="button"
             className={`family-report-filter-all ${selectedSubject === "전체" ? "active" : ""}`}
+            aria-pressed={selectedSubject === "전체"}
             onClick={() => setSubject("전체")}
           >
             전체
@@ -448,6 +449,7 @@ export function FamilyLearningReportFeed({
                 type="button"
                 key={name}
                 className={selectedSubject === name ? "active" : ""}
+                aria-pressed={selectedSubject === name}
                 onClick={(event) => {
                   setSubject(name);
                   event.currentTarget.scrollIntoView({
