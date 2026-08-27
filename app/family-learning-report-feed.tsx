@@ -452,7 +452,7 @@ function CorrectionFeedCard({
     ? `${item.examTitle}${
         item.examScore == null
           ? ""
-          : ` ${formatScore(item.examScore)}개/${formatScore(item.examMaxScore ?? 100)}개`
+          : ` ${formatRawExamScore(item.examScore, item.examMaxScore ?? 100, isWordExam(item.examTitle), false)}`
       }`
     : "";
   const assignmentSummary =
@@ -593,7 +593,7 @@ function CorrectionFeedDetail({
                   convertedExamScore !== null
                     ? {
                         label: "점수",
-                        value: `${formatScore(item.examScore!)}개 / ${formatScore(item.examMaxScore!)}개 (${Math.round(convertedExamScore)}점)`,
+                        value: `${formatRawExamScore(item.examScore!, item.examMaxScore!, isWordExam(item.examTitle))} (${Math.round(convertedExamScore)}점)`,
                       }
                     : null,
                   item.evaluation
@@ -692,7 +692,7 @@ function ReportCard({
   const examSummary = firstExam
     ? firstExam.score === null
       ? firstExam.examTitle || "시험 평가"
-      : `${firstExam.examTitle || "시험"} ${formatScore(firstExam.score)}개/${formatScore(firstExam.maxScore)}개`
+      : `${firstExam.examTitle || "시험"} ${formatRawExamScore(firstExam.score, firstExam.maxScore, isWordExam(`${firstExam.examTitle} ${firstExam.examType}`), false)}`
     : item.examContent;
   const assignmentSummary =
     item.homeworkContent ||
@@ -879,7 +879,11 @@ function ReportDetail({
                   const convertedScore = getConvertedScore(exam);
                   const rawScore =
                     exam.score !== null
-                      ? `${formatScore(exam.score)}개 / ${formatScore(exam.maxScore)}개`
+                      ? formatRawExamScore(
+                          exam.score,
+                          exam.maxScore,
+                          isWordExam(`${exam.examTitle} ${exam.examType}`),
+                        )
                       : "";
                   return [
                     {
@@ -1286,6 +1290,19 @@ function formatScore(value: number) {
   return Number.isInteger(Number(value))
     ? String(Number(value))
     : Number(value).toFixed(1);
+}
+function isWordExam(value: string) {
+  return /단어|voca|vocabulary/i.test(value ?? "");
+}
+function formatRawExamScore(
+  score: number,
+  maxScore: number,
+  useCountUnit: boolean,
+  spaced = true,
+) {
+  const separator = spaced ? " / " : "/";
+  const unit = useCountUnit ? "개" : "";
+  return `${formatScore(score)}${unit}${separator}${formatScore(maxScore)}${unit}`;
 }
 function getConvertedScore(exam: Exam) {
   if (exam.score === null) return null;
