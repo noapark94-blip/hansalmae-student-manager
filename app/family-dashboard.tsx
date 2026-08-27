@@ -118,6 +118,11 @@ type Data = {
   consultations: Consultation[];
 };
 const weekdays = ["월", "화", "수", "목", "금", "토"];
+const weekdayNumbers: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+function seoulWeekday() {
+  const day = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" }).format(new Date());
+  return weekdayNumbers[day] ?? 7;
+}
 const attendanceLabels: Record<string, string> = {
   present: "출석",
   late: "지각",
@@ -240,6 +245,7 @@ export function FamilyLiveDashboard({
             attendance={data?.recentAttendance ?? []}
             assignments={data?.assignments ?? []}
             announcements={data?.announcements ?? []}
+            todayClassCount={(data?.weekClasses ?? []).filter((item) => item.weekday === seoulWeekday()).length}
             onNavigate={(view) =>
               onNavigate(view === "communications" ? "communications" : "reports")
             }
