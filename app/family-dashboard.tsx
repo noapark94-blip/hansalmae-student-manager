@@ -494,7 +494,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
           </article>;
         })}
       </section>
-      <section className="family-schedule-note"><HansalmaeIcon name="notice" size={18}/><span><b>보강·추가수업·첨삭 일정</b><small>확정된 일정과 완료 기록은 홈 학습 피드와 리포트에서 함께 확인할 수 있어요.</small></span></section>
+      <section className="family-schedule-note"><HansalmaeIcon name="notice" size={18}/><span><b>보강·추가수업·첨삭 안내</b><small>확정된 예정 일정은 시간표에서, 수업을 마치고 발행된 기록은 홈 학습 피드와 리포트에서 확인할 수 있어요.</small></span></section>
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
 }
