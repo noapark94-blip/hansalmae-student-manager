@@ -59,7 +59,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     ]);
     if (!staff.error) {
       setMode("staff");
-      setInbox(staff.data as Inbox);
+      setInbox((current) => sameData(current, staff.data as Inbox) ? current : staff.data as Inbox);
       return;
     }
     if (
@@ -67,12 +67,12 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
       Number((family.data as Inbox)?.items?.length ?? 0) > 0
     ) {
       setMode("family");
-      setInbox(family.data as Inbox);
+      setInbox((current) => sameData(current, family.data as Inbox) ? current : family.data as Inbox);
       return;
     }
     if (!general.error) {
       setMode("general");
-      setInbox(general.data as Inbox);
+      setInbox((current) => sameData(current, general.data as Inbox) ? current : general.data as Inbox);
       return;
     }
     setMode(null);
@@ -104,7 +104,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
       });
       if (data) {
         const nextThread = data as ThreadComment[];
-        setThread(nextThread);
+        setThread((current) => sameData(current, nextThread) ? current : nextThread);
         await loadReactions(
           nextThread.filter((item) => !item.isDeleted).map((item) => item.id),
         );
@@ -341,4 +341,8 @@ function formatTime(value: string) {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(value));
+}
+
+function sameData(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
