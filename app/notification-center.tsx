@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
@@ -47,6 +47,9 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   const [thread, setThread] = useState<ThreadComment[]>([]);
   const [reply, setReply] = useState("");
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<"idle" | "done" | "error">("idle");
+  const refreshResultTimer = useRef<number | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [threadError, setThreadError] = useState("");
   const { reactions, reacting, load: loadReactions, toggle } =
@@ -60,7 +63,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     if (!staff.error) {
       setMode("staff");
       setInbox((current) => sameData(current, staff.data as Inbox) ? current : staff.data as Inbox);
-      return;
+      return true;
     }
     if (
       !family.error &&
@@ -68,19 +71,23 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     ) {
       setMode("family");
       setInbox((current) => sameData(current, family.data as Inbox) ? current : family.data as Inbox);
-      return;
+      return true;
     }
     if (!general.error) {
       setMode("general");
       setInbox((current) => sameData(current, general.data as Inbox) ? current : general.data as Inbox);
-      return;
+      return true;
     }
     setMode(null);
     setInbox({ unreadCount: 0, items: [] });
+    return false;
   }, [supabase]);
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
+  useEffect(() => () => {
+    if (refreshResultTimer.current) window.clearTimeout(refreshResultTimer.current);
+  }, []);
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === "visible") void load();
@@ -180,6 +187,19 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     setSelected(null);
     onOpenStaffLesson?.(target);
   }
+  async function refreshInbox() {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshResult("idle");
+    if (refreshResultTimer.current) window.clearTimeout(refreshResultTimer.current);
+    const startedAt = Date.now();
+    const succeeded = await load();
+    const remaining = Math.max(0, 450 - (Date.now() - startedAt));
+    if (remaining) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+    setRefreshing(false);
+    setRefreshResult(succeeded ? "done" : "error");
+    refreshResultTimer.current = window.setTimeout(() => setRefreshResult("idle"), 1600);
+  }
   return (
     <>
       <button
@@ -208,7 +228,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                 </small>
                 <h2>{mode === "staff" ? "댓글 알림" : "알림"}</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)}>
+              <button type="button" aria-label="알림 닫기" onClick={() => setOpen(false)}>
                 ×
               </button>
             </header>
@@ -218,8 +238,21 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                   ? `미확인 댓글 ${inbox.unreadCount}건`
                   : `새 알림 ${inbox.unreadCount}건`}
               </span>
-              <button type="button" onClick={() => void load()}>
-                새로고침
+              <button
+                type="button"
+                className={`notification-refresh ${refreshResult}`}
+                onClick={() => void refreshInbox()}
+                disabled={refreshing}
+                aria-live="polite"
+              >
+                <span aria-hidden="true">{refreshResult === "done" ? "✓" : "↻"}</span>
+                {refreshing
+                  ? "확인 중"
+                  : refreshResult === "done"
+                    ? "업데이트 완료"
+                    : refreshResult === "error"
+                      ? "다시 시도"
+                      : "새로고침"}
               </button>
             </div>
             <div className="notification-list">

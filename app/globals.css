@@ -783,3 +783,39 @@ button:disabled { cursor:wait; opacity:.7; }
 }
 
 .class-roster-student{width:100%;min-height:45px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:#fff;display:flex;align-items:center;gap:10px;text-align:left;color:var(--text);cursor:pointer}.class-roster-student:first-child{border-top:0}.class-roster-student:hover,.class-roster-student:focus-visible{background:#fff8fb;outline:0}.class-roster-student i{width:24px;height:24px;border-radius:50%;background:#f4e5ed;color:var(--wine);display:grid;place-items:center;font-size:8px;font-style:normal}.class-roster-student b{font-size:10px}.class-roster-student span{margin-left:auto;color:var(--wine);font-size:8px;font-weight:800}.class-roster-student:disabled{cursor:default}
+
+/* Notification center: calm, legible family-facing inbox. */
+.notification-backdrop{background:rgba(43,32,38,.34);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.notification-drawer{height:100dvh;background:#fcfafb;box-shadow:-18px 0 50px rgba(49,30,39,.16)}
+.notification-drawer>header{min-height:112px;padding:25px 24px 22px;background:#fff;align-items:center}
+.notification-drawer>header small{color:#8f8389;font-size:10px;line-height:1.3;letter-spacing:.01em}
+.notification-drawer h2{margin:7px 0 0;color:#30282c;font-size:22px;font-weight:600;line-height:1.16;letter-spacing:-.7px}
+.notification-drawer>header>button{width:42px;height:42px;border:1px solid #eee7ea;border-radius:14px;background:#f8f5f6;color:#71666b;font-size:24px;line-height:1;cursor:pointer;transition:background .16s,transform .16s}
+.notification-drawer>header>button:hover{background:#f2ecef}.notification-drawer>header>button:active{transform:scale(.96)}
+.notification-toolbar{min-height:58px;padding:0 20px;background:#fff;border-bottom:1px solid #eee7ea;color:#81757b;font-size:10px}
+.notification-toolbar>span{font-weight:650}
+.notification-toolbar .notification-refresh{min-width:82px;height:34px;padding:0 11px;border:1px solid #eadde4;border-radius:999px;background:#fff;color:var(--wine);display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:9px;font-weight:800;cursor:pointer;transition:background .16s,border-color .16s,transform .16s}
+.notification-toolbar .notification-refresh>span{font-size:13px;line-height:1;transition:transform .2s}
+.notification-toolbar .notification-refresh:hover{background:#fff7fa;border-color:#dcbfce}.notification-toolbar .notification-refresh:active{transform:scale(.97)}
+.notification-toolbar .notification-refresh:disabled{cursor:wait;opacity:1}.notification-toolbar .notification-refresh:disabled>span{animation:notification-spin .8s linear infinite}
+.notification-toolbar .notification-refresh.done{border-color:#cee2d5;background:#f1f8f3;color:#397452}.notification-toolbar .notification-refresh.error{border-color:#edc8ce;background:#fff5f6;color:#a23448}
+.notification-list{min-height:0;padding:12px;display:flex;flex-direction:column;gap:9px;background:#fcfafb}
+.notification-list>p{margin:0;padding:58px 20px;border:1px dashed #e7dde2;border-radius:16px;background:#fff;color:#8b7f85;font-size:10px;line-height:1.6}
+.notification-list article{position:relative;padding:16px;border:1px solid #ebe3e7;border-radius:16px;background:#fff;grid-template-columns:38px minmax(0,1fr);gap:12px;box-shadow:0 6px 18px rgba(57,32,43,.035);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.notification-list article:hover{border-color:#ddcbd4;box-shadow:0 9px 24px rgba(57,32,43,.07);transform:translateY(-1px)}
+.notification-list article>i{width:38px;height:38px;border-radius:12px;background:#f6e8ef;font-size:11px}
+.notification-list article>span{min-width:0;gap:5px}
+.notification-list article b{color:#332b2f;font-size:12px;line-height:1.35}
+.notification-list article small{color:#8d8187;font-size:9px;line-height:1.45}
+.notification-list article p{margin:4px 0 0;color:#5e5459;font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+.notification-list article.unread{border-color:#e3c9d6;background:#fff9fc;box-shadow:inset 3px 0 0 var(--wine),0 7px 20px rgba(88,36,62,.05)}
+.notification-list article.unread b:after{font-size:7px}
+@keyframes notification-spin{to{transform:rotate(360deg)}}
+@media(max-width:560px){
+ .notification-drawer{width:100%;max-width:none}
+ .notification-drawer>header{min-height:108px;padding:22px 20px 19px}
+ .notification-toolbar{padding:0 18px}
+ .notification-list{padding:10px}
+ .notification-list article{padding:15px 14px}
+}
+@media(prefers-reduced-motion:reduce){.notification-toolbar .notification-refresh:disabled>span{animation:none}.notification-list article,.notification-drawer>header>button,.notification-toolbar .notification-refresh{transition:none}}
