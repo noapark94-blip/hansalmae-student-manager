@@ -1108,19 +1108,13 @@ function FamilyReportComments({
         <div className="family-comment-list">
           {roots.map((root) => (
             <article key={root.id}>
-              <div className="family-comment-author">
-                <i>{root.authorName.slice(0, 1)}</i>
-                <span>
-                  <strong>{root.authorName} 학부모님</strong>
-                </span>
-              </div>
               <div className="family-comment-message family-comment-message-parent">
+                <time>{formatCommentTime(root.createdAt)}</time>
                 <div
                   className={`family-comment-bubble ${root.isDeleted ? "deleted" : ""}`}
                 >
                   <p>{root.body}</p>
                 </div>
-                <time>{formatCommentTime(root.createdAt)}</time>
               </div>
               <div className="family-comment-action-row family-comment-action-parent">
                   <CommentReactionBar
@@ -1149,10 +1143,10 @@ function FamilyReportComments({
                       <b>{familyTeacherName(reply.authorName)}</b>
                     </div>
                     <div className="family-comment-message family-comment-message-reply">
-                      <time>{formatCommentTime(reply.createdAt)}</time>
                       <div className={`family-comment-bubble ${reply.isDeleted ? "deleted" : ""}`}>
                         <p>{reply.body}</p>
                       </div>
+                      <time>{formatCommentTime(reply.createdAt)}</time>
                     </div>
                     <div className="family-comment-action-row family-comment-action-reply">
                       <CommentReactionBar
