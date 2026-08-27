@@ -690,7 +690,7 @@ function CorrectionFeedDetail({
             </p>
           </section>
           <div className="family-report-detail-sections">
-            {item.examTitle && (
+            {item.examTitle.trim() && (
               <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
@@ -713,14 +713,14 @@ function CorrectionFeedDetail({
                 ]}
               />
             )}
-            {item.correctionContent && (
+            {item.correctionContent.trim() && (
               <ReportSection
                 icon="book"
                 title="오늘 한 첨삭과제"
                 text={item.correctionContent}
               />
             )}
-            {item.homeworkInstruction && (
+            {item.homeworkInstruction.trim() && (
               <ReportSection
                 icon="edit"
                 title="과제 및 복습"
@@ -744,7 +744,7 @@ function CorrectionFeedDetail({
                 ]}
               />
             )}
-            {item.nextPreparation && (
+            {item.nextPreparation.trim() && (
               <ReportSection
                 icon="notice"
                 title="다음 준비"
@@ -752,7 +752,7 @@ function CorrectionFeedDetail({
               />
             )}
           </div>
-          {item.assistantFeedback && (
+          {item.assistantFeedback.trim() && (
             <section className="family-teacher-feedback">
               <span className="family-teacher-feedback-icon">
                 <HansalmaeIcon name="chat" size={19} />
@@ -914,7 +914,15 @@ function ReportDetail({
   const attendanceMemo = [attendance?.absenceReason, attendance?.note]
     .filter(Boolean)
     .join(" · ");
-  const teacherFeedbacks = item.exams
+  const displayExams = item.exams.filter(
+    (exam) =>
+      Boolean(exam.examTitle.trim()) ||
+      Boolean(exam.examType.trim()) ||
+      exam.score !== null ||
+      Boolean(exam.feedback.trim()) ||
+      Boolean(exam.evaluation.trim()),
+  );
+  const teacherFeedbacks = displayExams
     .filter((exam) => exam.feedback.trim())
     .map((exam) => ({
       label: exam.examTitle || exam.examType || "시험",
@@ -968,25 +976,25 @@ function ReportDetail({
             </p>
           </section>
           <div className="family-report-detail-sections">
-            {item.lessonContent && (
+            {item.lessonContent.trim() && (
               <ReportSection
                 icon="book"
                 title="오늘 수업"
                 text={item.lessonContent}
               />
             )}
-            {item.examContent && (
+            {item.examContent.trim() && (
               <ReportSection
                 icon="chart"
                 title="오늘 시험·평가"
                 text={item.examContent}
               />
             )}
-            {item.exams.length > 0 && (
+            {displayExams.length > 0 && (
               <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
-                rows={item.exams.flatMap((exam) => {
+                rows={displayExams.flatMap((exam) => {
                   const convertedScore = getConvertedScore(exam);
                   const rawScore =
                     exam.score !== null
@@ -1039,7 +1047,7 @@ function ReportDetail({
                 ]}
               />
             )}
-            {item.homeworkContent && (
+            {item.homeworkContent.trim() && (
               <ReportSection
                 icon="edit"
                 title="과제 및 복습"
