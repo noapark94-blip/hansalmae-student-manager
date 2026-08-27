@@ -75,7 +75,16 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     void Promise.resolve().then(load);
   }, [load]);
   useEffect(()=>{if(!open&&!selected)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open,selected]);
+  function markItemRead(item:InboxItem){
+    if(item.readAt)return;
+    const readAt=new Date().toISOString();
+    setInbox(current=>({
+      unreadCount:Math.max(0,current.unreadCount-1),
+      items:current.items.map(currentItem=>currentItem.id===item.id?{...currentItem,readAt}:currentItem),
+    }));
+  }
   async function openItem(item: InboxItem) {
+    markItemRead(item);
     if (mode !== "staff") {
       const lessonId=item.lessonId??(item.sourceType==="learning_report"?item.sourceId:undefined);
       if(!lessonId)return;
