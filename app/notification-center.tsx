@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 
@@ -65,6 +66,7 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
+  useEffect(()=>{if(!open&&!selected)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open,selected]);
   async function openItem(item: InboxItem) {
     if (mode !== "staff" || !item.studentId || !item.lessonId) return;
     setSelected(item);
@@ -102,7 +104,7 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
           <i>{inbox.unreadCount > 99 ? "99+" : inbox.unreadCount}</i>
         )}
       </button>
-      {open && (
+      {typeof document!=="undefined"&&open&&createPortal(
         <div
           className="notification-backdrop"
           onMouseDown={(event) => {
@@ -169,9 +171,9 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
               )}
             </div>
           </section>
-        </div>
+        </div>,document.body
       )}
-      {selected && (
+      {typeof document!=="undefined"&&selected&&createPortal(
         <div
           className="comment-thread-backdrop"
           onMouseDown={(event) => {
@@ -233,7 +235,7 @@ export function NotificationCenter({ supabase }: { supabase: SupabaseClient }) {
               </div>
             </footer>
           </section>
-        </div>
+        </div>,document.body
       )}
     </>
   );
