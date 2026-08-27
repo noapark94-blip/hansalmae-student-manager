@@ -518,15 +518,20 @@ function CorrectionFeedDetail({
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  const examText = [
+  const examDescription = [
     cleanCorrectionRange(item.examRange),
-    item.examScore == null
-      ? null
-      : `${formatScore(item.examScore)} / ${formatScore(item.examMaxScore ?? 100)}점`,
     item.evaluation,
   ]
     .filter(Boolean)
     .join(" · ");
+  const convertedExamScore =
+    item.examScore == null ||
+    item.examMaxScore == null ||
+    Number(item.examMaxScore) <= 0
+      ? null
+      : Math.round(
+          (Number(item.examScore) / Number(item.examMaxScore)) * 1000,
+        ) / 10;
   return (
     <div
       className="family-report-detail-backdrop"
@@ -577,11 +582,39 @@ function CorrectionFeedDetail({
           </section>
           <div className="family-report-detail-sections">
             {item.examTitle && (
-              <ReportSection
-                icon="chart"
-                title={item.examTitle}
-                text={examText}
-              />
+              <section className="family-report-section family-report-exam-section">
+                <i>
+                  <HansalmaeIcon name="chart" size={18} />
+                </i>
+                <div>
+                  <b>개인별 시험 결과</b>
+                  <div className="family-report-exams">
+                    <div>
+                      <span>
+                        <strong>{item.examTitle}</strong>
+                        {examDescription && <small>{examDescription}</small>}
+                      </span>
+                      <em>
+                        {item.examScore == null ? (
+                          "평가"
+                        ) : (
+                          <>
+                            <strong>
+                              {formatScore(item.examScore)} /{" "}
+                              {formatScore(item.examMaxScore ?? 100)}
+                            </strong>
+                            {convertedExamScore !== null && (
+                              <small>
+                                100점 환산 {formatScore(convertedExamScore)}점
+                              </small>
+                            )}
+                          </>
+                        )}
+                      </em>
+                    </div>
+                  </div>
+                </div>
+              </section>
             )}
             {item.correctionContent && (
               <ReportSection
