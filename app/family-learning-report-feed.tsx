@@ -523,12 +523,7 @@ function CorrectionFeedDetail({
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  const examDescription = [
-    cleanCorrectionRange(item.examRange),
-    item.evaluation,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const examRange = cleanCorrectionRange(item.examRange);
   const convertedExamScore =
     item.examScore == null ||
     item.examMaxScore == null ||
@@ -587,24 +582,26 @@ function CorrectionFeedDetail({
           </section>
           <div className="family-report-detail-sections">
             {item.examTitle && (
-              <ReportSection
+              <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
-                text={[
-                  `${item.examTitle}: ${
-                    item.examScore == null
-                      ? "평가"
-                      : `${formatScore(item.examScore)} / ${formatScore(
-                          item.examMaxScore ?? 100,
-                        )}`
-                  }`,
+                rows={[
+                  {
+                    label: "시험",
+                    value: examRange
+                      ? `${item.examTitle} ${examRange}`
+                      : item.examTitle,
+                  },
                   convertedExamScore !== null
-                    ? `100점 환산 ${formatScore(convertedExamScore)}점`
-                    : "",
-                  examDescription,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+                    ? {
+                        label: "점수",
+                        value: `${formatScore(convertedExamScore)}점`,
+                      }
+                    : null,
+                  item.evaluation
+                    ? { label: "피드백", value: item.evaluation }
+                    : null,
+                ]}
               />
             )}
             {item.correctionContent && (
@@ -622,16 +619,22 @@ function CorrectionFeedDetail({
               />
             )}
             {item.homeworkStatus && (
-              <ReportSection
+              <LabeledReportSection
                 icon="check"
                 title="지난 첨삭과제 검사"
-                text={[
-                  previousHomework,
-                  correctionHomeworkLabel(item.homeworkStatus),
-                  item.homeworkNote,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+                rows={[
+                  previousHomework
+                    ? { label: "지난 과제", value: previousHomework }
+                    : null,
+                  {
+                    label: "결과",
+                    value: correctionHomeworkLabel(item.homeworkStatus),
+                    tone: item.homeworkStatus,
+                  },
+                  item.homeworkNote
+                    ? { label: "피드백", value: item.homeworkNote }
+                    : null,
+                ]}
               />
             )}
             {item.nextPreparation && (
@@ -872,56 +875,49 @@ function ReportDetail({
               />
             )}
             {item.exams.length > 0 && (
-              <ReportSection
+              <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
-                text={item.exams
-                  .map((exam) => {
-                    const convertedScore = getConvertedScore(exam);
-                    return [
-                      `${exam.examTitle || exam.examType || "시험"}: ${
-                        exam.score === null
-                          ? "평가"
-                          : `${formatScore(exam.score)} / ${formatScore(
-                              exam.maxScore,
-                            )}`
-                      }`,
-                      convertedScore !== null
-                        ? `100점 환산 ${formatScore(convertedScore)}점`
-                        : "",
-                      exam.evaluation,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-                  })
-                  .join("\n")}
+                rows={item.exams.flatMap((exam) => {
+                  const convertedScore = getConvertedScore(exam);
+                  return [
+                    {
+                      label: "시험",
+                      value: exam.examTitle || exam.examType || "시험",
+                    },
+                    convertedScore !== null
+                      ? {
+                          label: "점수",
+                          value: `${formatScore(convertedScore)}점`,
+                        }
+                      : null,
+                    exam.evaluation
+                      ? { label: "피드백", value: exam.evaluation }
+                      : null,
+                  ];
+                })}
               />
             )}
             {item.homeworkResult && (
-              <section className="family-report-section">
-                <i>
-                  <HansalmaeIcon name="check" size={18} />
-                </i>
-                <div>
-                  <b>지난 숙제 검사</b>
-                  <p>
-                    {previousHomework && (
-                      <span className="previous-homework-content">
-                        {previousHomework} ·{" "}
-                      </span>
-                    )}
-                    <strong
-                      className={`homework-result ${item.homeworkResult.status}`}
-                    >
-                      {homeworkLabel[item.homeworkResult.status] ??
-                        item.homeworkResult.status}
-                    </strong>
-                    {item.homeworkResult.note && (
-                      <span> · {item.homeworkResult.note}</span>
-                    )}
-                  </p>
-                </div>
-              </section>
+              <LabeledReportSection
+                icon="check"
+                title="지난 숙제 검사"
+                rows={[
+                  previousHomework
+                    ? { label: "지난 숙제", value: previousHomework }
+                    : null,
+                  {
+                    label: "결과",
+                    value:
+                      homeworkLabel[item.homeworkResult.status] ??
+                      item.homeworkResult.status,
+                    tone: item.homeworkResult.status,
+                  },
+                  item.homeworkResult.note
+                    ? { label: "피드백", value: item.homeworkResult.note }
+                    : null,
+                ]}
+              />
             )}
             {item.homeworkContent && (
               <ReportSection
@@ -1195,6 +1191,43 @@ function ReportSection({
       <div>
         <b>{title}</b>
         <p>{text}</p>
+      </div>
+    </section>
+  );
+}
+type ReportDetailRow = {
+  label: string;
+  value: string;
+  tone?: string;
+} | null;
+
+function LabeledReportSection({
+  icon,
+  title,
+  rows,
+}: {
+  icon: "book" | "edit" | "notice" | "chart" | "check";
+  title: string;
+  rows: ReportDetailRow[];
+}) {
+  const visibleRows = rows.filter(
+    (row): row is Exclude<ReportDetailRow, null> => Boolean(row?.value.trim()),
+  );
+  return (
+    <section className="family-report-section">
+      <i>
+        <HansalmaeIcon name={icon} size={18} />
+      </i>
+      <div>
+        <b>{title}</b>
+        <div className="family-report-detail-rows">
+          {visibleRows.map((row, index) => (
+            <p key={`${row.label}-${index}`} className={row.tone ?? ""}>
+              <strong>{row.label}:</strong>
+              <span>{row.value}</span>
+            </p>
+          ))}
+        </div>
       </div>
     </section>
   );
