@@ -76,8 +76,8 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
       if(!lessonId)return;
       if(mode==="general")void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
       setOpen(false);
-      onOpenFamilyReport?.();
       sessionStorage.setItem("hansalmae:family-report-target",JSON.stringify({lessonId,studentId:item.studentId}));
+      onOpenFamilyReport?.();
       window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-family-report",{detail:{lessonId,studentId:item.studentId}})),50);
       return;
     }
