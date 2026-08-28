@@ -6,35 +6,39 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type RecordType = "school" | "mock";
 type AcademicRecord = {
-  id: string; record_type: RecordType; academic_year: number; semester: number | null;
+  id: string; record_type: RecordType; academic_year: number; school_grade: string | null; semester: number | null;
   exam_date: string; exam_name: string; subject: string; score: number | null;
   grade: number | null; achievement_level: string | null; rank: number | null; cohort_size: number | null;
   school_average: number | null; standard_score: number | null;
   percentile: number | null; note: string | null; created_at: string;
 };
 type FormValues = {
-  academicYear:string; semester:string; examDate:string; examName:string; subject:string;
+  academicYear:string; schoolGrade:string; semester:string; examDate:string; examName:string; subject:string;
   score:string; grade:string; achievementLevel:string; rank:string; cohortSize:string; schoolAverage:string;
   standardScore:string; percentile:string; note:string;
 };
 
 const currentYear = new Date().getFullYear();
-const emptyForm = (type:RecordType):FormValues => ({
-  academicYear:String(currentYear), semester:"1", examDate:new Date().toISOString().slice(0,10),
-  examName:type==="school"?"중간고사":"3월 모의고사", subject:"영어", score:"", grade:"", achievementLevel:"",
+const emptyForm = (type:RecordType,schoolGrade:string):FormValues => ({
+  academicYear:String(currentYear), schoolGrade, semester:"1", examDate:new Date().toISOString().slice(0,10),
+  examName:type==="school"?"1학기 중간고사":"3월 모의고사", subject:"", score:"", grade:"", achievementLevel:"",
   rank:"", cohortSize:"", schoolAverage:"", standardScore:"", percentile:"", note:"",
 });
 const numeric = (value:string) => value.trim()==="" ? null : Number(value);
-const recordColumns = "id,record_type,academic_year,semester,exam_date,exam_name,subject,score,grade,achievement_level,rank,cohort_size,school_average,standard_score,percentile,note,created_at";
+const recordColumns = "id,record_type,academic_year,school_grade,semester,exam_date,exam_name,subject,score,grade,achievement_level,rank,cohort_size,school_average,standard_score,percentile,note,created_at";
+const schoolExamNames=["1학기 중간고사","1학기 기말고사","2학기 중간고사","2학기 기말고사","기타"];
 
 export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supabase:SupabaseClient;studentId:string;studentGrade:string}) {
-  const isMiddleSchool = /^중\s*[1-3]/.test(studentGrade.trim());
+  const normalizedStudentGrade=studentGrade.replace(/\s+/g,"");
+  const isMiddleSchool = /^(초6|중[1-3])$/.test(normalizedStudentGrade);
+  const schoolGradeOptions=isMiddleSchool?["초6","중1","중2","중3"]:["고1","고2","고3","재수","검정고시"];
+  const initialSchoolGrade=schoolGradeOptions.includes(normalizedStudentGrade)?normalizedStudentGrade:schoolGradeOptions[0];
   const [type,setType]=useState<RecordType>("school");
   const [records,setRecords]=useState<AcademicRecord[]>([]);
   const [loading,setLoading]=useState(true);
   const [editorOpen,setEditorOpen]=useState(false);
   const [editingId,setEditingId]=useState<string|null>(null);
-  const [form,setForm]=useState<FormValues>(()=>emptyForm("school"));
+  const [form,setForm]=useState<FormValues>(()=>emptyForm("school",initialSchoolGrade));
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
   const [deleteId,setDeleteId]=useState<string|null>(null);
@@ -61,15 +65,15 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
 
   const switchType=(next:RecordType)=>{setType(next);setYear("all");setSubject("all");setDeleteId(null);setEditorOpen(false);};
   const update=(key:keyof FormValues,value:string)=>setForm(current=>({...current,[key]:value}));
-  const openNew=()=>{setEditingId(null);setForm(emptyForm(type));setMessage("");setEditorOpen(true);};
+  const openNew=()=>{setEditingId(null);setForm(emptyForm(type,initialSchoolGrade));setMessage("");setEditorOpen(true);};
   const openEdit=(item:AcademicRecord)=>{
     setEditingId(item.id);setDeleteId(null);setMessage("");
-    setForm({academicYear:String(item.academic_year),semester:String(item.semester??1),examDate:item.exam_date,examName:item.exam_name,subject:item.subject,score:String(item.score??""),grade:String(item.grade??""),achievementLevel:item.achievement_level??"",rank:String(item.rank??""),cohortSize:String(item.cohort_size??""),schoolAverage:String(item.school_average??""),standardScore:String(item.standard_score??""),percentile:String(item.percentile??""),note:item.note??""});
+    setForm({academicYear:String(item.academic_year),schoolGrade:item.school_grade??initialSchoolGrade,semester:String(item.semester??1),examDate:item.exam_date,examName:item.exam_name,subject:item.subject,score:String(item.score??""),grade:String(item.grade??""),achievementLevel:item.achievement_level??"",rank:String(item.rank??""),cohortSize:String(item.cohort_size??""),schoolAverage:String(item.school_average??""),standardScore:String(item.standard_score??""),percentile:String(item.percentile??""),note:item.note??""});
     setEditorOpen(true);
   };
   const save=async(event:FormEvent)=>{
     event.preventDefault();setSaving(true);setMessage("");
-    const payload={student_id:studentId,record_type:type,academic_year:Number(form.academicYear),semester:type==="school"?Number(form.semester):null,exam_date:form.examDate,exam_name:form.examName.trim(),subject:form.subject.trim(),score:numeric(form.score),grade:isMiddleSchool?null:numeric(form.grade),achievement_level:isMiddleSchool&&type==="school"?(form.achievementLevel||null):null,rank:type==="school"?numeric(form.rank):null,cohort_size:type==="school"?numeric(form.cohortSize):null,school_average:type==="school"?numeric(form.schoolAverage):null,standard_score:type==="mock"?numeric(form.standardScore):null,percentile:type==="mock"?numeric(form.percentile):null,note:form.note.trim()||null,updated_at:new Date().toISOString()};
+    const payload={student_id:studentId,record_type:type,academic_year:Number(form.academicYear),school_grade:form.schoolGrade,semester:type==="school"?Number(form.semester):null,exam_date:form.examDate,exam_name:form.examName.trim(),subject:form.subject.trim(),score:numeric(form.score),grade:isMiddleSchool?null:numeric(form.grade),achievement_level:isMiddleSchool&&type==="school"?(form.achievementLevel||null):null,rank:type==="school"?numeric(form.rank):null,cohort_size:type==="school"?numeric(form.cohortSize):null,school_average:type==="school"?numeric(form.schoolAverage):null,standard_score:type==="mock"?numeric(form.standardScore):null,percentile:type==="mock"?numeric(form.percentile):null,note:form.note.trim()||null,updated_at:new Date().toISOString()};
     const query=editingId?supabase.from("student_academic_records").update(payload).eq("id",editingId):supabase.from("student_academic_records").insert(payload);
     const {data,error}=await query.select(recordColumns).single();
     setSaving(false);
@@ -91,10 +95,11 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
     {message?<p className="academic-message">{message}</p>:null}
     {editorOpen?<form className="academic-editor" onSubmit={save}><div className="academic-editor-heading"><div><b>{editingId?"성적 수정":"새 성적 등록"}</b><span>{type==="school"?(isMiddleSchool?"학교 내신 점수와 A~E 성취도를 입력합니다.":"학교 내신 점수와 1~5등급을 입력합니다."):"모의고사·수능 점수와 1~9등급을 입력합니다."}</span></div><button type="button" aria-label="등록 창 닫기" onClick={()=>setEditorOpen(false)}>×</button></div><div className="academic-form-grid">
       <label><span>연도 *</span><input type="number" min="2000" max="2100" required value={form.academicYear} onChange={e=>update("academicYear",e.target.value)}/></label>
+      <label><span>학년 *</span><select required value={form.schoolGrade} onChange={e=>update("schoolGrade",e.target.value)}>{schoolGradeOptions.map(value=><option key={value}>{value}</option>)}</select></label>
       {type==="school"?<label><span>학기 *</span><select value={form.semester} onChange={e=>update("semester",e.target.value)}><option value="1">1학기</option><option value="2">2학기</option></select></label>:null}
       <label className="mobile-wide"><span>{type==="school"?"시험일":"시행일"} *</span><span className="academic-date-field"><input type="date" required value={form.examDate} onChange={e=>update("examDate",e.target.value)}/></span></label>
-      <label className="mobile-wide"><span>시험명 *</span><input required value={form.examName} onChange={e=>update("examName",e.target.value)} placeholder={type==="school"?"중간고사":"6월 모의고사"}/></label>
-      <label><span>과목 *</span><input required value={form.subject} onChange={e=>update("subject",e.target.value)} placeholder="영어"/></label>
+      <label className="mobile-wide"><span>시험명 *</span>{type==="school"?<select required value={form.examName} onChange={e=>update("examName",e.target.value)}>{!schoolExamNames.includes(form.examName)&&<option value={form.examName}>{form.examName}</option>}{schoolExamNames.map(value=><option key={value}>{value}</option>)}</select>:<input required value={form.examName} onChange={e=>update("examName",e.target.value)} placeholder="6월 모의고사"/>}</label>
+      <label><span>과목 *</span><input required value={form.subject} onChange={e=>update("subject",e.target.value)} placeholder="과목을 입력하세요"/></label>
       <label><span>원점수</span><input type="number" min="0" max="100" step="0.01" value={form.score} onChange={e=>update("score",e.target.value)}/></label>
       {isMiddleSchool&&type==="school"?<label><span>성취도</span><select value={form.achievementLevel} onChange={e=>update("achievementLevel",e.target.value)}><option value="">선택</option>{["A","B","C","D","E"].map(value=><option key={value}>{value}</option>)}</select></label>:<label><span>{type==="school"?"내신 등급":"모의고사·수능 등급"}</span><input type="number" min="1" max={type==="school"?5:9} value={form.grade} onChange={e=>update("grade",e.target.value)}/></label>}
       {type==="school"?<><label><span>석차</span><input type="number" min="1" value={form.rank} onChange={e=>update("rank",e.target.value)}/></label><label><span>재적 인원</span><input type="number" min="1" value={form.cohortSize} onChange={e=>update("cohortSize",e.target.value)}/></label><label><span>학교 평균</span><input type="number" min="0" max="100" step="0.01" value={form.schoolAverage} onChange={e=>update("schoolAverage",e.target.value)}/></label></>:<><label><span>표준점수</span><input type="number" min="0" step="0.01" value={form.standardScore} onChange={e=>update("standardScore",e.target.value)}/></label><label><span>백분위</span><input type="number" min="0" max="100" step="0.01" value={form.percentile} onChange={e=>update("percentile",e.target.value)}/></label></>}
