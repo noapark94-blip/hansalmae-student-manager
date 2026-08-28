@@ -14,7 +14,7 @@ import { SettingsBoard } from "./settings-board";
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
-import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView } from "./family-dashboard";
+import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView, FamilySummaryReportView } from "./family-dashboard";
 import { FamilyGradesView } from "./family-grades-view";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
@@ -190,8 +190,8 @@ const roleViews: Record<UserRole, View[]> = {
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "calendar", "grades", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "calendar", "grades", "consultations", "communications", "my-account"],
+  student: ["dashboard", "schedule", "calendar", "grades", "reports", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "calendar", "grades", "reports", "consultations", "communications", "my-account"],
 };
 const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
@@ -802,7 +802,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
-          {view === "reports" && <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />}
+          {view === "reports" && (familyAccount ? <FamilySummaryReportView supabase={supabase} profile={profile} /> : <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />)}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
           {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
@@ -888,20 +888,13 @@ export default function Home() {
 }
 
 function FamilyBottomNavigation({ role, activeView, onSelect, onMore }: { role: "student" | "guardian"; activeView: View; onSelect: (view: View) => void; onMore: () => void }) {
-  const items: { id: View; label: string }[] =
-    role === "student"
-      ? [
-          { id: "dashboard", label: "홈" },
-          { id: "schedule", label: "정규시간표" },
-          { id: "calendar", label: "학습캘린더" },
-          { id: "communications", label: "공지" },
-        ]
-      : [
-          { id: "dashboard", label: "홈" },
-          { id: "schedule", label: "정규시간표" },
-          { id: "calendar", label: "학습캘린더" },
-          { id: "grades", label: "성적확인" },
-        ];
+  const items: { id: View; label: string }[] = [
+    { id: "dashboard", label: "홈" },
+    { id: "schedule", label: "정규시간표" },
+    { id: "calendar", label: "학습캘린더" },
+    { id: "grades", label: "성적확인" },
+    { id: "reports", label: "리포트" },
+  ];
   return (
     <nav className="family-bottom-nav" aria-label="학생·학부모 주요 메뉴">
       {items.map((item) => (

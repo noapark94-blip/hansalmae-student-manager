@@ -108,6 +108,31 @@ type ExamProgressItem = {
   feedback: string | null;
   teacherName: string;
 };
+type SummaryLessonReport = {
+  lessonId: string;
+  lessonDate: string;
+  startsAt: string;
+  className: string;
+  subject: string;
+  mainSubject?: string;
+  lessonContent: string;
+  homeworkContent: string;
+  attendance: { status: string; lateMinutes: number | null } | null;
+  homeworkResult: { status: string; note: string } | null;
+  exams: { score: number | null; maxScore: number; percent: number | null }[];
+};
+type SummaryCorrectionReport = {
+  id: string;
+  correctionDate: string;
+  startTime: string;
+  subject: string;
+  attendanceStatus: string;
+  examScore: number | null;
+  examMaxScore: number | null;
+  homeworkStatus: string | null;
+  correctionContent: string;
+  assistantFeedback: string;
+};
 type Data = {
   role: "student" | "guardian";
   children: Child[];
@@ -595,6 +620,122 @@ export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseCl
       {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <label className="family-calendar-child-select"><span>자녀 선택</span><select disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>}
       <FamilyLearningReportFeed supabase={supabase} studentId={selected.id} studentName={selected.name} displayMode="calendar" />
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
+  </div>;
+}
+
+type SummaryRange = "daily" | "weekly" | "monthly";
+const summaryRangeLabels: Record<SummaryRange, string> = { daily: "일간", weekly: "주간", monthly: "월간" };
+
+function dateInSummaryRange(date: string, range: SummaryRange, today: string) {
+  if (range === "daily") return date === today;
+  if (range === "monthly") return date.slice(0, 7) === today.slice(0, 7);
+  const target = new Date(`${date}T00:00:00+09:00`).getTime();
+  const end = new Date(`${today}T23:59:59+09:00`).getTime();
+  return target >= end - 6 * 86400000 && target <= end;
+}
+
+function summaryPeriodText(range: SummaryRange, today: string) {
+  const [, month, day] = today.split("-").map(Number);
+  if (range === "daily") return `${month}월 ${day}일 오늘`;
+  if (range === "monthly") return `${month}월 한 달`;
+  const start = new Date(new Date(`${today}T12:00:00+09:00`).getTime() - 6 * 86400000);
+  const startParts = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" }).format(start);
+  return `${startParts}–${month}. ${day}. 최근 7일`;
+}
+
+export function FamilySummaryReportView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+  const [dashboard, setDashboard] = useState<Data | null>(null);
+  const [lessons, setLessons] = useState<SummaryLessonReport[]>([]);
+  const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [range, setRange] = useState<SummaryRange>("weekly");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = useCallback(async (studentId: string | null) => {
+    setLoading(true);
+    setError("");
+    const dashboardResult = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
+    if (dashboardResult.error || !dashboardResult.data) {
+      setError("학습리포트를 불러오지 못했습니다.");
+      setLoading(false);
+      return;
+    }
+    const nextDashboard = dashboardResult.data as Data;
+    const nextId = nextDashboard.selectedStudent?.id ?? null;
+    setDashboard(nextDashboard);
+    setSelectedId(nextId);
+    if (!nextId) {
+      setLessons([]);
+      setCorrections([]);
+      setLoading(false);
+      return;
+    }
+    const [lessonResult, correctionResult] = await Promise.all([
+      supabase.rpc("family_completed_learning_reports", { p_student_id: nextId, p_limit: 30 }),
+      supabase.rpc("family_correction_reports", { p_student_id: nextId, p_limit: 50 }),
+    ]);
+    if (lessonResult.error || correctionResult.error) setError("일부 학습 기록을 불러오지 못했습니다.");
+    setLessons((lessonResult.data ?? []) as SummaryLessonReport[]);
+    setCorrections((correctionResult.data ?? []) as SummaryCorrectionReport[]);
+    setLoading(false);
+  }, [supabase]);
+  useEffect(() => { void load(null); }, [load]);
+
+  const today = seoulDate();
+  const periodLessons = lessons.filter((item) => dateInSummaryRange(item.lessonDate, range, today));
+  const periodCorrections = corrections.filter((item) => dateInSummaryRange(item.correctionDate, range, today));
+  const attendance = [
+    ...periodLessons.map((item) => item.attendance?.status).filter(Boolean),
+    ...periodCorrections.map((item) => item.attendanceStatus).filter(Boolean),
+  ] as string[];
+  const presentCount = attendance.filter((status) => status === "present").length;
+  const lateCount = attendance.filter((status) => status === "late").length;
+  const homeworkComplete = periodLessons.filter((item) => item.homeworkResult?.status === "complete").length
+    + periodCorrections.filter((item) => item.homeworkStatus === "complete").length;
+  const scoreValues = [
+    ...periodLessons.flatMap((item) => item.exams.map((exam) => exam.percent ?? (exam.score !== null && exam.maxScore > 0 ? exam.score / exam.maxScore * 100 : null))),
+    ...periodCorrections.map((item) => item.examScore !== null && (item.examMaxScore ?? 0) > 0 ? item.examScore / Number(item.examMaxScore) * 100 : null),
+  ].filter((score): score is number => score !== null && Number.isFinite(score));
+  const averageScore = scoreValues.length ? Math.round(scoreValues.reduce((sum, score) => sum + score, 0) / scoreValues.length) : null;
+  const highlights = [
+    ...periodLessons.map((item) => ({ id: `lesson-${item.lessonId}`, date: item.lessonDate, time: item.startsAt.slice(11, 16), type: item.subject || "정규수업", title: item.className, content: item.lessonContent || item.homeworkContent || "수업 기록이 저장됐어요.", tone: "regular" })),
+    ...periodCorrections.map((item) => ({ id: `correction-${item.id}`, date: item.correctionDate, time: item.startTime.slice(0, 5), type: "첨삭", title: `${item.subject} 첨삭`, content: item.correctionContent || item.assistantFeedback || "첨삭 기록이 저장됐어요.", tone: "correction" })),
+  ].sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`));
+  const selected = dashboard?.selectedStudent;
+
+  return <div className="family-summary-report-page">
+    <header className="family-schedule-heading">
+      <p>{profile.role === "guardian" ? "자녀 학습 요약" : "나의 학습 요약"}</p>
+      <h1>학습리포트</h1>
+      <span>저장된 수업·첨삭·출결·과제·시험 기록을 기간별로 간단히 모아봤어요.</span>
+    </header>
+    {profile.role === "guardian" && (dashboard?.children.length ?? 0) > 1 && <label className="family-report-child-select">
+      <span>자녀 선택</span>
+      <select disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{dashboard?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>
+    </label>}
+    <nav className="family-report-range" aria-label="리포트 기간">
+      {(Object.keys(summaryRangeLabels) as SummaryRange[]).map((item) => <button type="button" key={item} className={range === item ? "active" : ""} onClick={() => setRange(item)}>{summaryRangeLabels[item]}</button>)}
+    </nav>
+    {error && <p className="attendance-error">{error}</p>}
+    {loading && !dashboard ? <section className="panel hub-message">학습리포트를 정리하고 있어요…</section> : !selected ? <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section> : <>
+      <section className="family-report-overview">
+        <header><span><small>{summaryPeriodText(range, today)}</small><h2><em>{studentGivenName(selected.name)}</em>의 학습 요약</h2></span><i><HansalmaeIcon name="book" size={23} /></i></header>
+        <div className="family-report-metrics">
+          <article><small>학습 기록</small><b>{periodLessons.length + periodCorrections.length}<em>건</em></b><span>정규·보강·추가·첨삭</span></article>
+          <article><small>출석</small><b>{presentCount}<em>회</em></b><span>{lateCount ? `지각 ${lateCount}회 포함` : "지각 없이 참여"}</span></article>
+          <article><small>과제 완료</small><b>{homeworkComplete}<em>건</em></b><span>확인된 완료 기록</span></article>
+          <article><small>평균 점수</small><b>{averageScore === null ? "–" : averageScore}<em>{averageScore === null ? "" : "점"}</em></b><span>{scoreValues.length ? `${scoreValues.length}개 시험 기준` : "기간 내 시험 없음"}</span></article>
+        </div>
+      </section>
+      <section className="family-report-highlights">
+        <header><span><p>핵심 학습 기록</p><h2>{summaryRangeLabels[range]} 기록</h2></span><small>{highlights.length}건</small></header>
+        {highlights.length ? <div>{highlights.slice(0, range === "monthly" ? 8 : 6).map((item) => <article key={item.id} className={item.tone}>
+          <time>{Number(item.date.slice(5, 7))}월 {Number(item.date.slice(8, 10))}일<small>{item.time}</small></time>
+          <i />
+          <span><small>{item.type}</small><b>{item.title}</b><p>{item.content}</p></span>
+        </article>)}</div> : <div className="family-report-empty"><i><HansalmaeIcon name="book" size={24} /></i><b>이 기간에는 저장된 학습 기록이 없어요.</b><span>수업 기록이 저장되면 자동으로 리포트에 반영됩니다.</span></div>}
+      </section>
+    </>}
   </div>;
 }
 function FamilyExamProgress({
