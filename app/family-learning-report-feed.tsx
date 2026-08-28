@@ -530,14 +530,20 @@ export function FamilyLearningReportFeed({
                       item={item.report}
                       readAt={reads[item.report.lessonId] ?? null}
                       readTracking={readTracking}
-                      onOpen={() => setSelected(item)}
+                      onOpen={() => {
+                        setSelected(item);
+                        void confirmRead(item.report.lessonId);
+                      }}
                     />
                   ) : (
                     <CorrectionFeedCard
                       key={`correction-${item.report.id}`}
                       item={item.report}
                       readAt={correctionReads[item.report.id] ?? null}
-                      onOpen={() => setSelected(item)}
+                      onOpen={() => {
+                        setSelected(item);
+                        void confirmCorrectionRead(item.report.id);
+                      }}
                     />
                   ),
                 )}
@@ -562,11 +568,7 @@ export function FamilyLearningReportFeed({
           item={selected.report}
           previousHomework={findPreviousLessonHomework(selected.report, items)}
           canComment={canComment}
-          readAt={reads[selected.report.lessonId] ?? null}
-          readTracking={readTracking}
-          confirming={confirming === selected.report.lessonId}
           onClose={() => setSelected(null)}
-          onConfirm={() => void confirmRead(selected.report.lessonId)}
         />
       )}
       {selected?.kind === "correction" && (
@@ -576,10 +578,7 @@ export function FamilyLearningReportFeed({
             selected.report,
             corrections,
           )}
-          readAt={correctionReads[selected.report.id] ?? null}
-          confirming={confirming === selected.report.id}
           onClose={() => setSelected(null)}
-          onConfirm={() => void confirmCorrectionRead(selected.report.id)}
         />
       )}
     </section>
@@ -664,17 +663,11 @@ function CorrectionFeedCard({
 function CorrectionFeedDetail({
   item,
   previousHomework,
-  readAt,
-  confirming,
   onClose,
-  onConfirm,
 }: {
   item: CorrectionReport;
   previousHomework: string;
-  readAt: string | null;
-  confirming: boolean;
   onClose: () => void;
-  onConfirm: () => void;
 }) {
   const examRange = cleanCorrectionRange(item.examRange);
   const convertedExamScore =
@@ -810,19 +803,6 @@ function CorrectionFeedDetail({
             </section>
           )}
         </div>
-        <footer className="family-report-confirm">
-          <span>
-            {readAt
-              ? `확인 완료 · ${formatReadTime(readAt)}`
-              : "내용을 확인했다면 표시를 남겨주세요."}
-          </span>
-          {!readAt && (
-            <button type="button" disabled={confirming} onClick={onConfirm}>
-              <HansalmaeIcon name="check" size={16} />
-              {confirming ? "처리 중…" : "확인했어요"}
-            </button>
-          )}
-        </footer>
       </section>
     </div>
   );
@@ -938,22 +918,14 @@ function ReportDetail({
   item,
   previousHomework,
   canComment,
-  readAt,
-  readTracking,
-  confirming,
   onClose,
-  onConfirm,
 }: {
   supabase: SupabaseClient;
   studentId: string;
   item: Report;
   previousHomework: string;
   canComment: boolean;
-  readAt: string | null;
-  readTracking: boolean;
-  confirming: boolean;
   onClose: () => void;
-  onConfirm: () => void;
 }) {
   const attendance = item.attendance;
   const displayTitle = reportDisplayTitle(item);
@@ -1133,21 +1105,6 @@ function ReportDetail({
             />
           )}
         </div>
-        {readTracking && (
-          <footer className="family-report-confirm">
-            <span>
-              {readAt
-                ? `확인 완료 · ${formatReadTime(readAt)}`
-                : "내용을 확인했다면 표시를 남겨주세요."}
-            </span>
-            {!readAt && (
-              <button type="button" disabled={confirming} onClick={onConfirm}>
-                <HansalmaeIcon name="check" size={16} />
-                {confirming ? "처리 중…" : "확인했어요"}
-              </button>
-            )}
-          </footer>
-        )}
       </section>
     </div>
   );
@@ -1437,16 +1394,6 @@ function formatFullDate(value: string) {
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(value));
-}
-function formatReadTime(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "numeric",
-    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

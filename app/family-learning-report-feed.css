@@ -56,13 +56,7 @@
 .family-report-card.unread.attention-visible .family-report-open{overflow:hidden;padding:5px 9px;border-radius:999px;background:#fbf0f5;box-shadow:0 0 0 0 rgba(146,45,97,0);animation:family-feed-open-glow 3.4s ease-in-out .5s 3}
 .family-report-card.unread.attention-visible .family-report-open::after{content:"";position:absolute;top:-50%;bottom:-50%;left:-55%;width:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.92),transparent);transform:skewX(-18deg);animation:family-feed-open-shine 3.4s ease-in-out .5s 3;pointer-events:none}
 .family-report-card.unread.attention-visible .family-report-open b{display:inline-block;animation:family-feed-open-arrow 1.7s ease-in-out .5s 6}
-.family-report-confirm button:not(:disabled){position:relative;overflow:hidden;isolation:isolate;animation:family-feed-confirm-glow 2.8s ease-in-out .7s 3}
-.family-report-confirm button:not(:disabled)::after{content:"";position:absolute;z-index:-1;top:-70%;bottom:-70%;left:-45%;width:25%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);transform:skewX(-18deg);animation:family-feed-confirm-shine 2.8s ease-in-out .7s 3;pointer-events:none}
-.family-report-confirm button:not(:disabled) svg{animation:family-feed-confirm-check 1.4s ease-in-out .7s 6;transform-origin:center}
 @keyframes family-feed-open-glow{0%,72%,100%{box-shadow:0 0 0 0 rgba(146,45,97,0);background:#fbf0f5}82%{box-shadow:0 4px 15px rgba(146,45,97,.18);background:#f7e4ee}}
 @keyframes family-feed-open-shine{0%,70%{left:-55%;opacity:0}76%{opacity:1}90%,100%{left:125%;opacity:0}}
 @keyframes family-feed-open-arrow{0%,68%,100%{transform:translateX(0)}82%{transform:translateX(3px)}}
-@keyframes family-feed-confirm-glow{0%,68%,100%{box-shadow:0 0 0 0 rgba(146,45,97,0)}80%{box-shadow:0 7px 20px rgba(146,45,97,.28)}}
-@keyframes family-feed-confirm-shine{0%,66%{left:-45%;opacity:0}73%{opacity:1}88%,100%{left:125%;opacity:0}}
-@keyframes family-feed-confirm-check{0%,65%,100%{transform:scale(1)}78%{transform:scale(1.18)}}
-@media(prefers-reduced-motion:reduce){.family-report-card.unread .family-report-open,.family-report-card.unread .family-report-open::after,.family-report-card.unread .family-report-open b,.family-report-confirm button:not(:disabled),.family-report-confirm button:not(:disabled)::after,.family-report-confirm button:not(:disabled) svg{animation:none}}
+@media(prefers-reduced-motion:reduce){.family-report-card.unread .family-report-open,.family-report-card.unread .family-report-open::after,.family-report-card.unread .family-report-open b{animation:none}}
