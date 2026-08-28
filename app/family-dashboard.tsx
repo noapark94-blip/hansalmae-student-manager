@@ -131,6 +131,9 @@ function seoulWeekday() {
   const day = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" }).format(new Date());
   return weekdayNumbers[day] ?? 7;
 }
+function seoulDate() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
 const attendanceLabels: Record<string, string> = {
   present: "출석",
   late: "지각",
@@ -191,6 +194,26 @@ export function FamilyLiveDashboard({
         : null,
     [data],
   );
+  const effectiveTodayLessons = useMemo(() => {
+    const scheduled = (data?.upcomingClasses ?? [])
+      .filter((item) => item.classDate === seoulDate())
+      .filter((item) => !todayLessons.some((lesson) => lesson.kind === "regular" && lesson.subject === item.subject && lesson.startTime.slice(0, 5) === item.startTime.slice(0, 5)))
+      .map((item): TodayLesson => {
+        const weekly = data?.weekClasses.find((row) => row.id === item.id);
+        return {
+          id: `scheduled:${item.id}`,
+          kind: "regular",
+          label: "정규수업",
+          subject: item.subject || item.name,
+          startTime: item.startTime,
+          endTime: weekly?.endTime ?? item.startTime,
+          teacherName: item.teachers,
+          room: item.room ?? "",
+          attendanceStatus: null,
+        };
+      });
+    return [...todayLessons, ...scheduled].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [data, todayLessons]);
   if (loading && !data)
     return (
       <section className="panel hub-message">
@@ -257,7 +280,7 @@ export function FamilyLiveDashboard({
             attendance={data?.recentAttendance ?? []}
             assignments={data?.assignments ?? []}
             announcements={data?.announcements ?? []}
-            todayLessons={todayLessons}
+            todayLessons={effectiveTodayLessons}
             nextLesson={data?.upcomingClasses[0] ?? null}
             onSchedule={() => onNavigate("schedule")}
             onNavigate={(view) =>
