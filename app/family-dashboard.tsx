@@ -711,7 +711,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
     <header className="family-grades-heading">
       <p>{profile.role === "guardian" ? "자녀 학습 요약" : "나의 학습 요약"}</p>
       <h1>학습리포트</h1>
-      <span>수업·첨삭·출결·과제·시험 기록을 기간별로 모아봤어요.</span>
+      <span>수업·첨삭·출결·과제·시험 기록을 모아봤어요.</span>
     </header>
     {profile.role === "guardian" && (dashboard?.children.length ?? 0) > 1 && <label className="family-report-child-select">
       <span>자녀 선택</span>
