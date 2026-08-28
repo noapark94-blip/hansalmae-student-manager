@@ -599,6 +599,7 @@ function CorrectionFeedCard({
   readAt: string | null;
   onOpen: () => void;
 }) {
+  const unreadAttention = useUnreadAttention(!readAt);
   const examSummary = item.examTitle
     ? `${item.examTitle}${
         item.examScore == null
@@ -613,7 +614,8 @@ function CorrectionFeedCard({
       : "");
   return (
     <article
-      className={`family-report-card correction ${!readAt ? "unread" : ""}`}
+      ref={unreadAttention.ref}
+      className={`family-report-card correction ${!readAt ? "unread" : ""} ${unreadAttention.visible ? "attention-visible" : ""}`}
     >
       <button
         type="button"
@@ -837,6 +839,7 @@ function ReportCard({
   readTracking: boolean;
   onOpen: () => void;
 }) {
+  const unreadAttention = useUnreadAttention(readTracking && !readAt);
   const attendance = item.attendance;
   const firstExam = item.exams[0] ?? null;
   const displayTitle = reportDisplayTitle(item);
@@ -852,7 +855,8 @@ function ReportCard({
       : "");
   return (
     <article
-      className={`family-report-card ${readTracking && !readAt ? "unread" : ""}`}
+      ref={unreadAttention.ref}
+      className={`family-report-card ${readTracking && !readAt ? "unread" : ""} ${unreadAttention.visible ? "attention-visible" : ""}`}
     >
       <button
         type="button"
@@ -1561,4 +1565,27 @@ function correctionHomeworkLabel(value: string) {
       excused: "확인 제외",
     }[value] ?? value
   );
+}
+
+function useUnreadAttention(enabled: boolean) {
+  const [visible, setVisible] = useState(false);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const ref = useCallback(
+    (node: HTMLElement | null) => {
+      observer.current?.disconnect();
+      observer.current = null;
+      if (!enabled || !node) {
+        setVisible(false);
+        return;
+      }
+      observer.current = new IntersectionObserver(
+        ([entry]) => setVisible(entry.isIntersecting),
+        { threshold: 0.45 },
+      );
+      observer.current.observe(node);
+    },
+    [enabled],
+  );
+  useEffect(() => () => observer.current?.disconnect(), []);
+  return { ref, visible };
 }
