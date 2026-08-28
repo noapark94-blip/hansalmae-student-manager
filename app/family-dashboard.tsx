@@ -588,7 +588,7 @@ export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseCl
     <header className="family-schedule-heading">
       <p>{profile.role === "guardian" ? "자녀 학습 기록" : "나의 학습 기록"}</p>
       <h1>학습캘린더</h1>
-      <span>출석한 수업을 날짜별로 확인하고 상세 기록까지 살펴보세요.</span>
+      <span>예정 수업부터 출석·학습 기록까지 날짜별로 한눈에 확인하세요.</span>
     </header>
     {error && <p className="attendance-error">{error}</p>}
     {selected ? <>

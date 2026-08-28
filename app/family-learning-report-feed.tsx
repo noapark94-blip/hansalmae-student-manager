@@ -120,6 +120,20 @@ type FeedItem =
       time: string;
       report: CorrectionReport;
     };
+type CalendarSchedule = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  kind: "regular" | "correction" | "makeup" | "extra";
+  label: string;
+  title: string;
+  subject: string;
+  room: string;
+  state: "scheduled" | "cancelled";
+  attendanceStatus: string | null;
+};
+type CalendarItem = FeedItem | { kind: "schedule"; date: string; time: string; schedule: CalendarSchedule };
 type ReadReceipt = { lessonId: string; viewedAt: string };
 type CorrectionReadReceipt = { reportId: string; viewedAt: string };
 type ReportComment = {
@@ -174,6 +188,8 @@ export function FamilyLearningReportFeed({
   const [visibleDayCount, setVisibleDayCount] = useState(5);
   const [calendarMonth, setCalendarMonth] = useState(() => koreaMonth());
   const [selectedDate, setSelectedDate] = useState(() => koreaDate());
+  const [calendarSchedule, setCalendarSchedule] = useState<CalendarSchedule[]>([]);
+  const [calendarScheduleLoading, setCalendarScheduleLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshComplete, setRefreshComplete] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -252,6 +268,21 @@ export function FamilyLearningReportFeed({
       active = false;
     };
   }, [studentId, supabase]);
+
+  useEffect(() => {
+    if (displayMode !== "calendar") return;
+    let active = true;
+    setCalendarScheduleLoading(true);
+    void supabase.rpc("family_learning_calendar_schedule", {
+      p_student_id: studentId,
+      p_month: `${calendarMonth}-01`,
+    }).then(({ data, error }) => {
+      if (!active) return;
+      setCalendarSchedule(error ? [] : ((data ?? []) as CalendarSchedule[]));
+      setCalendarScheduleLoading(false);
+    });
+    return () => { active = false; };
+  }, [calendarMonth, displayMode, studentId, supabase]);
 
   const refreshFeed = useCallback(async () => {
     if (refreshing) return;
@@ -446,10 +477,15 @@ export function FamilyLearningReportFeed({
     return dates;
   }, [calendarMonth]);
   const calendarItemsByDate = useMemo(() => {
-    const grouped = new Map<string, FeedItem[]>();
+    const grouped = new Map<string, CalendarItem[]>();
     for (const item of feedItems) grouped.set(item.date, [...(grouped.get(item.date) ?? []), item]);
+    for (const schedule of calendarSchedule) {
+      const reports = grouped.get(schedule.date) ?? [];
+      const isAlreadyRecorded = reports.some((item) => item.kind !== "schedule" && calendarRecordMatchesSchedule(item, schedule));
+      if (!isAlreadyRecorded) grouped.set(schedule.date, [...reports, { kind: "schedule", date: schedule.date, time: schedule.startTime, schedule }]);
+    }
     return grouped;
-  }, [feedItems]);
+  }, [calendarSchedule, feedItems]);
   const selectedCalendarItems = (calendarItemsByDate.get(selectedDate) ?? []).sort((left, right) => left.time.localeCompare(right.time));
 
   async function confirmRead(lessonId: string) {
@@ -490,7 +526,7 @@ export function FamilyLearningReportFeed({
     <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
       <header className="family-calendar-toolbar">
         <button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
-        <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>출석 기록이 있는 날짜를 선택하세요</span></div>
+        <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>예정 수업과 학습 기록이 있는 날짜를 선택하세요</span></div>
         <button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button>
       </header>
       <div className="family-calendar-weekdays" aria-hidden="true">{["일", "월", "화", "수", "목", "금", "토"].map(day => <span key={day}>{day}</span>)}</div>
@@ -498,25 +534,27 @@ export function FamilyLearningReportFeed({
         {calendarDays.map(day => {
           const dayItems = calendarItemsByDate.get(day.date) ?? [];
           const isSelected = day.date === selectedDate;
-          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""} ${publicHolidayDates.has(day.date) ? "public-holiday" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 학습 기록 ${dayItems.length}개` : ", 학습 기록 없음"}`} onClick={() => setSelectedDate(day.date)}>
+          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""} ${publicHolidayDates.has(day.date) ? "public-holiday" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 수업 ${dayItems.length}개` : ", 수업 없음"}`} onClick={() => setSelectedDate(day.date)}>
             <span>{day.day}</span>
-            <i>{dayItems.slice(0, 3).map((item, index) => <em key={`${item.kind}-${item.kind === "lesson" ? item.report.lessonId : item.report.id}-${index}`} className={calendarItemTone(item)} />)}</i>
+            <i>{dayItems.slice(0, 3).map((item, index) => <em key={`${calendarItemId(item)}-${index}`} className={`${calendarItemTone(item)} ${item.kind === "schedule" ? item.schedule.state : "recorded"}`} />)}</i>
           </button>;
         })}
       </div>
       <section className="family-calendar-day-panel">
-        <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 기록` : "기록 없음"}</small></header>
-        {loading ? <p className="family-report-empty">학습 기록을 불러오는 중이에요…</p> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
-          const title = item.kind === "lesson" ? reportDisplayTitle(item.report) : `${item.report.subject} 첨삭`;
-          const attendance = item.kind === "lesson" ? item.report.attendance?.status : item.report.attendanceStatus;
-          return <button type="button" key={item.kind === "lesson" ? item.report.lessonId : item.report.id} onClick={() => {
+        <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 수업` : "수업 없음"}</small></header>
+        {loading || calendarScheduleLoading ? <p className="family-report-empty">수업 일정을 불러오는 중이에요…</p> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
+          const title = item.kind === "schedule" ? item.schedule.title : item.kind === "lesson" ? reportDisplayTitle(item.report) : `${item.report.subject} 첨삭`;
+          const attendance = item.kind === "schedule" ? item.schedule.attendanceStatus : item.kind === "lesson" ? item.report.attendance?.status : item.report.attendanceStatus;
+          const isSchedule = item.kind === "schedule";
+          return <button type="button" className={isSchedule ? `schedule ${item.schedule.state}` : "recorded"} key={calendarItemId(item)} disabled={isSchedule} onClick={() => {
+            if (item.kind === "schedule") return;
             setSelected(item);
             if (item.kind === "lesson") void confirmRead(item.report.lessonId);
             else void confirmCorrectionRead(item.report.id);
           }}>
-            <time>{item.kind === "lesson" ? formatTime(item.time) : item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}<b>›</b>
+            <time>{item.kind === "lesson" ? formatTime(item.time) : item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{isSchedule ? `${item.schedule.label}${item.schedule.room ? ` · ${item.schedule.room}` : ""}` : item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{isSchedule ? <em className={item.schedule.state}>{item.schedule.state === "cancelled" ? "취소" : selectedDate < koreaDate() ? "기록 대기" : "예정"}</em> : attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}{!isSchedule && <b>›</b>}
           </button>;
-        })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 저장된 학습 기록이 없어요.</p></div>}
+        })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 예정되거나 저장된 수업이 없어요.</p></div>}
       </section>
       {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => setSelected(null)} />}
       {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => setSelected(null)} />}
@@ -723,12 +761,26 @@ function buildCalendarDays(month: string) {
 }
 function formatCalendarMonth(month: string) { const [year, value] = month.split("-"); return `${year}년 ${Number(value)}월`; }
 function formatCalendarDate(date: string) { const [, month, day] = date.split("-"); return `${Number(month)}월 ${Number(day)}일`; }
-function calendarItemTone(item: FeedItem) {
+function calendarItemId(item: CalendarItem) {
+  if (item.kind === "schedule") return item.schedule.id;
+  return item.kind === "lesson" ? item.report.lessonId : item.report.id;
+}
+function calendarItemTone(item: CalendarItem) {
+  if (item.kind === "schedule") return item.schedule.kind;
   if (item.kind === "correction") return "correction";
   const label = reportBadgeLabel(item.report);
   if (label.includes("보강")) return "makeup";
   if (label.includes("추가")) return "extra";
   return item.report.mainSubject === "수학" || item.report.subject.includes("수학") ? "math" : "regular";
+}
+
+function calendarRecordMatchesSchedule(item: FeedItem, schedule: CalendarSchedule) {
+  const itemTime = item.kind === "correction" ? item.time.slice(0, 5) : formatTime(item.time);
+  if (itemTime !== schedule.startTime.slice(0, 5)) return false;
+  const tone = calendarItemTone(item);
+  if (schedule.kind === "correction") return tone === "correction";
+  if (schedule.kind === "makeup" || schedule.kind === "extra") return tone === schedule.kind;
+  return tone === "regular" || tone === "math";
 }
 
 function feedFilterLabel(item: FeedItem) {
