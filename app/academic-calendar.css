@@ -63,3 +63,35 @@
  .modal-backdrop>form.academic-editor .academic-form{padding:15px 16px}
  .modal-backdrop>form.academic-editor>footer{padding:11px 16px calc(11px + env(safe-area-inset-bottom))}
 }
+
+/* School / academy unified calendar */
+.academic-scope-tabs{display:flex;align-items:center;gap:5px;padding:10px 18px 0;background:#fbf8f9}
+.academic-scope-tabs button{height:35px;padding:0 14px;border:1px solid #e5d9de;border-radius:9px;background:#fff;color:#74666c;font-size:11px;font-weight:800;cursor:pointer}
+.academic-scope-tabs button.active{border-color:#a93468;background:#9b2d63;color:#fff;box-shadow:0 5px 14px rgba(146,45,97,.14)}
+.academic-days em.academy{border-left:3px solid #5979b7}
+.academic-days em.consultation{background:#eee9fa;color:#65489b}
+.academic-days em.trial{background:#e8f0fb;color:#35649c}
+.academic-days em.placement{background:#fff0dc;color:#9b6720}
+.academic-days em.academy_event{background:#e7f3ec;color:#347256}
+.academic-days em.closure{background:#fbe8eb;color:#aa4052}
+.academic-agenda article.academy{border-left-color:#5979b7}
+.academic-agenda article.consultation{border-left-color:#7654a6}.academic-agenda article.trial{border-left-color:#4f78b2}
+.academic-agenda article.placement{border-left-color:#d2953d}.academic-agenda article.academy_event{border-left-color:#4f9270}.academic-agenda article.closure{border-left-color:#c25464}
+.academic-agenda .academic-contact{color:#43373d;font-weight:800}
+.academic-agenda .academic-status{display:inline-flex;width:max-content;margin:5px 0 2px;padding:4px 7px;border-radius:999px;background:#f2edf0;color:#75666d;font-size:8px;font-weight:850}
+.academic-agenda .academic-status.completed{background:#e7f3ec;color:#337153}.academic-agenda .academic-status.enrolled{background:#eee9fa;color:#65489b}
+.academic-agenda .academic-status.cancelled,.academic-agenda .academic-status.no_show{background:#fbe8eb;color:#a43d50}
+.academic-editor-scope{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:16px 24px 0;padding:4px;border:1px solid #e8dce1;border-radius:12px;background:#f6f0f3}
+.academic-editor-scope button{height:38px;border:0;border-radius:9px;background:transparent;color:#75676e;font-size:11px;font-weight:850;cursor:pointer}
+.academic-editor-scope button.active{background:#fff;color:#992c62;box-shadow:0 3px 10px rgba(72,38,53,.09)}
+
+@media(min-width:901px){
+ .academic-panel .academic-scope-tabs+.academic-filters{padding-top:10px}
+}
+@media(max-width:900px){
+ .academic-scope-tabs{overflow-x:auto;padding:10px 12px 0}
+ .academic-scope-tabs button{flex:0 0 auto}
+}
+@media(max-width:600px){
+ .academic-editor-scope{margin:12px 16px 0}
+}
