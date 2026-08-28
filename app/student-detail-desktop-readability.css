@@ -205,7 +205,6 @@
   .student-hub-modal .academic-summary span,
   .student-hub-modal .academic-summary small,
   .student-hub-modal .academic-trend>header span,
-  .student-hub-modal .academic-trend small{font-size:10px}
-  .student-hub-modal .academic-trend>header b{font-size:12px}
-  .student-hub-modal .academic-trend article{font-size:11px}
+  .student-hub-modal .academic-trend small{font-size:11px}
+  .student-hub-modal .academic-trend>header b{font-size:13px}
 }
