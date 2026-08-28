@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HansalmaeIcon } from "./hansalmae-icons";
 
 type Attendance = { id:string; lessonDate:string; className:string; status:string; note:string|null };
@@ -13,7 +13,9 @@ export type NextLesson = { classDate:string; startTime:string; subject:string; n
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 
 export function FamilyLearningNote({studentName,attendance,assignments,announcements,todayLessons,nextLesson,onNavigate,onSchedule}:{studentName:string;attendance:Attendance[];assignments:Assignment[];announcements:Announcement[];todayLessons:TodayLesson[];nextLesson:NextLesson|null;onNavigate:(view:FamilyView)=>void;onSchedule:()=>void}){
-  const [summaryOpen,setSummaryOpen]=useState<"attendance"|"lessons"|null>(null);
+  const [summaryOpen,setSummaryOpen]=useState(false);
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),30000);return()=>window.clearInterval(timer)},[]);
   const today=seoulDate();
   const todayAttendance=attendance.filter(item=>item.lessonDate.slice(0,10)===today);
   const activeAssignments=assignments.filter(item=>item.status!=="reviewed").slice(0,3);
@@ -21,26 +23,24 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
   const presentCount=todayLessons.filter(item=>item.attendanceStatus==="present").length;
   const lateCount=todayLessons.filter(item=>item.attendanceStatus==="late").length;
   const absentCount=todayLessons.filter(item=>["absent","excused"].includes(item.attendanceStatus??"")).length;
+  const liveCount=todayLessons.filter(item=>item.attendanceStatus==="present"&&isLessonLive(item,now)).length;
   const checkedCount=presentCount+lateCount+absentCount;
-  const attendanceText=!todayLessons.length?"오늘 수업 없음":!checkedCount?"오늘 출결 전":[presentCount&&`출석 ${presentCount}`,lateCount&&`지각 ${lateCount}`,absentCount&&`결석 ${absentCount}`].filter(Boolean).join(" · ");
+  const attendanceText=!todayLessons.length?"오늘 수업 없음":liveCount?`지금 수업 중 ${liveCount}개`:!checkedCount?"오늘 출결 전":[presentCount&&`출석 ${presentCount}`,lateCount&&`지각 ${lateCount}`,absentCount&&`결석 ${absentCount}`].filter(Boolean).join(" · ");
   return <section className={`family-learning-note${todayLessons.length?"":" no-lessons"}`} aria-label="오늘의 학습 노트">
     <header>
       <div className="family-note-date"><span>{formatToday()}</span><b>오늘의 한살매</b></div>
       <div><h2>{studentName} 학습 노트</h2><p>오늘의 수업과 해야 할 일을 한눈에 확인하세요.</p></div>
     </header>
     <div className={`family-note-summary${todayLessons.length?"":" empty"}`}>
-      {todayLessons.length?<>
-        <button type="button" aria-expanded={summaryOpen==="attendance"} onClick={()=>setSummaryOpen(value=>value==="attendance"?null:"attendance")}><HansalmaeIcon name="check" size={17}/><b>{attendanceText}</b></button>
-        <button type="button" aria-expanded={summaryOpen==="lessons"} onClick={()=>setSummaryOpen(value=>value==="lessons"?null:"lessons")}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b></button>
-      </>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
+      {todayLessons.length?<button type="button" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개 · {attendanceText}</b></button>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
         <i><HansalmaeIcon name="calendar" size={18}/></i>
         <span><b>오늘은 예정된 수업이 없어요</b>{nextLesson&&<small>다음 수업 · {formatNextLesson(nextLesson)}</small>}</span>
         <em aria-hidden="true">›</em>
       </button>}
     </div>
     {summaryOpen&&<section className="family-note-today-detail">
-      <header><b>{summaryOpen==="attendance"?"오늘의 출결":"오늘의 수업"}</b><button type="button" onClick={()=>setSummaryOpen(null)}>닫기</button></header>
-      {todayLessons.length?<div>{todayLessons.map(item=><article key={item.id}><time>{item.startTime.slice(0,5)}</time><span><b>{item.subject} {item.label}</b><small>{[item.teacherName,item.room].filter(Boolean).join(" · ")}</small></span><em className={item.attendanceStatus??"pending"}>{attendanceLabel[item.attendanceStatus??""]??"입력 전"}</em></article>)}</div>:<p>오늘 예정된 수업이 없습니다.</p>}
+      <header><b>오늘의 수업</b><button type="button" onClick={()=>setSummaryOpen(false)}>닫기</button></header>
+      {todayLessons.length?<div>{todayLessons.map(item=>{const live=item.attendanceStatus==="present"&&isLessonLive(item,now);return <article key={item.id}><time>{item.startTime.slice(0,5)}</time><span><b>{item.subject} {item.label}</b><small>{[item.teacherName,item.room].filter(Boolean).join(" · ")}</small></span><em className={live?"live":item.attendanceStatus??"pending"}>{live?<><i/>수업 중</>:attendanceLabel[item.attendanceStatus??""]??"입력 전"}</em></article>})}</div>:<p>오늘 예정된 수업이 없습니다.</p>}
     </section>}
     <div className="family-note-grid">
       <button type="button" className="family-note-block" onClick={()=>onNavigate("attendance")}>
@@ -64,4 +64,12 @@ function formatToday(){return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Se
 function formatNextLesson(item:NextLesson){
   const date=new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",weekday:"short"}).format(new Date(`${item.classDate}T00:00:00+09:00`));
   return `${date} · ${item.subject||item.name} · ${item.startTime.slice(0,5)}`;
+}
+function isLessonLive(item:TodayLesson,now:Date){
+  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(now).split(":").map(Number);
+  const current=parts[0]*60+parts[1];
+  const startParts=item.startTime.slice(0,5).split(":").map(Number);
+  const endParts=item.endTime.slice(0,5).split(":").map(Number);
+  const start=startParts[0]*60+startParts[1],end=endParts[0]*60+endParts[1];
+  return current>=start&&current<end;
 }
