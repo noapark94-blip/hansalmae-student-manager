@@ -60,3 +60,10 @@
 @keyframes family-feed-open-shine{0%,70%{left:-55%;opacity:0}76%{opacity:1}90%,100%{left:125%;opacity:0}}
 @keyframes family-feed-open-arrow{0%,68%,100%{transform:translateX(0)}82%{transform:translateX(3px)}}
 @media(prefers-reduced-motion:reduce){.family-report-card.unread .family-report-open,.family-report-card.unread .family-report-open::after,.family-report-card.unread .family-report-open b{animation:none}}
+
+/* 모바일 상세창 하단이 기기 안전영역에 가려지지 않도록 여유 확보 */
+@media(max-width:760px){
+  .family-report-detail-backdrop{box-sizing:border-box;padding:8px 0 max(10px,env(safe-area-inset-bottom))}
+  .family-report-detail{max-height:calc(100dvh - 18px - env(safe-area-inset-bottom));border-width:1px;border-radius:24px}
+  .family-report-detail-scroll{padding-bottom:max(24px,calc(14px + env(safe-area-inset-bottom)))}
+}
