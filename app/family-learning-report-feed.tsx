@@ -14,8 +14,9 @@ import {
 let familyModalLockCount = 0;
 let familyModalScrollY = 0;
 
-function useFamilyModalScrollLock() {
+function useFamilyModalScrollLock(enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
     if (familyModalLockCount === 0) {
       familyModalScrollY = window.scrollY;
       document.documentElement.classList.add("family-modal-open");
@@ -32,7 +33,7 @@ function useFamilyModalScrollLock() {
         window.scrollTo(0, familyModalScrollY);
       }
     };
-  }, []);
+  }, [enabled]);
 }
 
 type AttendanceInfo = {
@@ -1531,8 +1532,8 @@ function LabeledReportSection({
   );
 }
 
-function ExamTrendModal({supabase,studentId,initialSubject,onClose}:{supabase:SupabaseClient;studentId:string;initialSubject:string;onClose:()=>void}) {
-  useFamilyModalScrollLock();
+export function ExamTrendModal({supabase,studentId,initialSubject,onClose,embedded=false}:{supabase:SupabaseClient;studentId:string;initialSubject:string;onClose:()=>void;embedded?:boolean}) {
+  useFamilyModalScrollLock(!embedded);
   const [items,setItems]=useState<ExamTrendItem[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
@@ -1571,8 +1572,7 @@ function ExamTrendModal({supabase,studentId,initialSubject,onClose}:{supabase:Su
   const displayDetail=selectedRecord??selectedPoint?.items.at(-1)??null;
   const selectPoint=(id:string)=>{setSelectedId(id);setSelectedRecordId(null);};
   const moveDetail=(direction:-1|1)=>{if(selectedRecord){const next=categoryItems[selectedRecordIndex+direction];if(next)setSelectedRecordId(next.id);return;}const next=trendRows[selectedPointIndex+direction];if(next)selectPoint(next.id);};
-  return <div className="family-exam-trend-backdrop" onMouseDown={(event)=>{event.stopPropagation();if(event.target===event.currentTarget)onClose();}}>
-    <section className="family-exam-trend-modal" role="dialog" aria-modal="true" aria-labelledby="family-exam-trend-title">
+  const content=<section className="family-exam-trend-modal" role={embedded?undefined:"dialog"} aria-modal={embedded?undefined:true} aria-labelledby="family-exam-trend-title">
       <header><button type="button" onClick={onClose} aria-label="성적 추이 닫기">‹</button><div><small>과목별 · 항목별 성장 기록</small><h2 id="family-exam-trend-title">시험 성적 추이</h2></div><span /></header>
       <div className="family-exam-trend-scroll">
         {loading?<p className="family-exam-trend-state">성적 기록을 불러오는 중이에요…</p>:error?<p className="family-exam-trend-state error">{error}</p>:!subjects.length?<p className="family-exam-trend-state">아직 그래프로 볼 시험 점수가 없어요.</p>:<>
@@ -1586,8 +1586,9 @@ function ExamTrendModal({supabase,studentId,initialSubject,onClose}:{supabase:Su
           {listOpen&&<div className="family-exam-history-list">{[...categoryItems].reverse().map((item)=><button type="button" key={item.id} className={selectedRecordId===item.id?'active':''} onClick={()=>{setSelectedRecordId(item.id);setSelectedId(null);}}><time>{shortTrendDate(item.lessonDate)}</time><span><b>{item.examTitle||trendCategory(item)}</b><small>{item.className} · {trendSourceLabel(item.itemType)}</small></span><strong>{formatTrendScore(item.percent)}</strong></button>)}</div>}
         </>}
       </div>
-    </section>
-  </div>;
+    </section>;
+  if(embedded)return <div className="family-exam-trend-embedded">{content}</div>;
+  return <div className="family-exam-trend-backdrop" onMouseDown={(event)=>{event.stopPropagation();if(event.target===event.currentTarget)onClose();}}>{content}</div>;
 }
 function filterTrendItems(items:ExamTrendItem[],range:ExamTrendRange){if(range==='recent')return items.slice(-10);if(range==='all')return items;const months=range==='3m'?3:6;const cutoff=dateValue(koreaDate());cutoff.setMonth(cutoff.getMonth()-months);return items.filter((item)=>dateValue(item.lessonDate)>=cutoff);}
 function buildTrendPoints(items:ExamTrendItem[],range:ExamTrendRange):ExamTrendPoint[]{if(range==='recent')return items.map((item)=>({id:item.id,label:shortTrendDate(item.lessonDate),lessonDate:item.lessonDate,percent:Math.round(Number(item.percent)),items:[item]}));const groups=new Map<string,ExamTrendItem[]>();for(const item of items){const key=range==='all'?item.lessonDate.slice(0,7):trendWeekKey(item.lessonDate);groups.set(key,[...(groups.get(key)??[]),item]);}return Array.from(groups.entries()).map(([key,group])=>({id:`${range}-${key}`,label:range==='all'?`${key.slice(2,4)}.${Number(key.slice(5))}`:shortTrendDate(group[0].lessonDate),lessonDate:group.at(-1)?.lessonDate??group[0].lessonDate,percent:Math.round(group.reduce((sum,item)=>sum+Number(item.percent),0)/group.length),items:group}));}

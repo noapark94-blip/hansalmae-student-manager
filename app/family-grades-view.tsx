@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
-import { FamilyExamGrowth } from "./family-exam-growth";
+import { ExamTrendModal } from "./family-learning-report-feed";
 
 type Child={id:string;name:string;school:string|null;grade:string|null};
 type Dashboard={children:Child[];selectedStudent:Child|null};
@@ -32,7 +32,7 @@ export function FamilyGradesView({supabase,profile}:{supabase:SupabaseClient;pro
     {student?<>
       <section className="family-grades-student"><i>{student.name.slice(0,1)}</i><span><b>{student.name}</b><small>{[student.school,student.grade].filter(Boolean).join(" · ")||"한살매 학생"}</small></span>{profile.role==="guardian"&&(data?.children.length??0)>1&&<select aria-label="자녀 선택" value={selectedId??""} onChange={event=>void load(event.target.value)}>{data?.children.map(child=><option key={child.id} value={child.id}>{child.name} · {[child.school,child.grade].filter(Boolean).join(" ")}</option>)}</select>}</section>
       <nav className={`family-grade-tabs${isMiddle?" middle":""}`} aria-label="성적 종류"><button className={tab==="academy"?"active":""} onClick={()=>setTab("academy")}>학원 시험</button><button className={tab==="school"?"active":""} onClick={()=>setTab("school")}>학교 내신</button>{!isMiddle&&<button className={tab==="mock"?"active":""} onClick={()=>setTab("mock")}>모의고사</button>}</nav>
-      {tab==="academy"?<section className="family-grade-section"><header><div><p>수업에서 쌓인 기록</p><h2>학원 시험 성적 추이</h2></div><span>정규 · 첨삭</span></header><FamilyExamGrowth supabase={supabase} studentId={student.id}/></section>:<AcademicRecords records={academic?.records??[]} type={tab} isMiddle={isMiddle}/>} 
+      {tab==="academy"?<ExamTrendModal supabase={supabase} studentId={student.id} initialSubject="영어" embedded onClose={()=>setTab("school")}/>:<AcademicRecords records={academic?.records??[]} type={tab} isMiddle={isMiddle}/>} 
     </>:<section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
 }
