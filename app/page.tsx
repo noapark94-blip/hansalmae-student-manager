@@ -15,6 +15,7 @@ import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
 import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView } from "./family-dashboard";
+import { FamilyGradesView } from "./family-grades-view";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
 import { TuitionBoard } from "./tuition-board";
@@ -36,10 +37,10 @@ import { GradeProgressionBoard } from "./grade-progression-board";
 import { VocabularyTestGenerator } from "./vocabulary-test-generator";
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "reports" | "calendar" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "calendar", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -189,8 +190,8 @@ const roleViews: Record<UserRole, View[]> = {
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "calendar", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "calendar", "consultations", "communications", "my-account"],
+  student: ["dashboard", "schedule", "calendar", "grades", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "calendar", "grades", "consultations", "communications", "my-account"],
 };
 const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
@@ -802,6 +803,7 @@ export default function Home() {
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
           {view === "reports" && <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
+          {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
@@ -896,7 +898,7 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
           { id: "dashboard", label: "홈" },
           { id: "schedule", label: "정규시간표" },
           { id: "calendar", label: "학습캘린더" },
-          { id: "consultations", label: "상담" },
+          { id: "grades", label: "성적확인" },
           { id: "my-account", label: "내 정보" },
         ];
   return (
