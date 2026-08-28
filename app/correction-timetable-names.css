@@ -161,9 +161,11 @@
   .correction-timetable-mode .correction-slot-content{position:relative!important;overflow:hidden!important;padding-bottom:3px!important}
 }
 
-.correction-slot-roster-modal{width:min(680px,calc(100vw - 28px))!important}
+.correction-slot-roster-modal{width:min(680px,calc(100vw - 28px))!important;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;overflow:hidden}
 .correction-slot-roster-modal>header span{display:block;margin-top:5px;color:#80747a;font-size:11px}
-.correction-slot-roster-groups{display:grid;gap:12px;padding:18px 22px;overflow:auto}
+.correction-slot-roster-groups{min-height:0;display:grid;gap:12px;padding:18px 22px;overflow:auto}
+.correction-slot-roster-modal>footer{flex:0 0 auto;margin:0;padding:14px 22px 16px;border-top:1px solid #eee7ea;background:#fff;display:flex;justify-content:flex-end}
+.correction-slot-roster-modal>footer>button{min-width:102px;margin:0}
 .correction-slot-roster-groups>section{padding:12px;border:1px solid #eadfe4;border-radius:12px;background:#fcfafb}
 .correction-slot-roster-groups>section>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
 .correction-slot-roster-groups>section>header b{font-size:12px}
