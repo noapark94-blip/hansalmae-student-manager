@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { appConfirm } from "./app-dialog";
 
 type RecordType = "school" | "mock";
 type AcademicRecord = {
@@ -41,7 +42,7 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
   const [form,setForm]=useState<FormValues>(()=>emptyForm("school",initialSchoolGrade));
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
-  const [deleteId,setDeleteId]=useState<string|null>(null);
+  const [deleteId]=useState<string|null>(null);
   const [year,setYear]=useState("all");
   const [subject,setSubject]=useState("all");
 
@@ -87,6 +88,13 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
     setSaving(false);
     if(error){setMessage("성적 기록을 삭제하지 못했습니다.");return;}
     setRecords(current=>current.filter(item=>item.id!==id));setDeleteId(null);setMessage("성적 기록을 삭제했습니다.");
+  };
+  const setDeleteId=async(id:string|null)=>{
+    if(!id||saving)return;
+    const item=records.find(record=>record.id===id);
+    if(!item)return;
+    const confirmed=await appConfirm({eyebrow:"성적 기록 삭제",title:`${item.exam_name} · ${item.subject} 성적을 삭제할까요?`,notice:"삭제한 성적 기록은 복구할 수 없습니다.",confirmLabel:"성적 삭제",tone:"danger"});
+    if(confirmed)await remove(id);
   };
 
   return <section className="academic-records">

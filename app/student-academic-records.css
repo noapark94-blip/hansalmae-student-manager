@@ -46,6 +46,15 @@
 .academic-trend>div{display:grid;gap:8px}.academic-trend article{min-width:0;display:grid;grid-template-columns:125px minmax(0,1fr) 32px;align-items:center;gap:8px;font-size:9px}.academic-trend article>span{display:flex;justify-content:space-between}.academic-trend small{color:#9a8c92;font-size:8px}.academic-trend i{height:6px;overflow:hidden;border-radius:8px;background:#f2e8ec}.academic-trend em{display:block;height:100%;border-radius:8px;background:#ae3e73}
 .academic-list{width:100%;min-width:0;display:grid;gap:8px}.academic-list>article{position:relative;min-width:0;display:flex;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #e9dfe3;background:#fff}.academic-list article>div:first-child{min-width:0;display:grid;gap:4px}.academic-list span,.academic-list p,.academic-list small{margin:0;color:#8e8086;font-size:8px}.academic-list b{font-size:10px}.academic-list footer{display:flex;align-items:center;gap:5px}.academic-list footer button{width:auto!important;height:30px!important;min-height:30px!important;padding:0 9px!important;font-size:8px!important}.academic-list .danger{border-color:#ecc0cd;color:#bd3151}.academic-delete{position:absolute;inset:0!important;display:flex!important;align-items:center;justify-content:flex-end;gap:12px;padding:10px 13px;background:#fffafd}.academic-delete div{display:flex;gap:5px}.academic-delete .danger-fill{border-color:#c73355;background:#c73355;color:#fff}
 
+@media(min-width:761px){
+ .academic-list>article{min-height:104px;padding:16px 18px;align-items:center}
+ .academic-list article>div:first-child{gap:6px}
+ .academic-list span,.academic-list p,.academic-list small{font-size:10px;line-height:1.45}
+ .academic-list b{font-size:13px;line-height:1.35}
+ .academic-list footer{gap:8px}
+ .academic-list footer button{height:36px!important;min-height:36px!important;padding:0 14px!important;border-radius:9px!important;font-size:10px!important;font-weight:800!important}
+}
+
 @media(max-width:760px){
  .academic-records{gap:10px}
  .academic-heading{align-items:stretch!important;flex-direction:row!important;gap:10px!important}
