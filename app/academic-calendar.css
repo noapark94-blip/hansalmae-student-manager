@@ -3,3 +3,63 @@
 
 /* Keep the desktop agenda compact without reducing text readability. */
 @media(min-width:901px){.academic-agenda>div{gap:8px;padding:12px}.academic-agenda article{padding:11px 13px}.academic-agenda h4{margin:4px 0 5px}.academic-agenda article p{margin:2px 0;line-height:1.45}.academic-agenda article small{margin-top:5px}.academic-agenda article button{right:11px;top:10px}}
+
+/* Desktop academic calendar polish */
+@media(min-width:901px){
+ .academic-panel{border-color:#e9dfe3;border-radius:18px;box-shadow:0 14px 34px rgba(73,42,55,.045)}
+ .academic-panel .academic-header{padding:22px 26px;background:linear-gradient(135deg,#fff 0%,#fdfafb 100%)}
+ .academic-panel .academic-header h2{font-size:20px;letter-spacing:-.45px}
+ .academic-panel .academic-header p{margin-top:7px;font-size:12px;line-height:1.55}
+ .academic-panel .academic-header .primary{min-width:112px;height:42px;border-radius:11px;box-shadow:0 7px 18px rgba(146,45,97,.12)}
+ .academic-panel .academic-filters{grid-template-columns:repeat(3,minmax(150px,200px)) 1fr;gap:8px;padding:13px 18px;background:#fbf8f9}
+ .academic-panel .academic-filters select{height:40px;padding:0 34px 0 12px;border-color:#e5d9de;border-radius:10px;color:#4f4348;font-size:11px;font-weight:700;box-shadow:0 2px 7px rgba(68,42,52,.025)}
+ .academic-panel .academic-filters label{justify-self:end;width:max-content;min-height:36px;padding:0 12px;border:1px solid #e5d9de;border-radius:999px;background:#fff;color:#6d5e65;font-size:11px;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+ .academic-panel .academic-filters label:hover{border-color:#d6a9bd;background:#fff8fb;color:#922d61}
+ .academic-panel .academic-filters label input{width:15px;height:15px;margin:0;accent-color:#9b2d63}
+ .academic-panel .academic-layout{grid-template-columns:minmax(0,1fr) 310px;min-height:590px;background:#fff}
+ .academic-panel .academic-calendar{border-right-color:#eadfe3}
+ .academic-panel .academic-calendar>nav{height:64px;gap:26px;background:#fff}
+ .academic-panel .academic-calendar>nav button{display:grid;place-items:center;width:34px;height:34px;border-color:#e4d7dc;border-radius:10px;color:#8f2a59;font-size:18px;line-height:1;transition:background .15s,border-color .15s,transform .15s}
+ .academic-panel .academic-calendar>nav button:hover{border-color:#cf9cb4;background:#fff5f9;transform:translateY(-1px)}
+ .academic-panel .academic-calendar>nav b{font-size:17px;letter-spacing:-.35px}
+ .academic-panel .academic-weekdays{gap:5px;padding:0 8px;border-color:#eee5e8;background:#fcfafb}
+ .academic-panel .academic-weekdays b{padding:12px 10px;font-size:11px}
+ .academic-panel .academic-days{padding:8px;gap:5px;background:#faf8f9}
+ .academic-panel .academic-days>i,.academic-panel .academic-days>button{min-height:88px;border:1px solid #eee7ea;border-radius:10px;background:#fff}
+ .academic-panel .academic-days>i{border-color:transparent;background:transparent}
+ .academic-panel .academic-days>button{padding:9px;transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
+ .academic-panel .academic-days>button:hover{border-color:#dfc2d0;background:#fffafd;box-shadow:0 6px 15px rgba(74,39,55,.045);transform:translateY(-1px)}
+ .academic-panel .academic-days>button.selected{border-color:#a92e65;background:#fff8fb;box-shadow:0 0 0 2px rgba(169,46,101,.08)}
+ .academic-panel .academic-days>button.today>strong{width:25px;height:25px;box-shadow:0 5px 12px rgba(152,41,95,.18)}
+ .academic-panel .academic-days strong{font-size:11px}
+ .academic-panel .academic-days em{padding:4px 6px;border-radius:6px;font-size:8px}
+ .academic-panel .academic-agenda{margin:8px 8px 8px 0;border:1px solid #ebe1e5;border-radius:13px;background:#fdfbfc;overflow:hidden}
+ .academic-panel .academic-agenda>header{height:64px;padding:0 16px;background:#fff}
+ .academic-panel .academic-agenda h3{font-size:15px}
+ .academic-panel .academic-agenda header button{width:32px;height:32px;border-radius:10px;transition:background .15s,border-color .15s}
+ .academic-panel .academic-agenda header button:hover{border-color:#c98ea9;background:#fff5f9}
+ .academic-panel .academic-agenda .academic-empty{min-height:260px;border:0;background:transparent;font-size:11px}
+}
+
+/* Keep the calendar editor compact and visually separate from student grade forms. */
+.modal-backdrop>form.academic-editor{width:min(720px,calc(100vw - 28px))!important;max-width:720px!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:20px!important;background:#fff!important;box-shadow:0 28px 80px rgba(48,18,33,.24)!important;overflow:auto!important}
+.modal-backdrop>form.academic-editor>header{padding:22px 24px 17px;background:linear-gradient(135deg,#fff 0%,#fdfafb 100%)}
+.modal-backdrop>form.academic-editor>header h2{font-size:21px!important;letter-spacing:-.5px}
+.modal-backdrop>form.academic-editor>header span{margin-top:5px;font-size:11px!important}
+.modal-backdrop>form.academic-editor .academic-form{gap:13px 14px;padding:18px 24px}
+.modal-backdrop>form.academic-editor .academic-form label{gap:6px;font-size:11px}
+.modal-backdrop>form.academic-editor .academic-form input,.modal-backdrop>form.academic-editor .academic-form select{height:42px;border-color:#e2d5db;background:#fffdfd;font-size:12px}
+.modal-backdrop>form.academic-editor .academic-form textarea{min-height:82px;border-color:#e2d5db;background:#fffdfd;font-size:12px;line-height:1.55}
+.modal-backdrop>form.academic-editor .academic-form input:focus,.modal-backdrop>form.academic-editor .academic-form select:focus,.modal-backdrop>form.academic-editor .academic-form textarea:focus{border-color:#ad3d70;box-shadow:0 0 0 3px rgba(173,61,112,.08);outline:0}
+.modal-backdrop>form.academic-editor .academic-time-check{align-self:end;display:flex;min-height:42px;padding:0 12px;border:1px solid #e5d9de;border-radius:10px;background:#fbf8f9}
+.modal-backdrop>form.academic-editor .academic-time-check input{width:16px;height:16px;margin:0 8px 0 0;accent-color:#9b2d63}
+.modal-backdrop>form.academic-editor>footer{display:flex!important;align-items:center;gap:8px;margin:0;padding:13px 24px 17px}
+.modal-backdrop>form.academic-editor>footer>span{flex:1}
+.modal-backdrop>form.academic-editor>footer button{width:auto!important;min-width:88px!important;min-height:40px!important;margin:0!important;border-radius:10px;font-size:11px!important}
+.modal-backdrop>form.academic-editor>footer .primary{min-width:104px!important;box-shadow:0 7px 18px rgba(146,45,97,.13)}
+
+@media(max-width:600px){
+ .modal-backdrop>form.academic-editor{width:100%!important;max-width:none!important;border-radius:20px 20px 0 0!important}
+ .modal-backdrop>form.academic-editor .academic-form{padding:15px 16px}
+ .modal-backdrop>form.academic-editor>footer{padding:11px 16px calc(11px + env(safe-area-inset-bottom))}
+}
