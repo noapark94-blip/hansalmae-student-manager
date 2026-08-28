@@ -6,6 +6,7 @@ import Holidays from "date-holidays";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import { examCategoryLabel } from "./exam-display";
 import {
   CommentReactionBar,
   useReportCommentReactions,
@@ -1678,7 +1679,7 @@ function filterTrendItems(items:ExamTrendItem[],range:ExamTrendRange){if(range==
 function buildTrendPoints(items:ExamTrendItem[],range:ExamTrendRange):ExamTrendPoint[]{if(range==='recent')return items.map((item)=>({id:item.id,label:shortTrendDate(item.lessonDate),lessonDate:item.lessonDate,percent:Math.round(Number(item.percent)),items:[item]}));const groups=new Map<string,ExamTrendItem[]>();for(const item of items){const key=range==='all'?item.lessonDate.slice(0,7):trendWeekKey(item.lessonDate);groups.set(key,[...(groups.get(key)??[]),item]);}return Array.from(groups.entries()).map(([key,group])=>({id:`${range}-${key}`,label:range==='all'?`${key.slice(2,4)}.${Number(key.slice(5))}`:shortTrendDate(group[0].lessonDate),lessonDate:group.at(-1)?.lessonDate??group[0].lessonDate,percent:Math.round(group.reduce((sum,item)=>sum+Number(item.percent),0)/group.length),items:group}));}
 function trendWeekKey(value:string){const date=dateValue(value);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
 function trendSubject(item:ExamTrendItem){return (item.mainSubject||item.subject||"기타").trim();}
-function trendCategory(item:ExamTrendItem){return (item.examType||item.examTitle||"기타 시험").trim();}
+function trendCategory(item:ExamTrendItem){return examCategoryLabel(item.examType,item.examTitle);}
 function trendSourceLabel(value:ExamTrendItem["itemType"]){return value==="makeup"?"보강수업":value==="extra"?"추가수업":value==="correction"?"첨삭수업":"정규수업";}
 function formatTrendScore(value:number|null|undefined){return value==null?"–":`${Math.round(Number(value))}점`;}
 function shortTrendDate(value:string){const date=dateValue(value);return `${date.getMonth()+1}.${date.getDate()}`;}

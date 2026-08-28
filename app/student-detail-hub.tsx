@@ -8,6 +8,7 @@ import { StudentLearningHistory } from "./student-learning-history";
 import { StudentAcademicRecords } from "./student-academic-records";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
+import { examCategoryLabel } from "./exam-display";
 
 type StudentValues = {
   id: string;
@@ -400,9 +401,9 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const[selectedId,setSelectedId]=useState<string|null>(null);
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
   const subjectItems=sourceItems.filter(item=>item.subject===selectedSubject);
-  const categories=Array.from(new Set(subjectItems.map(item=>item.examType)));
+  const categories=Array.from(new Set(subjectItems.map(item=>examCategoryLabel(item.examType,item.examTitle))));
   const selectedCategory=category&&categories.includes(category)?category:(categories[0]??"");
-  const allScored=subjectItems.filter(item=>item.examType===selectedCategory);
+  const allScored=subjectItems.filter(item=>examCategoryLabel(item.examType,item.examTitle)===selectedCategory);
   const rangeDays=range==="week"?7:range==="month"?30:range==="quarter"?90:null;
   const cutoffDate=new Date();
   cutoffDate.setHours(0,0,0,0);
@@ -496,19 +497,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
 
 function formatShortExamDate(value:string){const[,month,day]=value.split("-");return`${Number(month)}.${Number(day)}`}
 
-function examTypeLabel(value: string) {
-  return (
-    (
-      {
-        vocabulary: "영단어 시험",
-        weekly: "주간평가",
-        monthly: "월간평가",
-        mock: "모의고사",
-        custom: "기타 시험",
-      } as Record<string, string>
-    )[value] || "시험"
-  );
-}
+function examTypeLabel(value: string) { return examCategoryLabel(value); }
 type ExamSourceFilter="all"|ExamProgressItem["source"];
 function sourceLabel(value:ExamSourceFilter){return value==="all"?"전체 수업":value==="regular"?"정규수업":value==="correction"?"첨삭수업":value==="makeup"?"보강수업":"추가수업"}
 function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: () => void }) {
