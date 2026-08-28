@@ -61,6 +61,17 @@
 
   .student-hub-modal .student-personal-schedule h3{font-size:14px}
   .student-hub-modal .student-personal-schedule>header p{font-size:10px;line-height:1.5}
+  .student-hub-modal .student-relevant-timetable{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
+  .student-hub-modal .student-relevant-timetable>section:last-child:nth-child(odd){grid-column:1/-1}
+  .student-hub-modal .student-relevant-timetable>section:last-child:nth-child(odd)>div{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:8px;
+  }
+  .student-hub-modal .student-relevant-timetable>section:last-child:nth-child(odd) article+article{margin-top:0}
   .student-hub-modal .student-relevant-timetable h4{padding:11px 13px;font-size:12px}
   .student-hub-modal .student-relevant-timetable section>div{padding:8px}
   .student-hub-modal .student-relevant-timetable article{
@@ -71,7 +82,13 @@
   }
   .student-hub-modal .student-relevant-timetable time{font-size:11px}
   .student-hub-modal .student-relevant-timetable b{font-size:12px}
-  .student-hub-modal .student-relevant-timetable small{font-size:10px;line-height:1.4}
+  .student-hub-modal .student-relevant-timetable small{
+    font-size:10px;
+    line-height:1.4;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 
   .student-hub-modal .student-learning-context b,
   .student-hub-modal .student-correction-learning-cards header b{font-size:12px}
