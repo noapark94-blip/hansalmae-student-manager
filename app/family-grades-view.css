@@ -59,3 +59,18 @@
 .family-academic-list p{margin-top:4px;font-size:9px;line-height:1.45}
 .family-academic-list strong{padding:8px 10px;border-radius:11px;font-size:11px}
 @media(max-width:390px){.family-grade-section{padding:17px 13px 18px}.family-grade-chart{padding-inline:10px}.family-academic-list article{grid-template-columns:43px minmax(0,1fr) auto;gap:8px}.family-academic-list strong{padding-inline:8px}}
+
+/* 학교 내신·모의고사도 학원 시험과 같은 과목별 탐색과 접이식 기록 구조로 통일 */
+.family-grade-subject-panel{margin:0 0 16px;padding:7px;border:1px solid #eee4e9;border-radius:18px;background:#f7f2f4}
+.family-grade-subject-panel .family-grade-subjects{display:flex;gap:5px;overflow-x:auto;margin:0;padding:0;scrollbar-width:none}
+.family-grade-subject-panel .family-grade-subjects::-webkit-scrollbar{display:none}
+.family-grade-subject-panel .family-grade-subjects button{flex:1 0 auto;min-width:88px;min-height:45px;padding:0 16px;border:0;border-radius:14px;background:transparent;color:#786d72;font-size:12px;font-weight:850}
+.family-grade-subject-panel .family-grade-subjects button.active{background:#fff;color:#9d2b63;box-shadow:0 5px 15px rgba(73,38,54,.08)}
+.family-grade-history-toggle{width:100%;min-height:50px;padding:0 15px;border:1px solid #e9dfe4;border-radius:15px;background:#fff;color:#4a3f44;font:inherit;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.family-grade-history-toggle>span{font-size:13px;font-weight:850}
+.family-grade-history-toggle>span b{display:inline-grid;min-width:23px;height:23px;margin-left:5px;padding:0 7px;place-items:center;border-radius:999px;background:#f5e6ed;color:#922d61;font-size:10px}
+.family-grade-history-toggle>i{color:#94878d;font-size:11px;font-style:normal}
+.family-grade-history-toggle>i em{display:inline-block;margin-left:4px;font-size:15px;font-style:normal;transition:transform .18s}
+.family-grade-history-toggle.open>i em{transform:rotate(180deg)}
+.family-grade-history-toggle+.family-academic-list{margin-top:8px}
+@media(prefers-reduced-motion:reduce){.family-grade-history-toggle>i em{transition:none}}
