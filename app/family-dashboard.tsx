@@ -473,6 +473,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
   const [data, setData] = useState<Data | null>(null);
   const [corrections, setCorrections] = useState<RegularCorrection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [scheduleFilter, setScheduleFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(async (studentId: string | null) => {
@@ -496,6 +497,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
   if (loading && !data) return <section className="panel hub-message">정규시간표를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
+  const scheduleSubjects = Array.from(new Set((data?.weekClasses ?? []).map((item) => item.subject).filter(Boolean)));
   return <div className="family-schedule-page">
     <header className="family-schedule-heading">
       <p>{profile.role === "guardian" ? "자녀 정규 일정" : "나의 정규 일정"}</p>
@@ -509,12 +511,18 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
         <span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span>
         {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
       </section>
-      <div className="family-schedule-legend" aria-label="시간표 구분"><span className="regular"><i/>정규수업</span><span className="correction"><i/>첨삭수업</span></div>
+      <nav className="family-schedule-legend" aria-label="시간표 카테고리">
+        <button type="button" className={scheduleFilter === "all" ? "active" : ""} onClick={() => setScheduleFilter("all")}>전체</button>
+        {scheduleSubjects.map((subject) => <button type="button" key={subject} className={scheduleFilter === `subject:${subject}` ? "active" : ""} onClick={() => setScheduleFilter(`subject:${subject}`)}>{subject}</button>)}
+        <button type="button" className={`correction ${scheduleFilter === "correction" ? "active" : ""}`} onClick={() => setScheduleFilter("correction")}>첨삭</button>
+      </nav>
       <section className="family-weekly-schedule" aria-label={`${selected.name} 정규시간표`}>
         {weekdays.map((day, index) => {
           const classes = data?.weekClasses.filter((item) => item.weekday === index + 1) ?? [];
           const correctionClasses = corrections.filter((item) => item.weekday === index + 1);
-          const schedules = [...classes.map((item) => ({ kind: "regular" as const, item })), ...correctionClasses.map((item) => ({ kind: "correction" as const, item }))].sort((a, b) => a.item.startTime.localeCompare(b.item.startTime));
+          const schedules = [...classes.map((item) => ({ kind: "regular" as const, item })), ...correctionClasses.map((item) => ({ kind: "correction" as const, item }))]
+            .filter((schedule) => scheduleFilter === "all" || (scheduleFilter === "correction" ? schedule.kind === "correction" : schedule.kind === "regular" && schedule.item.subject === scheduleFilter.slice(8)))
+            .sort((a, b) => a.item.startTime.localeCompare(b.item.startTime));
           return <article key={day} className={schedules.length ? "has-class" : ""}>
             <header><b>{day}</b><span>{schedules.length ? `${schedules.length}개 수업` : "수업 없음"}</span></header>
             <div>{schedules.length ? schedules.map((schedule) => schedule.kind === "regular" ? <section className="regular" key={`regular-${schedule.item.id}`} style={{ "--family-class-color": schedule.item.color } as CSSProperties}>
@@ -522,7 +530,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
               <span><b>{schedule.item.name}</b><small>{schedule.item.subject} · {familyTeacherNames(schedule.item.teachers)}{schedule.item.room ? ` · ${schedule.item.room}` : ""}</small></span>
             </section> : <section className="correction" key={`correction-${schedule.item.id}`}>
               <time>{schedule.item.startTime.slice(0, 5)}–{schedule.item.endTime.slice(0, 5)}</time>
-              <span><b><em>첨삭</em>{schedule.item.subject} 첨삭수업</b><small>{familyTeacherName(schedule.item.teacherName)}</small></span>
+              <span><b>{schedule.item.subject} 첨삭수업<em>첨삭</em></b></span>
             </section>) : <p>등록된 정규 일정이 없습니다.</p>}</div>
           </article>;
         })}
