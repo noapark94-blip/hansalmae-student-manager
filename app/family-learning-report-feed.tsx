@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import Holidays from "date-holidays";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
@@ -98,6 +99,7 @@ const homeworkLabel: Record<string, string> = {
   missing: "미제출",
   excused: "확인 제외",
 };
+const koreanHolidays = new Holidays("KR");
 
 export function FamilyLearningReportFeed({
   supabase,
@@ -383,6 +385,20 @@ export function FamilyLearningReportFeed({
     corrections.filter((item) => !correctionReads[item.id]).length;
 
   const calendarDays = useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
+  const publicHolidayDates = useMemo(() => {
+    const year = Number(calendarMonth.slice(0, 4));
+    const dates = new Set<string>();
+    for (const holiday of koreanHolidays.getHolidays(year)) {
+      if (holiday.type !== "public") continue;
+      const date = holiday.date.slice(0, 10);
+      dates.add(date);
+      if (holiday.name === "설날" || holiday.name === "추석") {
+        dates.add(shiftDateKey(date, -1));
+        dates.add(shiftDateKey(date, 1));
+      }
+    }
+    return dates;
+  }, [calendarMonth]);
   const calendarItemsByDate = useMemo(() => {
     const grouped = new Map<string, FeedItem[]>();
     for (const item of feedItems) grouped.set(item.date, [...(grouped.get(item.date) ?? []), item]);
@@ -436,7 +452,7 @@ export function FamilyLearningReportFeed({
         {calendarDays.map(day => {
           const dayItems = calendarItemsByDate.get(day.date) ?? [];
           const isSelected = day.date === selectedDate;
-          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 학습 기록 ${dayItems.length}개` : ", 학습 기록 없음"}`} onClick={() => setSelectedDate(day.date)}>
+          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""} ${publicHolidayDates.has(day.date) ? "public-holiday" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 학습 기록 ${dayItems.length}개` : ", 학습 기록 없음"}`} onClick={() => setSelectedDate(day.date)}>
             <span>{day.day}</span>
             <i>{dayItems.slice(0, 3).map((item, index) => <em key={`${item.kind}-${item.kind === "lesson" ? item.report.lessonId : item.report.id}-${index}`} className={calendarItemTone(item)} />)}</i>
           </button>;
@@ -641,6 +657,11 @@ function shiftMonth(month: string, amount: number) {
   const [year, value] = month.split("-").map(Number);
   const date = new Date(Date.UTC(year, value - 1 + amount, 1));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+function shiftDateKey(value: string, amount: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
 }
 function buildCalendarDays(month: string) {
   const [year, value] = month.split("-").map(Number);

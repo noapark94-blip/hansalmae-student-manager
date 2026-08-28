@@ -25,6 +25,7 @@
 
 /* 오늘은 작은 점 대신 날짜 전체를 감싸는 프레임으로 표시 */
 .family-calendar-grid>button.today:after{inset:3px;top:3px;right:3px;bottom:3px;left:3px;width:auto;height:auto;border:1.5px solid rgba(146,45,97,.62);border-radius:10px;background:transparent;box-shadow:inset 0 0 0 2px #fff,0 2px 8px rgba(146,45,97,.08);pointer-events:none}.family-calendar-grid>button.today.selected:after{border-color:rgba(255,255,255,.9);background:transparent;box-shadow:inset 0 0 0 2px rgba(132,35,79,.78)}
+.family-calendar-grid>button.public-holiday:not(.selected)>span{color:#c94a5d}.family-calendar-grid>button.public-holiday.outside:not(.selected)>span{color:#d9a8b0}.family-calendar-grid>button.public-holiday.selected>span{color:#fff}
 
 /* 정규시간표도 학습캘린더와 같은 읽기 위계로 통일 */
 @media(max-width:760px){

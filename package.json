@@ -18,6 +18,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
+    "date-holidays": "3.36.0",
     "docx": "^9.5.1",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
