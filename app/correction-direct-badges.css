@@ -1,10 +1,11 @@
 .correction-direct-badge{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin:0;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;line-height:1;letter-spacing:-.02em;white-space:nowrap}.correction-direct-badge.move{background:#fbe9ef;color:#9f2d63;border:1px solid #efd2dd}.correction-direct-badge.extra{background:#eaf7ef;color:#28724b;border:1px solid #c7e4d2}.correction-direct-badge.compact{display:none!important}
 
 /* 주간 캘린더: 모든 학생 이름 칩은 크기/패딩 동일, 상태는 색상만 변경 */
-.correction-learning-board .correction-week-strip em{padding:4px 7px!important;border:0!important;border-radius:6px!important;font-size:10px!important;font-style:normal!important;font-weight:400!important;line-height:1.2!important;font-family:inherit!important;letter-spacing:normal!important}
+.correction-learning-board .correction-week-strip em{display:flex!important;align-items:center!important;width:100%!important;height:26px!important;min-height:26px!important;padding:0 7px!important;border:0!important;border-radius:6px!important;font-size:10px!important;font-style:normal!important;font-weight:400!important;line-height:1.2!important;font-family:inherit!important;letter-spacing:normal!important}
 .correction-learning-board .correction-week-strip em:has(.correction-direct-badge.move){background:#fcecef!important;color:#9a3158!important}
 .correction-learning-board .correction-week-strip em:has(.correction-direct-badge.extra){background:#edf8f1!important;color:#2e7350!important}
 .correction-week-strip em>.correction-direct-badge.compact{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;font-size:0!important;line-height:0!important}
+.correction-week-strip em>.correction-date-override-badge.compact{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;font-size:0!important;line-height:0!important}
 
 /* 과거 누락 명단 보정: 정규 배정과 다른 색으로 기록 화면에서만 구분 */
 .correction-date-override-badge{display:inline-flex;align-items:center;justify-content:center;width:max-content;margin-left:6px;padding:3px 7px;border:1px solid #c9d8ee;border-radius:999px;background:#edf4ff;color:#3c6698;font-size:9px;font-weight:800;line-height:1;white-space:nowrap}
