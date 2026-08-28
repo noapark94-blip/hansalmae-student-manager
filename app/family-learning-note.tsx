@@ -23,9 +23,7 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
   const presentCount=todayLessons.filter(item=>item.attendanceStatus==="present").length;
   const lateCount=todayLessons.filter(item=>item.attendanceStatus==="late").length;
   const absentCount=todayLessons.filter(item=>["absent","excused"].includes(item.attendanceStatus??"")).length;
-  const liveCount=todayLessons.filter(item=>item.attendanceStatus==="present"&&isLessonLive(item,now)).length;
   const checkedCount=presentCount+lateCount+absentCount;
-  const attendanceText=!todayLessons.length?"오늘 수업 없음":liveCount?`지금 수업 중 ${liveCount}개`:!checkedCount?"오늘 출결 전":[presentCount&&`출석 ${presentCount}`,lateCount&&`지각 ${lateCount}`,absentCount&&`결석 ${absentCount}`].filter(Boolean).join(" · ");
   const currentMinute=seoulMinute(now);
   const liveLesson=todayLessons.find(item=>item.attendanceStatus==="present"&&isLessonLive(item,now))??null;
   const nextTodayLesson=[...todayLessons].sort((a,b)=>a.startTime.localeCompare(b.startTime)).find(item=>timeMinute(item.startTime)>currentMinute)??null;
@@ -43,7 +41,7 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
       <div><h2>{studentName} 학습 노트</h2><p>오늘의 수업과 해야 할 일을 한눈에 확인하세요.</p></div>
     </header>
     <div className={`family-note-summary${todayLessons.length?"":" empty"}`}>
-      {todayLessons.length?<><button type="button" className="family-note-overview" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><span><b>오늘 수업 {todayLessons.length}개</b><small>{attendanceText}</small></span></button><div className={`family-note-live-status ${liveStatus.tone}`} aria-label={`실시간 상태: ${liveStatus.title}`} aria-live="polite"><i aria-hidden="true"/><span><b>{liveStatus.title}</b><small>{liveStatus.detail}</small></span></div></>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
+      {todayLessons.length?<><button type="button" className="family-note-overview" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b></button><div className={`family-note-live-status ${liveStatus.tone}`} aria-label={`실시간 상태: ${liveStatus.title}`} aria-live="polite"><i aria-hidden="true"/><span><b>{liveStatus.title}</b><small>{liveStatus.detail}</small></span></div></>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
         <i><HansalmaeIcon name="calendar" size={18}/></i>
         <span><b>오늘은 예정된 수업이 없어요</b>{nextLesson&&<small>다음 수업 · {formatNextLesson(nextLesson)}</small>}</span>
         <em aria-hidden="true">›</em>
