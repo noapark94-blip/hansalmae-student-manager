@@ -16,6 +16,7 @@ type InboxItem = {
   lessonId?: string;
   studentId?: string;
   studentName: string;
+  studentGrade?: string;
   className?: string;
   subject?: string;
   title?: string;
@@ -143,7 +144,16 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     }
     if (!item.studentId || !item.lessonId) return;
     setOpen(false);
-    setSelected(item);
+    const { data: student } = await supabase
+      .from("students")
+      .select("grade")
+      .eq("id", item.studentId)
+      .maybeSingle();
+    const selectedItem = {
+      ...item,
+      studentGrade: student?.grade ? String(student.grade) : undefined,
+    };
+    setSelected(selectedItem);
     setReply("");
     setThreadError("");
     const { data } = await supabase.rpc("staff_report_comments", {
@@ -323,7 +333,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                 .map((root) => (
                   <article key={root.id}>
                     <div>
-                      <b>{root.authorName} 학부모님</b>
+                      <b>{root.authorName} 학부모님 ({selected.studentName}{selected.studentGrade ? ` ${selected.studentGrade}` : ""})</b>
                       <span><time>{formatTime(root.createdAt)}</time>{root.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===root.id} onClick={()=>void removeComment(root)}>{deleting===root.id?"삭제 중…":"삭제"}</button>}</span>
                     </div>
                     <p className={root.isDeleted?"deleted":""}>{root.body}</p>
