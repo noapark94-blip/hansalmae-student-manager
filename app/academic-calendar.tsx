@@ -138,7 +138,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
             {event.school && <p>{event.school}{event.scope === "school" && event.grade ? ` · ${event.grade}` : ""}</p>}
             {event.startsAt && <p>{event.startsAt.slice(0, 5)}–{event.endsAt?.slice(0, 5)}{event.location ? ` · ${event.location}` : ""}</p>}
             {event.scope === "academy" && <small className={`academic-status ${event.status}`}>{statusLabel(event.status)}</small>}
-            <small>{event.teacherName ? `${event.teacherName} 담당 · ` : ""}{event.authorName} 작성</small>
+            <small className="academic-byline">{event.teacherName ? `${event.teacherName} 담당 · ` : ""}{event.authorName} 작성</small>
             {event.canEdit && <button onClick={() => setEditing(event)}>수정</button>}
           </article>)}</div> : <p className="academic-empty">등록된 일정이 없습니다.<button onClick={() => setEditing("new")}>이 날짜에 일정 추가</button></p>}
       </aside>
