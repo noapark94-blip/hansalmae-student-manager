@@ -270,7 +270,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                     onClick={() => void openItem(item)}
                     role={mode === "staff"||item.lessonId||(item.sourceType==="learning_report"&&item.sourceId) ? "button" : undefined}
                   >
-                    <i>{mode === "staff" ? "댓" : "알"}</i>
+                    <i aria-hidden="true"><HansalmaeIcon name={mode === "general" ? "notice" : "chat"} size={18}/></i>
                     <span>
                       <b>
                         {mode === "staff"
@@ -330,7 +330,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       .filter((item) => item.parentId === root.id)
                       .map((item) => (
                         <section key={item.id}>
-                          <div className="comment-reply-meta"><b>{item.authorName} 선생님</b><span><time>{formatTime(item.createdAt)}</time>{item.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===item.id} onClick={()=>void removeComment(item)}>{deleting===item.id?"삭제 중…":"삭제"}</button>}</span></div>
+                          <div className="comment-reply-meta"><b>{familyTeacherName(item.authorName)}</b><span><time>{formatTime(item.createdAt)}</time>{item.canDelete&&<button type="button" className="report-comment-delete" disabled={deleting===item.id} onClick={()=>void removeComment(item)}>{deleting===item.id?"삭제 중…":"삭제"}</button>}</span></div>
                           <p>{item.body}</p>
                           <CommentReactionBar commentId={item.id} items={reactions[item.id]??[]} disabled={item.isDeleted} reacting={reacting===item.id} onToggle={(commentId,type)=>void toggle(commentId,type)}/>
                         </section>
