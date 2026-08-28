@@ -1,0 +1,5 @@
+@media (min-width: 761px) {
+  .hub-panel:has(.teacher-picker) {
+    overflow: visible;
+  }
+}
