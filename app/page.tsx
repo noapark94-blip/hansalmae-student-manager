@@ -228,6 +228,7 @@ export default function Home() {
   const [staffLessonTarget,setStaffLessonTarget]=useState<StaffLessonTarget|null>(null);
   const [mobileNav, setMobileNav] = useState(false);
   const [staffMoreOpen, setStaffMoreOpen] = useState(false);
+  const [familyMoreOpen, setFamilyMoreOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [studentTimetables, setStudentTimetables] = useState<Record<string, WeeklyTimetableRow[]>>({});
@@ -817,21 +818,23 @@ export default function Home() {
           )}
           {view === "audit" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "my-account" && <MyAccount supabase={supabase} profile={profile} email={user.email ?? ""} onProfileUpdated={(displayName) => setProfile((current) => (current ? { ...current, display_name: displayName } : current))} />}
-          {view === "my-account" && familyAccount && (
-            <section className="family-signout-card" aria-label="로그인 관리">
-              <div>
-                <b>로그인 관리</b>
-                <span>현재 계정에서 안전하게 로그아웃합니다.</span>
-              </div>
-              <button type="button" onClick={() => void supabase.auth.signOut()}>
-                <span aria-hidden="true">⏻</span>로그아웃
-              </button>
-            </section>
-          )}
         </div>
-        {familyAccount && <FamilyBottomNavigation role={profile.role === "guardian" ? "guardian" : "student"} activeView={view} onSelect={selectView} />}
+        {familyAccount && <FamilyBottomNavigation role={profile.role === "guardian" ? "guardian" : "student"} activeView={view} onSelect={selectView} onMore={() => setFamilyMoreOpen(true)} />}
         {staffAccount && <StaffBottomNavigation role={profile.role} activeView={view} onSelect={selectView} onMore={() => setStaffMoreOpen(true)} />}
       </section>
+      {familyAccount && familyMoreOpen && (
+        <FamilyMoreSheet
+          activeView={view}
+          displayName={signedInDisplayName}
+          role={profile.role === "guardian" ? "guardian" : "student"}
+          onSelect={(nextView) => {
+            setFamilyMoreOpen(false);
+            selectView(nextView);
+          }}
+          onClose={() => setFamilyMoreOpen(false)}
+          onSignOut={() => void supabase.auth.signOut()}
+        />
+      )}
       {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
@@ -884,7 +887,7 @@ export default function Home() {
   );
 }
 
-function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student" | "guardian"; activeView: View; onSelect: (view: View) => void }) {
+function FamilyBottomNavigation({ role, activeView, onSelect, onMore }: { role: "student" | "guardian"; activeView: View; onSelect: (view: View) => void; onMore: () => void }) {
   const items: { id: View; label: string }[] =
     role === "student"
       ? [
@@ -892,14 +895,12 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
           { id: "schedule", label: "정규시간표" },
           { id: "calendar", label: "학습캘린더" },
           { id: "communications", label: "공지" },
-          { id: "my-account", label: "내 정보" },
         ]
       : [
           { id: "dashboard", label: "홈" },
           { id: "schedule", label: "정규시간표" },
           { id: "calendar", label: "학습캘린더" },
           { id: "grades", label: "성적확인" },
-          { id: "my-account", label: "내 정보" },
         ];
   return (
     <nav className="family-bottom-nav" aria-label="학생·학부모 주요 메뉴">
@@ -909,7 +910,50 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
           <span>{item.label}</span>
         </button>
       ))}
+      <button type="button" className={activeView === "my-account" ? "active" : ""} aria-current={activeView === "my-account" ? "page" : undefined} onClick={onMore} aria-label="더보기 메뉴 열기">
+        <HansalmaeIcon name="menu" size={21} />
+        <span>더보기</span>
+      </button>
     </nav>
+  );
+}
+
+function FamilyMoreSheet({ activeView, displayName, role, onSelect, onClose, onSignOut }: { activeView: View; displayName: string; role: "student" | "guardian"; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
+  return (
+    <div className="family-more-layer" role="presentation">
+      <button type="button" className="family-more-backdrop" aria-label="더보기 메뉴 닫기" onClick={onClose} />
+      <section className="family-more-sheet" role="dialog" aria-modal="true" aria-labelledby="family-more-title">
+        <div className="family-more-handle" />
+        <header>
+          <div>
+            <p>한살매 수업노트</p>
+            <h2 id="family-more-title">더보기</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="닫기">×</button>
+        </header>
+        <div className="family-more-profile">
+          <i>{displayName.slice(0, 1)}</i>
+          <span>
+            <b>{displayName}</b>
+            <small>{role === "guardian" ? "학부모" : "학생"} 계정</small>
+          </span>
+        </div>
+        <div className="family-more-menu">
+          <button type="button" className={activeView === "my-account" ? "active" : ""} onClick={() => onSelect("my-account")}>
+            <i><HansalmaeIcon name="user" size={21} /></i>
+            <span>
+              <b>내 정보</b>
+              <small>계정 정보와 로그인 보안을 관리해요.</small>
+            </span>
+            <em>›</em>
+          </button>
+        </div>
+        <button type="button" className="family-more-signout" onClick={onSignOut}>
+          <span aria-hidden="true">⏻</span>
+          로그아웃
+        </button>
+      </section>
+    </div>
   );
 }
 
