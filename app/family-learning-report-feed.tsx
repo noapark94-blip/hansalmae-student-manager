@@ -443,7 +443,7 @@ export function FamilyLearningReportFeed({
         })}
       </div>
       <section className="family-calendar-day-panel">
-        <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}요일</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 기록` : "기록 없음"}</small></header>
+        <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 기록` : "기록 없음"}</small></header>
         {loading ? <p className="family-report-empty">학습 기록을 불러오는 중이에요…</p> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
           const title = item.kind === "lesson" ? reportDisplayTitle(item.report) : `${item.report.subject} 첨삭`;
           const attendance = item.kind === "lesson" ? item.report.attendance?.status : item.report.attendanceStatus;
