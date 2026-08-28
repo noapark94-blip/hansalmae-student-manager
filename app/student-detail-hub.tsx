@@ -395,39 +395,52 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const sourceItems=items.filter(item=>(source==="all"||item.source===source)&&item.percent!==null);
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
   const[subject,setSubject]=useState("");
+  const[category,setCategory]=useState("");
   const[range,setRange]=useState<"week"|"month"|"quarter"|"all">("month");
+  const[selectedId,setSelectedId]=useState<string|null>(null);
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
-  const allScored=sourceItems.filter(item=>item.subject===selectedSubject);
+  const subjectItems=sourceItems.filter(item=>item.subject===selectedSubject);
+  const categories=Array.from(new Set(subjectItems.map(item=>item.examType)));
+  const selectedCategory=category&&categories.includes(category)?category:(categories[0]??"");
+  const allScored=subjectItems.filter(item=>item.examType===selectedCategory);
   const rangeDays=range==="week"?7:range==="month"?30:range==="quarter"?90:null;
   const cutoffDate=new Date();
   cutoffDate.setHours(0,0,0,0);
   if(rangeDays!==null) cutoffDate.setDate(cutoffDate.getDate()-(rangeDays-1));
-  const scored=rangeDays===null?allScored:allScored.filter(item=>{
+  const scored=(rangeDays===null?allScored:allScored.filter(item=>{
     const lessonTime=new Date(`${item.lessonDate}T00:00:00`).getTime();
     return Number.isFinite(lessonTime)&&lessonTime>=cutoffDate.getTime();
-  });
+  })).slice().sort((left,right)=>left.lessonDate.localeCompare(right.lessonDate));
   const recent=scored.slice(-3);
   const average=recent.length?Math.round(recent.reduce((sum,item)=>sum+(item.percent??0),0)/recent.length*10)/10:null;
   const latest=scored.at(-1)?.percent??null;
   const previous=scored.at(-2)?.percent??null;
   const delta=latest!==null&&previous!==null?Math.round((latest-previous)*10)/10:null;
+  const selected=scored.find(item=>item.id===selectedId)??scored.at(-1)??null;
+  const chartWidth=Math.max(720,scored.length*92),chartHeight=230,padX=44,padTop=30,padBottom=48;
+  const plotHeight=chartHeight-padTop-padBottom;
+  const pointX=(index:number)=>scored.length===1?chartWidth/2:padX+(index*(chartWidth-padX*2))/(scored.length-1);
+  const pointY=(value:number)=>padTop+((100-Math.max(0,Math.min(100,value)))/100)*plotHeight;
+  const points=scored.map((item,index)=>({item,x:pointX(index),y:pointY(item.percent??0)}));
+  const path=points.map(point=>`${point.x},${point.y}`).join(" ");
+  const averageY=average===null?null:pointY(average);
   return (
     <section className="student-exam-progress">
       <header>
         <div>
           <h3>시험 성적 추이</h3>
-          <p>수업 종류와 과목, 조회 기간을 선택해 시험의 100점 환산 점수를 비교합니다.</p>
+          <p>수업 종류와 과목, 시험 항목을 선택해 100점 환산 점수의 흐름을 확인합니다.</p>
         </div>
         <div className="student-exam-selects">
           <label>
             수업 구분
-            <select value={source} onChange={(event)=>{setSource(event.target.value as ExamSourceFilter);setSubject("")}}>
+            <select value={source} onChange={(event)=>{setSource(event.target.value as ExamSourceFilter);setSubject("");setCategory("");setSelectedId(null)}}>
               {sourceOptions.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}
             </select>
           </label>
           <label>
             조회 기간
-            <select value={range} onChange={(event)=>setRange(event.target.value as "week"|"month"|"quarter"|"all")}>
+            <select value={range} onChange={(event)=>{setRange(event.target.value as "week"|"month"|"quarter"|"all");setSelectedId(null)}}>
               <option value="week">최근 7일</option>
               <option value="month">최근 30일</option>
               <option value="quarter">최근 90일</option>
@@ -436,13 +449,24 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           </label>
         </div>
       </header>
-      {subjects.length?<nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>:null}
+      {subjects.length?<div className="student-exam-filter-groups"><div><small>과목</small><nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>{setSubject(value);setCategory("");setSelectedId(null)}}>{value}</button>)}</nav></div>{categories.length?<div><small>시험 항목</small><nav className="student-exam-category-tabs" aria-label="시험 항목">{categories.map(value=><button type="button" key={value} className={selectedCategory===value?"active":""} onClick={()=>{setCategory(value);setSelectedId(null)}}>{examTypeLabel(value)}</button>)}</nav></div>:null}</div>:null}
       {scored.length ? (
         <>
           <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
-          {source==="all"?<div className="student-exam-source-legend" aria-label="수업 구분 색상"><span className="regular">정규수업</span><span className="correction">첨삭수업</span><span className="makeup">보강수업</span><span className="additional">추가수업</span></div>:null}
-          <div className={`student-exam-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${sourceLabel(source)} ${selectedSubject} ${range==="week"?"최근 7일":range==="month"?"최근 30일":range==="quarter"?"최근 90일":"전체"} 시험 성적`}>
-            {scored.map(item=><article className={`exam-source-${item.source}`} key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
+          <section className="student-exam-line-card" aria-label={`${sourceLabel(source)} ${selectedSubject} ${examTypeLabel(selectedCategory)} 시험 성적 추이`}>
+            <header><div><b>{selectedSubject} · {examTypeLabel(selectedCategory)}</b><span>점수를 선택하면 시험 상세정보가 표시됩니다.</span></div><em>평균 {average}점</em></header>
+            <div className="student-exam-line-scroll"><div className="student-exam-line-canvas" style={{width:chartWidth}}><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="시험 점수 선형 그래프">
+              <defs><linearGradient id="studentExamArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a9346b" stopOpacity=".2"/><stop offset="100%" stopColor="#a9346b" stopOpacity="0"/></linearGradient></defs>
+              {[100,75,50,25,0].map(value=><g key={value}><line className="grid" x1={padX} x2={chartWidth-padX} y1={pointY(value)} y2={pointY(value)}/><text className="axis" x="8" y={pointY(value)+4}>{value}</text></g>)}
+              {averageY!==null?<line className="average" x1={padX} x2={chartWidth-padX} y1={averageY} y2={averageY}/>:null}
+              {points.length>1?<polygon className="area" points={`${points[0].x},${chartHeight-padBottom} ${path} ${points.at(-1)!.x},${chartHeight-padBottom}`}/>:null}
+              {points.length>1?<polyline className="line" points={path}/>:null}
+              {points.map(point=><g key={point.item.id} className={selected?.id===point.item.id?"selected":""} role="button" tabIndex={0} onClick={()=>setSelectedId(point.item.id)} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setSelectedId(point.item.id)}}}><circle className="halo" cx={point.x} cy={point.y} r="11"/><circle className="dot" cx={point.x} cy={point.y} r="5"/><text className="value" x={point.x} y={Math.max(16,point.y-13)} textAnchor="middle">{point.item.percent}점</text><text className="date" x={point.x} y={chartHeight-25} textAnchor="middle">{formatShortExamDate(point.item.lessonDate)}</text><text className="label" x={point.x} y={chartHeight-9} textAnchor="middle">{point.item.examTitle||examTypeLabel(point.item.examType)}</text></g>)}
+            </svg></div></div>
+            {selected?<article className="student-exam-point-detail"><div><small>{formatDate(selected.lessonDate)} · {selectedSubject}</small><b>{selected.examTitle||examTypeLabel(selected.examType)}</b><span>{selected.className} · {sourceLabel(selected.source)}</span></div><strong>{selected.score}/{selected.maxScore}<small>환산 {selected.percent}점</small></strong></article>:null}
+          </section>
+          <div className={`student-exam-bars student-exam-mobile-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${selectedSubject} ${examTypeLabel(selectedCategory)} 시험 성적`}>
+            {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
           <div className="student-exam-records">
             {scored
@@ -469,6 +493,8 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
     </section>
   );
 }
+
+function formatShortExamDate(value:string){const[,month,day]=value.split("-");return`${Number(month)}.${Number(day)}`}
 
 function examTypeLabel(value: string) {
   return (
