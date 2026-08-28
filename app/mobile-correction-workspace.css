@@ -135,8 +135,8 @@
   .correction-subject-header>small{display:none!important}
   .correction-subject-rows{padding:10px!important;background:#faf8f9!important}
   .correction-learning-rows{
-    padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
-    scroll-padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
+    padding-bottom:10px!important;
+    scroll-padding-bottom:10px!important;
   }
   .correction-learning-rows article{
     margin-bottom:10px!important;
@@ -159,10 +159,10 @@
   .correction-learning-board .correction-exam input{min-height:40px!important;border-radius:9px!important}
   .correction-learning-board .correction-task-cell textarea{min-height:92px!important;font-size:16px!important}
   .correction-learning-board>footer{
-    position:sticky!important;
-    bottom:calc(72px + env(safe-area-inset-bottom))!important;
-    z-index:12!important;
-    margin:0!important;
+    position:relative!important;
+    bottom:auto!important;
+    z-index:1!important;
+    margin:0 0 calc(84px + env(safe-area-inset-bottom))!important;
     padding:10px!important;
     border-top:1px solid #eadfe4!important;
     background:rgba(255,255,255,.96)!important;
@@ -265,8 +265,8 @@
   .class-day-workspace .family-read-summary{padding:11px 14px!important}
   .class-day-workspace .learning-board-heading{display:none!important}
   .class-day-workspace .learning-board-rows{
-    padding:10px 10px calc(154px + env(safe-area-inset-bottom))!important;
-    scroll-padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
+    padding:10px!important;
+    scroll-padding-bottom:10px!important;
     background:#faf8f9!important;
   }
   .class-day-workspace .learning-board-rows>article{
@@ -288,10 +288,10 @@
   .class-day-workspace .learning-exam.individual select,
   .class-day-workspace .learning-exam.individual input{min-height:40px!important;border-radius:9px!important}
   .class-day-workspace .class-learning-board>footer{
-    position:sticky!important;
-    bottom:calc(72px + env(safe-area-inset-bottom))!important;
-    z-index:12!important;
-    margin:0!important;
+    position:relative!important;
+    bottom:auto!important;
+    z-index:1!important;
+    margin:0 0 calc(84px + env(safe-area-inset-bottom))!important;
     padding:10px!important;
     border-top:1px solid #eadfe4!important;
     background:rgba(255,255,255,.96)!important;
