@@ -11,3 +11,51 @@
 .family-grades-child-select label{color:#786c72;font-size:12px;font-weight:800}
 .family-grades-child-select select{min-width:150px;height:38px;padding:0 10px;border:1px solid #e9dfe4;border-radius:10px;background:#fff;color:#554a50;font-size:11px}
 @media(max-width:390px){.family-grades-page{padding-inline:0}.family-grades-child-select select{min-width:0;max-width:68%}}
+
+/* 학교 내신·모의고사: 요약, 추이, 기록의 시선 흐름을 분명하게 정리 */
+.family-grade-section{padding:19px 17px 21px;border-radius:22px}
+.family-grade-section>header{align-items:center;margin-bottom:16px}
+.family-grade-section>header h2{margin-top:4px;font-size:21px;font-weight:650;letter-spacing:-.75px}
+.family-grade-section>header p{font-size:12px;line-height:1.35}
+.family-grade-section>header>span{min-width:40px;padding:7px 10px;text-align:center;font-size:10px}
+.family-grade-subjects{gap:7px;margin-bottom:16px;padding:1px 0 3px}
+.family-grade-subjects button{min-height:37px;padding:0 15px;border-radius:12px;font-size:11px}
+.family-grade-subjects button.active{border-color:#d99ab8;background:#fdf2f7;box-shadow:0 4px 12px rgba(146,45,97,.07)}
+.family-grade-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:14px}
+.family-grade-summary article{min-height:88px;padding:13px 14px;border-radius:16px;background:#fdfbfc}
+.family-grade-summary article.latest{grid-column:1/-1;min-height:82px;background:linear-gradient(135deg,#fff 25%,#fbf2f6)}
+.family-grade-summary span{font-size:10px;line-height:1.3}
+.family-grade-summary b{font-size:17px;line-height:1.3;letter-spacing:-.4px}
+.family-grade-summary b em{margin-left:2px;font-size:10px}
+.family-grade-summary small{font-size:10px;line-height:1.4}
+.family-grade-chart{margin:0 0 18px;padding:15px 14px 13px;border:1px solid #ece3e7;border-radius:18px;background:radial-gradient(circle at 86% 5%,rgba(183,68,124,.07),transparent 34%),linear-gradient(180deg,#fff,#fdfafb)}
+.family-grade-chart>figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
+.family-grade-chart>figcaption>div{display:flex;align-items:center;gap:7px}
+.family-grade-chart>figcaption b{font-size:13px;letter-spacing:-.25px}
+.family-grade-chart>figcaption span{padding:4px 7px;border-radius:999px;background:#f7eaf0;color:#9d2b63;font-size:9px;font-weight:800}
+.family-grade-chart>figcaption small{color:#9a8e94;font-size:9px}
+.family-grade-chart-canvas{position:relative;padding-left:23px}
+.family-grade-chart-canvas .axis{position:absolute;left:0;color:#aea2a8;font-size:8px;line-height:1;transform:translateY(-50%)}
+.family-grade-chart-canvas .axis.top{top:22px}.family-grade-chart-canvas .axis.middle{top:69px}.family-grade-chart-canvas .axis.bottom{top:116px}
+.family-grade-chart svg{display:block;width:100%;height:150px;overflow:visible}
+.family-grade-chart svg .grid{stroke:#eee6e9;stroke-width:1;vector-effect:non-scaling-stroke}
+.family-grade-chart svg .line{fill:none;stroke:#a52f69;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.family-grade-chart svg .dot{fill:#fff;stroke:#a52f69;stroke-width:3;vector-effect:non-scaling-stroke}
+.family-grade-chart svg .value{fill:#842653;font-size:9px;font-weight:850}
+.family-grade-chart-labels{position:absolute;left:23px;right:0;bottom:1px;pointer-events:none}
+.family-grade-chart-labels span{position:absolute;bottom:0;min-width:30px;display:grid;justify-items:center;gap:1px;color:#796d73;transform:translateX(-50%)}
+.family-grade-chart-labels b{font-size:8px}.family-grade-chart-labels small{color:#a24975;font-size:7px;font-weight:800}
+.family-grade-chart.empty{min-height:140px;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center}
+.family-grade-chart.empty b{font-size:12px}.family-grade-chart.empty span{color:#91858b;font-size:9px}
+.family-grade-list-heading{display:flex;align-items:center;justify-content:space-between;margin:0 3px 9px}
+.family-grade-list-heading b{font-size:13px}.family-grade-list-heading span{color:#988c92;font-size:9px}
+.family-academic-list{border-radius:17px;background:#fff}
+.family-academic-list article{min-height:96px;padding:14px 13px;grid-template-columns:48px minmax(0,1fr) auto;gap:11px}
+.family-academic-list time{font-size:11px;letter-spacing:.01em;white-space:nowrap}
+.family-academic-list article>div{gap:4px}
+.family-academic-list b{font-size:14px;line-height:1.3;letter-spacing:-.25px}
+.family-academic-list span{font-size:10px;line-height:1.35}
+.family-academic-list small{font-size:9px;line-height:1.45;white-space:normal}
+.family-academic-list p{margin-top:4px;font-size:9px;line-height:1.45}
+.family-academic-list strong{padding:8px 10px;border-radius:11px;font-size:11px}
+@media(max-width:390px){.family-grade-section{padding:17px 13px 18px}.family-grade-chart{padding-inline:10px}.family-academic-list article{grid-template-columns:43px minmax(0,1fr) auto;gap:8px}.family-academic-list strong{padding-inline:8px}}
