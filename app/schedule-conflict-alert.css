@@ -1,0 +1,3 @@
+/* 일정 충돌 안내는 모든 등록 모달에서 같은 카드 형태로 보여 줍니다. */
+.student-modal .form-error{position:relative;padding:13px 14px 13px 43px;border:1px solid #efcbd4;border-radius:12px;background:linear-gradient(135deg,#fff8fa,#fff1f5);color:#7f2448;font-size:12px;font-weight:750;line-height:1.55;box-shadow:0 8px 22px rgba(127,36,72,.07)}
+.student-modal .form-error::before{content:"!";position:absolute;left:13px;top:50%;width:21px;height:21px;transform:translateY(-50%);display:grid;place-items:center;border-radius:50%;background:#922d61;color:#fff;font-size:12px;font-weight:900;box-shadow:0 3px 8px rgba(146,45,97,.2)}
