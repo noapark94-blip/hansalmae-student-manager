@@ -98,3 +98,4 @@ body.family-modal-open{position:fixed;left:0;right:0;width:100%}
 .family-report-detail-scroll,.family-exam-trend-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .family-report-detail.trend-open>.family-report-detail-scroll{overflow:hidden}
 .family-exam-trend-summary span{min-width:0;place-content:center;justify-items:center;text-align:center}.family-exam-trend-summary small,.family-exam-trend-summary b{width:100%;text-align:center}
+.family-report-detail-head h2{font-weight:650}
