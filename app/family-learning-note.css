@@ -22,4 +22,4 @@
 .family-note-summary>.family-note-live-status{display:flex;align-items:center;justify-content:center;padding-block:11px}
 .family-note-live-status>span{display:flex;align-items:center;justify-content:center;width:auto;max-width:100%;line-height:1.2}
 .family-note-summary>button.family-note-overview b,.family-note-live-status>span>b{font-size:12px;line-height:1.2}
-@media(max-width:520px){.family-note-summary>button.family-note-overview b,.family-note-live-status>span>b{font-size:9.5px}.family-note-summary>.family-note-live-status{padding-block:9px}}
+@media(max-width:520px){.family-note-summary>button.family-note-overview b,.family-note-live-status>span>b{font-size:10.5px}.family-note-live-status>span>em{font-size:8.5px}.family-note-summary>.family-note-live-status{padding-block:9px}}
