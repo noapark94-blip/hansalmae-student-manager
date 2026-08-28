@@ -11,6 +11,30 @@ import {
   useReportCommentReactions,
 } from "./report-comment-reactions";
 
+let familyModalLockCount = 0;
+let familyModalScrollY = 0;
+
+function useFamilyModalScrollLock() {
+  useEffect(() => {
+    if (familyModalLockCount === 0) {
+      familyModalScrollY = window.scrollY;
+      document.documentElement.classList.add("family-modal-open");
+      document.body.classList.add("family-modal-open");
+      document.body.style.top = `-${familyModalScrollY}px`;
+    }
+    familyModalLockCount += 1;
+    return () => {
+      familyModalLockCount = Math.max(0, familyModalLockCount - 1);
+      if (familyModalLockCount === 0) {
+        document.documentElement.classList.remove("family-modal-open");
+        document.body.classList.remove("family-modal-open");
+        document.body.style.top = "";
+        window.scrollTo(0, familyModalScrollY);
+      }
+    };
+  }, []);
+}
+
 type AttendanceInfo = {
   status: string;
   lateMinutes: number | null;
@@ -794,6 +818,7 @@ function CorrectionFeedDetail({
   previousHomework: string;
   onClose: () => void;
 }) {
+  useFamilyModalScrollLock();
   const [trendOpen, setTrendOpen] = useState(false);
   const examRange = cleanCorrectionRange(item.examRange);
   const convertedExamScore =
@@ -811,7 +836,7 @@ function CorrectionFeedDetail({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section className="family-report-detail" role="dialog" aria-modal="true">
+      <section className={`family-report-detail${trendOpen ? " trend-open" : ""}`} role="dialog" aria-modal="true">
         <header className="family-report-detail-head">
           <button
             type="button"
@@ -1056,6 +1081,7 @@ function ReportDetail({
   canComment: boolean;
   onClose: () => void;
 }) {
+  useFamilyModalScrollLock();
   const [trendOpen, setTrendOpen] = useState(false);
   const attendance = item.attendance;
   const displayTitle = reportDisplayTitle(item);
@@ -1084,7 +1110,7 @@ function ReportDetail({
       }}
     >
       <section
-        className="family-report-detail"
+        className={`family-report-detail${trendOpen ? " trend-open" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="family-report-detail-title"
@@ -1506,6 +1532,7 @@ function LabeledReportSection({
 }
 
 function ExamTrendModal({supabase,studentId,initialSubject,onClose}:{supabase:SupabaseClient;studentId:string;initialSubject:string;onClose:()=>void}) {
+  useFamilyModalScrollLock();
   const [items,setItems]=useState<ExamTrendItem[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
