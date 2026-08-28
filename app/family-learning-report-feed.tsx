@@ -576,7 +576,7 @@ export function FamilyLearningReportFeed({
         <div>
           <p className="eyebrow">하루하루 쌓이는 기록</p>
           <h2>{studentName ? `${studentName}의 학습 피드` : "학습 피드"}</h2>
-          <span>오늘 무엇을 배우고 어떻게 해냈는지 확인하세요.</span>
+          <span>{studentName ? `오늘 ${withSubjectParticle(studentName)} 무엇을 배우고 어떻게 해냈는지 확인하세요.` : "오늘 무엇을 배우고 어떻게 해냈는지 확인하세요."}</span>
         </div>
         {readTracking && unreadCount > 0 && (
           <strong className="family-report-unread-count">
@@ -1597,6 +1597,7 @@ function trendCategory(item:ExamTrendItem){return (item.examType||item.examTitle
 function trendSourceLabel(value:ExamTrendItem["itemType"]){return value==="makeup"?"보강수업":value==="extra"?"추가수업":value==="correction"?"첨삭수업":"정규수업";}
 function formatTrendScore(value:number|null|undefined){return value==null?"–":`${Math.round(Number(value))}점`;}
 function shortTrendDate(value:string){const date=dateValue(value);return `${date.getMonth()+1}.${date.getDate()}`;}
+function withSubjectParticle(value:string){const name=value.trim();const last=[...name].at(-1)??"";const hangulIndex=last.charCodeAt(0)-0xac00;return `${name}${hangulIndex>=0&&hangulIndex<=11171&&hangulIndex%28!==0?"이":"가"}`;}
 function dateValue(value: string) {
   return new Date(`${value}T12:00:00+09:00`);
 }
