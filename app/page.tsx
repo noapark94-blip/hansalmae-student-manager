@@ -886,14 +886,14 @@ function FamilyBottomNavigation({ role, activeView, onSelect }: { role: "student
     role === "student"
       ? [
           { id: "dashboard", label: "홈" },
-          { id: "schedule", label: "시간표" },
+          { id: "schedule", label: "정규시간표" },
           { id: "reports", label: "리포트" },
           { id: "communications", label: "공지" },
           { id: "my-account", label: "내 정보" },
         ]
       : [
           { id: "dashboard", label: "홈" },
-          { id: "schedule", label: "시간표" },
+          { id: "schedule", label: "정규시간표" },
           { id: "reports", label: "리포트" },
           { id: "consultations", label: "상담" },
           { id: "my-account", label: "내 정보" },

@@ -47,6 +47,14 @@ type Upcoming = {
   startTime: string;
   teachers: string;
 };
+type RegularCorrection = {
+  id: string;
+  subject: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  teacherName: string;
+};
 type Assignment = {
   id: string;
   title: string;
@@ -463,30 +471,36 @@ export function FamilyLiveDashboard({
 }
 export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
   const [data, setData] = useState<Data | null>(null);
+  const [corrections, setCorrections] = useState<RegularCorrection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(async (studentId: string | null) => {
     setLoading(true);
     setError("");
-    const { data: next, error: loadError } = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
-    if (loadError || !next) setError("시간표를 불러오지 못했습니다.");
+    const [dashboardResult, correctionResult] = await Promise.all([
+      supabase.rpc("family_live_dashboard", { p_student_id: studentId }),
+      supabase.rpc("family_regular_correction_timetable", { p_student_id: studentId }),
+    ]);
+    const next = dashboardResult.data;
+    if (dashboardResult.error || correctionResult.error || !next) setError("정규시간표를 불러오지 못했습니다.");
     else {
       const parsed = next as Data;
       setData(parsed);
+      setCorrections((correctionResult.data ?? []) as RegularCorrection[]);
       setSelectedId(parsed.selectedStudent?.id ?? null);
     }
     setLoading(false);
   }, [supabase]);
   useEffect(() => { void load(null); }, [load]);
-  if (loading && !data) return <section className="panel hub-message">시간표를 불러오는 중이에요…</section>;
+  if (loading && !data) return <section className="panel hub-message">정규시간표를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
   return <div className="family-schedule-page">
     <header className="family-schedule-heading">
-      <p>{profile.role === "guardian" ? "자녀 일정" : "나의 일정"}</p>
-      <h1>주간 시간표</h1>
-      <span>정규수업과 예정된 수업 시간을 한눈에 확인하세요.</span>
+      <p>{profile.role === "guardian" ? "자녀 정규 일정" : "나의 정규 일정"}</p>
+      <h1>정규시간표</h1>
+      <span>매주 반복되는 정규수업과 첨삭 시간을 한눈에 확인하세요.</span>
     </header>
     {error && <p className="attendance-error">{error}</p>}
     {selected ? <>
@@ -495,19 +509,24 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
         <span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span>
         {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
       </section>
-      <section className="family-weekly-schedule" aria-label={`${selected.name} 주간 시간표`}>
+      <div className="family-schedule-legend" aria-label="시간표 구분"><span className="regular"><i/>정규수업</span><span className="correction"><i/>첨삭수업</span></div>
+      <section className="family-weekly-schedule" aria-label={`${selected.name} 정규시간표`}>
         {weekdays.map((day, index) => {
           const classes = data?.weekClasses.filter((item) => item.weekday === index + 1) ?? [];
-          return <article key={day} className={classes.length ? "has-class" : ""}>
-            <header><b>{day}</b><span>{classes.length ? `${classes.length}개 수업` : "수업 없음"}</span></header>
-            <div>{classes.length ? classes.map((item) => <section key={item.id} style={{ "--family-class-color": item.color } as CSSProperties}>
-              <time>{item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}</time>
-              <span><b>{item.name}</b><small>{item.subject} · {familyTeacherNames(item.teachers)}{item.room ? ` · ${item.room}` : ""}</small></span>
-            </section>) : <p>예정된 수업이 없습니다.</p>}</div>
+          const correctionClasses = corrections.filter((item) => item.weekday === index + 1);
+          const schedules = [...classes.map((item) => ({ kind: "regular" as const, item })), ...correctionClasses.map((item) => ({ kind: "correction" as const, item }))].sort((a, b) => a.item.startTime.localeCompare(b.item.startTime));
+          return <article key={day} className={schedules.length ? "has-class" : ""}>
+            <header><b>{day}</b><span>{schedules.length ? `${schedules.length}개 수업` : "수업 없음"}</span></header>
+            <div>{schedules.length ? schedules.map((schedule) => schedule.kind === "regular" ? <section className="regular" key={`regular-${schedule.item.id}`} style={{ "--family-class-color": schedule.item.color } as CSSProperties}>
+              <time>{schedule.item.startTime.slice(0, 5)}–{schedule.item.endTime.slice(0, 5)}</time>
+              <span><b>{schedule.item.name}</b><small>{schedule.item.subject} · {familyTeacherNames(schedule.item.teachers)}{schedule.item.room ? ` · ${schedule.item.room}` : ""}</small></span>
+            </section> : <section className="correction" key={`correction-${schedule.item.id}`}>
+              <time>{schedule.item.startTime.slice(0, 5)}–{schedule.item.endTime.slice(0, 5)}</time>
+              <span><b><em>첨삭</em>{schedule.item.subject} 첨삭수업</b><small>{familyTeacherName(schedule.item.teacherName)}</small></span>
+            </section>) : <p>등록된 정규 일정이 없습니다.</p>}</div>
           </article>;
         })}
       </section>
-      <section className="family-schedule-note"><HansalmaeIcon name="notice" size={18}/><span><b>보강·추가수업·첨삭 안내</b><small>확정된 예정 일정은 시간표에서, 수업을 마치고 발행된 기록은 홈 학습 피드와 리포트에서 확인할 수 있어요.</small></span></section>
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
 }
