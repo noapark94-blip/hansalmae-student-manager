@@ -1572,8 +1572,8 @@ export function ExamTrendModal({supabase,studentId,initialSubject,onClose,embedd
   const displayDetail=selectedRecord??selectedPoint?.items.at(-1)??null;
   const selectPoint=(id:string)=>{setSelectedId(id);setSelectedRecordId(null);};
   const moveDetail=(direction:-1|1)=>{if(selectedRecord){const next=categoryItems[selectedRecordIndex+direction];if(next)setSelectedRecordId(next.id);return;}const next=trendRows[selectedPointIndex+direction];if(next)selectPoint(next.id);};
-  const content=<section className="family-exam-trend-modal" role={embedded?undefined:"dialog"} aria-modal={embedded?undefined:true} aria-labelledby="family-exam-trend-title">
-      <header><button type="button" onClick={onClose} aria-label="성적 추이 닫기">‹</button><div><small>과목별 · 항목별 성장 기록</small><h2 id="family-exam-trend-title">시험 성적 추이</h2></div><span /></header>
+  const content=<section className="family-exam-trend-modal" role={embedded?undefined:"dialog"} aria-modal={embedded?undefined:true} aria-labelledby={embedded?undefined:"family-exam-trend-title"}>
+      {!embedded&&<header><button type="button" onClick={onClose} aria-label="성적 추이 닫기">‹</button><div><small>과목별 · 항목별 성장 기록</small><h2 id="family-exam-trend-title">시험 성적 추이</h2></div><span /></header>}
       <div className="family-exam-trend-scroll">
         {loading?<p className="family-exam-trend-state">성적 기록을 불러오는 중이에요…</p>:error?<p className="family-exam-trend-state error">{error}</p>:!subjects.length?<p className="family-exam-trend-state">아직 그래프로 볼 시험 점수가 없어요.</p>:<>
           <nav className="family-exam-trend-subjects" aria-label="과목 선택">{subjects.map((name)=><button type="button" key={name} className={selectedSubject===name?"active":""} onClick={()=>{setSubject(name);setCategory("");setSelectedId(null);setSelectedRecordId(null);setListOpen(false);}}>{name}</button>)}</nav>

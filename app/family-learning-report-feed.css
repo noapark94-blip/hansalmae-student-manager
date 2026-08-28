@@ -81,6 +81,7 @@
 
 /* 성적확인 메뉴에서는 같은 추이 화면을 별도 팝업 없이 페이지 안에 배치합니다. */
 .family-exam-trend-embedded .family-exam-trend-modal{width:100%;max-height:none;border-radius:22px;background:#faf8f9;box-shadow:0 10px 28px rgba(68,38,51,.04)}
+.family-exam-trend-embedded .family-exam-trend-modal{grid-template-rows:minmax(0,1fr)}
 .family-exam-trend-embedded .family-exam-trend-modal>header{border-radius:22px 22px 0 0}
 .family-exam-trend-embedded .family-exam-trend-scroll{overflow:visible}
 @media(max-width:760px){.family-exam-trend-embedded .family-exam-trend-modal{max-height:none;border-radius:20px}.family-exam-trend-embedded .family-exam-trend-modal>header{border-radius:20px 20px 0 0}}
