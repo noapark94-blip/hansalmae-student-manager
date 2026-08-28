@@ -58,6 +58,9 @@
 .family-summary-report-page .family-report-highlights article>span small{font-size:10px;line-height:1.35}
 .family-summary-report-page .family-report-highlights article>span b{font-size:14px;line-height:1.35}
 .family-summary-report-page .family-report-highlights article>span p{font-size:11px;line-height:1.5}
+.family-summary-report-page .family-report-highlights article.clickable{cursor:pointer;transition:background .16s ease}
+.family-summary-report-page .family-report-highlights article.clickable:active{background:#fbf5f8}
+.family-summary-report-page .family-report-highlights article.clickable:focus-visible{outline:2px solid #bd6b94;outline-offset:-3px}
 .family-summary-report-page .family-report-empty>b{font-size:14px}
 .family-summary-report-page .family-report-empty>span{font-size:11px;line-height:1.5}
 .family-report-history-toggle{width:calc(100% - 28px);min-height:54px;margin:12px 14px 14px;padding:0 16px;border:1px solid #e9dfe4;border-radius:15px;background:#fff;color:#4a3f44;font:inherit;display:flex;align-items:center;justify-content:space-between;cursor:pointer}

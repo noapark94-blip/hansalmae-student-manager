@@ -12,6 +12,7 @@ import { HansalmaeIcon } from "./hansalmae-icons";
 import { familyTeacherName, familyTeacherNames } from "./family-teacher-name";
 
 type FamilyView =
+  | "dashboard"
   | "schedule"
   | "attendance"
   | "makeups"
@@ -643,7 +644,7 @@ function summaryPeriodText(range: SummaryRange, today: string) {
   return `${startParts}–${month}. ${day}. 최근 7일`;
 }
 
-export function FamilySummaryReportView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+export function FamilySummaryReportView({ supabase, profile, onNavigate }: { supabase: SupabaseClient; profile: Profile; onNavigate: (view: FamilyView) => void }) {
   const [dashboard, setDashboard] = useState<Data | null>(null);
   const [lessons, setLessons] = useState<SummaryLessonReport[]>([]);
   const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
@@ -731,7 +732,15 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
       </section>
       <section className="family-report-highlights">
         <header><span><p>핵심 학습 기록</p><h2>{summaryRangeLabels[range]} 기록</h2></span><small>{highlights.length}건</small></header>
-        {highlights.length ? <div>{highlights.slice(0, visibleHighlightCount).map((item) => <article key={item.id} className={item.tone}>
+        {highlights.length ? <div>{highlights.slice(0, visibleHighlightCount).map((item) => <article key={item.id} className={`${item.tone} clickable`} role="button" tabIndex={0} onClick={() => {
+          const target = item.tone === "correction" ? { correctionId: item.id.slice("correction-".length), studentId: selectedId } : { lessonId: item.id.slice("lesson-".length), studentId: selectedId };
+          sessionStorage.setItem("hansalmae:family-report-target", JSON.stringify(target));
+          onNavigate("dashboard");
+        }} onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          event.currentTarget.click();
+        }}>
           <time>{Number(item.date.slice(5, 7))}월 {Number(item.date.slice(8, 10))}일<small>{item.time}</small></time>
           <i />
           <span><small>{item.type}</small><b>{item.title}</b><p>{item.content}</p></span>
