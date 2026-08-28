@@ -17,6 +17,7 @@ type FamilyView =
   | "makeups"
   | "assignments"
   | "reports"
+  | "calendar"
   | "consultations"
   | "communications"
   | "my-account";
@@ -558,6 +559,41 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
           </article>;
         })}
       </section>
+    </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
+  </div>;
+}
+
+export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+  const [data, setData] = useState<Data | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = useCallback(async (studentId: string | null) => {
+    setLoading(true);
+    setError("");
+    const { data: next, error: loadError } = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
+    if (loadError || !next) setError("학습캘린더를 불러오지 못했습니다.");
+    else {
+      const parsed = next as Data;
+      setData(parsed);
+      setSelectedId(parsed.selectedStudent?.id ?? null);
+    }
+    setLoading(false);
+  }, [supabase]);
+  useEffect(() => { void load(null); }, [load]);
+  if (loading && !data) return <section className="panel hub-message">학습캘린더를 불러오는 중이에요…</section>;
+  if (error && !data) return <section className="panel hub-message error">{error}</section>;
+  const selected = data?.selectedStudent;
+  return <div className="family-schedule-page family-calendar-page">
+    <header className="family-schedule-heading">
+      <p>{profile.role === "guardian" ? "자녀 학습 기록" : "나의 학습 기록"}</p>
+      <h1>학습캘린더</h1>
+      <span>출석한 수업을 날짜별로 확인하고 상세 기록까지 살펴보세요.</span>
+    </header>
+    {error && <p className="attendance-error">{error}</p>}
+    {selected ? <>
+      {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <label className="family-calendar-child-select"><span>자녀 선택</span><select disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>}
+      <FamilyLearningReportFeed supabase={supabase} studentId={selected.id} studentName={selected.name} displayMode="calendar" />
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
 }

@@ -103,10 +103,12 @@ export function FamilyLearningReportFeed({
   supabase,
   studentId,
   studentName,
+  displayMode = "feed",
 }: {
   supabase: SupabaseClient;
   studentId: string;
   studentName?: string;
+  displayMode?: "feed" | "calendar";
 }) {
   const [items, setItems] = useState<Report[]>([]);
   const [reads, setReads] = useState<Record<string, string>>({});
@@ -122,6 +124,8 @@ export function FamilyLearningReportFeed({
   const [selected, setSelected] = useState<FeedItem | null>(null);
   const [canComment, setCanComment] = useState(false);
   const [visibleDayCount, setVisibleDayCount] = useState(5);
+  const [calendarMonth, setCalendarMonth] = useState(() => koreaMonth());
+  const [selectedDate, setSelectedDate] = useState(() => koreaDate());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshComplete, setRefreshComplete] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -378,6 +382,14 @@ export function FamilyLearningReportFeed({
     (readTracking ? items.filter((item) => !reads[item.lessonId]).length : 0) +
     corrections.filter((item) => !correctionReads[item.id]).length;
 
+  const calendarDays = useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
+  const calendarItemsByDate = useMemo(() => {
+    const grouped = new Map<string, FeedItem[]>();
+    for (const item of feedItems) grouped.set(item.date, [...(grouped.get(item.date) ?? []), item]);
+    return grouped;
+  }, [feedItems]);
+  const selectedCalendarItems = (calendarItemsByDate.get(selectedDate) ?? []).sort((left, right) => left.time.localeCompare(right.time));
+
   async function confirmRead(lessonId: string) {
     if (!readTracking || reads[lessonId] || confirming) return;
     setConfirming(lessonId);
@@ -412,6 +424,42 @@ export function FamilyLearningReportFeed({
   }
 
   if (unavailable) return null;
+  if (displayMode === "calendar") return (
+    <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
+      <header className="family-calendar-toolbar">
+        <button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
+        <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>출석 기록이 있는 날짜를 선택하세요</span></div>
+        <button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button>
+      </header>
+      <div className="family-calendar-weekdays" aria-hidden="true">{["일", "월", "화", "수", "목", "금", "토"].map(day => <span key={day}>{day}</span>)}</div>
+      <div className="family-calendar-grid">
+        {calendarDays.map(day => {
+          const dayItems = calendarItemsByDate.get(day.date) ?? [];
+          const isSelected = day.date === selectedDate;
+          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 학습 기록 ${dayItems.length}개` : ", 학습 기록 없음"}`} onClick={() => setSelectedDate(day.date)}>
+            <span>{day.day}</span>
+            <i>{dayItems.slice(0, 3).map((item, index) => <em key={`${item.kind}-${item.kind === "lesson" ? item.report.lessonId : item.report.id}-${index}`} className={calendarItemTone(item)} />)}</i>
+          </button>;
+        })}
+      </div>
+      <section className="family-calendar-day-panel">
+        <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}요일</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 기록` : "기록 없음"}</small></header>
+        {loading ? <p className="family-report-empty">학습 기록을 불러오는 중이에요…</p> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
+          const title = item.kind === "lesson" ? reportDisplayTitle(item.report) : `${item.report.subject} 첨삭`;
+          const attendance = item.kind === "lesson" ? item.report.attendance?.status : item.report.attendanceStatus;
+          return <button type="button" key={item.kind === "lesson" ? item.report.lessonId : item.report.id} onClick={() => {
+            setSelected(item);
+            if (item.kind === "lesson") void confirmRead(item.report.lessonId);
+            else void confirmCorrectionRead(item.report.id);
+          }}>
+            <time>{item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}<b>›</b>
+          </button>;
+        })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 저장된 학습 기록이 없어요.</p></div>}
+      </section>
+      {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => setSelected(null)} />}
+      {selected?.kind === "correction" && <CorrectionFeedDetail item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => setSelected(null)} />}
+    </section>
+  );
   return (
     <section
       className="family-report-feed"
@@ -583,6 +631,35 @@ export function FamilyLearningReportFeed({
       )}
     </section>
   );
+}
+
+function koreaDate() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+function koreaMonth() { return koreaDate().slice(0, 7); }
+function shiftMonth(month: string, amount: number) {
+  const [year, value] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(year, value - 1 + amount, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+function buildCalendarDays(month: string) {
+  const [year, value] = month.split("-").map(Number);
+  const first = new Date(Date.UTC(year, value - 1, 1));
+  const start = new Date(first); start.setUTCDate(first.getUTCDate() - first.getUTCDay());
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(start); date.setUTCDate(start.getUTCDate() + index);
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+    return { date: key, day: date.getUTCDate(), inMonth: date.getUTCMonth() === value - 1 };
+  });
+}
+function formatCalendarMonth(month: string) { const [year, value] = month.split("-"); return `${year}년 ${Number(value)}월`; }
+function formatCalendarDate(date: string) { const [, month, day] = date.split("-"); return `${Number(month)}월 ${Number(day)}일`; }
+function calendarItemTone(item: FeedItem) {
+  if (item.kind === "correction") return "correction";
+  const label = reportBadgeLabel(item.report);
+  if (label.includes("보강")) return "makeup";
+  if (label.includes("추가")) return "extra";
+  return item.report.mainSubject === "수학" || item.report.subject.includes("수학") ? "math" : "regular";
 }
 
 function feedFilterLabel(item: FeedItem) {
