@@ -1,6 +1,17 @@
 /* Mobile correction workspace: keep the existing data and save flow, reduce navigation chrome. */
 .correction-mobile-day-count,.class-mobile-day-count{display:none}
 
+/* iOS keyboard: keep fields at the current scale and remove fixed navigation while typing. */
+@media(max-width:700px){
+  @supports (-webkit-touch-callout:none){
+    input,select,textarea{font-size:16px!important}
+  }
+  body:has(input:focus,select:focus,textarea:focus) .staff-bottom-nav,
+  body:has(input:focus,select:focus,textarea:focus) .family-bottom-nav{
+    display:none!important;
+  }
+}
+
 @media(max-width:700px){
   .teacher-class-cards{
     gap:8px!important;
