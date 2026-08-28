@@ -56,7 +56,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
   const [category, setCategory] = useState("");
   const [mine, setMine] = useState(false);
   const [selected, setSelected] = useState(toDate(now));
-  const [editing, setEditing] = useState<EventRow | "new" | null>(null);
+  const [editing, setEditing] = useState<EventRow | "new" | null>(null);\n  const [noteEvent, setNoteEvent] = useState<EventRow | null>(null);
   const year = Number(month.slice(0, 4));
 
   const load = useCallback(async () => {
@@ -131,7 +131,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
       <aside className="academic-agenda">
         <header><div><small>{selectedHoliday?.localName ?? weekdayName(selected)}</small><h3>{formatDate(selected)}</h3></div><button onClick={() => setEditing("new")} aria-label="이 날짜에 일정 추가">＋</button></header>
         {loading ? <p className="academic-empty">일정을 불러오는 중…</p> : selectedEvents.length ? <div>{selectedEvents.map(event =>
-          <article key={event.id} className={`${event.scope} ${event.category}`}>
+          <article key={event.id} className={`${event.scope} ${event.category}`} role="button" tabIndex={0} aria-label={`${event.title} 메모 보기`} onClick={() => setNoteEvent(event)} onKeyDown={keyEvent => { if (keyEvent.key === "Enter" || keyEvent.key === " ") { keyEvent.preventDefault(); setNoteEvent(event); } }}>
             <span>{event.scope === "academy" ? "학원 일정" : "학교 일정"} · {label(event.category)}</span>
             <h4>{event.title}</h4>
             {event.scope === "academy" && event.contactName && <p className="academic-contact">{event.contactName}{event.grade ? ` · ${event.grade}` : ""}</p>}
@@ -139,11 +139,18 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
             {event.startsAt && <p>{event.startsAt.slice(0, 5)}–{event.endsAt?.slice(0, 5)}{event.location ? ` · ${event.location}` : ""}</p>}
             {event.scope === "academy" && <small className={`academic-status ${event.status}`}>{statusLabel(event.status)}</small>}
             <small className="academic-byline">{event.teacherName ? `${event.teacherName} 담당 · ` : ""}{event.authorName} 작성</small>
-            {event.canEdit && <button onClick={() => setEditing(event)}>수정</button>}
+            {event.canEdit && <button onClick={clickEvent => { clickEvent.stopPropagation(); setEditing(event); }}>수정</button>}
           </article>)}</div> : <p className="academic-empty">등록된 일정이 없습니다.<button onClick={() => setEditing("new")}>이 날짜에 일정 추가</button></p>}
       </aside>
     </div>
     {editing && <AcademicEditor row={editing === "new" ? null : editing} initialDate={selected} initialScope={view === "school" ? "school" : "academy"} data={data} supabase={supabase} profile={profile} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
+    {noteEvent && <div className="modal-backdrop academic-note-backdrop" onMouseDown={mouseEvent => { if (mouseEvent.target === mouseEvent.currentTarget) setNoteEvent(null); }}>
+      <section className="academic-note-modal" role="dialog" aria-modal="true" aria-labelledby="academic-note-title">
+        <header><div><small>일정 메모</small><h2 id="academic-note-title">메모 내용</h2></div><button type="button" aria-label="메모 닫기" onClick={() => setNoteEvent(null)}>×</button></header>
+        <div className={`academic-note-content${noteEvent.note?.trim() ? "" : " empty"}`}>{noteEvent.note?.trim() || "등록된 메모가 없습니다."}</div>
+        <footer><button type="button" onClick={() => setNoteEvent(null)}>확인</button></footer>
+      </section>
+    </div>}
   </section>;
 }
 
