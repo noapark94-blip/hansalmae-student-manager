@@ -40,3 +40,23 @@
   .family-learning-note.no-lessons .family-note-no-lessons b{font-size:12px}
   .family-learning-note.no-lessons .family-note-no-lessons small{font-size:9.5px}
 }
+
+/* 학습리포트 본문은 성적확인 화면과 같은 가독성 단계로 맞춘다. */
+.family-summary-report-page .family-report-overview>header small{font-size:11px;line-height:1.4}
+.family-summary-report-page .family-report-overview>header h2{font-size:20px;line-height:1.3}
+.family-summary-report-page .family-report-metrics article{padding:15px 14px;gap:6px}
+.family-summary-report-page .family-report-metrics article>small{font-size:11px;line-height:1.35}
+.family-summary-report-page .family-report-metrics article>b{font-size:23px;line-height:1.15}
+.family-summary-report-page .family-report-metrics article>b em{font-size:11px}
+.family-summary-report-page .family-report-metrics article>span{font-size:10px;line-height:1.4}
+.family-summary-report-page .family-report-highlights>header p{font-size:11px;line-height:1.35}
+.family-summary-report-page .family-report-highlights>header h2{font-size:20px;line-height:1.3}
+.family-summary-report-page .family-report-highlights>header>small{font-size:10px}
+.family-summary-report-page .family-report-highlights article{padding:17px 16px;grid-template-columns:68px 4px minmax(0,1fr);gap:12px}
+.family-summary-report-page .family-report-highlights article time{font-size:11px;line-height:1.35}
+.family-summary-report-page .family-report-highlights article time small{font-size:10px}
+.family-summary-report-page .family-report-highlights article>span small{font-size:10px;line-height:1.35}
+.family-summary-report-page .family-report-highlights article>span b{font-size:14px;line-height:1.35}
+.family-summary-report-page .family-report-highlights article>span p{font-size:11px;line-height:1.5}
+.family-summary-report-page .family-report-empty>b{font-size:14px}
+.family-summary-report-page .family-report-empty>span{font-size:11px;line-height:1.5}
