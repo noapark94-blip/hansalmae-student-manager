@@ -134,6 +134,10 @@
   .correction-subject-header{padding:10px 14px!important}
   .correction-subject-header>small{display:none!important}
   .correction-subject-rows{padding:10px!important;background:#faf8f9!important}
+  .correction-learning-rows{
+    padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
+    scroll-padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
+  }
   .correction-learning-rows article{
     margin-bottom:10px!important;
     border:1px solid #eadfe4!important;
@@ -153,7 +157,7 @@
   .correction-learning-board .correction-exam{gap:7px!important}
   .correction-learning-board .correction-exam select,
   .correction-learning-board .correction-exam input{min-height:40px!important;border-radius:9px!important}
-  .correction-learning-board .correction-task-cell textarea{min-height:92px!important}
+  .correction-learning-board .correction-task-cell textarea{min-height:92px!important;font-size:16px!important}
   .correction-learning-board>footer{
     position:sticky!important;
     bottom:calc(72px + env(safe-area-inset-bottom))!important;
@@ -261,8 +265,8 @@
   .class-day-workspace .family-read-summary{padding:11px 14px!important}
   .class-day-workspace .learning-board-heading{display:none!important}
   .class-day-workspace .learning-board-rows{
-    padding:10px 10px 82px!important;
-    scroll-padding-bottom:82px!important;
+    padding:10px 10px calc(154px + env(safe-area-inset-bottom))!important;
+    scroll-padding-bottom:calc(154px + env(safe-area-inset-bottom))!important;
     background:#faf8f9!important;
   }
   .class-day-workspace .learning-board-rows>article{
@@ -280,7 +284,7 @@
   .class-day-workspace .learning-attendance{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
   .class-day-workspace .learning-attendance>button{min-height:38px!important;border-radius:9px!important}
   .class-day-workspace .learning-individual-content textarea,
-  .class-day-workspace .learning-homework.assigned textarea{min-height:78px!important;height:78px!important}
+  .class-day-workspace .learning-homework.assigned textarea{min-height:78px!important;height:78px!important;font-size:16px!important}
   .class-day-workspace .learning-exam.individual select,
   .class-day-workspace .learning-exam.individual input{min-height:40px!important;border-radius:9px!important}
   .class-day-workspace .class-learning-board>footer{
@@ -296,6 +300,14 @@
   .class-day-workspace .class-learning-board>footer>span:first-child{display:none!important}
   .class-day-workspace .class-learning-board .learning-completion-actions{display:grid!important;grid-template-columns:1fr 1.25fr!important;width:100%!important;gap:8px!important}
   .class-day-workspace .class-learning-board .learning-completion-actions>button{min-width:0!important;width:100%!important;height:44px!important}
+
+  /* iOS zooms focused form controls below 16px. Keep editing in the visible card. */
+  .correction-learning-board input,
+  .correction-learning-board select,
+  .correction-learning-board textarea,
+  .class-day-workspace .class-learning-board input,
+  .class-day-workspace .class-learning-board select,
+  .class-day-workspace .class-learning-board textarea{font-size:16px!important}
 
   .teacher-special-workspace>header{
     padding:14px!important;
