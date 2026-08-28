@@ -47,11 +47,31 @@
   .student-hub-modal .academic-toolbar nav button{font-size:11px!important}
   .student-hub-modal .student-exam-source-tabs em,
   .student-hub-modal .record-source{font-size:9px}
+  .student-hub-modal .student-exam-progress h3{font-size:14px}
+  .student-hub-modal .student-exam-progress header p{font-size:10px;line-height:1.5}
+  .student-hub-modal .student-exam-records article{min-height:58px;padding:11px 14px}
+  .student-hub-modal .student-exam-records b,
+  .student-hub-modal .student-exam-records strong{font-size:12px}
+  .student-hub-modal .student-exam-records small{font-size:10px;line-height:1.45}
   .student-hub-modal .student-exam-summary span,
   .student-hub-modal .student-exam-source-legend span,
   .student-hub-modal .student-exam-bars i>b,
   .student-hub-modal .student-exam-bars article>strong,
   .student-hub-modal .student-exam-bars article>small{font-size:10px}
+
+  .student-hub-modal .student-personal-schedule h3{font-size:14px}
+  .student-hub-modal .student-personal-schedule>header p{font-size:10px;line-height:1.5}
+  .student-hub-modal .student-relevant-timetable h4{padding:11px 13px;font-size:12px}
+  .student-hub-modal .student-relevant-timetable section>div{padding:8px}
+  .student-hub-modal .student-relevant-timetable article{
+    min-height:66px;
+    padding:10px 11px;
+    grid-template-columns:76px minmax(0,1fr);
+    gap:10px;
+  }
+  .student-hub-modal .student-relevant-timetable time{font-size:11px}
+  .student-hub-modal .student-relevant-timetable b{font-size:12px}
+  .student-hub-modal .student-relevant-timetable small{font-size:10px;line-height:1.4}
 
   .student-hub-modal .student-learning-context b,
   .student-hub-modal .student-correction-learning-cards header b{font-size:12px}
