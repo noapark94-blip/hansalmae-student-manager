@@ -614,8 +614,8 @@ export function FamilyLearningReportFeed({
       <header className="family-report-feed-title">
         <div>
           <p className="eyebrow">하루하루 쌓이는 기록</p>
-          <h2>{studentName ? `${studentName}의 학습 피드` : "학습 피드"}</h2>
-          <span>{studentName ? `오늘 ${withSubjectParticle(studentName)} 무엇을 배우고 어떻게 해냈는지 확인하세요.` : "오늘 무엇을 배우고 어떻게 해냈는지 확인하세요."}</span>
+          <h2>{studentName ? <><strong className="family-report-student-name">{studentName}</strong>의 학습 피드</> : "학습 피드"}</h2>
+          <span>{studentName ? <>오늘 <strong className="family-report-student-name">{withSubjectParticle(studentName)}</strong> 무엇을 배우고 어떻게 해냈는지 확인하세요.</> : "오늘 무엇을 배우고 어떻게 해냈는지 확인하세요."}</span>
         </div>
         {readTracking && unreadCount > 0 && (
           <strong className="family-report-unread-count">
