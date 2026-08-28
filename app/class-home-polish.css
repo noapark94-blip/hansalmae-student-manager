@@ -15,6 +15,30 @@
 .teacher-home-actions button:nth-child(2) { order:-1; border-color:#eee5e9; color:#7c7076; background:#fff; box-shadow:none; font-size:0; }
 .teacher-home-actions button:nth-child(2)::after { content:"과목 설정"; font-size:12px; }
 
+.admin-class-filters {
+  min-height:58px;
+  margin:0 0 16px;
+  padding:8px 10px;
+  border:1px solid #eadfe4;
+  border-radius:15px;
+  background:rgba(255,255,255,.82);
+  box-shadow:0 4px 18px rgba(55,35,45,.025);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.admin-class-filter-modes { display:flex; align-items:center; gap:4px; padding:4px; border-radius:11px; background:#f7f3f5; }
+.admin-class-filter-modes button { height:34px; padding:0 15px; border:0; border-radius:8px; background:transparent; color:#756970; font-size:11.5px; font-weight:800; white-space:nowrap; }
+.admin-class-filter-modes button:hover { color:var(--hm-accent); background:#fff; }
+.admin-class-filter-modes button.active { color:#fff; background:var(--hm-accent); box-shadow:0 4px 11px rgba(146,45,97,.18); }
+.admin-class-filters > label { height:42px; min-width:190px; padding:0 10px 0 13px; border-left:1px solid #eee5e9; display:flex; align-items:center; gap:9px; }
+.admin-class-filters > label > span { color:#8b7e85; font-size:10.5px; font-weight:800; white-space:nowrap; }
+.admin-class-filters select { min-width:118px; height:34px; padding:0 30px 0 10px; border:1px solid #e5d9df; border-radius:9px; outline:none; background:#fff; color:#4f4248; font:inherit; font-size:11.5px; font-weight:750; }
+.admin-class-filters select:focus { border-color:#c993aa; box-shadow:0 0 0 3px rgba(146,45,97,.08); }
+.admin-class-filters > strong { margin-left:auto; padding-right:6px; color:var(--hm-accent); font-size:13px; white-space:nowrap; }
+.admin-class-filters > strong small { color:#9a8f94; font-size:10.5px; font-weight:700; }
+.admin-class-filter-empty { grid-column:1/-1; margin:0; padding:42px 20px; border:1px dashed #ddcfd5; border-radius:16px; color:#8c8086; background:#fcfafb; text-align:center; font-size:12px; }
+
 .teacher-class-cards {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
@@ -197,6 +221,7 @@
 .teacher-class-cards.reorder-mode > button.teacher-special-card { animation:none; }
 
 @media (max-width:900px) {
+  .admin-class-filters { display:none; }
   .teacher-home-heading { align-items:flex-start; gap:14px; margin:0 0 14px; }
   .teacher-home-heading .eyebrow { display:block!important; margin-bottom:5px; font-size:10px; }
   .teacher-home-heading h1 { display:block!important; font-size:22px; letter-spacing:-.55px; }

@@ -39,6 +39,7 @@ type ClassRoom = {
   color: string;
   schedules: Schedule[];
   students: Student[];
+  teachers: Named[];
 };
 type Named = { id: string; name: string };
 type ManagedClass = {
@@ -57,6 +58,7 @@ type ManagedClass = {
   assignmentCount: number;
 };
 type Workspace = { subjects: Subject[]; classes: ClassRoom[] };
+type AdminClassFilter = "all" | "mine" | "subject" | "teacher";
 type AttendanceStatus = "present" | "late" | "absent";
 type DayStudent = Student & {
   status: AttendanceStatus | null;
@@ -142,6 +144,9 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   const [subjectOpen, setSubjectOpen] = useState(false);
   const [classOpen, setClassOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [adminFilter, setAdminFilter] = useState<AdminClassFilter>("all");
+  const [subjectFilter, setSubjectFilter] = useState<Subject["mainSubject"]>("국어");
+  const [teacherFilter, setTeacherFilter] = useState("");
   const classSortable = useSortableOrder((activeId, overId) =>
     setData((current) => {
       if (!current) return current;
@@ -155,13 +160,23 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [{ data: next, error: loadError }, { data: preferences }] = await Promise.all([supabase.rpc("teacher_class_workspace"), supabase.rpc("user_list_preferences")]);
+    const [{ data: next, error: loadError }, { data: preferences }, managedResult] = await Promise.all([
+      supabase.rpc("teacher_class_workspace"),
+      supabase.rpc("user_list_preferences"),
+      profile.role === "admin" ? supabase.rpc("staff_manage_classes") : Promise.resolve({ data: null, error: null }),
+    ]);
     if (loadError || !next) {
       setError("담당 클래스 정보를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
       setLoading(false);
       return;
     }
     const workspace = next as Workspace;
+    const managedClasses = (managedResult.data as ManagedClass[] | null) ?? [];
+    const teachersByClass = new Map(managedClasses.map((item) => [item.id, item.teachers]));
+    workspace.classes = workspace.classes.map((item) => ({
+      ...item,
+      teachers: teachersByClass.get(item.id) ?? [],
+    }));
     const order = (preferences as { classOrder?: string[] } | null)?.classOrder ?? [];
     workspace.classes.sort((a, b) => {
       const ai = order.indexOf(a.id),
@@ -171,12 +186,31 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
     setData(workspace);
     setSelectedId((current) => (current === specialLessonsId || workspace.classes.some((item) => item.id === current) ? current : (workspace.classes[0]?.id ?? specialLessonsId)));
     setLoading(false);
-  }, [supabase]);
+  }, [profile.role, supabase]);
   useEffect(() => {
     void load();
   }, [load]);
   useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
   const selected = data?.classes.find((item) => item.id === selectedId);
+  const teacherOptions = useMemo(() => {
+    const teachers = new Map<string, Named>();
+    data?.classes.forEach((item) => item.teachers.forEach((teacher) => teachers.set(teacher.id, teacher)));
+    return [...teachers.values()].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  }, [data]);
+  const availableSubjects = useMemo(() => {
+    const values: Subject["mainSubject"][] = ["국어", "영어", "수학"];
+    return values.filter((subject) => data?.classes.some((item) => mainSubjectOf(item, data.subjects) === subject));
+  }, [data]);
+  const filteredClasses = useMemo(() => {
+    const classes = data?.classes ?? [];
+    if (profile.role !== "admin" || adminFilter === "all") return classes;
+    if (adminFilter === "mine") return classes.filter((item) => item.teachers.some((teacher) => teacher.id === profile.id));
+    if (adminFilter === "subject") return classes.filter((item) => mainSubjectOf(item, data?.subjects ?? []) === subjectFilter);
+    return classes.filter((item) => item.teachers.some((teacher) => teacher.id === teacherFilter));
+  }, [adminFilter, data, profile.id, profile.role, subjectFilter, teacherFilter]);
+  const selectFilteredClass = (classes: ClassRoom[]) => {
+    setSelectedId((current) => classes.some((item) => item.id === current) ? current : (classes[0]?.id ?? ""));
+  };
   const loadDay = useCallback(async () => {
     if (!selectedId || selectedId === specialLessonsId) return setDay(null);
     const { data: next, error: dayError } = await supabase.rpc("staff_class_day", { p_class_id: selectedId, p_date: date });
@@ -209,9 +243,26 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         </div>
       </div>
       {error && <p className="attendance-error">{error}</p>}
+      {profile.role === "admin" && (
+        <nav className="admin-class-filters" aria-label="관리자 클래스 보기 필터">
+          <div className="admin-class-filter-modes" role="group" aria-label="클래스 분류 방식">
+            <button type="button" className={adminFilter === "all" ? "active" : ""} onClick={() => { setAdminFilter("all"); selectFilteredClass(data?.classes ?? []); }}>전체</button>
+            <button type="button" className={adminFilter === "mine" ? "active" : ""} onClick={() => { const classes = (data?.classes ?? []).filter((item) => item.teachers.some((teacher) => teacher.id === profile.id)); setAdminFilter("mine"); selectFilteredClass(classes); }}>내 클래스</button>
+            <button type="button" className={adminFilter === "subject" ? "active" : ""} onClick={() => { const subject = availableSubjects[0] ?? "국어"; setSubjectFilter(subject); setAdminFilter("subject"); selectFilteredClass((data?.classes ?? []).filter((item) => mainSubjectOf(item, data?.subjects ?? []) === subject)); }}>과목별</button>
+            <button type="button" className={adminFilter === "teacher" ? "active" : ""} onClick={() => { const teacherId = teacherFilter || teacherOptions[0]?.id || ""; setTeacherFilter(teacherId); setAdminFilter("teacher"); selectFilteredClass((data?.classes ?? []).filter((item) => item.teachers.some((teacher) => teacher.id === teacherId))); }}>선생님별</button>
+          </div>
+          {adminFilter === "subject" && (
+            <label><span>과목</span><select value={subjectFilter} onChange={(event) => { const subject = event.target.value as Subject["mainSubject"]; setSubjectFilter(subject); selectFilteredClass((data?.classes ?? []).filter((item) => mainSubjectOf(item, data?.subjects ?? []) === subject)); }}>{availableSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
+          )}
+          {adminFilter === "teacher" && (
+            <label><span>선생님</span><select value={teacherFilter} onChange={(event) => { const teacherId = event.target.value; setTeacherFilter(teacherId); selectFilteredClass((data?.classes ?? []).filter((item) => item.teachers.some((teacher) => teacher.id === teacherId))); }}>{teacherOptions.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name} 선생님</option>)}</select></label>
+          )}
+          <strong>{filteredClasses.length}<small> / {data?.classes.length ?? 0}개</small></strong>
+        </nav>
+      )}
       <section className={`teacher-class-cards ${classSortable.draggingId ? "reorder-mode" : ""}`.trim()}>
-        {data?.classes.map((item) => (
-            <button key={item.id} {...classSortable.itemProps(item.id)} data-drag-handle className={`${selectedId === item.id ? "active" : ""} ${classSortable.draggingId === item.id ? "dragging" : ""}`.trim()} onClick={() => setSelectedId(item.id)} style={{ "--class-color": item.color } as CSSProperties} aria-label={`${item.name}. 길게 눌러 순서 이동`}>
+        {filteredClasses.map((item) => (
+            <button key={item.id} {...(adminFilter === "all" ? classSortable.itemProps(item.id) : {})} data-drag-handle={adminFilter === "all" ? true : undefined} className={`${selectedId === item.id ? "active" : ""} ${classSortable.draggingId === item.id ? "dragging" : ""}`.trim()} onClick={() => setSelectedId(item.id)} style={{ "--class-color": item.color } as CSSProperties} aria-label={adminFilter === "all" ? `${item.name}. 길게 눌러 순서 이동` : item.name}>
               <i />
               <span>
                 <small>{item.subject}</small>
@@ -224,11 +275,12 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
               <strong>{item.students.length}명</strong>
             </button>
           ))}
-        <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
+        {adminFilter === "all" && <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
           <i />
           <span><small>{profile.role === "admin" ? "전체 선생님 통합" : "선생님 전용"}</small><b>개별 보강·추가수업</b><em>날짜·요일·시간 제한 없이 별도 일정 관리</em></span>
           <strong>전용</strong>
-        </button>
+        </button>}
+        {filteredClasses.length === 0 && <p className="admin-class-filter-empty">조건에 맞는 클래스가 없습니다.</p>}
       </section>
       {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
       {selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
@@ -271,6 +323,12 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
       )}
     </>
   );
+}
+
+function mainSubjectOf(classRoom: ClassRoom, subjects: Subject[]) {
+  const matched = subjects.find((subject) => subject.id === classRoom.subjectId);
+  if (matched) return matched.mainSubject;
+  return (["국어", "영어", "수학"] as const).find((subject) => classRoom.subject.includes(subject)) ?? null;
 }
 
 function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWorkspaceReload, focusRequestId }: { supabase: SupabaseClient; classRoom: ClassRoom; date: string; onDate: (value: string) => void; day: DayData | null; onReload: () => Promise<void>; onWorkspaceReload: () => Promise<void>; focusRequestId:number|null }) {
