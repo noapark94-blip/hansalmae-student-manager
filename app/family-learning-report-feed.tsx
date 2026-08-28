@@ -28,6 +28,19 @@ type Exam = {
   evaluation: string;
   feedback: string;
 };
+type ExamTrendItem = {
+  id: string;
+  lessonDate: string;
+  className: string;
+  subject: string;
+  mainSubject?: string;
+  examType?: string;
+  examTitle?: string;
+  itemType?: "regular" | "makeup" | "extra" | "correction";
+  score: number | null;
+  maxScore: number;
+  percent: number | null;
+};
 type Report = {
   lessonId: string;
   lessonDate: string;
@@ -473,7 +486,7 @@ export function FamilyLearningReportFeed({
         })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 저장된 학습 기록이 없어요.</p></div>}
       </section>
       {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => setSelected(null)} />}
-      {selected?.kind === "correction" && <CorrectionFeedDetail item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => setSelected(null)} />}
+      {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => setSelected(null)} />}
     </section>
   );
   return (
@@ -637,6 +650,8 @@ export function FamilyLearningReportFeed({
       )}
       {selected?.kind === "correction" && (
         <CorrectionFeedDetail
+          supabase={supabase}
+          studentId={studentId}
           item={selected.report}
           previousHomework={findPreviousCorrectionHomework(
             selected.report,
@@ -759,14 +774,19 @@ function CorrectionFeedCard({
 }
 
 function CorrectionFeedDetail({
+  supabase,
+  studentId,
   item,
   previousHomework,
   onClose,
 }: {
+  supabase: SupabaseClient;
+  studentId: string;
   item: CorrectionReport;
   previousHomework: string;
   onClose: () => void;
 }) {
+  const [trendOpen, setTrendOpen] = useState(false);
   const examRange = cleanCorrectionRange(item.examRange);
   const convertedExamScore =
     item.examScore == null ||
@@ -829,6 +849,8 @@ function CorrectionFeedDetail({
               <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
+                actionLabel="성적 추이 보기"
+                onClick={() => setTrendOpen(true)}
                 rows={[
                   {
                     label: "시험",
@@ -887,6 +909,7 @@ function CorrectionFeedDetail({
               />
             )}
           </div>
+          {trendOpen && <ExamTrendModal supabase={supabase} studentId={studentId} initialSubject={item.subject} onClose={() => setTrendOpen(false)} />}
           {item.assistantFeedback.trim() && (
             <section className="family-teacher-feedback">
               <span className="family-teacher-feedback-icon">
@@ -1025,6 +1048,7 @@ function ReportDetail({
   canComment: boolean;
   onClose: () => void;
 }) {
+  const [trendOpen, setTrendOpen] = useState(false);
   const attendance = item.attendance;
   const displayTitle = reportDisplayTitle(item);
   const attendanceMemo = [attendance?.absenceReason, attendance?.note]
@@ -1110,6 +1134,8 @@ function ReportDetail({
               <LabeledReportSection
                 icon="chart"
                 title="개인별 시험 결과"
+                actionLabel="성적 추이 보기"
+                onClick={() => setTrendOpen(true)}
                 rows={displayExams.flatMap((exam) => {
                   const convertedScore = getConvertedScore(exam);
                   const rawScore =
@@ -1178,6 +1204,7 @@ function ReportDetail({
               />
             )}
           </div>
+          {trendOpen && <ExamTrendModal supabase={supabase} studentId={studentId} initialSubject={item.mainSubject || item.subject} onClose={() => setTrendOpen(false)} />}
           {teacherFeedbacks.length > 0 && (
             <section className="family-teacher-feedback">
               <span className="family-teacher-feedback-icon">
@@ -1437,16 +1464,20 @@ function LabeledReportSection({
   icon,
   title,
   rows,
+  actionLabel,
+  onClick,
 }: {
   icon: "book" | "edit" | "notice" | "chart" | "check";
   title: string;
   rows: ReportDetailRow[];
+  actionLabel?: string;
+  onClick?: () => void;
 }) {
   const visibleRows = rows.filter(
     (row): row is Exclude<ReportDetailRow, null> => Boolean(row?.value.trim()),
   );
   return (
-    <section className="family-report-section">
+    <section className={`family-report-section${onClick ? " family-report-section-action" : ""}`}>
       <i>
         <HansalmaeIcon name={icon} size={18} />
       </i>
@@ -1460,10 +1491,56 @@ function LabeledReportSection({
             </p>
           ))}
         </div>
+        {onClick && <button type="button" className="family-report-trend-open" onClick={onClick}>{actionLabel ?? "자세히 보기"}<span aria-hidden="true">›</span></button>}
       </div>
     </section>
   );
 }
+
+function ExamTrendModal({supabase,studentId,initialSubject,onClose}:{supabase:SupabaseClient;studentId:string;initialSubject:string;onClose:()=>void}) {
+  const [items,setItems]=useState<ExamTrendItem[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [subject,setSubject]=useState(initialSubject);
+  const [category,setCategory]=useState("");
+  const [selectedId,setSelectedId]=useState<string | null>(null);
+  useEffect(()=>{let active=true;setLoading(true);void Promise.all([
+    supabase.rpc("family_exam_progress",{p_student_id:studentId}),
+    supabase.rpc("family_correction_exam_progress",{p_student_id:studentId}),
+  ]).then(([regular,correction])=>{if(!active)return;if(regular.error&&correction.error){setError("성적 기록을 불러오지 못했습니다.");setItems([]);}else{setItems([...((regular.data??[]) as ExamTrendItem[]),...((correction.data??[]) as ExamTrendItem[])]);setError("");}setLoading(false);});return()=>{active=false};},[studentId,supabase]);
+  const subjects=useMemo(()=>Array.from(new Set(items.map((item)=>trendSubject(item)))).filter(Boolean),[items]);
+  const selectedSubject=subjects.includes(subject)?subject:(subjects[0]??"");
+  const subjectItems=useMemo(()=>items.filter((item)=>trendSubject(item)===selectedSubject&&item.percent!==null),[items,selectedSubject]);
+  const categories=useMemo(()=>Array.from(new Set(subjectItems.map(trendCategory).filter(Boolean))),[subjectItems]);
+  const selectedCategory=categories.includes(category)?category:(categories[0]??"");
+  const rows=useMemo(()=>subjectItems.filter((item)=>trendCategory(item)===selectedCategory).sort((a,b)=>a.lessonDate.localeCompare(b.lessonDate)).slice(-10),[subjectItems,selectedCategory]);
+  const recent=rows.at(-1)??null;
+  const average=rows.length?Math.round(rows.reduce((sum,item)=>sum+Number(item.percent),0)/rows.length*10)/10:null;
+  const best=rows.length?Math.max(...rows.map((item)=>Number(item.percent))):null;
+  const selectedPoint=rows.find((item)=>item.id===selectedId)??recent;
+  const width=520,height=190,padX=28,padY=22;
+  const points=rows.map((item,index)=>({item,x:rows.length===1?width/2:padX+(index*(width-padX*2))/(rows.length-1),y:padY+((100-Number(item.percent))*(height-padY*2))/100}));
+  const path=points.map((point,index)=>`${index?"L":"M"}${point.x},${point.y}`).join(" ");
+  return <div className="family-exam-trend-backdrop" onMouseDown={(event)=>{event.stopPropagation();if(event.target===event.currentTarget)onClose();}}>
+    <section className="family-exam-trend-modal" role="dialog" aria-modal="true" aria-labelledby="family-exam-trend-title">
+      <header><button type="button" onClick={onClose} aria-label="성적 추이 닫기">‹</button><div><small>과목별 · 항목별 성장 기록</small><h2 id="family-exam-trend-title">시험 성적 추이</h2></div><span /></header>
+      <div className="family-exam-trend-scroll">
+        {loading?<p className="family-exam-trend-state">성적 기록을 불러오는 중이에요…</p>:error?<p className="family-exam-trend-state error">{error}</p>:!subjects.length?<p className="family-exam-trend-state">아직 그래프로 볼 시험 점수가 없어요.</p>:<>
+          <nav className="family-exam-trend-subjects" aria-label="과목 선택">{subjects.map((name)=><button type="button" key={name} className={selectedSubject===name?"active":""} onClick={()=>{setSubject(name);setCategory("");setSelectedId(null);}}>{name}</button>)}</nav>
+          <div className="family-exam-trend-categories" role="group" aria-label="시험 항목 선택">{categories.map((name)=><button type="button" key={name} className={selectedCategory===name?"active":""} onClick={()=>{setCategory(name);setSelectedId(null);}}>{name}</button>)}</div>
+          <div className="family-exam-trend-summary"><span><small>최근 점수</small><b>{formatTrendScore(recent?.percent)}</b></span><span><small>선택 평균</small><b>{formatTrendScore(average)}</b></span><span><small>최고 점수</small><b>{formatTrendScore(best)}</b></span></div>
+          {rows.length?<section className="family-exam-line-card"><div className="family-exam-line-y"><span>100</span><span>50</span><span>0</span></div><div className="family-exam-line-wrap"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${selectedSubject} ${selectedCategory} 점수 추이`} preserveAspectRatio="none"><defs><linearGradient id="familyExamArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a12d66" stopOpacity=".2"/><stop offset="100%" stopColor="#a12d66" stopOpacity="0"/></linearGradient></defs><path className="area" d={`${path} L${points.at(-1)?.x},${height-padY} L${points[0]?.x},${height-padY} Z`}/><path className="line" d={path}/>{points.map((point)=><circle key={point.item.id} cx={point.x} cy={point.y} r={selectedPoint?.id===point.item.id?7:5} className={selectedPoint?.id===point.item.id?"selected":""}/>)}</svg><div className="family-exam-line-points">{points.map((point)=><button type="button" key={point.item.id} style={{left:`${(point.x/width)*100}%`,top:`${(point.y/height)*100}%`}} aria-label={`${shortTrendDate(point.item.lessonDate)} ${formatTrendScore(point.item.percent)}`} onClick={()=>setSelectedId(point.item.id)} />)}</div><div className="family-exam-line-dates">{rows.map((item,index)=><span key={item.id} style={{left:`${rows.length===1?50:(index/(rows.length-1))*100}%`}}>{shortTrendDate(item.lessonDate)}</span>)}</div></div></section>:<p className="family-exam-trend-state compact">선택한 항목의 점수 기록이 없어요.</p>}
+          {selectedPoint&&<article className="family-exam-point-detail"><div><small>{formatFullDate(selectedPoint.lessonDate)}</small><b>{selectedPoint.examTitle||trendCategory(selectedPoint)}</b><span>{selectedPoint.className} · {trendSourceLabel(selectedPoint.itemType)}</span></div><strong>{formatRawExamScore(Number(selectedPoint.score),Number(selectedPoint.maxScore),isWordExam(`${selectedPoint.examTitle} ${selectedPoint.examType}`))}<small>{formatTrendScore(selectedPoint.percent)} 환산</small></strong></article>}
+        </>}
+      </div>
+    </section>
+  </div>;
+}
+function trendSubject(item:ExamTrendItem){return (item.mainSubject||item.subject||"기타").trim();}
+function trendCategory(item:ExamTrendItem){return (item.examType||item.examTitle||"기타 시험").trim();}
+function trendSourceLabel(value:ExamTrendItem["itemType"]){return value==="makeup"?"보강수업":value==="extra"?"추가수업":value==="correction"?"첨삭수업":"정규수업";}
+function formatTrendScore(value:number|null|undefined){return value==null?"–":`${Number(value).toFixed(Number(value)%1?1:0)}점`;}
+function shortTrendDate(value:string){const date=dateValue(value);return `${date.getMonth()+1}.${date.getDate()}`;}
 function dateValue(value: string) {
   return new Date(`${value}T12:00:00+09:00`);
 }
