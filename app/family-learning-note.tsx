@@ -26,13 +26,24 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
   const liveCount=todayLessons.filter(item=>item.attendanceStatus==="present"&&isLessonLive(item,now)).length;
   const checkedCount=presentCount+lateCount+absentCount;
   const attendanceText=!todayLessons.length?"오늘 수업 없음":liveCount?`지금 수업 중 ${liveCount}개`:!checkedCount?"오늘 출결 전":[presentCount&&`출석 ${presentCount}`,lateCount&&`지각 ${lateCount}`,absentCount&&`결석 ${absentCount}`].filter(Boolean).join(" · ");
+  const currentMinute=seoulMinute(now);
+  const liveLesson=todayLessons.find(item=>item.attendanceStatus==="present"&&isLessonLive(item,now))??null;
+  const nextTodayLesson=[...todayLessons].sort((a,b)=>a.startTime.localeCompare(b.startTime)).find(item=>timeMinute(item.startTime)>currentMinute)??null;
+  const allFinished=todayLessons.length>0&&todayLessons.every(item=>timeMinute(item.endTime)<=currentMinute);
+  const liveStatus=liveLesson
+    ? {tone:"live",title:`${liveLesson.subject} 수업 중`,detail:`${liveLesson.startTime.slice(0,5)}–${liveLesson.endTime.slice(0,5)}`}
+    : nextTodayLesson
+      ? {tone:"waiting",title:"수업 시작 전",detail:`${nextTodayLesson.subject} · ${nextTodayLesson.startTime.slice(0,5)}`}
+      : allFinished
+        ? {tone:"done",title:"오늘 수업 완료",detail:`출결 ${checkedCount}/${todayLessons.length} 확인`}
+        : {tone:"waiting",title:"다음 수업 대기",detail:"오늘 일정을 확인해 주세요"};
   return <section className={`family-learning-note${todayLessons.length?"":" no-lessons"}`} aria-label="오늘의 학습 노트">
     <header>
       <div className="family-note-date"><span>{formatToday()}</span><b>오늘의 한살매</b></div>
       <div><h2>{studentName} 학습 노트</h2><p>오늘의 수업과 해야 할 일을 한눈에 확인하세요.</p></div>
     </header>
     <div className={`family-note-summary${todayLessons.length?"":" empty"}`}>
-      {todayLessons.length?<button type="button" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개 · {attendanceText}</b></button>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
+      {todayLessons.length?<><button type="button" className="family-note-overview" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개 · {attendanceText}</b></button><button type="button" className={`family-note-live-status ${liveStatus.tone}`} aria-label={`실시간 상태: ${liveStatus.title}`} onClick={()=>setSummaryOpen(true)}><i aria-hidden="true"/><span><b>{liveStatus.title}</b><small>{liveStatus.detail}</small></span></button></>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
         <i><HansalmaeIcon name="calendar" size={18}/></i>
         <span><b>오늘은 예정된 수업이 없어요</b>{nextLesson&&<small>다음 수업 · {formatNextLesson(nextLesson)}</small>}</span>
         <em aria-hidden="true">›</em>
@@ -66,10 +77,8 @@ function formatNextLesson(item:NextLesson){
   return `${date} · ${item.subject||item.name} · ${item.startTime.slice(0,5)}`;
 }
 function isLessonLive(item:TodayLesson,now:Date){
-  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(now).split(":").map(Number);
-  const current=parts[0]*60+parts[1];
-  const startParts=item.startTime.slice(0,5).split(":").map(Number);
-  const endParts=item.endTime.slice(0,5).split(":").map(Number);
-  const start=startParts[0]*60+startParts[1],end=endParts[0]*60+endParts[1];
+  const current=seoulMinute(now),start=timeMinute(item.startTime),end=timeMinute(item.endTime);
   return current>=start&&current<end;
 }
+function seoulMinute(now:Date){const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(now).split(":").map(Number);return parts[0]*60+parts[1]}
+function timeMinute(value:string){const parts=value.slice(0,5).split(":").map(Number);return parts[0]*60+parts[1]}
