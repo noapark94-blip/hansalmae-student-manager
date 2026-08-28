@@ -17,3 +17,9 @@
 /* 실시간 상태의 두 줄을 하나의 묶음으로 카드 정중앙에 배치 */
 .family-note-summary>.family-note-live-status{grid-template-columns:max-content;justify-content:center;justify-items:stretch}
 .family-note-live-status>.family-note-live-label,.family-note-live-status>span{width:max-content;max-width:100%;text-align:center}
+
+/* 작은 제목 없이 왼쪽 카드의 한 줄과 같은 높이·기준선으로 정렬 */
+.family-note-summary>.family-note-live-status{display:flex;align-items:center;justify-content:center;padding-block:11px}
+.family-note-live-status>span{display:flex;align-items:center;justify-content:center;width:auto;max-width:100%;line-height:1.2}
+.family-note-summary>button.family-note-overview b,.family-note-live-status>span>b{font-size:12px;line-height:1.2}
+@media(max-width:520px){.family-note-summary>button.family-note-overview b,.family-note-live-status>span>b{font-size:9.5px}.family-note-summary>.family-note-live-status{padding-block:9px}}

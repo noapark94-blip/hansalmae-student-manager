@@ -41,7 +41,7 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
       <div><h2>{studentName} 학습 노트</h2><p>오늘의 수업과 해야 할 일을 한눈에 확인하세요.</p></div>
     </header>
     <div className={`family-note-summary${todayLessons.length?"":" empty"}`}>
-      {todayLessons.length?<><button type="button" className="family-note-overview" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b><em aria-hidden="true">›</em></button><div className={`family-note-live-status ${liveStatus.tone}`} aria-label={`실시간 상태: ${liveStatus.title}`} aria-live="polite"><small className="family-note-live-label">실시간 상태</small><span><i aria-hidden="true"/><b>{liveStatus.title}</b><em>{liveStatus.detail}</em></span></div></>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
+      {todayLessons.length?<><button type="button" className="family-note-overview" aria-expanded={summaryOpen} onClick={()=>setSummaryOpen(value=>!value)}><HansalmaeIcon name="calendar" size={17}/><b>오늘 수업 {todayLessons.length}개</b><em aria-hidden="true">›</em></button><div className={`family-note-live-status ${liveStatus.tone}`} aria-label={`실시간 상태: ${liveStatus.title}`} aria-live="polite"><span><i aria-hidden="true"/><b>{liveStatus.title}</b><em>{liveStatus.detail}</em></span></div></>:<button type="button" className="family-note-no-lessons" onClick={onSchedule} aria-label="시간표에서 다음 수업 확인">
         <i><HansalmaeIcon name="calendar" size={18}/></i>
         <span><b>오늘은 예정된 수업이 없어요</b>{nextLesson&&<small>다음 수업 · {formatNextLesson(nextLesson)}</small>}</span>
         <em aria-hidden="true">›</em>
