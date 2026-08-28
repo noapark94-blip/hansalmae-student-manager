@@ -61,6 +61,7 @@ import "./app-install-menu.css";
 import "./vocabulary-test-generator.css";
 import "./student-detail-controls.css";
 import "./student-academic-records.css";
+import "./student-delete-confirm-polish.css";
 import "./lesson-roster-override.css";
 import "./schedule-conflict-alert.css";
 import { EscapeModalCloser } from "./escape-modal-closer";

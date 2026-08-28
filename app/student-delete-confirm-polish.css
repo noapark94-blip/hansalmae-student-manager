@@ -1,0 +1,100 @@
+/* Keep the typed-name safety step while matching the shared Hansalmae dialog. */
+.student-danger-zone{
+  font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+}
+.student-danger-zone>.danger-link{
+  padding:8px 11px;
+  border:1px solid #e2c8d4;
+  border-radius:9px;
+  background:#fff;
+  color:#922d61;
+  font-weight:800;
+}
+.student-danger-zone>.danger-link:hover{
+  border-color:#c990aa;
+  background:#fbf3f7;
+}
+.student-danger-zone>.delete-confirm{
+  position:relative;
+  overflow:hidden;
+  gap:10px;
+  padding:18px;
+  border:1px solid #eadde3;
+  border-radius:14px;
+  background:linear-gradient(180deg,#fff 0%,#fdf9fb 100%);
+  box-shadow:0 12px 30px rgba(65,34,48,.08);
+  font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+}
+.student-danger-zone>.delete-confirm::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:4px;
+  background:linear-gradient(90deg,#6f1f46,#a63c70,#d59ab6);
+}
+.student-danger-zone>.delete-confirm>b{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#432f39;
+  font-size:12px;
+  font-weight:850;
+}
+.student-danger-zone>.delete-confirm>b::before{
+  content:"!";
+  display:grid;
+  flex:0 0 21px;
+  width:21px;
+  height:21px;
+  place-items:center;
+  border-radius:50%;
+  background:#ecd2de;
+  color:#922d61;
+  font-size:10px;
+  font-weight:900;
+}
+.student-danger-zone>.delete-confirm>span{
+  color:#776970;
+  font-size:10px;
+  line-height:1.55;
+}
+.student-danger-zone>.delete-confirm>span strong{color:#922d61;font-weight:850}
+.student-danger-zone>.delete-confirm>input{
+  width:100%;
+  height:44px;
+  padding:0 13px;
+  border:1px solid #dfcbd4;
+  border-radius:10px;
+  background:#fff;
+  color:#352c30;
+  font:700 12px Pretendard,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+  outline:none;
+}
+.student-danger-zone>.delete-confirm>input:focus{
+  border-color:#aa4a78;
+  box-shadow:0 0 0 3px rgba(146,45,97,.09);
+}
+.student-danger-zone>.delete-confirm>button{
+  min-width:112px;
+  min-height:42px;
+  padding:0 16px;
+  border:1px solid #8f2859;
+  border-radius:10px;
+  background:linear-gradient(135deg,#a13269,#842350);
+  color:#fff;
+  font:820 11px Pretendard,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+  box-shadow:0 8px 18px rgba(146,45,97,.18);
+}
+.student-danger-zone>.delete-confirm>button:not(:disabled):hover{
+  background:linear-gradient(135deg,#92295e,#721d45);
+}
+
+@media(max-width:640px){
+  .student-danger-zone>.delete-confirm{
+    width:100%!important;
+    margin:0!important;
+    padding:16px!important;
+    border-radius:13px!important;
+  }
+  .student-danger-zone>.delete-confirm>input{font-size:16px}
+}
