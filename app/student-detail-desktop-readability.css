@@ -1,0 +1,82 @@
+/* Desktop student detail: improve small supporting text without flattening hierarchy. */
+@media(min-width:761px){
+  .student-hub-modal>header span{font-size:12px;line-height:1.5}
+  .student-hub-tabs button{font-size:11px;padding-inline:14px}
+
+  .student-hub-modal .student-summary-cards span,
+  .student-hub-modal .student-summary-cards small{font-size:10px;line-height:1.45}
+  .student-hub-modal .hub-section-title p,
+  .student-hub-modal .student-tab-intro p,
+  .student-hub-modal .student-profile-card header p,
+  .student-hub-modal .student-lifecycle header p{font-size:10px;line-height:1.5}
+
+  .student-hub-modal .student-profile-savebar>span,
+  .student-hub-modal .student-danger-zone>div:first-child>small,
+  .student-hub-modal .lifecycle-history>p,
+  .student-hub-modal .lifecycle-history time,
+  .student-hub-modal .lifecycle-history small,
+  .student-hub-modal .lifecycle-change-guide span{font-size:10px;line-height:1.5}
+  .student-hub-modal .student-danger-zone>div:first-child>b,
+  .student-hub-modal .lifecycle-history h4,
+  .student-hub-modal .lifecycle-history b{font-size:11px}
+  .student-hub-modal .lifecycle-current>span,
+  .student-hub-modal .lifecycle-current>button{font-size:10px}
+
+  .student-hub-modal .student-record-list time,
+  .student-hub-modal .student-record-list small,
+  .student-hub-modal .student-record-list em{font-size:10px;line-height:1.4}
+  .student-hub-modal .student-record-list b{font-size:12px}
+
+  .student-hub-modal .student-exam-selects label,
+  .student-hub-modal .student-record-selects label,
+  .student-hub-modal .student-record-period-select,
+  .student-hub-modal .consultation-period-filters label,
+  .student-hub-modal .academic-filters label{font-size:10px!important}
+  .student-hub-modal .student-exam-selects select,
+  .student-hub-modal .student-record-selects select,
+  .student-hub-modal .student-record-period-select select,
+  .student-hub-modal .consultation-period-filters select,
+  .student-hub-modal .academic-filters select{font-size:11px!important}
+
+  .student-hub-modal .student-exam-source-tabs button,
+  .student-hub-modal .student-exam-subject-tabs button,
+  .student-hub-modal .student-exam-range-tabs button,
+  .student-hub-modal .student-record-source-tabs button,
+  .student-hub-modal .student-record-range-tabs button,
+  .student-hub-modal .student-tab-intro nav button,
+  .student-hub-modal .academic-toolbar nav button{font-size:11px!important}
+  .student-hub-modal .student-exam-source-tabs em,
+  .student-hub-modal .record-source{font-size:9px}
+  .student-hub-modal .student-exam-summary span,
+  .student-hub-modal .student-exam-source-legend span,
+  .student-hub-modal .student-exam-bars i>b,
+  .student-hub-modal .student-exam-bars article>strong,
+  .student-hub-modal .student-exam-bars article>small{font-size:10px}
+
+  .student-hub-modal .student-learning-context b,
+  .student-hub-modal .student-correction-learning-cards header b{font-size:12px}
+  .student-hub-modal .student-learning-context span,
+  .student-hub-modal .student-correction-learning-cards header span,
+  .student-hub-modal .student-correction-learning-cards header em,
+  .student-hub-modal .student-correction-learning-cards section b{font-size:10px}
+  .student-hub-modal .student-correction-learning-cards section p{font-size:11px}
+
+  .student-hub-modal .student-consultation-summary span,
+  .student-hub-modal .student-consultation-summary b small,
+  .student-hub-modal .student-consultation-summary article>small,
+  .student-hub-modal .student-guardian-consultation-alert small,
+  .student-hub-modal .student-consultation-records header small{font-size:10px}
+  .student-hub-modal .student-guardian-consultation-alert b,
+  .student-hub-modal .student-consultation-records header span{font-size:10px}
+  .student-hub-modal .student-consultation-records header b{font-size:12px}
+  .student-hub-modal .student-consultation-records article>p{font-size:11px}
+
+  .student-hub-modal .academic-heading .academic-add-button,
+  .student-hub-modal .academic-list footer button{font-size:11px!important}
+  .student-hub-modal .academic-summary span,
+  .student-hub-modal .academic-summary small,
+  .student-hub-modal .academic-trend>header span,
+  .student-hub-modal .academic-trend small{font-size:10px}
+  .student-hub-modal .academic-trend>header b{font-size:12px}
+  .student-hub-modal .academic-trend article{font-size:11px}
+}
