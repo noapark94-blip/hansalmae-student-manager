@@ -86,6 +86,11 @@
 .family-exam-trend-embedded .family-exam-trend-scroll{overflow:visible}
 @media(max-width:760px){.family-exam-trend-embedded .family-exam-trend-modal{max-height:none;border-radius:20px}.family-exam-trend-embedded .family-exam-trend-modal>header{border-radius:20px 20px 0 0}}
 
+/* 반응형 SVG 비율과 무관하게 성적 지점을 항상 정원으로 표시 */
+.family-exam-line-wrap svg>g{display:none}
+.family-exam-line-points button{border-radius:50%}
+.family-exam-line-points button::before{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;border:3px solid #9d2c63;border-radius:50%;background:#fff;box-sizing:border-box;transform:translate(-50%,-50%)}
+
 /* 중첩 상세창: iOS 스크롤이 뒤 화면으로 전달되지 않도록 현재 창만 스크롤 */
 html.family-modal-open,body.family-modal-open{overflow:hidden;overscroll-behavior:none}
 body.family-modal-open{position:fixed;left:0;right:0;width:100%}
