@@ -452,7 +452,7 @@ export function FamilyLearningReportFeed({
             if (item.kind === "lesson") void confirmRead(item.report.lessonId);
             else void confirmCorrectionRead(item.report.id);
           }}>
-            <time>{item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}<b>›</b>
+            <time>{item.kind === "lesson" ? formatTime(item.time) : item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}<b>›</b>
           </button>;
         })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 저장된 학습 기록이 없어요.</p></div>}
       </section>
