@@ -13,3 +13,7 @@
 .family-note-live-status>span{justify-content:center}
 .family-note-live-status>span>em{margin-left:0}
 @media(max-width:520px){.family-note-summary>button.family-note-overview{padding-left:25px;padding-right:25px}.family-note-summary>.family-note-live-status{padding-left:8px;padding-right:8px}}
+
+/* 실시간 상태의 두 줄을 하나의 묶음으로 카드 정중앙에 배치 */
+.family-note-summary>.family-note-live-status{grid-template-columns:max-content;justify-content:center;justify-items:stretch}
+.family-note-live-status>.family-note-live-label,.family-note-live-status>span{width:max-content;max-width:100%;text-align:center}
