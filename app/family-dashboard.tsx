@@ -649,6 +649,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
   const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [range, setRange] = useState<SummaryRange>("weekly");
+  const [visibleHighlightCount, setVisibleHighlightCount] = useState(3);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(async (studentId: string | null) => {
@@ -680,6 +681,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
     setLoading(false);
   }, [supabase]);
   useEffect(() => { void load(null); }, [load]);
+  useEffect(() => { setVisibleHighlightCount(3); }, [range, selectedId]);
 
   const today = seoulDate();
   const periodLessons = lessons.filter((item) => dateInSummaryRange(item.lessonDate, range, today));
@@ -729,11 +731,20 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
       </section>
       <section className="family-report-highlights">
         <header><span><p>핵심 학습 기록</p><h2>{summaryRangeLabels[range]} 기록</h2></span><small>{highlights.length}건</small></header>
-        {highlights.length ? <div>{highlights.slice(0, range === "monthly" ? 8 : 6).map((item) => <article key={item.id} className={item.tone}>
+        {highlights.length ? <div>{highlights.slice(0, visibleHighlightCount).map((item) => <article key={item.id} className={item.tone}>
           <time>{Number(item.date.slice(5, 7))}월 {Number(item.date.slice(8, 10))}일<small>{item.time}</small></time>
           <i />
           <span><small>{item.type}</small><b>{item.title}</b><p>{item.content}</p></span>
         </article>)}</div> : <div className="family-report-empty"><i><HansalmaeIcon name="book" size={24} /></i><b>이 기간에는 저장된 학습 기록이 없어요.</b><span>수업 기록이 저장되면 자동으로 리포트에 반영됩니다.</span></div>}
+        {highlights.length > 3 && <button
+          type="button"
+          className={`family-report-history-toggle${visibleHighlightCount > 3 ? " open" : ""}`}
+          aria-expanded={visibleHighlightCount > 3}
+          onClick={() => setVisibleHighlightCount((current) => current >= highlights.length ? 3 : Math.min(highlights.length, current === 3 ? 10 : current + 10))}
+        >
+          <span>전체 기록 보기 <b>{highlights.length}</b></span>
+          <i>{visibleHighlightCount === 3 ? "펼치기" : visibleHighlightCount < highlights.length ? "10개 더 보기" : "접기"}<em>⌄</em></i>
+        </button>}
       </section>
     </>}
   </div>;

@@ -60,3 +60,9 @@
 .family-summary-report-page .family-report-highlights article>span p{font-size:11px;line-height:1.5}
 .family-summary-report-page .family-report-empty>b{font-size:14px}
 .family-summary-report-page .family-report-empty>span{font-size:11px;line-height:1.5}
+.family-report-history-toggle{width:calc(100% - 28px);min-height:54px;margin:12px 14px 14px;padding:0 16px;border:1px solid #e9dfe4;border-radius:15px;background:#fff;color:#4a3f44;font:inherit;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.family-report-history-toggle>span{font-size:13px;font-weight:850}
+.family-report-history-toggle>span b{display:inline-grid;min-width:25px;height:25px;margin-left:6px;padding:0 7px;place-items:center;border-radius:999px;background:#f5e6ed;color:#922d61;font-size:11px}
+.family-report-history-toggle>i{color:#94878d;font-size:12px;font-style:normal}
+.family-report-history-toggle>i em{display:inline-block;margin-left:5px;font-size:16px;font-style:normal;transition:transform .18s}
+.family-report-history-toggle.open>i em{transform:rotate(180deg)}
