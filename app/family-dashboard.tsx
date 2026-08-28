@@ -704,7 +704,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
   const selected = dashboard?.selectedStudent;
 
   return <div className="family-summary-report-page">
-    <header className="family-schedule-heading">
+    <header className="family-grades-heading">
       <p>{profile.role === "guardian" ? "자녀 학습 요약" : "나의 학습 요약"}</p>
       <h1>학습리포트</h1>
       <span>저장된 수업·첨삭·출결·과제·시험 기록을 기간별로 간단히 모아봤어요.</span>
