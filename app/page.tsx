@@ -187,9 +187,9 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
-  manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "my-account"],
+  manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   student: ["dashboard", "schedule", "calendar", "grades", "reports", "communications", "my-account"],
   guardian: ["dashboard", "schedule", "calendar", "grades", "reports", "consultations", "communications", "my-account"],
 };
@@ -1092,7 +1092,6 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
             { id: "class-management" as View, label: "내 수업", tone: "blue" },
             { id: "schedule" as View, label: "시간표", tone: "green" },
             { id: "transport" as View, label: "차량 운행", tone: "amber" },
-            { id: "reports" as View, label: "리포트", tone: "violet" },
             { id: "consultations" as View, label: "상담", tone: "wine" },
             { id: "makeups" as View, label: "결석·보강", tone: "gray" },
             { id: "assignments" as View, label: "첨삭 관리", tone: "blue" },
@@ -1102,7 +1101,6 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "class-management" as View, label: "내 수업", tone: "blue" },
           { id: "schedule" as View, label: "시간표", tone: "green" },
           { id: "corrections" as View, label: "첨삭 시간표", tone: "amber" },
-          { id: "reports" as View, label: "리포트", tone: "violet" },
           { id: "consultations" as View, label: "상담", tone: "wine" },
           { id: "makeups" as View, label: "결석·보강", tone: "gray" },
           { id: "assignments" as View, label: "첨삭 관리", tone: "blue" },
@@ -1271,8 +1269,8 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
     admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings"],
-    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations"],
-    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "reports", "consultations"],
+    manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
+    teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
     student: [],
     guardian: [],
