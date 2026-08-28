@@ -275,7 +275,9 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       <b>
                         {mode === "staff"
                           ? `${item.studentName} · ${item.subject ?? "수업"}`
-                          : (item.title ?? item.studentName)}
+                          : mode === "general"
+                            ? (item.title ?? `${item.studentName} 학생`)
+                            : `${item.studentName} 학생`}
                       </b>
                       <small>
                         {[
