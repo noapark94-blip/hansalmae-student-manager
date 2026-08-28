@@ -6,6 +6,9 @@
 .correction-subject-header b{font-size:13px;color:#3f353a}
 .correction-subject-header span{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;padding:0 8px;border-radius:999px;background:#f1e5eb;color:#922d61;font-size:9px;font-weight:850}
 .correction-subject-header small{color:#978a90;font-size:9px}
+.correction-subject-group.subject-영어 .correction-history-trigger>i{background:#f3e2ea!important;color:#922d61!important}
+.correction-subject-group.subject-수학 .correction-history-trigger>i{background:#e8edf9!important;color:#38529c!important}
+.correction-subject-group.subject-수학 .correction-subject-header span{background:#e8edf9;color:#38529c}
 .correction-subject-rows>article{display:grid;grid-template-columns:minmax(260px,1fr) minmax(500px,2fr) minmax(360px,1.35fr)!important;gap:0!important;padding:0!important;border-top:1px solid #eee5e9}
 .correction-subject-rows>article:first-child{border-top:0}
 .correction-subject-rows>article>div{padding:24px 20px!important;box-sizing:border-box;min-width:0}
