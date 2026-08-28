@@ -530,7 +530,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
               <span><b>{schedule.item.name}</b><small>{schedule.item.subject} · {familyTeacherNames(schedule.item.teachers)}{schedule.item.room ? ` · ${schedule.item.room}` : ""}</small></span>
             </section> : <section className="correction" key={`correction-${schedule.item.id}`}>
               <time>{schedule.item.startTime.slice(0, 5)}–{schedule.item.endTime.slice(0, 5)}</time>
-              <span><b>{schedule.item.subject} 첨삭수업<em>첨삭</em></b></span>
+              <span><b>{schedule.item.subject} 첨삭수업</b></span>
             </section>) : <p>등록된 정규 일정이 없습니다.</p>}</div>
           </article>;
         })}
