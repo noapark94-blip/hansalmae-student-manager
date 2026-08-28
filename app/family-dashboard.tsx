@@ -644,13 +644,14 @@ function summaryPeriodText(range: SummaryRange, today: string) {
   return `${startParts}–${month}. ${day}. 최근 7일`;
 }
 
-export function FamilySummaryReportView({ supabase, profile, onNavigate }: { supabase: SupabaseClient; profile: Profile; onNavigate: (view: FamilyView) => void }) {
+export function FamilySummaryReportView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
   const [dashboard, setDashboard] = useState<Data | null>(null);
   const [lessons, setLessons] = useState<SummaryLessonReport[]>([]);
   const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [range, setRange] = useState<SummaryRange>("weekly");
   const [visibleHighlightCount, setVisibleHighlightCount] = useState(3);
+  const [detailTarget, setDetailTarget] = useState<{ lessonId?: string; correctionId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(async (studentId: string | null) => {
@@ -733,9 +734,7 @@ export function FamilySummaryReportView({ supabase, profile, onNavigate }: { sup
       <section className="family-report-highlights">
         <header><span><p>핵심 학습 기록</p><h2>{summaryRangeLabels[range]} 기록</h2></span><small>{highlights.length}건</small></header>
         {highlights.length ? <div>{highlights.slice(0, visibleHighlightCount).map((item) => <article key={item.id} className={`${item.tone} clickable`} role="button" tabIndex={0} onClick={() => {
-          const target = item.tone === "correction" ? { correctionId: item.id.slice("correction-".length), studentId: selectedId } : { lessonId: item.id.slice("lesson-".length), studentId: selectedId };
-          sessionStorage.setItem("hansalmae:family-report-target", JSON.stringify(target));
-          onNavigate("dashboard");
+          setDetailTarget(item.tone === "correction" ? { correctionId: item.id.slice("correction-".length) } : { lessonId: item.id.slice("lesson-".length) });
         }} onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
@@ -756,6 +755,7 @@ export function FamilySummaryReportView({ supabase, profile, onNavigate }: { sup
         </button>}
       </section>
     </>}
+    {selectedId && detailTarget && <FamilyLearningReportFeed supabase={supabase} studentId={selectedId} detailTarget={detailTarget} detailOnly onDetailClose={() => setDetailTarget(null)} />}
   </div>;
 }
 function FamilyExamProgress({

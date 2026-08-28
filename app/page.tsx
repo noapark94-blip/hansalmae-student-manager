@@ -802,7 +802,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
-          {view === "reports" && (familyAccount ? <FamilySummaryReportView supabase={supabase} profile={profile} onNavigate={selectView} /> : <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />)}
+          {view === "reports" && (familyAccount ? <FamilySummaryReportView supabase={supabase} profile={profile} /> : <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />)}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
           {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}

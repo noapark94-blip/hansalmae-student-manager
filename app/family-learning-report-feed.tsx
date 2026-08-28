@@ -166,11 +166,17 @@ export function FamilyLearningReportFeed({
   studentId,
   studentName,
   displayMode = "feed",
+  detailTarget,
+  detailOnly = false,
+  onDetailClose,
 }: {
   supabase: SupabaseClient;
   studentId: string;
   studentName?: string;
   displayMode?: "feed" | "calendar";
+  detailTarget?: { lessonId?: string; correctionId?: string } | null;
+  detailOnly?: boolean;
+  onDetailClose?: () => void;
 }) {
   const [items, setItems] = useState<Report[]>([]);
   const [reads, setReads] = useState<Record<string, string>>({});
@@ -218,11 +224,11 @@ export function FamilyLearningReportFeed({
       const [reportResult, correctionResult] = await Promise.all([
         supabase.rpc("family_completed_learning_reports", {
           p_student_id: studentId,
-          p_limit: 20,
+          p_limit: detailOnly ? 50 : 20,
         }),
         supabase.rpc("family_correction_reports", {
           p_student_id: studentId,
-          p_limit: 20,
+          p_limit: detailOnly ? 50 : 20,
         }),
       ]);
       if (!active) return;
@@ -267,7 +273,7 @@ export function FamilyLearningReportFeed({
     return () => {
       active = false;
     };
-  }, [studentId, supabase]);
+  }, [detailOnly, studentId, supabase]);
 
   useEffect(() => {
     if (displayMode !== "calendar") return;
@@ -376,6 +382,22 @@ export function FamilyLearningReportFeed({
       sessionStorage.removeItem("hansalmae:family-report-target");
     }
   }, [corrections, items, loading, studentId]);
+  useEffect(() => {
+    if (loading || !detailTarget) return;
+    const lessonTarget = detailTarget.lessonId
+      ? items.find((item) => item.lessonId === detailTarget.lessonId)
+      : null;
+    const correctionTarget = detailTarget.correctionId
+      ? corrections.find((item) => item.id === detailTarget.correctionId)
+      : null;
+    if (lessonTarget) {
+      setSelected({ kind: "lesson", date: lessonTarget.lessonDate, time: lessonTarget.startsAt, report: lessonTarget });
+      void confirmRead(lessonTarget.lessonId);
+    } else if (correctionTarget) {
+      setSelected({ kind: "correction", date: correctionTarget.correctionDate, time: correctionTarget.startTime, report: correctionTarget });
+      void confirmCorrectionRead(correctionTarget.id);
+    }
+  }, [corrections, detailTarget, items, loading]);
   useEffect(() => {
     const openReport = (event: Event) => {
       const detail = (
@@ -528,6 +550,10 @@ export function FamilyLearningReportFeed({
   }
 
   if (unavailable) return null;
+  if (detailOnly) return <>
+    {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
+    {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
+  </>;
   if (displayMode === "calendar") return (
     <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
       <header className="family-calendar-toolbar">
