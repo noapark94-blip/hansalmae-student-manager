@@ -33,7 +33,7 @@ async function subscribeToGuardianPush(supabase: SupabaseClient) {
   }
   const { error } = await supabase.from("push_subscriptions").upsert({
     profile_id: user.id, endpoint: subscription.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, user_agent: navigator.userAgent,
-  }, { onConflict: "endpoint" });
+  }, { onConflict: "profile_id,endpoint" });
   if (error) { await subscription.unsubscribe(); throw error; }
   return subscription;
 }
