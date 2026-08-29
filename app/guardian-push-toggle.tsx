@@ -13,6 +13,7 @@ const WAS_ENABLED_KEY = "guardian_push_was_enabled";
 const DISABLED_PROMPT_STATE_KEY = "guardian_push_disabled_prompt_state";
 const INTENTIONALLY_DISABLED_KEY = "guardian_push_intentionally_disabled";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const PUSH_ROLES = new Set(["guardian", "teacher", "admin", "manager"]);
 
 function decodeKey(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
@@ -23,7 +24,20 @@ function supportsPush() {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
-async function subscribeToGuardianPush(supabase: SupabaseClient) {
+async function syncDeviceSubscription(supabase: SupabaseClient, subscription: PushSubscription, enabled = true) {
+  const json = subscription.toJSON();
+  if (enabled && (!json.keys?.p256dh || !json.keys.auth)) throw new Error("구독 정보를 확인할 수 없습니다.");
+  const { error } = await supabase.rpc("set_current_device_push_subscription", {
+    p_endpoint: subscription.endpoint,
+    p_p256dh: enabled ? json.keys?.p256dh ?? null : null,
+    p_auth: enabled ? json.keys?.auth ?? null : null,
+    p_user_agent: navigator.userAgent,
+    p_enabled: enabled,
+  });
+  if (error) throw error;
+}
+
+async function subscribeToDevicePush(supabase: SupabaseClient) {
   if (!supportsPush()) throw new Error("이 기기에서는 알림을 사용할 수 없습니다.");
   const registration = await navigator.serviceWorker.register("/push-service-worker.js");
   let subscription = await registration.pushManager.getSubscription();
@@ -32,17 +46,37 @@ async function subscribeToGuardianPush(supabase: SupabaseClient) {
     if (permission !== "granted") throw new Error("기기 설정에서 알림을 허용해 주세요.");
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(VAPID_PUBLIC_KEY) });
   }
-  const json = subscription.toJSON();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !json.keys?.p256dh || !json.keys.auth) {
+  if (!user) {
     await subscription.unsubscribe();
     throw new Error("구독 정보를 확인할 수 없습니다.");
   }
-  const { error } = await supabase.from("push_subscriptions").upsert({
-    profile_id: user.id, endpoint: subscription.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, user_agent: navigator.userAgent,
-  }, { onConflict: "profile_id,endpoint" });
-  if (error) { await subscription.unsubscribe(); throw error; }
+  try { await syncDeviceSubscription(supabase, subscription); }
+  catch (error) { await subscription.unsubscribe(); throw error; }
   return subscription;
+}
+
+export function PushDeviceAccountSync({ supabase }: { supabase: SupabaseClient }) {
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!supportsPush()) return;
+      const [{ data: { user } }, registration] = await Promise.all([
+        supabase.auth.getUser(),
+        navigator.serviceWorker.register("/push-service-worker.js"),
+      ]);
+      if (!active || !user) return;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return;
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      if (!active) return;
+      const eligible = PUSH_ROLES.has(String(profile?.role ?? "")) && Notification.permission === "granted";
+      await syncDeviceSubscription(supabase, subscription, eligible);
+      if (!eligible && Notification.permission !== "granted") try { await subscription.unsubscribe(); } catch { /* The OS may already have revoked it. */ }
+    })().catch(() => { /* Push ownership sync must never block the app. */ });
+    return () => { active = false; };
+  }, [supabase]);
+  return null;
 }
 
 async function rememberPromptChoice(supabase: SupabaseClient, data: Record<string, boolean | string>) {
@@ -116,7 +150,7 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
     setSaving(true); setError("");
     try {
       // iOS requires the permission request to remain in the direct button gesture.
-      await subscribeToGuardianPush(supabase);
+      await subscribeToDevicePush(supabase);
       await rememberPromptChoice(supabase, {
         [WAS_ENABLED_KEY]: true,
         [DISABLED_PROMPT_STATE_KEY]: "",
@@ -152,21 +186,23 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
   </div>;
 }
 
-export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
+export function DevicePushToggle({ supabase }: { supabase: SupabaseClient }) {
   const [state, setState] = useState<State>("checking");
-  const [guardian, setGuardian] = useState(false);
+  const [role, setRole] = useState("");
   useEffect(() => {
     let active = true;
     void supabase.auth.getUser().then(async ({ data }) => {
       const user = data.user;
       if (!active || !user) return;
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-      if (!active || profile?.role !== "guardian") return;
-      setGuardian(true);
+      const currentRole=String(profile?.role??"");
+      if (!active || !PUSH_ROLES.has(currentRole)) return;
+      setRole(currentRole);
       if (!supportsPush()) { setState("unsupported"); return; }
       const registration = await navigator.serviceWorker.register("/push-service-worker.js");
       const subscription = await registration.pushManager.getSubscription();
-      if (active) setState(subscription ? "on" : "off");
+      if (subscription && Notification.permission === "granted") await syncDeviceSubscription(supabase, subscription);
+      if (active) setState(subscription && Notification.permission === "granted" ? "on" : "off");
     }).catch(() => { if (active) setState("error"); });
     return () => { active = false; };
   }, [supabase]);
@@ -178,8 +214,7 @@ export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
       const registration = await navigator.serviceWorker.register("/push-service-worker.js");
       const existing = await registration.pushManager.getSubscription();
       if (existing) {
-        const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", existing.endpoint);
-        if (error) throw error;
+        await syncDeviceSubscription(supabase, existing, false);
         await existing.unsubscribe();
         await rememberPromptChoice(supabase, {
           [WAS_ENABLED_KEY]: true,
@@ -188,7 +223,7 @@ export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
         });
         setState("off"); return;
       }
-      await subscribeToGuardianPush(supabase);
+      await subscribeToDevicePush(supabase);
       await rememberPromptChoice(supabase, {
         [WAS_ENABLED_KEY]: true,
         [DISABLED_PROMPT_STATE_KEY]: "",
@@ -198,8 +233,9 @@ export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
     } catch { setState("error"); }
   }
 
-  if (!guardian || state === "checking") return null;
-  const description = state === "saving" ? "알림 설정을 변경하고 있어요" : state === "on" ? "새 학습 피드를 이 기기에서 받아요" : state === "unsupported" ? "이 기기에서는 알림을 지원하지 않아요" : state === "error" ? "iPhone 설정을 확인한 뒤 다시 시도해 주세요" : "새 학습 피드 알림을 받을 수 있어요";
+  if (!role || state === "checking") return null;
+  const staff=role!=="guardian";
+  const description = state === "saving" ? "알림 설정을 변경하고 있어요" : state === "on" ? staff?"새 학부모 댓글을 이 기기에서 받아요":"새 학습 피드와 답장을 이 기기에서 받아요" : state === "unsupported" ? "이 기기에서는 알림을 지원하지 않아요" : state === "error" ? "iPhone 설정을 확인한 뒤 다시 시도해 주세요" : staff?"새 학부모 댓글 알림을 받을 수 있어요":"새 학습 피드와 답장 알림을 받을 수 있어요";
   return <div className={`guardian-push-setting ${state}`}>
     <div className="guardian-push-setting-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>
