@@ -44,11 +44,15 @@ async function syncDeviceSubscription(supabase: SupabaseClient, subscription: Pu
 
 async function subscribeToDevicePush(supabase: SupabaseClient) {
   if (!supportsPush()) throw new Error("이 기기에서는 알림을 사용할 수 없습니다.");
+  // iOS only allows the permission prompt while the button's user activation
+  // is still alive. Ask before awaiting service-worker registration.
+  if (Notification.permission !== "granted") {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") throw new Error("기기 설정에서 알림을 허용해 주세요.");
+  }
   const registration = await navigator.serviceWorker.register("/push-service-worker.js");
   let subscription = await registration.pushManager.getSubscription();
   if (!subscription) {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") throw new Error("기기 설정에서 알림을 허용해 주세요.");
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(VAPID_PUBLIC_KEY) });
   }
   const { data: { user } } = await supabase.auth.getUser();
@@ -169,7 +173,6 @@ export function GuardianPushPrompt({ supabase, role = "guardian" }: { supabase: 
       }, guideSeenKey, lastPromptedKey);
       setMode(null);
     } catch (caught) {
-      try { await rememberPromptChoice(supabase, mode === "disabled" && disabledState ? { [disabledPromptStateKey]: disabledState } : {}, guideSeenKey, lastPromptedKey); } catch { /* Keep the actionable push error visible. */ }
       setError(caught instanceof Error ? caught.message : "알림을 켜지 못했습니다.");
     }
     finally { setSaving(false); }
