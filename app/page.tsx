@@ -14,7 +14,7 @@ import { SettingsBoard } from "./settings-board";
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
-import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView } from "./family-dashboard";
+import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView, FamilySummaryReportView } from "./family-dashboard";
 import { FamilyGradesView } from "./family-grades-view";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
@@ -37,10 +37,10 @@ import { GradeProgressionBoard } from "./grade-progression-board";
 import { VocabularyTestGenerator } from "./vocabulary-test-generator";
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -189,8 +189,8 @@ const roleViews: Record<UserRole, View[]> = {
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "calendar", "grades", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "calendar", "grades", "consultations", "communications", "my-account"],
+  student: ["dashboard", "schedule", "calendar", "grades", "reports", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "calendar", "grades", "reports", "consultations", "communications", "my-account"],
 };
 const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
@@ -829,6 +829,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
+          {view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} />}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
           {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
@@ -923,6 +924,7 @@ function FamilyBottomNavigation({ role, activeView, onSelect, onMore }: { role: 
     { id: "schedule", label: "정규시간표" },
     { id: "calendar", label: "학습캘린더" },
     { id: "grades", label: "성적확인" },
+    { id: "reports", label: "리포트" },
   ];
   return (
     <nav className="family-bottom-nav" aria-label="학생·학부모 주요 메뉴">
