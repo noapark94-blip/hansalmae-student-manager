@@ -216,13 +216,20 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     setRefreshResult(succeeded ? "done" : "error");
     refreshResultTimer.current = window.setTimeout(() => setRefreshResult("idle"), 1600);
   }
+  function openInbox(){
+    setOpen(true);
+    if(mode==="staff"||mode===null)return;
+    const readAt=new Date().toISOString();
+    setInbox(current=>({unreadCount:0,items:current.items.map(item=>item.readAt?item:{...item,readAt})}));
+    void supabase.rpc("mark_family_notification_inbox_read").then(()=>load());
+  }
   return (
     <>
       <button
         type="button"
         className="icon-button notification-button"
         aria-label={`알림${inbox.unreadCount ? ` ${inbox.unreadCount}개` : ""}`}
-        onClick={() => setOpen(true)}
+        onClick={openInbox}
       >
         <HansalmaeIcon name="bell" size={21} />
         {inbox.unreadCount > 0 && (
