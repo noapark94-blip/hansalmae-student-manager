@@ -212,4 +212,102 @@
     margin-top:6px!important;
     font-size:7px!important;
   }
+
+  .teacher-special-workspace .special-day-agenda {
+    margin:18px 26px 0!important;
+    border:1px solid #e7dce1!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:0 7px 22px rgba(70,43,55,.035)!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-day-agenda>header {
+    min-height:88px!important;
+    padding:18px 22px!important;
+    border-bottom:1px solid #eee6e9!important;
+  }
+
+  .teacher-special-workspace .special-day-agenda>header .eyebrow {
+    margin:0 0 6px!important;
+    font-size:11px!important;
+  }
+
+  .teacher-special-workspace .special-day-agenda>header h3 {
+    margin:0!important;
+    font-size:17px!important;
+    line-height:1.35!important;
+    font-weight:800!important;
+  }
+
+  .teacher-special-workspace .special-day-agenda>header span {
+    display:block!important;
+    margin-top:6px!important;
+    font-size:12px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list {
+    padding:4px 22px 14px!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article {
+    min-height:102px!important;
+    padding:16px 4px!important;
+    display:grid!important;
+    grid-template-columns:5px minmax(300px,1fr) auto auto!important;
+    align-items:center!important;
+    gap:16px!important;
+    overflow:visible!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article>i {
+    width:5px!important;
+    min-height:70px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article>span:nth-of-type(1) {
+    min-width:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:5px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article>span:nth-of-type(1)>small {
+    font-size:11px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article>span:nth-of-type(1)>b {
+    font-size:14px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-list>article>span:nth-of-type(1)>em,
+  .teacher-special-workspace .special-lesson-list>article>span:nth-of-type(1)>p {
+    font-size:11px!important;
+    line-height:1.45!important;
+  }
+
+  .teacher-special-workspace .special-agenda-attendance {
+    width:auto!important;
+    max-width:280px!important;
+    flex:none!important;
+    justify-content:flex-end!important;
+  }
+
+  .teacher-special-workspace .special-agenda-attendance>em {
+    padding:7px 10px!important;
+    font-size:10px!important;
+  }
+
+  .teacher-special-workspace .special-lesson-actions {
+    width:auto!important;
+    flex-wrap:nowrap!important;
+  }
+
+  .teacher-special-workspace .special-lesson-actions>button {
+    width:84px!important;
+    min-width:84px!important;
+    height:40px!important;
+    font-size:11px!important;
+  }
 }
