@@ -56,7 +56,8 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
   const [category, setCategory] = useState("");
   const [mine, setMine] = useState(false);
   const [selected, setSelected] = useState(toDate(now));
-  const [editing, setEditing] = useState<EventRow | "new" | null>(null);\n  const [noteEvent, setNoteEvent] = useState<EventRow | null>(null);
+  const [editing, setEditing] = useState<EventRow | "new" | null>(null);
+  const [noteEvent, setNoteEvent] = useState<EventRow | null>(null);
   const year = Number(month.slice(0, 4));
 
   const load = useCallback(async () => {
