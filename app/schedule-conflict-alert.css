@@ -1,3 +1,41 @@
-/* 일정 충돌 안내는 모든 등록 모달에서 같은 카드 형태로 보여 줍니다. */
-.student-modal .form-error{position:relative;padding:13px 14px 13px 43px;border:1px solid #efcbd4;border-radius:12px;background:linear-gradient(135deg,#fff8fa,#fff1f5);color:#7f2448;font-size:12px;font-weight:750;line-height:1.55;box-shadow:0 8px 22px rgba(127,36,72,.07)}
-.student-modal .form-error::before{content:"!";position:absolute;left:13px;top:50%;width:21px;height:21px;transform:translateY(-50%);display:grid;place-items:center;border-radius:50%;background:#922d61;color:#fff;font-size:12px;font-weight:900;box-shadow:0 3px 8px rgba(146,45,97,.2)}
+/* 입력·저장 오류와 일정 충돌은 화면 위치에 관계없이 같은 안내 카드로 보여 줍니다. */
+.form-error{
+  position:relative;
+  box-sizing:border-box;
+  min-height:48px;
+  padding:13px 16px 13px 48px;
+  border:1px solid #eccbd6;
+  border-radius:13px;
+  background:linear-gradient(135deg,#fffafb 0%,#fff3f7 100%);
+  color:#7f2448;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.6;
+  letter-spacing:-.01em;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+  box-shadow:0 8px 24px rgba(127,36,72,.06);
+}
+.form-error::before{
+  content:"!";
+  position:absolute;
+  left:15px;
+  top:50%;
+  width:22px;
+  height:22px;
+  transform:translateY(-50%);
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#922d61;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 3px 9px rgba(146,45,97,.2);
+}
+
+@media(max-width:600px){
+  .form-error{min-height:46px;padding:12px 13px 12px 44px;border-radius:12px;font-size:11px;line-height:1.55}
+  .form-error::before{left:13px;width:20px;height:20px;font-size:11px}
+}
