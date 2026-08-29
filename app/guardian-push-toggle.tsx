@@ -88,7 +88,7 @@ async function rememberPromptChoice(supabase: SupabaseClient, data: Record<strin
   if (error) throw error;
 }
 
-export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
+export function GuardianPushPrompt({ supabase, role = "guardian" }: { supabase: SupabaseClient; role?: string }) {
   const [mode, setMode] = useState<PromptMode | null>(null);
   const [disabledState, setDisabledState] = useState<DisabledState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -165,6 +165,7 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
   }, [disabledState, mode, saving, supabase]);
 
   if (!mode) return null;
+  const staff = role !== "guardian";
   return <div className="guardian-push-prompt-backdrop" role="presentation">
     <section className="guardian-push-prompt" role="dialog" aria-modal="true" aria-labelledby="guardian-push-title" aria-describedby="guardian-push-description">
       <div className="guardian-push-prompt-icon" aria-hidden="true">
@@ -174,11 +175,11 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
         </svg>
       </div>
       <p className="eyebrow">한살매 수업노트</p>
-      <h2 id="guardian-push-title">{mode === "disabled" ? <>기기 알림이 꺼져 있어요<br />다시 연결해 드릴까요?</> : <>아이의 새 학습 기록을<br />바로 알려드릴게요</>}</h2>
-      <p id="guardian-push-description">{mode === "disabled" ? <>알림 설정이 꺼진 것을 확인했어요.<br />다시 켜면 새 피드를 바로 받을 수 있어요.</> : <>수업·첨삭 리포트가 등록되면<br />이 기기에서 빠르게 확인할 수 있어요.</>}</p>
+      <h2 id="guardian-push-title">{mode === "disabled" ? <>기기 알림이 꺼져 있어요<br />다시 연결해 드릴까요?</> : staff ? <>새 학부모 댓글을<br />바로 알려드릴게요</> : <>아이의 새 학습 기록을<br />바로 알려드릴게요</>}</h2>
+      <p id="guardian-push-description">{mode === "disabled" ? <>알림 설정이 꺼진 것을 확인했어요.<br />다시 켜면 새 알림을 바로 받을 수 있어요.</> : staff ? <>담당 학생의 학습 피드에 댓글이 달리면<br />이 기기에서 빠르게 확인할 수 있어요.</> : <>수업·첨삭 리포트가 등록되면<br />이 기기에서 빠르게 확인할 수 있어요.</>}</p>
       {error ? <p className="guardian-push-prompt-error" role="alert">{error}</p> : null}
       <div className="guardian-push-prompt-actions">
-        <button type="button" className="primary" onClick={() => void enable()} disabled={saving}>{saving ? "설정 중…" : mode === "disabled" ? "알림 다시 켜기" : "피드 알림 켜기"}</button>
+        <button type="button" className="primary" onClick={() => void enable()} disabled={saving}>{saving ? "설정 중…" : mode === "disabled" ? "알림 다시 켜기" : staff ? "댓글 알림 켜기" : "피드 알림 켜기"}</button>
         <button type="button" className="secondary" onClick={() => void close()} disabled={saving}>나중에</button>
       </div>
       <small>언제든 알림함에서 기기 알림을 변경할 수 있어요.</small>
