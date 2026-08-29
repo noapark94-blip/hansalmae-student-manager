@@ -1,3 +1,6 @@
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
+
 self.addEventListener("push", event => {
   const payload = event.data?.json() ?? {};
   event.waitUntil(self.registration.showNotification(payload.title ?? "한살매 수업노트", {
@@ -15,8 +18,7 @@ self.addEventListener("notificationclick", event => {
   event.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(windows => {
     const existing = windows.find(client => client.url.startsWith(self.location.origin));
     if (existing) {
-      existing.navigate(target);
-      return existing.focus();
+      return existing.navigate(target).then(client => client?.focus());
     }
     return clients.openWindow(target);
   }));
