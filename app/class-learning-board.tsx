@@ -194,7 +194,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     const{data:stateData,error:stateError}=await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:complete?"completed":"draft"});
     if(stateError){setError(stateError.message);setSaving("");return}
     setLessonState(stateData==="completed"?"completed":"draft");
-    if(complete)await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.map(row=>row.id)});
+    if(complete&&lessonState!=="completed")await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.map(row=>row.id)});
     await onReload();
     setSaving("");
   };
