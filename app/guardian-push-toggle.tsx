@@ -83,7 +83,12 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
   if (!open) return null;
   return <div className="guardian-push-prompt-backdrop" role="presentation">
     <section className="guardian-push-prompt" role="dialog" aria-modal="true" aria-labelledby="guardian-push-title" aria-describedby="guardian-push-description">
-      <div className="guardian-push-prompt-icon" aria-hidden="true"><span>●</span></div>
+      <div className="guardian-push-prompt-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+          <path d="M10 21h4" />
+        </svg>
+      </div>
       <p className="eyebrow">한살매 수업노트</p>
       <h2 id="guardian-push-title">아이의 새 학습 기록을<br />바로 알려드릴게요</h2>
       <p id="guardian-push-description">수업·첨삭 리포트가 등록되면<br />이 기기에서 빠르게 확인할 수 있어요.</p>
