@@ -219,7 +219,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
         aria-label={`알림${inbox.unreadCount ? ` ${inbox.unreadCount}개` : ""}`}
         onClick={() => setOpen(true)}
       >
-        <HansalmaeIcon name="notice" size={21} />
+        <HansalmaeIcon name="bell" size={21} />
         {inbox.unreadCount > 0 && (
           <i>{inbox.unreadCount > 99 ? "99+" : inbox.unreadCount}</i>
         )}
