@@ -4,9 +4,8 @@
 .guardian-push-setting{border-bottom:1px solid #eee5e9;background:#fff8fb}.guardian-push-setting>p{margin:0;padding:13px 18px 2px;display:grid;gap:3px}.guardian-push-setting>p b{color:#74254e;font-size:11px}.guardian-push-setting>p span{color:#786b71;font-size:9px}.guardian-push-toggle{width:100%;min-height:42px;padding:0 18px;border:0;background:transparent;color:#74254e;display:flex;align-items:center;gap:8px;font:inherit;font-size:11px;font-weight:700;text-align:left}.guardian-push-toggle span{font-size:15px;color:#a4a0a2}.guardian-push-toggle.on span{color:#24935f}.guardian-push-toggle:disabled{opacity:.65}
 .guardian-push-prompt-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:24px;background:rgba(35,20,29,.46);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .guardian-push-prompt{width:min(100%,390px);padding:32px 26px 24px;border:1px solid rgba(255,255,255,.8);border-radius:28px;background:linear-gradient(180deg,#fff 0%,#fffafd 100%);box-shadow:0 28px 80px rgba(60,23,44,.28);text-align:center;color:#33252d}
-.guardian-push-prompt-icon{width:68px;height:68px;margin:0 auto 18px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#f7dce9,#fceff5);box-shadow:inset 0 0 0 1px rgba(146,45,97,.08)}
-.guardian-push-prompt-icon span{position:relative;width:28px;height:32px;border-radius:15px 15px 11px 11px;background:#922d61;color:transparent;box-shadow:0 7px 14px rgba(146,45,97,.22)}
-.guardian-push-prompt-icon span:after{content:"";position:absolute;left:10px;bottom:-5px;width:8px;height:8px;border-radius:50%;background:#922d61}
+.guardian-push-prompt-icon{width:68px;height:68px;margin:0 auto 18px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#f9e8f0,#fff6fa);box-shadow:inset 0 0 0 1px rgba(146,45,97,.08),0 8px 20px rgba(146,45,97,.08)}
+.guardian-push-prompt-icon svg{width:32px;height:32px;stroke:#922d61;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .guardian-push-prompt .eyebrow{margin:0 0 8px;color:#922d61;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .guardian-push-prompt h2{margin:0;font-size:24px;line-height:1.35;letter-spacing:-.04em}
 .guardian-push-prompt>p:not(.eyebrow):not(.guardian-push-prompt-error){margin:13px 0 0;color:#766771;font-size:13px;line-height:1.65}
