@@ -46,14 +46,15 @@
   .class-day-workspace .class-roster-shortcut h3 {
     margin:0!important;
     padding:0!important;
-    font-size:15px!important;
+    font-size:17px!important;
     line-height:1.35!important;
+    font-weight:800!important;
   }
 
   .class-day-workspace .class-roster-shortcut p {
     margin:6px 0 0!important;
     color:#84787e!important;
-    font-size:11px!important;
+    font-size:12px!important;
     line-height:1.5!important;
   }
 
@@ -87,6 +88,7 @@
     margin:0!important;
     font-size:17px!important;
     line-height:1.35!important;
+    font-weight:800!important;
   }
 
   .class-day-workspace .class-learning-board>header p {
