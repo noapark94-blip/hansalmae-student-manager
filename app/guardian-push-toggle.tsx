@@ -199,7 +199,14 @@ export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
   }
 
   if (!guardian || state === "checking") return null;
-  return <div className="guardian-push-setting"><button type="button" className={`guardian-push-toggle ${state}`} onClick={() => void toggle()} disabled={state === "saving" || state === "unsupported"} aria-pressed={state === "on"}>
-    <span aria-hidden="true">{state === "on" ? "●" : "○"}</span>{state === "saving" ? "설정 중…" : state === "on" ? "기기 알림 켜짐" : state === "unsupported" ? "이 기기에서는 알림을 지원하지 않아요" : state === "error" ? "기기 알림 다시 시도" : "이 기기에서 알림 받기"}
-  </button></div>;
+  const description = state === "saving" ? "알림 설정을 변경하고 있어요" : state === "on" ? "새 학습 피드를 이 기기에서 받아요" : state === "unsupported" ? "이 기기에서는 알림을 지원하지 않아요" : state === "error" ? "iPhone 설정을 확인한 뒤 다시 시도해 주세요" : "새 학습 피드 알림을 받을 수 있어요";
+  return <div className={`guardian-push-setting ${state}`}>
+    <div className="guardian-push-setting-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>
+    </div>
+    <div className="guardian-push-setting-copy"><b>기기 알림</b><span>{description}</span></div>
+    <button type="button" className="guardian-push-switch" onClick={() => void toggle()} disabled={state === "saving" || state === "unsupported"} aria-pressed={state === "on"} aria-label={state === "on" ? "기기 알림 끄기" : "기기 알림 켜기"}>
+      <i aria-hidden="true" />
+    </button>
+  </div>;
 }
