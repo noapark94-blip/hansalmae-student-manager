@@ -274,6 +274,21 @@ export default function Home() {
   }, [profile, view]);
 
   useEffect(() => {
+    if (!profile || (profile.role !== "guardian" && profile.role !== "student")) return;
+    const url = new URL(window.location.href);
+    const studentId = url.searchParams.get("feedStudent") ?? undefined;
+    const lessonId = url.searchParams.get("feedLesson") ?? undefined;
+    const correctionId = url.searchParams.get("feedCorrection") ?? undefined;
+    if (!studentId || (!lessonId && !correctionId)) return;
+    const target = { studentId, lessonId, correctionId };
+    window.sessionStorage.setItem("hansalmae:family-report-target", JSON.stringify(target));
+    setView("dashboard");
+    for (const key of ["feedStudent", "feedLesson", "feedCorrection"]) url.searchParams.delete(key);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("hansalmae:open-family-report", { detail: target })), 100);
+  }, [profile]);
+
+  useEffect(() => {
     if (!supabase) {
       return;
     }
