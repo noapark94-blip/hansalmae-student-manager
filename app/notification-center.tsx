@@ -14,6 +14,8 @@ import {
 
 type InboxItem = {
   id: string;
+  inboxType?: "staff" | "family" | "general";
+  eventKey?: string;
   lessonId?: string;
   studentId?: string;
   studentName: string;
@@ -64,20 +66,22 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
     ]);
     if (!staff.error) {
       setMode("staff");
-      setInbox((current) => sameData(current, staff.data as Inbox) ? current : staff.data as Inbox);
+      const next={...(staff.data as Inbox),items:((staff.data as Inbox).items??[]).map(item=>({...item,inboxType:"staff" as const}))};
+      setInbox((current) => sameData(current, next) ? current : next);
       return true;
     }
-    if (
-      !family.error &&
-      Number((family.data as Inbox)?.items?.length ?? 0) > 0
-    ) {
-      setMode("family");
-      setInbox((current) => sameData(current, family.data as Inbox) ? current : family.data as Inbox);
-      return true;
-    }
-    if (!general.error) {
-      setMode("general");
-      setInbox((current) => sameData(current, general.data as Inbox) ? current : general.data as Inbox);
+    if (!family.error || !general.error) {
+      const familyInbox=!family.error?(family.data as Inbox):{unreadCount:0,items:[]};
+      const generalInbox=!general.error?(general.data as Inbox):{unreadCount:0,items:[]};
+      const next:Inbox={
+        unreadCount:Number(familyInbox?.unreadCount??0)+Number(generalInbox?.unreadCount??0),
+        items:[
+          ...(familyInbox?.items??[]).map(item=>({...item,inboxType:"family" as const})),
+          ...(generalInbox?.items??[]).map(item=>({...item,inboxType:"general" as const})),
+        ].sort((left,right)=>right.createdAt.localeCompare(left.createdAt)).slice(0,50),
+      };
+      setMode(!family.error?"family":"general");
+      setInbox((current) => sameData(current, next) ? current : next);
       return true;
     }
     setMode(null);
@@ -133,14 +137,15 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   }
   async function openItem(item: InboxItem) {
     markItemRead(item);
-    if (mode !== "staff") {
-      const lessonId=item.lessonId??(item.sourceType==="learning_report"?item.sourceId:undefined);
-      if(!lessonId)return;
-      if(mode==="general")void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
+    if (item.inboxType !== "staff") {
+      const correctionId=item.eventKey==="correction-report"?item.sourceId:undefined;
+      const lessonId=item.lessonId??(!correctionId&&item.sourceType==="learning_report"?item.sourceId:undefined);
+      if(!lessonId&&!correctionId)return;
+      if(item.inboxType==="general")void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
       setOpen(false);
-      sessionStorage.setItem("hansalmae:family-report-target",JSON.stringify({lessonId,studentId:item.studentId}));
+      sessionStorage.setItem("hansalmae:family-report-target",JSON.stringify({lessonId,correctionId,studentId:item.studentId}));
       onOpenFamilyReport?.();
-      window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-family-report",{detail:{lessonId,studentId:item.studentId}})),50);
+      window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-family-report",{detail:{lessonId,correctionId,studentId:item.studentId}})),50);
       return;
     }
     if (!item.studentId || !item.lessonId) return;
@@ -277,24 +282,25 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
               ) : (
                 inbox.items.map((item) => (
                   <article
-                    key={item.id}
+                    key={`${item.inboxType??mode}-${item.id}`}
                     className={!item.readAt ? "unread" : ""}
                     onClick={() => void openItem(item)}
-                    role={mode === "staff"||item.lessonId||(item.sourceType==="learning_report"&&item.sourceId) ? "button" : undefined}
+                    role={item.inboxType === "staff"||item.lessonId||(item.sourceType==="learning_report"&&item.sourceId) ? "button" : undefined}
                   >
-                    <i aria-hidden="true"><HansalmaeIcon name={mode === "general" ? "notice" : "chat"} size={18}/></i>
+                    <i aria-hidden="true"><HansalmaeIcon name={item.inboxType === "general" ? "bell" : "chat"} size={18}/></i>
                     <span>
                       <b>
-                        {mode === "staff"
-                          ? `${item.studentName} · ${item.subject ?? "수업"}`
-                          : mode === "general"
-                            ? (item.title ?? `${item.studentName} 학생`)
-                            : `${item.studentName} 학생`}
+                        {item.inboxType === "staff"
+                          ? `${item.authorName ?? "학부모"}님이 댓글을 남겼어요`
+                          : item.inboxType === "general"
+                            ? familyNotificationTitle(item)
+                            : `${familyTeacherName(item.authorName) || "선생님"}이 답변했어요`}
                       </b>
                       <small>
                         {[
+                          item.studentName ? `${item.studentName} 학생` : null,
                           item.className,
-                          mode === "staff" ? item.authorName : familyTeacherName(item.authorName),
+                          item.inboxType === "family" ? familyTeacherName(item.authorName) : null,
                           formatTime(item.createdAt),
                         ]
                           .filter(Boolean)
@@ -392,4 +398,10 @@ function formatTime(value: string) {
 
 function sameData(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function familyNotificationTitle(item:InboxItem){
+  if(item.eventKey==="correction-report")return `${item.studentName} 학생의 첨삭 기록이 등록됐어요`;
+  if(item.eventKey==="learning-report")return `${item.studentName} 학생의 수업 기록이 등록됐어요`;
+  return item.title??`${item.studentName} 학생 알림`;
 }
