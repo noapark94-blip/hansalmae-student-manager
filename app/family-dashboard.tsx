@@ -201,7 +201,12 @@ export function FamilyLiveDashboard({
     [supabase],
   );
   useEffect(() => {
-    void load(null);
+    let targetStudentId: string | null = null;
+    try {
+      const target = JSON.parse(window.sessionStorage.getItem("hansalmae:family-report-target") ?? "null") as { studentId?: string } | null;
+      targetStudentId = target?.studentId ?? null;
+    } catch { /* Ignore a malformed stale navigation target. */ }
+    void load(targetStudentId);
   }, [load]);
   useEffect(()=>{
     const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId,true)};
