@@ -242,6 +242,24 @@ export default function Home() {
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
+  const [guardianDesktopUrl, setGuardianDesktopUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 761px)");
+    const currentUrl = new URL(window.location.href);
+    const isEmbeddedGuardianView = currentUrl.searchParams.has("guardian-mobile-view");
+    const syncGuardianViewport = () => {
+      if (isEmbeddedGuardianView || !desktop.matches) {
+        setGuardianDesktopUrl(null);
+        return;
+      }
+      currentUrl.searchParams.set("guardian-mobile-view", "1");
+      setGuardianDesktopUrl(currentUrl.toString());
+    };
+    syncGuardianViewport();
+    desktop.addEventListener("change", syncGuardianViewport);
+    return () => desktop.removeEventListener("change", syncGuardianViewport);
+  }, []);
 
   useEffect(() => {
     const savedView = window.localStorage.getItem(VIEW_STORAGE_KEY);
@@ -629,6 +647,14 @@ export default function Home() {
   const familyAccount = profile.role === "student" || profile.role === "guardian";
   const staffAccount = ["admin","teacher","assistant","manager"].includes(profile.role);
   const signedInDisplayName = accountDisplayName(profile);
+
+  if (profile.role === "guardian" && guardianDesktopUrl) {
+    return (
+      <main className="guardian-desktop-shell">
+        <iframe className="guardian-desktop-phone" src={guardianDesktopUrl} title="학부모 모바일 화면" />
+      </main>
+    );
+  }
 
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
