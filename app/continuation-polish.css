@@ -26,10 +26,6 @@
 .learning-homework textarea,.learning-exam input,.learning-homework input { padding:10px 12px; }
 .learning-homework.previous p { min-height:42px; padding:11px 12px; font-size:14px; line-height:1.4; }
 .class-week-strip small,.class-week-strip em,.learning-homework small,.learning-exam small { font-size:12px; }
-.exam-category-modal > header div > span { font-size:0; }
-.exam-category-modal > header div > span::after { content:"선생님별로 시험 종류를 추가하고 이름을 바꾸거나 영구 삭제할 수 있습니다."; font-size:14px; }
-.exam-category-list article > span > button:last-child { font-size:0!important; }
-.exam-category-list article > span > button:last-child::after { content:"영구 삭제"; font-size:14px; }
 .class-day-workspace > header .class-header-actions { display:none!important; }
 .class-day-workspace > header { padding-right:150px; }
 .class-day-workspace > .class-workspace-grid.class-log-grid,.class-day-workspace .class-roster-shortcut { display:contents!important; }
