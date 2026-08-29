@@ -672,8 +672,8 @@ export default function Home() {
 
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
-      <PushDeviceAccountSync supabase={supabase} />
-      {["guardian", "teacher", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt supabase={supabase} role={profile.role} />}
+      <PushDeviceAccountSync key={user.id} supabase={supabase} />
+      {["guardian", "teacher", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
         <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
           <button className="brand" type="button" onClick={() => selectView("dashboard")} aria-label="홈으로 이동">
@@ -709,7 +709,7 @@ export default function Home() {
               <span>수업노트</span>
             </button>
             <div>
-              <NotificationCenter supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} />
+              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} />
             </div>
           </header>
         ) : (
@@ -721,7 +721,7 @@ export default function Home() {
                 <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
-                <NotificationCenter supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
+                <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
                 <button type="button" className="staff-account-button" onClick={() => selectView("my-account")} aria-label="내 계정">
                   <span>{profile.display_name.slice(0, 1)}</span>
                 </button>
@@ -804,7 +804,7 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
+              <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
             </header>
           </>
         )}
