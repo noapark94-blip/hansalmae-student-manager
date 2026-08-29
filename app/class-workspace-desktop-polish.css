@@ -116,7 +116,7 @@
 
   .teacher-special-workspace>header {
     min-height:116px!important;
-    padding:24px 30px 22px!important;
+    padding:24px 48px 22px 30px!important;
     border-bottom:1px solid #eee6e9!important;
     background:#fff!important;
   }
@@ -141,10 +141,12 @@
 
   .teacher-special-workspace>header>.primary,
   .teacher-special-workspace .special-week-calendar>header>.secondary-button {
+    width:132px!important;
     min-width:132px!important;
     height:44px!important;
     min-height:44px!important;
     padding:0 16px!important;
+    box-sizing:border-box!important;
     border-radius:11px!important;
     font-size:12px!important;
     font-weight:800!important;
