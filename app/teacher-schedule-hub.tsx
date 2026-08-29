@@ -64,7 +64,7 @@ export function TeacherScheduleHub({ supabase, profile, initialTab, onStudentOpe
       <button className={tab === "teacher" ? "active" : ""} onClick={() => setTab("teacher")}>선생님별 시간표</button>
       <button className={tab === "correction" ? "active" : ""} onClick={() => setTab("correction")}>첨삭 시간표</button>
       <button className={tab === "vehicle" ? "active" : ""} onClick={() => setTab("vehicle")}>차량 운행표</button>
-      <button className={tab === "academic" ? "active" : ""} onClick={() => setTab("academic")}>학사·시험 일정</button>
+      <button className={tab === "academic" ? "active" : ""} onClick={() => setTab("academic")}>학사·학원 일정</button>
     </div>
     {(tab === "all" || tab === "teacher") && <ClassScheduleBoard rows={visibleClasses} teachers={data.teachers} teacherId={teacherId} setTeacherId={setTeacherId} personal={tab === "teacher"} onAdd={() => setEditor({ kind: "class" })} onEdit={(row) => setEditor({ kind: "class", row })} onRoster={setRoster} />}
     {tab === "correction" && <CorrectionBoard rows={data.corrections} exceptions={data.correctionExceptions} profile={profile} onAdd={() => setEditor({ kind: "correction" })} onEdit={(row) => setEditor({ kind: "correction", row })} onException={(row) => setEditor({ kind: "exception", row })} />}
