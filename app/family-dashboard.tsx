@@ -17,6 +17,7 @@ type FamilyView =
   | "attendance"
   | "makeups"
   | "assignments"
+  | "reports"
   | "calendar"
   | "consultations"
   | "communications"
@@ -310,7 +311,7 @@ export function FamilyLiveDashboard({
             nextLesson={data?.upcomingClasses[0] ?? null}
             onSchedule={() => onNavigate("schedule")}
             onNavigate={(view) =>
-              onNavigate(view === "communications" ? "communications" : "dashboard")
+              onNavigate(view === "communications" ? "communications" : "reports")
             }
           />
           <FamilyLearningReportFeed
@@ -466,7 +467,7 @@ export function FamilyLiveDashboard({
                       : "출결 기록 없음"
                   }
                   count={data?.recentAttendance.length ?? 0}
-                  onClick={() => onNavigate("dashboard")}
+                  onClick={() => onNavigate("reports")}
                 />
                 <ProgressButton
                   icon="refresh"
@@ -496,7 +497,7 @@ export function FamilyLiveDashboard({
                     data?.assignments.filter((x) => x.status !== "reviewed")
                       .length ?? 0
                   }
-                  onClick={() => onNavigate("dashboard")}
+                  onClick={() => onNavigate("reports")}
                 />
                 <ProgressButton
                   icon="chat"
