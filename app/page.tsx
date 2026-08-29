@@ -33,7 +33,7 @@ import { useMobileGreeting } from "./mobile-greeting";
 import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 import { AppInstallPrompt } from "./app-install-prompt";
-import { GuardianPushPrompt } from "./guardian-push-toggle";
+import { GuardianPushPrompt, PushDeviceAccountSync } from "./guardian-push-toggle";
 import { GradeProgressionBoard } from "./grade-progression-board";
 import { VocabularyTestGenerator } from "./vocabulary-test-generator";
 import confirmStyles from "./message-confirm.module.css";
@@ -661,6 +661,7 @@ export default function Home() {
 
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
+      <PushDeviceAccountSync supabase={supabase} />
       {profile.role === "guardian" && <GuardianPushPrompt supabase={supabase} />}
       {!familyAccount && (
         <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
