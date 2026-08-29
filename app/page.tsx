@@ -188,7 +188,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "my-account"],
+  teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   student: ["dashboard", "schedule", "calendar", "grades", "reports", "communications", "my-account"],
@@ -846,7 +846,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
-          {view === "alimtalk" && (profile.role === "admin" || profile.role === "teacher") && <AlimtalkSendCenter supabase={supabase} students={students} />}
+          {view === "alimtalk" && profile.role === "admin" && <AlimtalkSendCenter supabase={supabase} students={students} />}
           {view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} />}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
           {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
@@ -1127,6 +1127,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "transport" as View, label: "차량 운행", tone: "green" },
           { id: "tuition" as View, label: "원비 정산", tone: "amber" },
           { id: "analytics" as View, label: "운영 현황", tone: "gray" },
+          { id: "alimtalk" as View, label: "알림톡 발송", tone: "wine" },
         ]
       : role === "assistant"
         ? [
@@ -1316,7 +1317,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
-    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "backup", "settings"],
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "alimtalk", "backup", "settings"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
