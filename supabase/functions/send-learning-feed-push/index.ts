@@ -4,7 +4,7 @@ import webpush from "npm:web-push@3.6.7";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Content-Type":"application/json"};
 const PUBLIC_KEY="BFtcz-HAAEgZVonjdQqk8hpZQwOMeQZObsTlL-jwoh_fdn9rWyt_GmaDOy77HEKQQ0qFazh-7PIGKtRB3BIfkuE";
-type Body={kind:"class"|"correction";sourceKey:string;studentIds:string[];date:string;title?:string;body?:string;url?:string;recipientProfileId?:string};
+type Body={kind:"class"|"correction"|"reply";sourceKey:string;studentIds:string[];date:string;title?:string;body?:string;url?:string;recipientProfileId?:string};
 
 Deno.serve(async req=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
@@ -50,7 +50,7 @@ Deno.serve(async req=>{
       for(const subscription of subscriptions||[]){
         attempted++;
         try{
-          await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:body.title||"새 학습 피드가 도착했어요",body:body.body||`${names||"자녀"} 학생의 ${body.date.slice(5).replace("-",".")} ${body.kind==="correction"?"첨삭":"수업"} 기록이 등록되었습니다.`,url:body.url||"/",tag:key}));
+          await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:body.title||"새 학습 피드가 도착했어요",body:body.body||`${names||"자녀"} 학생의 ${body.date.slice(5).replace("-",".")} ${body.kind==="correction"?"첨삭":body.kind==="reply"?"댓글":"수업"} 기록이 등록되었습니다.`,url:body.url||"/",tag:key}));
           sent++;recipientSent++;
         }catch(error){
           const status=(error as{statusCode?:number}).statusCode;
