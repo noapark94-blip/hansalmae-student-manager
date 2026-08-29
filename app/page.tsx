@@ -14,7 +14,7 @@ import { SettingsBoard } from "./settings-board";
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 import { StudentDetailHub } from "./student-detail-hub";
-import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView, FamilySummaryReportView } from "./family-dashboard";
+import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView } from "./family-dashboard";
 import { FamilyGradesView } from "./family-grades-view";
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
@@ -30,7 +30,6 @@ import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
 import { useMobileGreeting } from "./mobile-greeting";
-import { ReportCenter } from "./report-center";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 import { AppInstallPrompt } from "./app-install-prompt";
 import { GuardianPushPrompt, PushDeviceAccountSync } from "./guardian-push-toggle";
@@ -38,10 +37,10 @@ import { GradeProgressionBoard } from "./grade-progression-board";
 import { VocabularyTestGenerator } from "./vocabulary-test-generator";
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -163,7 +162,6 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "makeups", label: "결석·보강", icon: "↻" },
   { id: "assignments", label: "과제·첨삭", icon: "✎" },
   { id: "vocabulary-tests", label: "단어 시험 출제", icon: "☷" },
-  { id: "reports", label: "데일리·위클리 리포트", icon: "▥" },
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
   { id: "tuition", label: "원비 정산", icon: "₩" },
@@ -187,12 +185,12 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 }
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
-  student: ["dashboard", "schedule", "calendar", "grades", "reports", "communications", "my-account"],
-  guardian: ["dashboard", "schedule", "calendar", "grades", "reports", "consultations", "communications", "my-account"],
+  student: ["dashboard", "schedule", "calendar", "grades", "communications", "my-account"],
+  guardian: ["dashboard", "schedule", "calendar", "grades", "consultations", "communications", "my-account"],
 };
 const defaultViewForRole = (_role: UserRole): View => "dashboard";
 
@@ -221,7 +219,6 @@ export default function Home() {
   const profileLoadSequence = useRef(0);
   const loadedUserIdRef = useRef<string | null>(null);
   const [view, setView] = useState<View>("dashboard");
-  const [deepReportId] = useState<string | null>(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("report")));
   const [viewRestored, setViewRestored] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -318,8 +315,7 @@ export default function Home() {
         setAuthError(ownProfile?.role === "guardian" && !ownProfile.is_active ? "자녀 연결 승인 대기 중입니다. 관리자가 확인한 뒤 로그인할 수 있습니다." : "계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
-        if (deepReportId) setView("reports");
-        else if (["assistant","student","guardian"].includes(role) || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
+        if (["assistant","student","guardian"].includes(role) || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -341,7 +337,7 @@ export default function Home() {
       window.setTimeout(() => void loadProfile(nextUser), 0);
     });
     return () => listener.subscription.unsubscribe();
-  }, [deepReportId, supabase]);
+  }, [supabase]);
 
   useEffect(() => {
     if (!supabase || !profile || !["admin","teacher","manager"].includes(profile.role)) {
@@ -833,7 +829,6 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
-          {view === "reports" && (familyAccount ? <FamilySummaryReportView supabase={supabase} profile={profile} /> : <ReportCenter supabase={supabase} profile={profile} students={students} initialReportId={deepReportId} />)}
           {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
           {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
@@ -928,7 +923,6 @@ function FamilyBottomNavigation({ role, activeView, onSelect, onMore }: { role: 
     { id: "schedule", label: "정규시간표" },
     { id: "calendar", label: "학습캘린더" },
     { id: "grades", label: "성적확인" },
-    { id: "reports", label: "리포트" },
   ];
   return (
     <nav className="family-bottom-nav" aria-label="학생·학부모 주요 메뉴">
@@ -1109,7 +1103,6 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "corrections" as View, label: "첨삭 시간표", tone: "gray" },
           { id: "assignments" as View, label: "첨삭 관리", tone: "wine" },
           { id: "vocabulary-tests" as View, label: "단어 시험 출제", tone: "violet" },
-          { id: "reports" as View, label: "리포트", tone: "violet" },
           { id: "consultations" as View, label: "상담", tone: "blue" },
           { id: "transport" as View, label: "차량 운행", tone: "green" },
           { id: "tuition" as View, label: "원비 정산", tone: "amber" },
@@ -1303,7 +1296,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
-    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "reports", "consultations", "communications", "tuition", "analytics", "backup", "settings"],
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "backup", "settings"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
