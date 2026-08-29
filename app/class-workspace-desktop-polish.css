@@ -255,7 +255,7 @@
     min-height:102px!important;
     padding:16px 4px!important;
     display:grid!important;
-    grid-template-columns:5px minmax(300px,1fr) auto auto!important;
+    grid-template-columns:5px minmax(300px,1fr) auto!important;
     align-items:center!important;
     gap:16px!important;
     overflow:visible!important;
