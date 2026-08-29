@@ -311,3 +311,39 @@
     font-size:11px!important;
   }
 }
+
+/* Keep the class teacher choices on one clean row on desktop. */
+@media(min-width:761px){
+  .class-creator .teacher-picker>div{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:8px;
+    width:100%;
+  }
+  .class-creator .teacher-picker>div>label{
+    box-sizing:border-box;
+    min-width:0;
+    min-height:58px;
+    padding:8px 10px;
+    justify-content:flex-start;
+    gap:7px;
+    border-color:#e7dde1;
+    border-radius:12px;
+    cursor:pointer;
+    transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease;
+  }
+  .class-creator .teacher-picker>div>label:hover{
+    border-color:#d4a8bd;
+    background:#fffafd;
+    box-shadow:0 7px 18px rgba(91,43,67,.07);
+    transform:translateY(-1px);
+  }
+  .class-creator .teacher-picker>div>label.active{
+    border-color:#b74a7d;
+    background:#fbf0f5;
+    box-shadow:0 0 0 2px rgba(146,45,97,.08);
+  }
+  .class-creator .teacher-picker>div>label>input{flex:0 0 16px}
+  .class-creator .teacher-picker>div>label>i{flex:0 0 27px;width:27px;height:27px;font-size:11px}
+  .class-creator .teacher-picker>div>label>span{min-width:0;overflow:hidden;font-size:12px;font-weight:750;white-space:nowrap;text-overflow:ellipsis}
+}
