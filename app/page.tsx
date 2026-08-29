@@ -284,6 +284,8 @@ export default function Home() {
     const loadProfile = async (nextUser: User | null) => {
       const loadSequence = ++profileLoadSequence.current;
       loadedUserIdRef.current = nextUser?.id ?? null;
+      setFamilyMoreOpen(false);
+      setStaffMoreOpen(false);
       setAuthReady(false);
       setUser(nextUser);
       if (!nextUser) {
@@ -860,10 +862,14 @@ export default function Home() {
             selectView(nextView);
           }}
           onClose={() => setFamilyMoreOpen(false)}
-          onSignOut={() => void supabase.auth.signOut()}
+          onSignOut={() => {
+            setFamilyMoreOpen(false);
+            setView("dashboard");
+            void supabase.auth.signOut();
+          }}
         />
       )}
-      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => void supabase.auth.signOut()} />}
+      {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => { setStaffMoreOpen(false); setView("dashboard"); void supabase.auth.signOut(); }} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
