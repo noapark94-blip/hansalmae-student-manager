@@ -5,11 +5,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type State = "checking" | "unsupported" | "off" | "on" | "saving" | "error";
 type PromptMode = "intro" | "weekly" | "disabled";
+type DisabledState = "permission-off" | "subscription-missing";
 const VAPID_PUBLIC_KEY = "BFtcz-HAAEgZVonjdQqk8hpZQwOMeQZObsTlL-jwoh_fdn9rWyt_GmaDOy77HEKQQ0qFazh-7PIGKtRB3BIfkuE";
 const GUIDE_SEEN_KEY = "guardian_push_guide_seen";
 const LAST_PROMPTED_KEY = "guardian_push_last_prompted_at";
 const WAS_ENABLED_KEY = "guardian_push_was_enabled";
-const DISABLED_PROMPT_SEEN_KEY = "guardian_push_disabled_prompt_seen";
+const DISABLED_PROMPT_STATE_KEY = "guardian_push_disabled_prompt_state";
+const INTENTIONALLY_DISABLED_KEY = "guardian_push_intentionally_disabled";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 function decodeKey(value: string) {
@@ -54,6 +56,7 @@ async function rememberPromptChoice(supabase: SupabaseClient, data: Record<strin
 
 export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
   const [mode, setMode] = useState<PromptMode | null>(null);
+  const [disabledState, setDisabledState] = useState<DisabledState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,8 +70,12 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
       const enabled = Boolean(subscription && Notification.permission === "granted");
       const metadata = user.user_metadata ?? {};
       if (enabled) {
-        if (metadata[WAS_ENABLED_KEY] !== true || metadata[DISABLED_PROMPT_SEEN_KEY] === true) {
-          await supabase.auth.updateUser({ data: { [WAS_ENABLED_KEY]: true, [DISABLED_PROMPT_SEEN_KEY]: false } });
+        if (metadata[WAS_ENABLED_KEY] !== true || metadata[DISABLED_PROMPT_STATE_KEY] || metadata[INTENTIONALLY_DISABLED_KEY] === true) {
+          await supabase.auth.updateUser({ data: {
+            [WAS_ENABLED_KEY]: true,
+            [DISABLED_PROMPT_STATE_KEY]: "",
+            [INTENTIONALLY_DISABLED_KEY]: false,
+          } });
         }
         return;
       }
@@ -77,8 +84,13 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
         try { await subscription.unsubscribe(); } catch { /* The OS may already have revoked it. */ }
       }
       if (!active) return;
+      if (metadata[INTENTIONALLY_DISABLED_KEY] === true) return;
       if (metadata[WAS_ENABLED_KEY] === true) {
-        if (metadata[DISABLED_PROMPT_SEEN_KEY] !== true) setMode("disabled");
+        const currentDisabledState: DisabledState = Notification.permission === "granted" ? "subscription-missing" : "permission-off";
+        if (metadata[DISABLED_PROMPT_STATE_KEY] !== currentDisabledState) {
+          setDisabledState(currentDisabledState);
+          setMode("disabled");
+        }
         return;
       }
       if (metadata[GUIDE_SEEN_KEY] !== true) { setMode("intro"); return; }
@@ -92,12 +104,12 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
     if (saving) return;
     setSaving(true);
     try {
-      await rememberPromptChoice(supabase, mode === "disabled" ? { [DISABLED_PROMPT_SEEN_KEY]: true } : {});
+      await rememberPromptChoice(supabase, mode === "disabled" && disabledState ? { [DISABLED_PROMPT_STATE_KEY]: disabledState } : {});
       setMode(null);
     }
     catch { setError("선택을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."); }
     finally { setSaving(false); }
-  }, [mode, saving, supabase]);
+  }, [disabledState, mode, saving, supabase]);
 
   const enable = useCallback(async () => {
     if (saving) return;
@@ -105,14 +117,18 @@ export function GuardianPushPrompt({ supabase }: { supabase: SupabaseClient }) {
     try {
       // iOS requires the permission request to remain in the direct button gesture.
       await subscribeToGuardianPush(supabase);
-      await rememberPromptChoice(supabase, { [WAS_ENABLED_KEY]: true, [DISABLED_PROMPT_SEEN_KEY]: false });
+      await rememberPromptChoice(supabase, {
+        [WAS_ENABLED_KEY]: true,
+        [DISABLED_PROMPT_STATE_KEY]: "",
+        [INTENTIONALLY_DISABLED_KEY]: false,
+      });
       setMode(null);
     } catch (caught) {
-      try { await rememberPromptChoice(supabase, mode === "disabled" ? { [DISABLED_PROMPT_SEEN_KEY]: true } : {}); } catch { /* Keep the actionable push error visible. */ }
+      try { await rememberPromptChoice(supabase, mode === "disabled" && disabledState ? { [DISABLED_PROMPT_STATE_KEY]: disabledState } : {}); } catch { /* Keep the actionable push error visible. */ }
       setError(caught instanceof Error ? caught.message : "알림을 켜지 못했습니다.");
     }
     finally { setSaving(false); }
-  }, [mode, saving, supabase]);
+  }, [disabledState, mode, saving, supabase]);
 
   if (!mode) return null;
   return <div className="guardian-push-prompt-backdrop" role="presentation">
@@ -165,11 +181,19 @@ export function GuardianPushToggle({ supabase }: { supabase: SupabaseClient }) {
         const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", existing.endpoint);
         if (error) throw error;
         await existing.unsubscribe();
-        await rememberPromptChoice(supabase, { [WAS_ENABLED_KEY]: true, [DISABLED_PROMPT_SEEN_KEY]: true });
+        await rememberPromptChoice(supabase, {
+          [WAS_ENABLED_KEY]: true,
+          [DISABLED_PROMPT_STATE_KEY]: "",
+          [INTENTIONALLY_DISABLED_KEY]: true,
+        });
         setState("off"); return;
       }
       await subscribeToGuardianPush(supabase);
-      await rememberPromptChoice(supabase, { [WAS_ENABLED_KEY]: true, [DISABLED_PROMPT_SEEN_KEY]: false });
+      await rememberPromptChoice(supabase, {
+        [WAS_ENABLED_KEY]: true,
+        [DISABLED_PROMPT_STATE_KEY]: "",
+        [INTENTIONALLY_DISABLED_KEY]: false,
+      });
       setState("on");
     } catch { setState("error"); }
   }
