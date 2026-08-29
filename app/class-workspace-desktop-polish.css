@@ -1,0 +1,107 @@
+/* Final desktop alignment for the regular-class workspace. Keep the mobile
+   workspace untouched; its compact layout has separate interaction rules. */
+@media (min-width:901px) {
+  .class-day-workspace {
+    padding-bottom:26px!important;
+    background:#fcfbfb!important;
+  }
+
+  .class-day-workspace>header {
+    min-height:116px!important;
+    padding:24px 30px 22px!important;
+    border-bottom:1px solid #eee6e9!important;
+    background:#fff!important;
+  }
+
+  .class-day-workspace>header .eyebrow {
+    margin:0 0 7px!important;
+    font-size:11px!important;
+  }
+
+  .class-day-workspace>header h2 {
+    font-size:23px!important;
+    line-height:1.25!important;
+  }
+
+  .class-day-workspace>header span {
+    display:block!important;
+    margin-top:7px!important;
+    font-size:12px!important;
+    line-height:1.45!important;
+  }
+
+  .class-day-workspace>.class-workspace-grid.class-log-grid {
+    margin:18px 26px 0!important;
+  }
+
+  .class-day-workspace .class-roster-shortcut {
+    min-height:88px!important;
+    padding:18px 22px!important;
+    border:1px solid #e7dce1!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:0 7px 22px rgba(70,43,55,.035)!important;
+  }
+
+  .class-day-workspace .class-roster-shortcut h3 {
+    margin:0!important;
+    padding:0!important;
+    font-size:15px!important;
+    line-height:1.35!important;
+  }
+
+  .class-day-workspace .class-roster-shortcut p {
+    margin:6px 0 0!important;
+    color:#84787e!important;
+    font-size:11px!important;
+    line-height:1.5!important;
+  }
+
+  .class-day-workspace .class-roster-actions>button,
+  .class-day-workspace .class-learning-board>header .learning-header-actions>button {
+    min-width:132px!important;
+    height:44px!important;
+    padding:0 16px!important;
+    border-radius:11px!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
+
+  .class-day-workspace .class-learning-board {
+    margin:18px 26px 0!important;
+    border:1px solid #e7dce1!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:0 7px 22px rgba(70,43,55,.035)!important;
+    overflow:hidden!important;
+  }
+
+  .class-day-workspace .class-learning-board>header {
+    min-height:88px!important;
+    padding:18px 22px!important;
+    border-bottom:1px solid #eee6e9!important;
+    background:#fff!important;
+  }
+
+  .class-day-workspace .class-learning-board>header h3 {
+    margin:0!important;
+    font-size:17px!important;
+    line-height:1.35!important;
+  }
+
+  .class-day-workspace .class-learning-board>header p {
+    margin:7px 0 0!important;
+    color:#766b71!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+  }
+
+  .class-day-workspace .class-week-navigation,
+  .class-day-workspace .learning-compact-common,
+  .class-day-workspace .family-read-status,
+  .class-day-workspace .learning-board-heading,
+  .class-day-workspace .learning-board-rows,
+  .class-day-workspace .class-learning-board>footer {
+    border-radius:0!important;
+  }
+}
