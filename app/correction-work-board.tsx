@@ -109,12 +109,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   const saveAll=async(complete:boolean)=>{
-    const firstCompletion=complete&&!completed;
     if(complete){const missing=rows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled").map(row=>row.assignment.studentName);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
     setSaving("all");setError("");
     try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{},complete)}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
-    if(firstCompletion)await sendLearningFeedPush(supabase,{sourceType:"correction",date,records:rows.map(row=>({assignmentId:row.assignment.id,startTime:row.startTime}))});
+    if(complete)await sendLearningFeedPush(supabase,{sourceType:"correction",date,studentIds:rows.map(row=>row.assignment.studentId)});
     await load();setSaving("");
   };
 
