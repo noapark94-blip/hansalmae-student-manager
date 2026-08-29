@@ -402,14 +402,15 @@ export function FamilyLearningReportFeed({
   useEffect(() => {
     const openReport = (event: Event) => {
       const detail = (
-        event as CustomEvent<{ lessonId?: string; studentId?: string }>
+        event as CustomEvent<{ lessonId?: string; correctionId?: string; studentId?: string }>
       ).detail;
       if (
-        !detail?.lessonId ||
+        (!detail?.lessonId && !detail?.correctionId) ||
         (detail.studentId && detail.studentId !== studentId)
       )
         return;
-      const target = items.find((item) => item.lessonId === detail.lessonId);
+      const target = detail.lessonId?items.find((item) => item.lessonId === detail.lessonId):null;
+      const correctionTarget=detail.correctionId?corrections.find(item=>item.id===detail.correctionId):null;
       if (target) {
         setSelected({
           kind: "lesson",
@@ -418,12 +419,16 @@ export function FamilyLearningReportFeed({
           report: target,
         });
         sessionStorage.removeItem("hansalmae:family-report-target");
+      } else if(correctionTarget){
+        setSelected({kind:"correction",date:correctionTarget.correctionDate,time:correctionTarget.startTime,report:correctionTarget});
+        void confirmCorrectionRead(correctionTarget.id);
+        sessionStorage.removeItem("hansalmae:family-report-target");
       }
     };
     window.addEventListener("hansalmae:open-family-report", openReport);
     return () =>
       window.removeEventListener("hansalmae:open-family-report", openReport);
-  }, [items, studentId]);
+  }, [corrections, items, studentId]);
 
   useEffect(() => {
     if (!selected) return;
