@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { View } from "./page";
 
-type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "edit" | "bus" | "chat" | "notice" | "wallet" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu";
+type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "edit" | "bus" | "chat" | "notice" | "bell" | "wallet" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu";
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="M3.5 10.5 12 3.8l8.5 6.7"/><path d="M5.8 9.3v10h12.4v-10"/><path d="M9.4 19.3v-5.8h5.2v5.8"/></>,
@@ -13,6 +13,7 @@ const paths: Record<IconName, ReactNode> = {
   bus: <><rect x="4" y="4" width="16" height="14" rx="3"/><path d="M7 8h10M7 12h10M7.5 18v2M16.5 18v2"/><circle cx="8" cy="15" r=".7"/><circle cx="16" cy="15" r=".7"/></>,
   chat: <><path d="M5 5.2h14v10.5H10l-5 3v-3H5Z"/><path d="M8.5 9h7M8.5 12h4.5"/></>,
   notice: <><path d="M5 10.5v3l3 1 7 4V5.5l-7 4Z"/><path d="M8 14.5 9.5 19"/><path d="M18 8v6"/></>,
+  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></>,
   wallet: <><rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M4.5 9h15.5M15 13h5"/><circle cx="16.5" cy="14.5" r=".6"/></>,
   settings: <><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/></>,
   chart: <><path d="M4 20V5M4 20h16"/><path d="m7 16 4-4 3 2 5-6"/></>,
