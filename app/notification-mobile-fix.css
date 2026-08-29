@@ -38,3 +38,6 @@
   .notification-list article>i{width:40px!important;height:40px!important;border-radius:13px!important}
   .notification-list article b{font-size:13px!important}.notification-list article small{font-size:10px!important}.notification-list article p{font-size:11px!important}
 }
+
+/* Device push controls belong to the mobile app notification drawer only. */
+@media(min-width:761px){.notification-drawer .guardian-push-setting{display:none}}
