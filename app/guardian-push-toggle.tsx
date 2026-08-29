@@ -13,7 +13,7 @@ const WAS_ENABLED_KEY = "guardian_push_was_enabled";
 const DISABLED_PROMPT_STATE_KEY = "guardian_push_disabled_prompt_state";
 const INTENTIONALLY_DISABLED_KEY = "guardian_push_intentionally_disabled";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const PUSH_ROLES = new Set(["guardian", "teacher", "admin", "manager"]);
+const PUSH_ROLES = new Set(["guardian", "teacher", "assistant", "admin", "manager"]);
 
 function decodeKey(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
