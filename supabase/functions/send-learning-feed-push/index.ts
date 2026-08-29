@@ -34,6 +34,18 @@ Deno.serve(async req=>{
     const{data:secret}=await admin.rpc("push_vapid_private_key");
     if(!secret)throw new Error("푸시 발송 키가 설정되지 않았습니다.");
     webpush.setVapidDetails("mailto:noapark94@gmail.com",PUBLIC_KEY,secret);
+    let lessonId="",correctionId="";
+    if(body.kind==="class"){
+      const separator=body.sourceKey.lastIndexOf(":");
+      const classId=separator>0?body.sourceKey.slice(0,separator):"";
+      const lessonDate=separator>0?body.sourceKey.slice(separator+1):body.date;
+      if(classId){const{data:lesson}=await admin.from("lessons").select("id").eq("class_id",classId).eq("lesson_date",lessonDate).eq("status","completed").order("starts_at").limit(1).maybeSingle();lessonId=lesson?.id||""}
+    }else if(body.kind==="correction"){
+      const reportId=body.sourceKey.split(":")[0];
+      const{data:report}=await admin.from("correction_reports").select("id").eq("id",reportId).maybeSingle();correctionId=report?.id||"";
+    }else if(body.kind==="reply"){
+      const{data:comment}=await admin.from("learning_report_comments").select("lesson_id").eq("id",body.sourceKey).maybeSingle();lessonId=comment?.lesson_id||"";
+    }
     let sent=0,attempted=0,skipped=0;
     for(const[profileId,ids]of recipients){
       const key=`${body.kind}:${body.sourceKey}`;
@@ -44,13 +56,15 @@ Deno.serve(async req=>{
         throw new Error(`푸시 발송 기록 생성 실패: ${dedupe.message}`);
       }
       const names=(students||[]).filter(student=>ids.includes(student.id)).map(student=>student.name).join("·");
+      const targetStudentId=ids[0]||"";
+      const targetUrl=body.url&&body.url!=="/"?body.url:targetStudentId&&(lessonId||correctionId)?`/?feedStudent=${encodeURIComponent(targetStudentId)}${lessonId?`&feedLesson=${encodeURIComponent(lessonId)}`:`&feedCorrection=${encodeURIComponent(correctionId)}`}`:"/";
       const{data:subscriptions}=await admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("profile_id",profileId);
       console.log("[web-push] recipient resolved",{profileId,key,subscriptions:subscriptions?.length||0});
       let recipientSent=0;
       for(const subscription of subscriptions||[]){
         attempted++;
         try{
-          await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:body.title||"새 학습 피드가 도착했어요",body:body.body||`${names||"자녀"} 학생의 ${body.date.slice(5).replace("-",".")} ${body.kind==="correction"?"첨삭":body.kind==="comment"||body.kind==="reply"?"댓글":"수업"} 기록이 등록되었습니다.`,url:body.url||"/",tag:key}));
+          await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:body.title||"새 학습 피드가 도착했어요",body:body.body||`${names||"자녀"} 학생의 ${body.date.slice(5).replace("-",".")} ${body.kind==="correction"?"첨삭":body.kind==="comment"||body.kind==="reply"?"댓글":"수업"} 기록이 등록되었습니다.`,url:targetUrl,tag:key}));
           sent++;recipientSent++;
         }catch(error){
           const status=(error as{statusCode?:number}).statusCode;
