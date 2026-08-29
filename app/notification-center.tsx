@@ -266,7 +266,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       : "새로고침"}
               </button>
             </div>
-            {mode === "general" && <GuardianPushToggle supabase={supabase}/>}
+            <GuardianPushToggle supabase={supabase}/>
             <div className="notification-list">
               {!inbox.items.length ? (
                 <p>
