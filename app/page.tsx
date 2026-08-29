@@ -1192,7 +1192,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
         {actions.map((item) => (
           <button type="button" className={`assistant-action-${item.id}`} key={item.id} onClick={() => onNavigate(item.id)}>
             <i className={item.tone}>
-              <HansalmaeIcon name={viewIcon[item.id]} size={22} />
+              <HansalmaeIcon name={item.id === "corrections" ? "calendar" : viewIcon[item.id]} size={22} />
             </i>
             <span>{item.label}</span>
           </button>
@@ -1303,7 +1303,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
     <nav className="staff-bottom-nav" aria-label={`${roleLabels[role]} 주요 메뉴`}>
       {items.map((item) => (
         <button type="button" key={item.id} className={activeView === item.id ? "active" : ""} aria-current={activeView === item.id ? "page" : undefined} onClick={() => onSelect(item.id)}>
-          <HansalmaeIcon name={viewIcon[item.id]} size={21} />
+          <HansalmaeIcon name={item.id === "corrections" ? "calendar" : viewIcon[item.id]} size={21} />
           <span>{item.label}</span>
         </button>
       ))}
@@ -1352,7 +1352,7 @@ function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClos
           {visibleItems.map((item) => (
             <button type="button" key={item.id} className={activeView === item.id ? "active" : ""} onClick={() => onSelect(item.id)}>
               <i>
-                <HansalmaeIcon name={viewIcon[item.id]} size={20} />
+                <HansalmaeIcon name={item.id === "corrections" ? "calendar" : viewIcon[item.id]} size={20} />
               </i>
               <span>{item.label}</span>
             </button>
