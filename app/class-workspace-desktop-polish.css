@@ -106,4 +106,108 @@
   .class-day-workspace .class-learning-board>footer {
     border-radius:0!important;
   }
+
+  /* Individual makeup/additional workspace follows the exact same desktop
+     type scale, card frame and weekly-calendar geometry as a regular class. */
+  .teacher-special-workspace {
+    padding-bottom:26px!important;
+    background:#fcfbfb!important;
+  }
+
+  .teacher-special-workspace>header {
+    min-height:116px!important;
+    padding:24px 30px 22px!important;
+    border-bottom:1px solid #eee6e9!important;
+    background:#fff!important;
+  }
+
+  .teacher-special-workspace>header .eyebrow {
+    margin:0 0 7px!important;
+    font-size:11px!important;
+  }
+
+  .teacher-special-workspace>header h2 {
+    margin:0!important;
+    font-size:23px!important;
+    line-height:1.25!important;
+  }
+
+  .teacher-special-workspace>header span {
+    display:block!important;
+    margin-top:7px!important;
+    font-size:12px!important;
+    line-height:1.45!important;
+  }
+
+  .teacher-special-workspace>header>.primary,
+  .teacher-special-workspace .special-week-calendar>header>.secondary-button {
+    min-width:132px!important;
+    height:44px!important;
+    min-height:44px!important;
+    padding:0 16px!important;
+    border-radius:11px!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
+
+  .teacher-special-workspace .special-week-calendar {
+    margin:18px 26px 0!important;
+    border:1px solid #e7dce1!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:0 7px 22px rgba(70,43,55,.035)!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-week-calendar>header {
+    min-height:88px!important;
+    padding:18px 22px!important;
+    border-bottom:1px solid #eee6e9!important;
+    background:#fff!important;
+  }
+
+  .teacher-special-workspace .special-week-calendar>header h3 {
+    margin:0!important;
+    font-size:17px!important;
+    line-height:1.35!important;
+    font-weight:800!important;
+  }
+
+  .teacher-special-workspace .special-week-calendar>header p {
+    margin:7px 0 0!important;
+    color:#766b71!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+  }
+
+  .teacher-special-workspace .special-week-navigation {
+    grid-template-columns:38px minmax(0,1fr) 38px!important;
+    border-radius:0!important;
+    border-bottom:1px solid #eee6e9!important;
+  }
+
+  .teacher-special-workspace .special-week-strip {
+    padding:12px!important;
+    grid-template-columns:repeat(7,minmax(112px,1fr))!important;
+    gap:7px!important;
+  }
+
+  .teacher-special-workspace .special-week-strip>article {
+    min-height:105px!important;
+    padding:9px!important;
+    border-radius:11px!important;
+  }
+
+  .teacher-special-workspace .special-week-day span {
+    font-size:8px!important;
+  }
+
+  .teacher-special-workspace .special-week-day b {
+    font-size:12px!important;
+  }
+
+  .teacher-special-workspace .special-week-day small {
+    margin-top:6px!important;
+    font-size:7px!important;
+  }
 }
