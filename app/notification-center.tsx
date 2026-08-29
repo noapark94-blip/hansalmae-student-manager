@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import { GuardianPushToggle } from "./guardian-push-toggle";
 import {
   CommentReactionBar,
   useReportCommentReactions,
@@ -265,6 +266,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                       : "새로고침"}
               </button>
             </div>
+            {mode === "general" && <GuardianPushToggle supabase={supabase}/>}
             <div className="notification-list">
               {!inbox.items.length ? (
                 <p>

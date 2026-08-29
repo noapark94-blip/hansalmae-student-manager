@@ -1,0 +1,23 @@
+self.addEventListener("push", event => {
+  const payload = event.data?.json() ?? {};
+  event.waitUntil(self.registration.showNotification(payload.title ?? "한살매 수업노트", {
+    body: payload.body ?? "새 알림이 도착했습니다.",
+    icon: "/app-icon-192-v2.png",
+    badge: "/app-icon-192-v2.png",
+    tag: payload.notificationId ?? "hansalmae-notification",
+    data: { url: payload.url ?? "/", notificationId: payload.notificationId },
+  }));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url ?? "/", self.location.origin).href;
+  event.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(windows => {
+    const existing = windows.find(client => client.url.startsWith(self.location.origin));
+    if (existing) {
+      existing.navigate(target);
+      return existing.focus();
+    }
+    return clients.openWindow(target);
+  }));
+});

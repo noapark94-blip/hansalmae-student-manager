@@ -1,6 +1,7 @@
 .notification-backdrop{z-index:1000!important}
 .notification-drawer{min-height:100dvh;isolation:isolate}
 .notification-list{flex:1;min-height:0;background:#fff}
+.guardian-push-setting{border-bottom:1px solid #eee5e9;background:#fff8fb}.guardian-push-setting>p{margin:0;padding:13px 18px 2px;display:grid;gap:3px}.guardian-push-setting>p b{color:#74254e;font-size:11px}.guardian-push-setting>p span{color:#786b71;font-size:9px}.guardian-push-toggle{width:100%;min-height:42px;padding:0 18px;border:0;background:transparent;color:#74254e;display:flex;align-items:center;gap:8px;font:inherit;font-size:11px;font-weight:700;text-align:left}.guardian-push-toggle span{font-size:15px;color:#a4a0a2}.guardian-push-toggle.on span{color:#24935f}.guardian-push-toggle:disabled{opacity:.65}
 @media(min-width:761px){.topbar>.notification-button{flex:0 0 40px;margin-left:0}.topbar>.notification-button svg{display:block;margin:auto}.topbar>.primary.small+.notification-button{margin-left:-6px}}
 @media(max-width:600px){
   .notification-backdrop{inset:0!important;padding:0;background:#fff!important;display:block!important}

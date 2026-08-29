@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm, appPrompt } from "./app-dialog";
+import { sendLearningFeedPush } from "./learning-feed-push";
 
 type Status="present"|"late"|"absent";
 type Student={id:string;name:string;school:string|null;grade:string|null;status:Status|"excused"|null;lateMinutes:number|null;absenceReason:string|null;note:string|null;directAdded?:boolean};
@@ -177,6 +178,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
   };
 
   const save=async(complete:boolean)=>{
+    const firstCompletion=complete&&lessonState!=="completed";
     if(!validDay&&!makeupEnabled){setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");return}
     if(complete){const missing=rows.filter(row=>!row.status).map(row=>row.name);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
     for(const row of rows){const exam=row.exams[0];const max=exam.maxScore.trim()===""?100:+exam.maxScore;if(exam.score!==""&&(!Number.isFinite(+exam.score)||!Number.isFinite(max)||max<=0||+exam.score<0||+exam.score>max)){setError(`${row.name} 학생의 점수와 만점을 확인해 주세요.`);return}}
@@ -193,6 +195,7 @@ export function ClassLearningBoard({supabase,classId,date,students,validDay,onDa
     const{data:stateData,error:stateError}=await supabase.rpc("staff_set_class_lesson_state",{p_class_id:classId,p_date:date,p_state:complete?"completed":"draft"});
     if(stateError){setError(stateError.message);setSaving("");return}
     setLessonState(stateData==="completed"?"completed":"draft");
+    if(firstCompletion)await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date});
     await onReload();
     setSaving("");
   };

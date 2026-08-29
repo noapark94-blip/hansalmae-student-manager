@@ -6,6 +6,7 @@ import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { appConfirm } from "./app-dialog";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
+import { sendLearningFeedPush } from "./learning-feed-push";
 
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;validFrom:string;validUntil:string|null;tutorName:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
@@ -108,10 +109,12 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   const saveAll=async(complete:boolean)=>{
+    const firstCompletion=complete&&!completed;
     if(complete){const missing=rows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled").map(row=>row.assignment.studentName);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
     setSaving("all");setError("");
     try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{},complete)}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
+    if(firstCompletion)await sendLearningFeedPush(supabase,{sourceType:"correction",date,records:rows.map(row=>({assignmentId:row.assignment.id,startTime:row.startTime}))});
     await load();setSaving("");
   };
 
