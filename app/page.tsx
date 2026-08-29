@@ -673,7 +673,7 @@ export default function Home() {
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
       <PushDeviceAccountSync supabase={supabase} />
-      {profile.role === "guardian" && <GuardianPushPrompt supabase={supabase} />}
+      {["guardian", "teacher", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt supabase={supabase} role={profile.role} />}
       {!familyAccount && (
         <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
           <button className="brand" type="button" onClick={() => selectView("dashboard")} aria-label="홈으로 이동">
