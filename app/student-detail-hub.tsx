@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLifecyclePanel } from "./student-lifecycle-panel";
@@ -456,7 +456,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
           <section className="student-exam-line-card" aria-label={`${sourceLabel(source)} ${selectedSubject} ${examTypeLabel(selectedCategory)} 시험 성적 추이`}>
             <header><div><b>{selectedSubject} · {examTypeLabel(selectedCategory)}</b><span>점수를 선택하면 시험 상세정보가 표시됩니다.</span></div><em>평균 {average}점</em></header>
-            <div className="student-exam-line-scroll"><div className="student-exam-line-canvas" style={{width:chartWidth}}><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="시험 점수 선형 그래프">
+            <div className="student-exam-line-scroll"><div className="student-exam-line-canvas" style={{"--student-exam-points":scored.length} as CSSProperties}><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="시험 점수 선형 그래프">
               <defs><linearGradient id="studentExamArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a9346b" stopOpacity=".2"/><stop offset="100%" stopColor="#a9346b" stopOpacity="0"/></linearGradient></defs>
               {[100,75,50,25,0].map(value=><g key={value}><line className="grid" x1={padX} x2={chartWidth-padX} y1={pointY(value)} y2={pointY(value)}/><text className="axis" x="8" y={pointY(value)+4}>{value}</text></g>)}
               {averageY!==null?<line className="average" x1={padX} x2={chartWidth-padX} y1={averageY} y2={averageY}/>:null}

@@ -1,6 +1,35 @@
 /* Desktop student detail: improve small supporting text without flattening hierarchy. */
 @media(max-width:760px){
-  .student-exam-line-card{display:none}
+  .student-hub-modal .student-exam-mobile-bars{display:none!important}
+  .student-hub-modal .student-exam-line-card{display:block;margin-top:12px;overflow:hidden;border:1px solid #eadfe4;border-radius:14px;background:linear-gradient(180deg,#fff,#fdf9fb);box-shadow:0 6px 20px rgba(74,43,57,.035)}
+  .student-hub-modal .student-exam-line-card>header{min-height:54px;padding:10px 12px;border-bottom:1px solid #eee5e9;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(252,249,251,.88)}
+  .student-hub-modal .student-exam-line-card>header>div{min-width:0;display:grid;gap:3px}
+  .student-hub-modal .student-exam-line-card>header b{font-size:11.5px;line-height:1.35}
+  .student-hub-modal .student-exam-line-card>header span{overflow:hidden;color:#8d8086;font-size:8px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+  .student-hub-modal .student-exam-line-card>header em{flex:0 0 auto;padding:5px 8px;border-radius:999px;background:#f5e7ee;color:#922d61;font-size:8.5px;font-style:normal;font-weight:850;white-space:nowrap}
+  .student-hub-modal .student-exam-line-scroll{overflow-x:auto;padding:8px 6px 1px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .student-hub-modal .student-exam-line-scroll::-webkit-scrollbar{display:none}
+  .student-hub-modal .student-exam-line-canvas{width:max(100%,calc(var(--student-exam-points) * 78px))!important;min-width:100%;height:210px}
+  .student-hub-modal .student-exam-line-canvas svg{display:block;width:100%;height:210px;overflow:visible}
+  .student-hub-modal .student-exam-line-canvas .grid{stroke:#eee6ea;stroke-width:1;vector-effect:non-scaling-stroke}
+  .student-hub-modal .student-exam-line-canvas .axis{fill:#a99da3;font-size:8px}
+  .student-hub-modal .student-exam-line-canvas .average{stroke:#c5a7b6;stroke-width:1.3;stroke-dasharray:5 5;vector-effect:non-scaling-stroke}
+  .student-hub-modal .student-exam-line-canvas .area{fill:url(#studentExamArea)}
+  .student-hub-modal .student-exam-line-canvas .line{fill:none;stroke:#9d2c63;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .student-hub-modal .student-exam-line-canvas g[role="button"]{cursor:pointer;outline:none}
+  .student-hub-modal .student-exam-line-canvas .halo{fill:transparent}
+  .student-hub-modal .student-exam-line-canvas .dot{fill:#fff;stroke:#9d2c63;stroke-width:3;vector-effect:non-scaling-stroke}
+  .student-hub-modal .student-exam-line-canvas g.selected .halo{fill:#f3d9e6}
+  .student-hub-modal .student-exam-line-canvas g.selected .dot{fill:#9d2c63;stroke:#fff}
+  .student-hub-modal .student-exam-line-canvas .value{fill:#712044;font-size:9px;font-weight:850}
+  .student-hub-modal .student-exam-line-canvas .date{fill:#6e6268;font-size:8px;font-weight:800}
+  .student-hub-modal .student-exam-line-canvas .label{fill:#9b8e94;font-size:7px}
+  .student-hub-modal .student-exam-point-detail{min-height:64px;margin:0 10px 10px;padding:10px 11px;border:1px solid #eadfe4;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .student-hub-modal .student-exam-point-detail>div{min-width:0;display:grid;gap:2px}
+  .student-hub-modal .student-exam-point-detail small,.student-hub-modal .student-exam-point-detail span{overflow:hidden;color:#8b7e84;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+  .student-hub-modal .student-exam-point-detail b{overflow:hidden;font-size:10.5px;text-overflow:ellipsis;white-space:nowrap}
+  .student-hub-modal .student-exam-point-detail>strong{flex:0 0 auto;color:#922d61;font-size:11px;text-align:right}
+  .student-hub-modal .student-exam-point-detail>strong small{display:block;margin-top:3px;color:#8b7e84;font-size:7.5px}
 }
 
 @media(min-width:761px){
@@ -117,7 +146,7 @@
   .student-hub-modal .student-exam-line-card>header span{color:#8d8086;font-size:10px}
   .student-hub-modal .student-exam-line-card>header em{padding:6px 9px;border-radius:999px;background:#f5e7ee;color:#922d61;font-size:10px;font-style:normal;font-weight:850;white-space:nowrap}
   .student-hub-modal .student-exam-line-scroll{overflow-x:auto;padding:9px 12px 3px;scrollbar-width:thin;scrollbar-color:#d7c7cf transparent}
-  .student-hub-modal .student-exam-line-canvas{min-width:100%;height:230px}
+  .student-hub-modal .student-exam-line-canvas{width:max(720px,calc(var(--student-exam-points) * 92px));min-width:100%;height:230px}
   .student-hub-modal .student-exam-line-canvas svg{display:block;width:100%;height:230px;overflow:visible}
   .student-hub-modal .student-exam-line-canvas .grid{stroke:#eee6ea;stroke-width:1;vector-effect:non-scaling-stroke}
   .student-hub-modal .student-exam-line-canvas .axis{fill:#a99da3;font-size:9px}
