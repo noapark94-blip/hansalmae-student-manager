@@ -1,391 +1,1784 @@
 /* Staff mobile density pass. Every rule is intentionally isolated from desktop. */
-@media(max-width:700px){
-  .teacher-home-heading{margin-bottom:14px!important;gap:10px!important}
-  .teacher-home-heading h1{font-size:26px!important;line-height:1.2!important}
-  .teacher-home-heading>div:last-child{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
-  .teacher-home-heading>div:last-child>button{width:100%!important;min-height:40px!important;height:40px!important;padding:0 10px!important;font-size:0!important}
-  .teacher-home-heading .teacher-home-actions>button::after{font-size:11px!important}
+@media (max-width: 700px) {
+  .teacher-home-heading {
+    margin-bottom: 14px !important;
+    gap: 10px !important;
+  }
+  .teacher-home-heading h1 {
+    font-size: 26px !important;
+    line-height: 1.2 !important;
+  }
+  .teacher-home-heading > div:last-child {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 7px !important;
+  }
+  .teacher-home-heading > div:last-child > button {
+    width: 100% !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    font-size: 0 !important;
+  }
+  .teacher-home-heading .teacher-home-actions > button::after {
+    font-size: 11px !important;
+  }
 
-  .class-day-workspace>header{padding:14px!important;gap:7px!important}
-  .class-day-workspace>header h2{font-size:20px!important;line-height:1.25!important}
-  .class-day-workspace>header span{font-size:10px!important;line-height:1.45!important}
-  .class-day-workspace>.class-workspace-grid.class-log-grid{margin:10px 6px 12px!important}
-  .class-day-workspace .class-roster-shortcut{min-height:0!important;padding:12px!important;align-items:center!important;flex-direction:row!important;gap:10px!important}
-  .class-day-workspace .class-roster-shortcut h3{font-size:13px!important}
-  .class-day-workspace .class-roster-shortcut p{margin-top:4px!important;font-size:9px!important;line-height:1.4!important}
-  .class-day-workspace .class-roster-actions{width:auto!important;flex:0 0 auto!important}
-  .class-day-workspace .class-roster-actions>button{width:auto!important;min-width:108px!important;height:38px!important;min-height:38px!important;padding:0 10px!important;font-size:10px!important;white-space:nowrap!important}
+  .class-day-workspace > header {
+    padding: 14px !important;
+    gap: 7px !important;
+  }
+  .class-day-workspace > header h2 {
+    font-size: 20px !important;
+    line-height: 1.25 !important;
+  }
+  .class-day-workspace > header span {
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+  }
+  .class-day-workspace > .class-workspace-grid.class-log-grid {
+    margin: 10px 6px 12px !important;
+  }
+  .class-day-workspace .class-roster-shortcut {
+    min-height: 0 !important;
+    padding: 12px !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+  }
+  .class-day-workspace .class-roster-shortcut h3 {
+    font-size: 13px !important;
+  }
+  .class-day-workspace .class-roster-shortcut p {
+    margin-top: 4px !important;
+    font-size: 9px !important;
+    line-height: 1.4 !important;
+  }
+  .class-day-workspace .class-roster-actions {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+  .class-day-workspace .class-roster-actions > button {
+    width: auto !important;
+    min-width: 108px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
 
-  .class-day-workspace .class-learning-board{margin-top:10px!important}
-  .class-day-workspace .class-learning-board>header{padding:12px!important;flex-direction:row!important}
-  .class-day-workspace .class-learning-board>header h3{font-size:16px!important}
-  .class-day-workspace .class-learning-board>header .learning-header-actions>button{height:34px!important;min-height:34px!important;padding:0 9px!important;font-size:9px!important}
-  .class-day-workspace .class-week-navigation{padding:7px 6px!important}
-  .class-day-workspace .learning-compact-heading{padding:9px 11px!important}
-  .class-day-workspace .learning-common-grid{padding:8px!important;gap:7px!important}
-  .class-day-workspace .learning-common-card{padding:10px!important}
-  .class-day-workspace .learning-common-card textarea{min-height:72px!important;height:72px!important}
-  .class-day-workspace .learning-common-card .learning-common-apply{min-height:38px!important;height:38px!important}
-  .class-day-workspace .learning-board-rows{padding:8px!important}
-  .class-day-workspace .learning-board-rows>article{margin-bottom:8px!important}
-  .class-day-workspace .learning-board-rows>article>div{padding:11px!important}
+  .class-day-workspace .class-learning-board {
+    margin-top: 10px !important;
+  }
+  .class-day-workspace .class-learning-board > header {
+    padding: 12px !important;
+    flex-direction: row !important;
+  }
+  .class-day-workspace .class-learning-board > header h3 {
+    font-size: 16px !important;
+  }
+  .class-day-workspace
+    .class-learning-board
+    > header
+    .learning-header-actions
+    > button {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 9px !important;
+  }
+  .class-day-workspace .class-week-navigation {
+    padding: 7px 6px !important;
+  }
+  .class-day-workspace .learning-compact-heading {
+    padding: 9px 11px !important;
+  }
+  .class-day-workspace .learning-common-grid {
+    padding: 8px !important;
+    gap: 7px !important;
+  }
+  .class-day-workspace .learning-common-card {
+    padding: 10px !important;
+  }
+  .class-day-workspace .learning-common-card textarea {
+    min-height: 72px !important;
+    height: 72px !important;
+  }
+  .class-day-workspace .learning-common-card .learning-common-apply {
+    min-height: 38px !important;
+    height: 38px !important;
+  }
+  .class-day-workspace .learning-board-rows {
+    padding: 8px !important;
+  }
+  .class-day-workspace .learning-board-rows > article {
+    margin-bottom: 8px !important;
+  }
+  .class-day-workspace .learning-board-rows > article > div {
+    padding: 11px !important;
+  }
   .class-day-workspace .learning-individual-content textarea,
-  .class-day-workspace .learning-homework.assigned textarea{min-height:70px!important;height:70px!important}
+  .class-day-workspace .learning-homework.assigned textarea {
+    min-height: 70px !important;
+    height: 70px !important;
+  }
 }
 
 /* Fourth staff-only mobile density pass: calendars, account, directory and profile. */
-@media(max-width:700px){
-  .correction-month-modal{width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:22px 22px 0 0!important;overflow-y:auto!important;overflow-x:hidden!important}
-  .correction-month-modal>header{min-height:88px!important;padding:16px 14px 12px!important}
-  .correction-month-modal>header h2{font-size:22px!important;line-height:1.2!important}
-  .correction-month-modal>header p{font-size:9px!important;line-height:1.4!important}
-  .correction-month-modal>header>button{width:39px!important;height:39px!important;min-height:39px!important}
-  .correction-month-toolbar{min-height:58px!important;padding:8px 10px!important;gap:7px!important}
-  .correction-month-toolbar b{font-size:17px!important}
-  .correction-month-toolbar button{height:38px!important;min-height:38px!important;padding:0 10px!important}
-  .correction-month-weekdays,.correction-month-grid{width:100%!important;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;overflow:visible!important}
-  .correction-month-weekdays{padding:0 4px!important}
-  .correction-month-weekdays b{min-width:0!important;padding:9px 0!important;font-size:8px!important}
-  .correction-month-grid{padding:0 4px 10px!important}
-  .correction-month-grid>button{min-width:0!important;min-height:70px!important;padding:5px 3px!important;border-radius:0!important}
-  .correction-month-grid>button>span{font-size:10px!important}
-  .correction-month-grid>button>div{gap:2px!important;margin-top:4px!important}
-  .correction-month-grid>button em{overflow:hidden!important;font-size:6.5px!important;line-height:1.2!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+@media (max-width: 700px) {
+  .correction-month-modal {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 22px 22px 0 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  .correction-month-modal > header {
+    min-height: 88px !important;
+    padding: 16px 14px 12px !important;
+  }
+  .correction-month-modal > header h2 {
+    font-size: 22px !important;
+    line-height: 1.2 !important;
+  }
+  .correction-month-modal > header p {
+    font-size: 9px !important;
+    line-height: 1.4 !important;
+  }
+  .correction-month-modal > header > button {
+    width: 39px !important;
+    height: 39px !important;
+    min-height: 39px !important;
+  }
+  .correction-month-toolbar {
+    min-height: 58px !important;
+    padding: 8px 10px !important;
+    gap: 7px !important;
+  }
+  .correction-month-toolbar b {
+    font-size: 17px !important;
+  }
+  .correction-month-toolbar button {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+  }
+  .correction-month-weekdays,
+  .correction-month-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    overflow: visible !important;
+  }
+  .correction-month-weekdays {
+    padding: 0 4px !important;
+  }
+  .correction-month-weekdays b {
+    min-width: 0 !important;
+    padding: 9px 0 !important;
+    font-size: 8px !important;
+  }
+  .correction-month-grid {
+    padding: 0 4px 10px !important;
+  }
+  .correction-month-grid > button {
+    min-width: 0 !important;
+    min-height: 70px !important;
+    padding: 5px 3px !important;
+    border-radius: 0 !important;
+  }
+  .correction-month-grid > button > span {
+    font-size: 10px !important;
+  }
+  .correction-month-grid > button > div {
+    gap: 2px !important;
+    margin-top: 4px !important;
+  }
+  .correction-month-grid > button em {
+    overflow: hidden !important;
+    font-size: 6.5px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
 
-  [class*="my-account_page"],[class*="my-account_page"]{padding-bottom:18px!important}
-  [class*="my-account_heading"]{gap:2px!important;margin-bottom:11px!important;padding-top:2px!important}
-  [class*="my-account_heading"] h1{font-size:25px!important;line-height:1.15!important}
-  [class*="my-account_heading"]>p:last-child{margin-top:5px!important;font-size:11px!important;line-height:1.4!important}
-  [class*="my-account_eyebrow"]{font-size:10px!important}
-  [class*="my-account_grid"]{gap:10px!important}
-  [class*="my-account_card"]{border-radius:15px!important}
-  [class*="my-account_cardHeader"]{min-height:64px!important;padding:11px 12px!important;gap:10px!important}
-  [class*="my-account_cardHeader"] h2{font-size:14px!important}
-  [class*="my-account_cardHeader"] p{margin-top:2px!important;font-size:9px!important}
-  [class*="my-account_icon"]{width:36px!important;height:36px!important;flex-basis:36px!important;border-radius:11px!important}
-  [class*="my-account_icon"] svg{width:18px!important;height:18px!important}
-  [class*="my-account_form"]{gap:10px!important;padding:12px!important}
-  [class*="my-account_form"] label{font-size:10px!important}
-  [class*="my-account_form"] input{height:40px!important;min-height:40px!important;margin-top:5px!important;padding:0 11px!important;border-radius:10px!important;font-size:12px!important}
-  [class*="my-account_readonlyGrid"],[class*="my-account_passwordGrid"]{grid-template-columns:1fr!important;gap:9px!important}
-  [class*="my-account_actions"] button{width:100%!important;height:41px!important;min-height:41px!important;border-radius:11px!important;font-size:11px!important}
+  [class*="my-account_page"],
+  [class*="my-account_page"] {
+    padding-bottom: 18px !important;
+  }
+  [class*="my-account_heading"] {
+    gap: 2px !important;
+    margin-bottom: 11px !important;
+    padding-top: 2px !important;
+  }
+  [class*="my-account_heading"] h1 {
+    font-size: 25px !important;
+    line-height: 1.15 !important;
+  }
+  [class*="my-account_heading"] > p:last-child {
+    margin-top: 5px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  [class*="my-account_eyebrow"] {
+    font-size: 10px !important;
+  }
+  [class*="my-account_grid"] {
+    gap: 10px !important;
+  }
+  [class*="my-account_card"] {
+    border-radius: 15px !important;
+  }
+  [class*="my-account_cardHeader"] {
+    min-height: 64px !important;
+    padding: 11px 12px !important;
+    gap: 10px !important;
+  }
+  [class*="my-account_cardHeader"] h2 {
+    font-size: 14px !important;
+  }
+  [class*="my-account_cardHeader"] p {
+    margin-top: 2px !important;
+    font-size: 9px !important;
+  }
+  [class*="my-account_icon"] {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px !important;
+    border-radius: 11px !important;
+  }
+  [class*="my-account_icon"] svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  [class*="my-account_form"] {
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  [class*="my-account_form"] label {
+    font-size: 10px !important;
+  }
+  [class*="my-account_form"] input {
+    height: 40px !important;
+    min-height: 40px !important;
+    margin-top: 5px !important;
+    padding: 0 11px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+  }
+  [class*="my-account_readonlyGrid"],
+  [class*="my-account_passwordGrid"] {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+  [class*="my-account_actions"] button {
+    width: 100% !important;
+    height: 41px !important;
+    min-height: 41px !important;
+    border-radius: 11px !important;
+    font-size: 11px !important;
+  }
 
-  .notification-drawer>header{min-height:calc(72px + env(safe-area-inset-top))!important;padding:calc(12px + env(safe-area-inset-top)) 14px 11px!important}
-  .notification-drawer>header h2{margin-top:3px!important;font-size:21px!important}
-  .notification-drawer>header small{font-size:9px!important}
-  .notification-drawer>header>button{width:38px!important;height:38px!important;border-radius:11px!important;font-size:23px!important}
-  .notification-toolbar{min-height:43px!important;padding:0 14px!important}
-  .guardian-push-setting{min-height:62px!important;padding:9px 14px!important;grid-template-columns:34px minmax(0,1fr) 44px!important;gap:9px!important}
-  .guardian-push-setting-icon{width:34px!important;height:34px!important;border-radius:11px!important}
-  .guardian-push-setting-icon svg{width:18px!important;height:18px!important}
-  .guardian-push-setting-copy b{font-size:10px!important}.guardian-push-setting-copy span{font-size:8px!important}
-  .notification-list article{padding:11px 13px!important;grid-template-columns:32px minmax(0,1fr)!important;gap:9px!important}
-  .notification-list article>i{width:32px!important;height:32px!important}
-  .notification-list article b{font-size:10px!important}.notification-list article small{font-size:7.5px!important}.notification-list article p{font-size:8.5px!important}
+  .notification-drawer > header {
+    min-height: calc(72px + env(safe-area-inset-top)) !important;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 11px !important;
+  }
+  .notification-drawer > header h2 {
+    margin-top: 3px !important;
+    font-size: 21px !important;
+  }
+  .notification-drawer > header small {
+    font-size: 9px !important;
+  }
+  .notification-drawer > header > button {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 11px !important;
+    font-size: 23px !important;
+  }
+  .notification-toolbar {
+    min-height: 43px !important;
+    padding: 0 14px !important;
+  }
+  .guardian-push-setting {
+    min-height: 62px !important;
+    padding: 9px 14px !important;
+    grid-template-columns: 34px minmax(0, 1fr) 44px !important;
+    gap: 9px !important;
+  }
+  .guardian-push-setting-icon {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 11px !important;
+  }
+  .guardian-push-setting-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .guardian-push-setting-copy b {
+    font-size: 10px !important;
+  }
+  .guardian-push-setting-copy span {
+    font-size: 8px !important;
+  }
+  .notification-list article {
+    padding: 11px 13px !important;
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    gap: 9px !important;
+  }
+  .notification-list article > i {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .notification-list article b {
+    font-size: 10px !important;
+  }
+  .notification-list article small {
+    font-size: 7.5px !important;
+  }
+  .notification-list article p {
+    font-size: 8.5px !important;
+  }
 
-  .grade-progression-card{margin-bottom:10px!important;padding:13px!important;border-radius:16px!important}
-  .grade-progression-card>header{gap:8px!important}
-  .grade-progression-card header span{font-size:10px!important}
-  .grade-progression-card h2{margin:3px 0!important;font-size:18px!important}
-  .grade-progression-card header p,.grade-progression-guide span,.grade-progression-actions small{font-size:10px!important;line-height:1.45!important}
-  .grade-progression-card header>b{padding:5px 8px!important;font-size:9px!important}
-  .grade-progression-guide{margin-top:10px!important;padding:10px!important;border-radius:11px!important}
-  .grade-progression-summary{gap:6px!important;margin-top:10px!important}
-  .grade-progression-summary span{padding:8px!important;border-radius:10px!important}
-  .grade-progression-summary b{font-size:15px!important}
-  .student-page-layout>.lifecycle-dashboard>header{padding:10px 11px 0!important;gap:7px!important}
-  .student-page-layout>.lifecycle-dashboard>.lifecycle-status-cards{padding:8px 11px 11px!important}
-  .lifecycle-status-cards{gap:6px!important}
-  .lifecycle-status-cards button{min-height:62px!important;padding:8px!important;gap:7px!important}
-  .lifecycle-status-cards button>i{width:30px!important;height:30px!important;flex-basis:30px!important}
-  .lifecycle-status-cards b{font-size:15px!important}
-  .student-list-tools{padding:10px!important;gap:7px!important}
-  .student-list-tools>.search-wrap{flex-basis:40px!important;height:40px!important;min-height:40px!important}
-  .student-list-tools>.search-wrap input{height:38px!important;min-height:38px!important;font-size:11px!important}
-  .student-list-filters{gap:6px!important}
-  .student-list-filters label{gap:3px!important}
-  .student-list-filters select{height:38px!important;min-height:38px!important;padding-top:0!important;padding-bottom:0!important;font-size:10px!important}
+  .grade-progression-card {
+    margin-bottom: 10px !important;
+    padding: 13px !important;
+    border-radius: 16px !important;
+  }
+  .grade-progression-card > header {
+    gap: 8px !important;
+  }
+  .grade-progression-card header span {
+    font-size: 10px !important;
+  }
+  .grade-progression-card h2 {
+    margin: 3px 0 !important;
+    font-size: 18px !important;
+  }
+  .grade-progression-card header p,
+  .grade-progression-guide span,
+  .grade-progression-actions small {
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+  }
+  .grade-progression-card header > b {
+    padding: 5px 8px !important;
+    font-size: 9px !important;
+  }
+  .grade-progression-guide {
+    margin-top: 10px !important;
+    padding: 10px !important;
+    border-radius: 11px !important;
+  }
+  .grade-progression-summary {
+    gap: 6px !important;
+    margin-top: 10px !important;
+  }
+  .grade-progression-summary span {
+    padding: 8px !important;
+    border-radius: 10px !important;
+  }
+  .grade-progression-summary b {
+    font-size: 15px !important;
+  }
+  .student-page-layout > .lifecycle-dashboard > header {
+    padding: 10px 11px 0 !important;
+    gap: 7px !important;
+  }
+  .student-page-layout > .lifecycle-dashboard > .lifecycle-status-cards {
+    padding: 8px 11px 11px !important;
+  }
+  .lifecycle-status-cards {
+    gap: 6px !important;
+  }
+  .lifecycle-status-cards button {
+    min-height: 62px !important;
+    padding: 8px !important;
+    gap: 7px !important;
+  }
+  .lifecycle-status-cards button > i {
+    width: 30px !important;
+    height: 30px !important;
+    flex-basis: 30px !important;
+  }
+  .lifecycle-status-cards b {
+    font-size: 15px !important;
+  }
+  .student-list-tools {
+    padding: 10px !important;
+    gap: 7px !important;
+  }
+  .student-list-tools > .search-wrap {
+    flex-basis: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  .student-list-tools > .search-wrap input {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 11px !important;
+  }
+  .student-list-filters {
+    gap: 6px !important;
+  }
+  .student-list-filters label {
+    gap: 3px !important;
+  }
+  .student-list-filters select {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 10px !important;
+  }
 
-  .student-profile-card input,.student-profile-card select{height:40px!important;min-height:40px!important;padding:0 11px!important;border-radius:10px!important;font-size:11px!important}
-  .student-profile-card textarea{height:78px!important;min-height:78px!important;padding:10px 11px!important;font-size:11px!important}
-  .student-profile-card label{gap:4px!important;font-size:9px!important}
-  .student-personal-schedule{margin-top:10px!important;padding:10px!important;border-radius:11px!important}
-  .student-personal-schedule>header{margin-bottom:8px!important}
-  .student-personal-schedule h3{font-size:13px!important}
-  .student-relevant-timetable{gap:7px!important}
-  .student-relevant-timetable h4{padding:7px 9px!important;font-size:9px!important}
-  .student-relevant-timetable section>div{padding:5px!important}
-  .student-relevant-timetable article{min-height:48px!important;padding:7px!important;grid-template-columns:58px minmax(0,1fr)!important;gap:6px!important}
-  .student-relevant-timetable time{font-size:8px!important}.student-relevant-timetable b{font-size:9px!important}.student-relevant-timetable small{font-size:7px!important}
+  .student-profile-card input,
+  .student-profile-card select {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 11px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+  }
+  .student-profile-card textarea {
+    height: 78px !important;
+    min-height: 78px !important;
+    padding: 10px 11px !important;
+    font-size: 11px !important;
+  }
+  .student-profile-card label {
+    gap: 4px !important;
+    font-size: 9px !important;
+  }
+  .student-personal-schedule {
+    margin-top: 10px !important;
+    padding: 10px !important;
+    border-radius: 11px !important;
+  }
+  .student-personal-schedule > header {
+    margin-bottom: 8px !important;
+  }
+  .student-personal-schedule h3 {
+    font-size: 13px !important;
+  }
+  .student-relevant-timetable {
+    gap: 7px !important;
+  }
+  .student-relevant-timetable h4 {
+    padding: 7px 9px !important;
+    font-size: 9px !important;
+  }
+  .student-relevant-timetable section > div {
+    padding: 5px !important;
+  }
+  .student-relevant-timetable article {
+    min-height: 48px !important;
+    padding: 7px !important;
+    grid-template-columns: 58px minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+  .student-relevant-timetable time {
+    font-size: 8px !important;
+  }
+  .student-relevant-timetable b {
+    font-size: 9px !important;
+  }
+  .student-relevant-timetable small {
+    font-size: 7px !important;
+  }
 }
 
 /* Third staff-only mobile density pass: timetable and student detail hub. */
-@media(max-width:700px){
-  .absence-heading{margin-bottom:12px!important}
-  .absence-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .absence-summary button{min-height:70px!important;padding:10px 11px!important}
-  .absence-summary small{font-size:9px!important}
-  .absence-summary b{font-size:17px!important}
-  .absence-summary span{font-size:8px!important}
-
-  .schedule-tabs{gap:5px!important;margin-bottom:10px!important;padding-bottom:2px!important}
-  .schedule-tabs button{min-height:38px!important;padding:0 12px!important;border-radius:10px!important;font-size:10px!important}
-  .hub-panel{padding:12px!important}
-  .hub-panel .hub-toolbar{margin-bottom:10px!important;padding-bottom:10px!important;gap:9px!important}
-  .hub-panel .hub-toolbar h2{font-size:18px!important}
-  .hub-panel .hub-toolbar p{font-size:9px!important;line-height:1.45!important}
-  .hub-panel .hub-add{min-height:38px!important;height:38px!important;padding:0 11px!important;font-size:10px!important}
-  .schedule-subject-filter{gap:5px!important;margin-bottom:10px!important}
-  .schedule-subject-filter button{min-height:34px!important;padding:0 9px!important;font-size:9px!important}
-  .mobile-schedule-controls{margin-bottom:9px!important}
-  .mobile-schedule-view{padding:4px!important;border-radius:11px!important}
-  .mobile-schedule-view button{min-height:38px!important;height:38px!important;font-size:11px!important}
-  .mobile-schedule-days{gap:4px!important;margin-top:8px!important}
-  .mobile-schedule-days button{min-height:49px!important;padding:6px 2px!important;border-radius:10px!important}
-  .mobile-daily-schedule>section{grid-template-columns:72px minmax(0,1fr)!important}
-  .mobile-daily-schedule>section>time{padding:12px 7px!important;font-size:10px!important}
-  .mobile-daily-schedule article{min-height:76px!important;padding:9px!important}
-  .mobile-daily-main b{font-size:12px!important}
-  .mobile-daily-main small,.mobile-daily-main em{font-size:8px!important}
-  .weekly-schedule-view.mobile-visible{margin:0 -4px!important}
-  .weekly-schedule-view.mobile-visible .aligned-schedule{min-width:720px!important}
-  .weekly-schedule-view.mobile-visible .aligned-schedule-row{min-height:94px!important}
-  .weekly-schedule-view.mobile-visible .aligned-class-card{padding:7px!important}
-
-  .student-hub-modal{width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:22px 22px 0 0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
-  .student-hub-modal>header{flex:0 0 auto!important;min-height:92px!important;padding:18px 16px 14px!important}
-  .student-hub-modal>header h2{font-size:23px!important;line-height:1.15!important}
-  .student-hub-modal>header span{font-size:11px!important;line-height:1.4!important}
-  .student-hub-modal>header>button{width:40px!important;height:40px!important;min-height:40px!important;border-radius:11px!important;font-size:22px!important}
-  .student-hub-tabs{flex:0 0 auto!important;gap:0!important;padding:0 8px!important;overflow-x:auto!important;scrollbar-width:none!important;scroll-snap-type:x proximity!important}
-  .student-hub-tabs::-webkit-scrollbar{display:none!important}
-  .student-hub-tabs button{min-height:44px!important;padding:0 10px!important;font-size:10px!important;white-space:nowrap!important;scroll-snap-align:start!important}
-  .student-hub-body{flex:1 1 auto!important;min-height:0!important;padding:14px!important;overflow-y:auto!important;overscroll-behavior:contain!important}
-  .student-hub-body .hub-section-title{min-height:0!important;margin-bottom:10px!important;gap:8px!important}
-  .student-hub-body .hub-section-title h3,.student-tab-intro h3{font-size:16px!important}
-  .student-hub-body .hub-section-title p,.student-tab-intro p{font-size:9px!important;line-height:1.45!important}
-
-  .student-profile-settings{border-radius:12px!important}
-  .student-profile-card{padding:12px!important}
-  .student-profile-card>header{margin-bottom:11px!important;padding-bottom:9px!important}
-  .student-profile-card textarea{min-height:92px!important;height:92px!important}
-  .student-profile-savebar{padding:9px 12px!important}
-  .student-profile-savebar button{min-height:40px!important;height:40px!important}
-  .student-danger-zone{padding:11px 12px!important}
-  .student-profile-settings>.student-lifecycle{padding:12px!important}
-
-  .student-tab-intro{margin-bottom:10px!important;gap:10px!important}
-  .student-tab-intro nav{gap:5px!important;padding-bottom:2px!important}
-  .student-tab-intro nav button{min-height:36px!important;padding:0 10px!important;font-size:9px!important}
-  .student-summary-cards{gap:7px!important}
-  .student-summary-cards article{min-height:72px!important;padding:10px!important;gap:5px!important}
-  .student-summary-cards b{font-size:17px!important}
-  .student-learning-context{margin-bottom:9px!important;padding:9px 11px!important;gap:5px!important}
-  .student-learning-filters{gap:8px!important}
-  .student-learning-subject-tabs{gap:5px!important}
-  .student-learning-subject-tabs button{min-height:36px!important;padding:0 10px!important}
-  .student-hub-empty{min-height:150px!important;padding:34px 12px!important;display:grid!important;place-items:center!important}
-
-  .student-record-selects,.student-exam-selects,.consultation-period-filters{gap:7px!important}
-  .student-record-selects label,.student-exam-selects label,.consultation-period-filters label{min-width:0!important;width:100%!important}
-  .student-record-selects select,.student-exam-selects select,.consultation-period-filters select{height:40px!important;min-height:40px!important}
-  .student-record-list article{min-height:50px!important;padding:9px 10px!important;gap:8px!important}
-  .student-record-source-tabs,.student-record-range-tabs,.student-exam-source-tabs,.student-exam-subject-tabs,.student-exam-range-tabs{gap:5px!important}
-  .student-record-source-tabs button,.student-record-range-tabs button,.student-exam-source-tabs button,.student-exam-subject-tabs button,.student-exam-range-tabs button{min-height:34px!important;padding:0 9px!important;font-size:9px!important}
-  .student-exam-progress{margin-top:10px!important;padding:10px!important}
-  .student-exam-summary{gap:6px!important;margin-top:9px!important}
-  .student-exam-summary>div{padding:8px 9px!important}
-  .student-exam-progress svg{height:130px!important;margin-top:9px!important}
-
-  .student-consultation-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-bottom:9px!important}
-  .student-consultation-summary article{min-height:66px!important;padding:9px!important;gap:4px!important}
-  .student-guardian-consultation-alert{margin-bottom:9px!important;padding:9px 10px!important}
-  .student-consultation-records>article{padding:10px 11px!important}
-  .student-consultation-records article>p{margin-top:7px!important;padding:9px!important}
+.mobile-weekly-agenda {
+  display: none;
 }
 
-@media(max-width:390px){
-  .class-day-workspace .class-roster-shortcut{align-items:stretch!important;flex-direction:column!important}
-  .class-day-workspace .class-roster-actions{width:100%!important}
-  .class-day-workspace .class-roster-actions>button{width:100%!important}
+@media (max-width: 700px) {
+  .absence-heading {
+    margin-bottom: 12px !important;
+  }
+  .absence-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .absence-summary button {
+    min-height: 70px !important;
+    padding: 10px 11px !important;
+  }
+  .absence-summary small {
+    font-size: 9px !important;
+  }
+  .absence-summary b {
+    font-size: 17px !important;
+  }
+  .absence-summary span {
+    font-size: 8px !important;
+  }
+
+  .schedule-tabs {
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+    padding-bottom: 2px !important;
+  }
+  .schedule-tabs button {
+    min-height: 38px !important;
+    padding: 0 12px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+  }
+  .hub-panel {
+    padding: 12px !important;
+  }
+  .hub-panel .hub-toolbar {
+    margin-bottom: 10px !important;
+    padding-bottom: 10px !important;
+    gap: 9px !important;
+  }
+  .hub-panel .hub-toolbar h2 {
+    font-size: 18px !important;
+  }
+  .hub-panel .hub-toolbar p {
+    font-size: 9px !important;
+    line-height: 1.45 !important;
+  }
+  .hub-panel .hub-add {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 11px !important;
+    font-size: 10px !important;
+  }
+  .schedule-subject-filter {
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+  }
+  .schedule-subject-filter button {
+    min-height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 9px !important;
+  }
+  .mobile-schedule-controls {
+    margin-bottom: 9px !important;
+  }
+  .mobile-schedule-view {
+    padding: 4px !important;
+    border-radius: 11px !important;
+  }
+  .mobile-schedule-view button {
+    min-height: 38px !important;
+    height: 38px !important;
+    font-size: 11px !important;
+  }
+  .mobile-schedule-days {
+    gap: 4px !important;
+    margin-top: 8px !important;
+  }
+  .mobile-schedule-days button {
+    min-height: 49px !important;
+    padding: 6px 2px !important;
+    border-radius: 10px !important;
+  }
+  .mobile-daily-schedule > section {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+  }
+  .mobile-daily-schedule > section > time {
+    padding: 12px 7px !important;
+    font-size: 10px !important;
+  }
+  .mobile-daily-schedule article {
+    min-height: 76px !important;
+    padding: 9px !important;
+  }
+  .mobile-daily-main b {
+    font-size: 12px !important;
+  }
+  .mobile-daily-main small,
+  .mobile-daily-main em {
+    font-size: 8px !important;
+  }
+  .mobile-weekly-agenda {
+    display: grid !important;
+    gap: 7px !important;
+  }
+  .mobile-weekly-day {
+    overflow: hidden;
+    border: 1px solid #eadfe4;
+    border-radius: 13px;
+    background: #fff;
+  }
+  .mobile-weekly-day.open {
+    border-color: #d9afc1;
+    box-shadow: 0 8px 22px rgba(111, 42, 72, 0.06);
+  }
+  .mobile-weekly-day-toggle {
+    width: 100%;
+    min-height: 58px;
+    padding: 9px 12px;
+    border: 0;
+    background: #fff;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 18px;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+    color: #30282c;
+  }
+  .mobile-weekly-day.open .mobile-weekly-day-toggle {
+    background: #fff9fb;
+  }
+  .mobile-weekly-day-toggle > span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mobile-weekly-day-toggle b {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .mobile-weekly-day-toggle small {
+    font-size: 8.5px;
+    color: #958a8f;
+  }
+  .mobile-weekly-day-toggle em {
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #f8edf2;
+    color: #9f2d64;
+    font-size: 8.5px;
+    font-style: normal;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .mobile-weekly-day-toggle i {
+    font-size: 15px;
+    font-style: normal;
+    color: #8e8187;
+    transition: transform 0.18s ease;
+  }
+  .mobile-weekly-day.open .mobile-weekly-day-toggle i {
+    transform: rotate(180deg);
+  }
+  .mobile-weekly-day-classes {
+    display: grid;
+    border-top: 1px solid #f0e7eb;
+  }
+  .mobile-weekly-class {
+    position: relative;
+    min-height: 72px;
+    padding: 9px 9px 9px 12px;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    border-top: 1px solid #f4edf0;
+    background: #fff;
+  }
+  .mobile-weekly-class:first-child {
+    border-top: 0;
+  }
+  .mobile-weekly-class::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--schedule-color, #9f2d64);
+  }
+  .mobile-weekly-class > time {
+    display: grid;
+    gap: 1px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #5f555a;
+    line-height: 1.25;
+  }
+  .mobile-weekly-class > time span {
+    color: #b3a8ad;
+    font-weight: 500;
+  }
+  .mobile-weekly-main {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    display: grid;
+    gap: 2px;
+    text-align: left;
+    color: #30282c;
+  }
+  .mobile-weekly-main b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11.5px;
+  }
+  .mobile-weekly-main small,
+  .mobile-weekly-main em {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 8px;
+    font-style: normal;
+    color: #91868b;
+  }
+  .mobile-weekly-edit {
+    min-width: 42px;
+    min-height: 34px;
+    padding: 0 8px;
+    border: 1px solid #dfc7d1;
+    border-radius: 9px;
+    background: #fff;
+    color: #9f2d64;
+    font-size: 8.5px;
+    font-weight: 800;
+  }
+  .mobile-weekly-empty {
+    margin: 0;
+    padding: 14px 12px;
+    border-top: 1px solid #f0e7eb;
+    color: #9b9095;
+    font-size: 9px;
+    text-align: center;
+  }
+  .weekly-schedule-view {
+    display: none !important;
+  }
+
+  .student-hub-modal {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 22px 22px 0 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  .student-hub-modal > header {
+    flex: 0 0 auto !important;
+    min-height: 92px !important;
+    padding: 18px 16px 14px !important;
+  }
+  .student-hub-modal > header h2 {
+    font-size: 23px !important;
+    line-height: 1.15 !important;
+  }
+  .student-hub-modal > header span {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .student-hub-modal > header > button {
+    width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 11px !important;
+    font-size: 22px !important;
+  }
+  .student-hub-tabs {
+    flex: 0 0 auto !important;
+    gap: 0 !important;
+    padding: 0 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    scroll-snap-type: x proximity !important;
+  }
+  .student-hub-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+  .student-hub-tabs button {
+    min-height: 44px !important;
+    padding: 0 10px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    scroll-snap-align: start !important;
+  }
+  .student-hub-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 14px !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+  .student-hub-body .hub-section-title {
+    min-height: 0 !important;
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+  }
+  .student-hub-body .hub-section-title h3,
+  .student-tab-intro h3 {
+    font-size: 16px !important;
+  }
+  .student-hub-body .hub-section-title p,
+  .student-tab-intro p {
+    font-size: 9px !important;
+    line-height: 1.45 !important;
+  }
+
+  .student-profile-settings {
+    border-radius: 12px !important;
+  }
+  .student-profile-card {
+    padding: 12px !important;
+  }
+  .student-profile-card > header {
+    margin-bottom: 11px !important;
+    padding-bottom: 9px !important;
+  }
+  .student-profile-card textarea {
+    min-height: 92px !important;
+    height: 92px !important;
+  }
+  .student-profile-savebar {
+    padding: 9px 12px !important;
+  }
+  .student-profile-savebar button {
+    min-height: 40px !important;
+    height: 40px !important;
+  }
+  .student-danger-zone {
+    padding: 11px 12px !important;
+  }
+  .student-profile-settings > .student-lifecycle {
+    padding: 12px !important;
+  }
+
+  .student-tab-intro {
+    margin-bottom: 10px !important;
+    gap: 10px !important;
+  }
+  .student-tab-intro nav {
+    gap: 5px !important;
+    padding-bottom: 2px !important;
+  }
+  .student-tab-intro nav button {
+    min-height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 9px !important;
+  }
+  .student-summary-cards {
+    gap: 7px !important;
+  }
+  .student-summary-cards article {
+    min-height: 72px !important;
+    padding: 10px !important;
+    gap: 5px !important;
+  }
+  .student-summary-cards b {
+    font-size: 17px !important;
+  }
+  .student-learning-context {
+    margin-bottom: 9px !important;
+    padding: 9px 11px !important;
+    gap: 5px !important;
+  }
+  .student-learning-filters {
+    gap: 8px !important;
+  }
+  .student-learning-subject-tabs {
+    gap: 5px !important;
+  }
+  .student-learning-subject-tabs button {
+    min-height: 36px !important;
+    padding: 0 10px !important;
+  }
+  .student-hub-empty {
+    min-height: 150px !important;
+    padding: 34px 12px !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .student-record-selects,
+  .student-exam-selects,
+  .consultation-period-filters {
+    gap: 7px !important;
+  }
+  .student-record-selects label,
+  .student-exam-selects label,
+  .consultation-period-filters label {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .student-record-selects select,
+  .student-exam-selects select,
+  .consultation-period-filters select {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  .student-record-list article {
+    min-height: 50px !important;
+    padding: 9px 10px !important;
+    gap: 8px !important;
+  }
+  .student-record-source-tabs,
+  .student-record-range-tabs,
+  .student-exam-source-tabs,
+  .student-exam-subject-tabs,
+  .student-exam-range-tabs {
+    gap: 5px !important;
+  }
+  .student-record-source-tabs button,
+  .student-record-range-tabs button,
+  .student-exam-source-tabs button,
+  .student-exam-subject-tabs button,
+  .student-exam-range-tabs button {
+    min-height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 9px !important;
+  }
+  .student-exam-progress {
+    margin-top: 10px !important;
+    padding: 10px !important;
+  }
+  .student-exam-summary {
+    gap: 6px !important;
+    margin-top: 9px !important;
+  }
+  .student-exam-summary > div {
+    padding: 8px 9px !important;
+  }
+  .student-exam-progress svg {
+    height: 130px !important;
+    margin-top: 9px !important;
+  }
+
+  .student-consultation-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin-bottom: 9px !important;
+  }
+  .student-consultation-summary article {
+    min-height: 66px !important;
+    padding: 9px !important;
+    gap: 4px !important;
+  }
+  .student-guardian-consultation-alert {
+    margin-bottom: 9px !important;
+    padding: 9px 10px !important;
+  }
+  .student-consultation-records > article {
+    padding: 10px 11px !important;
+  }
+  .student-consultation-records article > p {
+    margin-top: 7px !important;
+    padding: 9px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .class-day-workspace .class-roster-shortcut {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+  .class-day-workspace .class-roster-actions {
+    width: 100% !important;
+  }
+  .class-day-workspace .class-roster-actions > button {
+    width: 100% !important;
+  }
 }
 
 /* Keep fourth-pass profile controls authoritative after the earlier density blocks. */
-@media(max-width:700px){
-  .student-profile-card input,.student-profile-card select{height:40px!important;min-height:40px!important;padding:0 11px!important;border-radius:10px!important;font-size:11px!important}
-  .student-profile-card textarea{height:78px!important;min-height:78px!important;padding:10px 11px!important;font-size:11px!important}
-  .student-personal-schedule{margin-top:10px!important;padding:10px!important}
+@media (max-width: 700px) {
+  .student-profile-card input,
+  .student-profile-card select {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 11px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+  }
+  .student-profile-card textarea {
+    height: 78px !important;
+    min-height: 78px !important;
+    padding: 10px 11px !important;
+    font-size: 11px !important;
+  }
+  .student-personal-schedule {
+    margin-top: 10px !important;
+    padding: 10px !important;
+  }
 }
 
 /* Second staff-only mobile density pass: operations, billing and work forms. */
-@media(max-width:700px){
-  .operations-overview .overview-kpis{gap:7px!important;margin-bottom:8px!important}
-  .operations-overview .overview-kpis>article,
-  .operations-overview .overview-kpis>button{min-height:84px!important;padding:11px 12px!important;gap:5px!important;border-radius:13px!important}
-  .operations-overview .overview-kpis span{font-size:9px!important}
-  .operations-overview .overview-kpis b{font-size:19px!important}
-  .operations-overview .overview-kpis small{font-size:8.5px!important}
-  .operations-overview .overview-secondary{margin-bottom:10px!important;padding:9px 11px!important;gap:6px!important}
-  .operations-overview .operations-checks>header{padding:14px!important}
-  .operations-overview .operations-check-grid{padding:9px!important;gap:8px!important}
-  .operations-overview .operations-check-grid>article>div:first-child{padding:11px!important}
-  .operations-overview .check-preview{padding:0 11px 9px!important}
-  .operations-overview .operations-details-toggle{padding:13px 14px!important}
-  .operations-overview .operations-details-body{padding:0 11px 11px!important}
-  .operations-overview .analytics-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;padding:10px 0!important}
-  .operations-overview .analytics-actions label{width:100%!important}
-  .operations-overview .analytics-actions input{height:38px!important;min-height:38px!important}
-  .operations-overview .analytics-actions>.secondary-button{grid-column:1/-1;width:100%!important;height:38px!important;min-height:38px!important}
-  .operations-overview .analytics-monthly{margin-bottom:9px!important}
-  .operations-overview .analytics-monthly>header{padding:10px 11px!important}
-  .operations-overview .analytics-monthly>div{padding:10px!important;gap:7px!important}
-  .operations-overview .analytics-monthly article{grid-template-columns:54px minmax(0,1fr)!important;gap:6px!important}
-  .operations-overview .analytics-monthly article>small{font-size:7.5px!important}
+@media (max-width: 700px) {
+  .operations-overview .overview-kpis {
+    gap: 7px !important;
+    margin-bottom: 8px !important;
+  }
+  .operations-overview .overview-kpis > article,
+  .operations-overview .overview-kpis > button {
+    min-height: 84px !important;
+    padding: 11px 12px !important;
+    gap: 5px !important;
+    border-radius: 13px !important;
+  }
+  .operations-overview .overview-kpis span {
+    font-size: 9px !important;
+  }
+  .operations-overview .overview-kpis b {
+    font-size: 19px !important;
+  }
+  .operations-overview .overview-kpis small {
+    font-size: 8.5px !important;
+  }
+  .operations-overview .overview-secondary {
+    margin-bottom: 10px !important;
+    padding: 9px 11px !important;
+    gap: 6px !important;
+  }
+  .operations-overview .operations-checks > header {
+    padding: 14px !important;
+  }
+  .operations-overview .operations-check-grid {
+    padding: 9px !important;
+    gap: 8px !important;
+  }
+  .operations-overview .operations-check-grid > article > div:first-child {
+    padding: 11px !important;
+  }
+  .operations-overview .check-preview {
+    padding: 0 11px 9px !important;
+  }
+  .operations-overview .operations-details-toggle {
+    padding: 13px 14px !important;
+  }
+  .operations-overview .operations-details-body {
+    padding: 0 11px 11px !important;
+  }
+  .operations-overview .analytics-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 7px !important;
+    padding: 10px 0 !important;
+  }
+  .operations-overview .analytics-actions label {
+    width: 100% !important;
+  }
+  .operations-overview .analytics-actions input {
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+  .operations-overview .analytics-actions > .secondary-button {
+    grid-column: 1/-1;
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+  .operations-overview .analytics-monthly {
+    margin-bottom: 9px !important;
+  }
+  .operations-overview .analytics-monthly > header {
+    padding: 10px 11px !important;
+  }
+  .operations-overview .analytics-monthly > div {
+    padding: 10px !important;
+    gap: 7px !important;
+  }
+  .operations-overview .analytics-monthly article {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+  .operations-overview .analytics-monthly article > small {
+    font-size: 7.5px !important;
+  }
 
-  .tuition-page-heading{margin-bottom:12px!important;gap:10px!important}
-  .tuition-page-heading h1{font-size:24px!important}
-  .tuition-heading-actions{gap:6px!important}
+  .tuition-page-heading {
+    margin-bottom: 12px !important;
+    gap: 10px !important;
+  }
+  .tuition-page-heading h1 {
+    font-size: 24px !important;
+  }
+  .tuition-heading-actions {
+    gap: 6px !important;
+  }
   .tuition-month-picker,
-  .tuition-heading-actions>.secondary-button,
-  .tuition-heading-actions>.primary{height:40px!important;min-height:40px!important}
-  .tuition-summary-five{gap:7px!important;margin-bottom:10px!important}
-  .tuition-summary-five article{min-height:76px!important;padding:11px 12px!important;gap:5px!important;border-radius:12px!important}
-  .tuition-summary-five article span{font-size:9px!important}
-  .tuition-summary-five article b{font-size:16px!important}
-  .tuition-summary-five article small{font-size:8px!important}
-  .tuition-advanced-filterbar{padding:9px!important;margin-bottom:9px!important;gap:9px!important}
-  .tuition-advanced-filterbar select{height:38px!important}
-  .tuition-sort-controls>span,.tuition-sort-controls button{height:38px!important}
-  .tuition-toolbar{min-height:0!important;padding:8px!important;gap:8px!important}
-  .tuition-filters button{height:34px!important;padding:0 9px!important}
-  .tuition-search,.tuition-reminder-button{height:36px!important;min-height:36px!important}
-  .tuition-empty{min-height:170px!important;padding:36px 14px!important}
+  .tuition-heading-actions > .secondary-button,
+  .tuition-heading-actions > .primary {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  .tuition-summary-five {
+    gap: 7px !important;
+    margin-bottom: 10px !important;
+  }
+  .tuition-summary-five article {
+    min-height: 76px !important;
+    padding: 11px 12px !important;
+    gap: 5px !important;
+    border-radius: 12px !important;
+  }
+  .tuition-summary-five article span {
+    font-size: 9px !important;
+  }
+  .tuition-summary-five article b {
+    font-size: 16px !important;
+  }
+  .tuition-summary-five article small {
+    font-size: 8px !important;
+  }
+  .tuition-advanced-filterbar {
+    padding: 9px !important;
+    margin-bottom: 9px !important;
+    gap: 9px !important;
+  }
+  .tuition-advanced-filterbar select {
+    height: 38px !important;
+  }
+  .tuition-sort-controls > span,
+  .tuition-sort-controls button {
+    height: 38px !important;
+  }
+  .tuition-toolbar {
+    min-height: 0 !important;
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+  .tuition-filters button {
+    height: 34px !important;
+    padding: 0 9px !important;
+  }
+  .tuition-search,
+  .tuition-reminder-button {
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+  .tuition-empty {
+    min-height: 170px !important;
+    padding: 36px 14px !important;
+  }
 
-  .consultation-summary{min-height:0!important;padding:10px 12px!important}
-  .consultation-alert{margin-bottom:10px!important}
-  .consultation-alert>header{padding:12px 14px!important}
-  .consultation-alert>div>button{min-height:58px!important;padding:10px 12px!important;gap:9px!important}
-  .consultation-alert button>i{width:30px!important;height:30px!important;flex:0 0 30px!important}
-  .consultation-alert button b{font-size:11px!important}
-  .consultation-alert button small{font-size:8px!important;line-height:1.4!important}
-  .consultation-alert button strong{margin-left:auto!important;font-size:8px!important;white-space:nowrap!important}
-  .consultation-toolbar{min-height:0!important;padding:10px 12px!important}
-  .consultation-list article>header{padding:12px 14px!important;gap:10px!important}
-  .consultation-notes{padding:0 14px 12px!important;gap:7px!important}
+  .consultation-summary {
+    min-height: 0 !important;
+    padding: 10px 12px !important;
+  }
+  .consultation-alert {
+    margin-bottom: 10px !important;
+  }
+  .consultation-alert > header {
+    padding: 12px 14px !important;
+  }
+  .consultation-alert > div > button {
+    min-height: 58px !important;
+    padding: 10px 12px !important;
+    gap: 9px !important;
+  }
+  .consultation-alert button > i {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 30px !important;
+  }
+  .consultation-alert button b {
+    font-size: 11px !important;
+  }
+  .consultation-alert button small {
+    font-size: 8px !important;
+    line-height: 1.4 !important;
+  }
+  .consultation-alert button strong {
+    margin-left: auto !important;
+    font-size: 8px !important;
+    white-space: nowrap !important;
+  }
+  .consultation-toolbar {
+    min-height: 0 !important;
+    padding: 10px 12px !important;
+  }
+  .consultation-list article > header {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .consultation-notes {
+    padding: 0 14px 12px !important;
+    gap: 7px !important;
+  }
 
-  .vocab-page{gap:10px!important}
-  .vocab-builder,.vocab-history,.vocab-preview{padding:12px!important;border-radius:15px!important}
-  .vocab-section-title{margin-bottom:10px!important;gap:8px!important}
-  .vocab-section-title:not(:first-child){margin-top:15px!important;padding-top:14px!important}
-  .vocab-section-title>span{width:28px!important;height:28px!important}
-  .vocab-section-title h2{font-size:16px!important}
-  .vocab-form-grid{gap:7px!important}
-  .vocab-form-grid input,.vocab-form-grid select,.vocab-counts input{height:40px!important;min-height:40px!important}
-  .vocab-counts{gap:6px!important}
-  .vocab-counts label{padding:7px!important}
-  .vocab-counts>strong{height:42px!important}
-  .vocab-create{height:40px!important;margin-top:10px!important}
+  .vocab-page {
+    gap: 10px !important;
+  }
+  .vocab-builder,
+  .vocab-history,
+  .vocab-preview {
+    padding: 12px !important;
+    border-radius: 15px !important;
+  }
+  .vocab-section-title {
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+  }
+  .vocab-section-title:not(:first-child) {
+    margin-top: 15px !important;
+    padding-top: 14px !important;
+  }
+  .vocab-section-title > span {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .vocab-section-title h2 {
+    font-size: 16px !important;
+  }
+  .vocab-form-grid {
+    gap: 7px !important;
+  }
+  .vocab-form-grid input,
+  .vocab-form-grid select,
+  .vocab-counts input {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+  .vocab-counts {
+    gap: 6px !important;
+  }
+  .vocab-counts label {
+    padding: 7px !important;
+  }
+  .vocab-counts > strong {
+    height: 42px !important;
+  }
+  .vocab-create {
+    height: 40px !important;
+    margin-top: 10px !important;
+  }
 
-  .correction-learning-board .correction-subject-rows{padding:7px!important}
-  .correction-learning-board .correction-learning-rows article{margin-bottom:7px!important;border-radius:12px!important}
-  .correction-learning-board .correction-learning-rows>article>div{padding:10px!important}
-  .correction-learning-board .learning-attendance{margin-top:8px!important;gap:5px!important}
-  .correction-learning-board .learning-attendance>button{min-height:35px!important;height:35px!important}
+  .correction-learning-board .correction-subject-rows {
+    padding: 7px !important;
+  }
+  .correction-learning-board .correction-learning-rows article {
+    margin-bottom: 7px !important;
+    border-radius: 12px !important;
+  }
+  .correction-learning-board .correction-learning-rows > article > div {
+    padding: 10px !important;
+  }
+  .correction-learning-board .learning-attendance {
+    margin-top: 8px !important;
+    gap: 5px !important;
+  }
+  .correction-learning-board .learning-attendance > button {
+    min-height: 35px !important;
+    height: 35px !important;
+  }
   .correction-learning-board .correction-exam select,
-  .correction-learning-board .correction-exam input{min-height:38px!important;height:38px!important}
-  .correction-learning-board .correction-task-cell textarea{min-height:70px!important;height:70px!important}
+  .correction-learning-board .correction-exam input {
+    min-height: 38px !important;
+    height: 38px !important;
+  }
+  .correction-learning-board .correction-task-cell textarea {
+    min-height: 70px !important;
+    height: 70px !important;
+  }
 
-  .absence-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-bottom:10px!important}
-  .absence-summary button{min-height:76px!important;padding:11px 12px!important;gap:4px 8px!important;border-radius:13px!important}
-  .absence-summary b{font-size:18px!important}
-  .absence-filters{padding:10px!important;gap:7px!important}
-  .absence-filters input,.absence-filters select{height:40px!important;min-height:40px!important;padding:0 10px!important}
-  .absence-empty{min-height:190px!important;padding:28px 18px!important;text-align:center!important}
-  .absence-groups{padding:8px!important;gap:9px!important}
-  .absence-groups article>header{padding:11px 12px!important}
-  .absence-row{padding:10px!important;gap:8px!important}
+  .absence-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin-bottom: 10px !important;
+  }
+  .absence-summary button {
+    min-height: 76px !important;
+    padding: 11px 12px !important;
+    gap: 4px 8px !important;
+    border-radius: 13px !important;
+  }
+  .absence-summary b {
+    font-size: 18px !important;
+  }
+  .absence-filters {
+    padding: 10px !important;
+    gap: 7px !important;
+  }
+  .absence-filters input,
+  .absence-filters select {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 10px !important;
+  }
+  .absence-empty {
+    min-height: 190px !important;
+    padding: 28px 18px !important;
+    text-align: center !important;
+  }
+  .absence-groups {
+    padding: 8px !important;
+    gap: 9px !important;
+  }
+  .absence-groups article > header {
+    padding: 11px 12px !important;
+  }
+  .absence-row {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
 }
 
-@media(max-width:700px){
-  .absence-summary button{min-height:70px!important;padding:10px 11px!important}
-  .absence-summary small{font-size:9px!important}
-  .absence-summary b{font-size:17px!important}
-  .absence-summary span{font-size:8px!important}
+@media (max-width: 700px) {
+  .absence-summary button {
+    min-height: 70px !important;
+    padding: 10px 11px !important;
+  }
+  .absence-summary small {
+    font-size: 9px !important;
+  }
+  .absence-summary b {
+    font-size: 17px !important;
+  }
+  .absence-summary span {
+    font-size: 8px !important;
+  }
 }
 
 /* Class creator: keep the action bar separate from the scrolling form on mobile. */
-@media(max-width:700px){
-  .admin-class-filters{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;min-height:0!important;margin:0 0 12px!important;padding:8px!important;border:1px solid #eadfe4!important;border-radius:14px!important;background:#fff!important;box-shadow:0 4px 16px rgba(55,35,45,.035)!important}
-  .admin-class-filter-modes{grid-column:1/-1!important;width:100%!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;padding:3px!important;border-radius:10px!important;background:#f7f3f5!important}
-  .admin-class-filter-modes button{width:100%!important;height:34px!important;min-width:0!important;padding:0 3px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#756970!important;font-size:10.5px!important;font-weight:800!important;white-space:nowrap!important}
-  .admin-class-filter-modes button.active{color:#fff!important;background:var(--hm-accent)!important;box-shadow:0 4px 10px rgba(146,45,97,.17)!important}
-  .admin-class-filters>label{grid-column:1/2!important;width:100%!important;min-width:0!important;height:38px!important;padding:0!important;border:0!important;display:flex!important;align-items:center!important;gap:7px!important}
-  .admin-class-filters>label>span{flex:0 0 auto!important;color:#8b7e85!important;font-size:9.5px!important;font-weight:800!important;white-space:nowrap!important}
-  .admin-class-filters select{flex:1 1 auto!important;min-width:0!important;width:100%!important;height:38px!important;padding:0 28px 0 10px!important;border:1px solid #e5d9df!important;border-radius:9px!important;background:#fff!important;color:#4f4248!important;font-size:11px!important;font-weight:750!important}
-  .admin-class-filters>strong{grid-column:2/3!important;margin:0!important;padding:0 4px!important;color:var(--hm-accent)!important;font-size:12px!important;white-space:nowrap!important}
-  .admin-class-filters>strong small{color:#9a8f94!important;font-size:9px!important;font-weight:700!important}
-  .class-creator{height:calc(94dvh - env(safe-area-inset-top))!important;max-height:calc(94dvh - env(safe-area-inset-top))!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
-  .class-creator>header{position:relative!important;top:auto!important;flex:0 0 auto!important}
-  .class-creator>.modal-body{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:18px!important}
-  .class-creator>footer{position:relative!important;bottom:auto!important;flex:0 0 auto!important;background:#fff!important;backdrop-filter:none!important;box-shadow:0 -8px 22px rgba(55,35,45,.06)!important}
-  .class-creator>.form-error{flex:0 0 auto!important;margin:8px 17px 0!important}
-  .class-creator .teacher-picker>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:2px 0 7px!important;overflow:visible!important}
-  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:9px 12px!important;gap:8px!important;border-radius:14px!important;background:#fff!important;box-shadow:0 2px 8px rgba(55,35,45,.025)!important}
-  .class-creator .teacher-picker>div>label>input{width:17px!important;height:17px!important;flex:0 0 17px!important}
-  .class-creator .teacher-picker>div>label>i{display:none!important}
-  .class-creator .teacher-picker>div>label>span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-  .class-creator .teacher-picker>div>label.active{border-color:#b74a7d!important;background:#fbf0f5!important;box-shadow:0 0 0 2px rgba(146,45,97,.07)!important}
-  .class-creator .class-color-options>button{position:relative!important}
-  .class-creator .class-color-options>button.used>i{position:absolute!important;right:-3px!important;bottom:-3px!important;width:8px!important;height:8px!important;border:2px solid #fff!important;border-radius:50%!important;background:#3f3439!important;box-shadow:0 0 0 1px rgba(63,52,57,.2)!important}
-  .class-creator .class-color-options::after{content:"직접 선택";flex:0 0 auto;color:#8c8085;font-size:8.5px;font-weight:700;white-space:nowrap}
-  .class-creator .desktop-only-hint{display:none!important}
-  .class-creator .mobile-only-hint{display:inline!important}
+@media (max-width: 700px) {
+  .admin-class-filters {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-height: 0 !important;
+    margin: 0 0 12px !important;
+    padding: 8px !important;
+    border: 1px solid #eadfe4 !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    box-shadow: 0 4px 16px rgba(55, 35, 45, 0.035) !important;
+  }
+  .admin-class-filter-modes {
+    grid-column: 1/-1 !important;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+    padding: 3px !important;
+    border-radius: 10px !important;
+    background: #f7f3f5 !important;
+  }
+  .admin-class-filter-modes button {
+    width: 100% !important;
+    height: 34px !important;
+    min-width: 0 !important;
+    padding: 0 3px !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: #756970 !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+  }
+  .admin-class-filter-modes button.active {
+    color: #fff !important;
+    background: var(--hm-accent) !important;
+    box-shadow: 0 4px 10px rgba(146, 45, 97, 0.17) !important;
+  }
+  .admin-class-filters > label {
+    grid-column: 1/2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+  .admin-class-filters > label > span {
+    flex: 0 0 auto !important;
+    color: #8b7e85 !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+  }
+  .admin-class-filters select {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 38px !important;
+    padding: 0 28px 0 10px !important;
+    border: 1px solid #e5d9df !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    color: #4f4248 !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+  }
+  .admin-class-filters > strong {
+    grid-column: 2/3 !important;
+    margin: 0 !important;
+    padding: 0 4px !important;
+    color: var(--hm-accent) !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+  .admin-class-filters > strong small {
+    color: #9a8f94 !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+  }
+  .class-creator {
+    height: calc(94dvh - env(safe-area-inset-top)) !important;
+    max-height: calc(94dvh - env(safe-area-inset-top)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  .class-creator > header {
+    position: relative !important;
+    top: auto !important;
+    flex: 0 0 auto !important;
+  }
+  .class-creator > .modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    padding-bottom: 18px !important;
+  }
+  .class-creator > footer {
+    position: relative !important;
+    bottom: auto !important;
+    flex: 0 0 auto !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 -8px 22px rgba(55, 35, 45, 0.06) !important;
+  }
+  .class-creator > .form-error {
+    flex: 0 0 auto !important;
+    margin: 8px 17px 0 !important;
+  }
+  .class-creator .teacher-picker > div {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 2px 0 7px !important;
+    overflow: visible !important;
+  }
+  .class-creator .teacher-picker > div > label {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 9px 12px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    box-shadow: 0 2px 8px rgba(55, 35, 45, 0.025) !important;
+  }
+  .class-creator .teacher-picker > div > label > input {
+    width: 17px !important;
+    height: 17px !important;
+    flex: 0 0 17px !important;
+  }
+  .class-creator .teacher-picker > div > label > i {
+    display: none !important;
+  }
+  .class-creator .teacher-picker > div > label > span {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .class-creator .teacher-picker > div > label.active {
+    border-color: #b74a7d !important;
+    background: #fbf0f5 !important;
+    box-shadow: 0 0 0 2px rgba(146, 45, 97, 0.07) !important;
+  }
+  .class-creator .class-color-options > button {
+    position: relative !important;
+  }
+  .class-creator .class-color-options > button.used > i {
+    position: absolute !important;
+    right: -3px !important;
+    bottom: -3px !important;
+    width: 8px !important;
+    height: 8px !important;
+    border: 2px solid #fff !important;
+    border-radius: 50% !important;
+    background: #3f3439 !important;
+    box-shadow: 0 0 0 1px rgba(63, 52, 57, 0.2) !important;
+  }
+  .class-creator .class-color-options::after {
+    content: "직접 선택";
+    flex: 0 0 auto;
+    color: #8c8085;
+    font-size: 8.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .class-creator .desktop-only-hint {
+    display: none !important;
+  }
+  .class-creator .mobile-only-hint {
+    display: inline !important;
+  }
 }
 
-@media(min-width:701px){
-  .class-creator .mobile-only-hint{display:none!important}
+@media (min-width: 701px) {
+  .class-creator .mobile-only-hint {
+    display: none !important;
+  }
 }
 
 /* Student learning history: compact, single-frame mobile calendars. */
-@media(max-width:700px){
-  .student-hub-modal .student-hub-body{scrollbar-width:none!important;-ms-overflow-style:none!important}
-  .student-hub-modal .student-hub-body::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
-  .student-unified-learning .student-learning-history-grid{width:100%!important;min-width:0!important;border-radius:14px!important;overflow:hidden!important}
-  .student-unified-learning .student-learning-calendar-panel{width:100%!important;min-width:0!important;overflow:hidden!important;border-right:0!important}
+@media (max-width: 700px) {
+  .student-hub-modal .student-hub-body {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  .student-hub-modal .student-hub-body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .student-unified-learning .student-learning-history-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+  .student-unified-learning .student-learning-calendar-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border-right: 0 !important;
+  }
   .student-unified-learning .student-learning-calendar-head,
   .student-unified-learning .student-learning-weekdays,
-  .student-unified-learning .student-learning-days{width:100%!important;min-width:0!important;max-width:100%!important}
-  .student-unified-learning .student-learning-calendar-head{height:46px!important;min-height:46px!important;padding:0 10px!important;gap:10px!important}
-  .student-unified-learning .student-learning-calendar-head b{min-width:112px!important;font-size:13px!important}
-  .student-unified-learning .student-learning-calendar-head button{width:32px!important;height:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important}
-  .student-unified-learning .student-learning-weekdays span{padding:8px 2px!important;font-size:9px!important}
-  .student-unified-learning .student-learning-days{grid-template-rows:none!important;grid-auto-rows:46px!important}
+  .student-unified-learning .student-learning-days {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .student-unified-learning .student-learning-calendar-head {
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 10px !important;
+    gap: 10px !important;
+  }
+  .student-unified-learning .student-learning-calendar-head b {
+    min-width: 112px !important;
+    font-size: 13px !important;
+  }
+  .student-unified-learning .student-learning-calendar-head button {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 9px !important;
+    font-size: 18px !important;
+  }
+  .student-unified-learning .student-learning-weekdays span {
+    padding: 8px 2px !important;
+    font-size: 9px !important;
+  }
+  .student-unified-learning .student-learning-days {
+    grid-template-rows: none !important;
+    grid-auto-rows: 46px !important;
+  }
   .student-unified-learning .student-learning-days button,
-  .student-unified-learning .student-learning-days .blank{width:auto!important;min-width:0!important;min-height:46px!important;height:46px!important;padding:6px!important;gap:3px!important;overflow:hidden!important}
-  .student-unified-learning .student-learning-days button>span{font-size:10px!important}
-  .student-unified-learning .student-learning-days button.has-record small{width:7px!important;height:7px!important;margin:1px 0 0!important;padding:0!important;border-radius:999px!important;background:#78ad91!important;color:transparent!important;font-size:0!important;overflow:hidden!important}
-  .student-unified-learning .student-learning-selected{border-top:0!important;background:#fff!important}
-  .student-unified-learning .student-learning-selected>header{padding:12px 13px!important}
-  .student-unified-learning .student-learning-cards{padding:10px!important}
+  .student-unified-learning .student-learning-days .blank {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    padding: 6px !important;
+    gap: 3px !important;
+    overflow: hidden !important;
+  }
+  .student-unified-learning .student-learning-days button > span {
+    font-size: 10px !important;
+  }
+  .student-unified-learning .student-learning-days button.has-record small {
+    width: 7px !important;
+    height: 7px !important;
+    margin: 1px 0 0 !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    background: #78ad91 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    overflow: hidden !important;
+  }
+  .student-unified-learning .student-learning-selected {
+    border-top: 0 !important;
+    background: #fff !important;
+  }
+  .student-unified-learning .student-learning-selected > header {
+    padding: 12px 13px !important;
+  }
+  .student-unified-learning .student-learning-cards {
+    padding: 10px !important;
+  }
 
-  .student-unified-learning .correction-history-embedded{display:block!important;width:100%!important;max-width:100%!important;overflow:visible!important}
-  .student-unified-learning .correction-history-embedded>.correction-history-summary{gap:6px!important;padding:0 0 8px!important}
-  .student-unified-learning .correction-history-embedded>.correction-history-summary>div{min-height:64px!important;padding:9px 10px!important;border-radius:12px!important}
-  .student-unified-learning .correction-history-embedded>.correction-history-filter{gap:6px!important;padding:0 0 9px!important}
-  .student-unified-learning .correction-history-embedded>.correction-history-filter button{min-width:0!important;min-height:36px!important;padding:0 14px!important}
-  .student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:1px solid #e8dde2!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 7px 20px rgba(61,40,50,.035)!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar{display:flex!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-radius:0!important;overflow:hidden!important;flex-direction:column!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar{height:46px!important;min-height:46px!important;gap:10px!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar strong{min-width:112px!important;font-size:13px!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar button{width:32px!important;height:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important}
-  .student-unified-learning .correction-history-embedded .correction-history-weekdays{width:100%!important;min-width:0!important;padding:8px 0!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid{width:100%!important;min-width:0!important;grid-template-rows:none!important;grid-auto-rows:46px!important;padding:0!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>button,
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>.blank{width:auto!important;min-width:0!important;min-height:46px!important;height:46px!important;padding:6px!important;overflow:hidden!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>button>div{display:flex!important;align-items:center!important;gap:3px!important;margin-top:4px!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid em{width:6px!important;height:6px!important;padding:0!important;border-radius:999px!important;color:transparent!important;font-size:0!important;overflow:hidden!important}
-  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid small{font-size:7px!important}
-  .student-unified-learning .correction-history-embedded .correction-history-day-panel{width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-top:1px solid #eee5e9!important;border-radius:0!important;overflow:visible!important;background:#fff!important}
-  .student-unified-learning .correction-history-embedded .correction-history-day-panel>header{padding:12px 13px!important;background:#fcfafb!important}
-  .student-unified-learning .correction-history-embedded .correction-history-day-list{overflow:visible!important;padding:10px!important}
+  .student-unified-learning .correction-history-embedded {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-summary {
+    gap: 6px !important;
+    padding: 0 0 8px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-summary
+    > div {
+    min-height: 64px !important;
+    padding: 9px 10px !important;
+    border-radius: 12px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-filter {
+    gap: 6px !important;
+    padding: 0 0 9px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-filter
+    button {
+    min-width: 0 !important;
+    min-height: 36px !important;
+    padding: 0 14px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-calendar-wrap {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border: 1px solid #e8dde2 !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    overflow: hidden !important;
+    box-shadow: 0 7px 20px rgba(61, 40, 50, 0.035) !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar {
+    display: flex !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    flex-direction: column !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-toolbar {
+    height: 46px !important;
+    min-height: 46px !important;
+    gap: 10px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-toolbar
+    strong {
+    min-width: 112px !important;
+    font-size: 13px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-toolbar
+    button {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 9px !important;
+    font-size: 18px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-weekdays {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 8px 0 !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: 46px !important;
+    padding: 0 !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid
+    > button,
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid
+    > .blank {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    padding: 6px !important;
+    overflow: hidden !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid
+    > button
+    > div {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin-top: 4px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid
+    em {
+    width: 6px !important;
+    height: 6px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    overflow: hidden !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar-grid
+    small {
+    font-size: 7px !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-day-panel {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-top: 1px solid #eee5e9 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-day-panel
+    > header {
+    padding: 12px 13px !important;
+    background: #fcfafb !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-day-list {
+    overflow: visible !important;
+    padding: 10px !important;
+  }
 }
