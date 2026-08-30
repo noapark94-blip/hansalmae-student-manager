@@ -21,7 +21,7 @@ Deno.serve(async request=>{
   const apiKey=clean(Deno.env.get("SOLAPI_API_KEY")),apiSecret=clean(Deno.env.get("SOLAPI_API_SECRET")),sender=phone(Deno.env.get("SOLAPI_SENDER_NUMBER")??""),pfId=clean(Deno.env.get("SOLAPI_KAKAO_PF_ID"));
   if(!url||!anon||!service)return json({error:"알림톡 서버 연결 설정이 없습니다."},500);
   if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
-  let input:{studentId?:string;reportType?:"daily"|"weekly";periodStart?:string;periodEnd?:string;lessonSummary?:string;attendanceSummary?:string;learningSummary?:string};
+  let input:{studentId?:string;reportType?:"daily"|"weekly";periodStart?:string;periodEnd?:string;lessonSummary?:string;attendanceSummary?:string;examSummary?:string;homeworkSummary?:string;learningSummary?:string};
   try{input=await request.json()}catch{return json({error:"발송 내용을 확인해 주세요."},400)}
   const templateId=clean(Deno.env.get(input.reportType==="weekly"?"SOLAPI_ALIMTALK_WEEKLY_TEMPLATE_ID":"SOLAPI_ALIMTALK_DAILY_TEMPLATE_ID"));
   if(!apiKey||!apiSecret||!sender||!pfId||!templateId)return json({error:"솔라피 알림톡 채널 또는 승인 템플릿이 아직 설정되지 않았습니다."},503);
@@ -32,8 +32,11 @@ Deno.serve(async request=>{
   if(!claimed.length)return json({error:"발송할 학부모 연락처를 찾지 못했습니다."},400);
   const resultRow=claimed[0],variables=resultRow.template_variables;
   const start=String(variables.periodStart),end=String(variables.periodEnd),period=input.reportType==="daily"?formatDate(start):`${formatDate(start)}~${formatDate(end)}`;
-  const kakaoVariables=input.reportType==="weekly"?{"#{학생명}":variables.studentName,"#{기간}":period,"#{수업횟수}":variables.lessonSummary,"#{출결요약}":variables.attendanceSummary,"#{학습요약}":variables.learningSummary}:{"#{학생명}":variables.studentName,"#{기록일}":period,"#{수업요약}":variables.lessonSummary,"#{출결요약}":variables.attendanceSummary,"#{학습요약}":variables.learningSummary};
-  const fallback=`[한살매 수업노트]\n${variables.studentName} 학생의 ${period} 학습기록입니다.\n수업: ${variables.lessonSummary}\n출결: ${variables.attendanceSummary}\n학습: ${variables.learningSummary}\n자세한 내용은 한살매 수업노트에서 확인해 주세요.`;
+  const examSummary=String(input.examSummary??"").trim(),homeworkSummary=String(input.homeworkSummary??"").trim();
+  const learningDetails=[examSummary&&`시험  ${examSummary}`,homeworkSummary&&`과제  ${homeworkSummary}`].filter(Boolean).join("\n")||"학습  수업 기록 완료";
+  const kakaoVariables={"#{학생명}":variables.studentName,[input.reportType==="weekly"?"#{기간}":"#{기록일}"]:period,"#{수업요약}":variables.lessonSummary,"#{출결요약}":variables.attendanceSummary,"#{학습상세요약}":learningDetails};
+  const details=[`수업  ${variables.lessonSummary}`,`출결  ${variables.attendanceSummary}`,learningDetails].join("\n");
+  const fallback=`[한살매 수업노트]\n\n${variables.studentName} 학생의 ${period} ${input.reportType==="weekly"?"주간 학습요약":"학습기록"}입니다.\n\n${details}\n\n자세한 수업 내용과 선생님 피드백은\n한살매 수업노트에서 확인해 주세요.`;
   try{
     const response=await fetch("https://api.solapi.com/messages/v4/send",{method:"POST",headers:{Authorization:await authorization(apiKey,apiSecret),"Content-Type":"application/json"},body:JSON.stringify({message:{to:phone(resultRow.recipient_phone),from:sender,text:fallback,autoTypeDetect:true,kakaoOptions:{pfId,templateId,variables:kakaoVariables}}})});
     const result=await response.json().catch(()=>({})) as{messageId?:string;groupId?:string;errorCode?:string;errorMessage?:string;message?:string};
