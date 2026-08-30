@@ -442,8 +442,8 @@ function ClassScheduleBoard({
   const selectedDayGroups = Array.from(
     new Map(
       selectedDayRows.map((row) => [
-        `${row.startTime.slice(0, 5)}-${row.endTime.slice(0, 5)}`,
-        { start: row.startTime.slice(0, 5), end: row.endTime.slice(0, 5) },
+        row.startTime.slice(0, 5),
+        { start: row.startTime.slice(0, 5) },
       ]),
     ).values(),
   );
@@ -612,20 +612,17 @@ function ClassScheduleBoard({
               {selectedDayGroups.length ? (
                 selectedDayGroups.map((group) => {
                   const groupRows = selectedDayRows.filter(
-                    (row) =>
-                      row.startTime.slice(0, 5) === group.start &&
-                      row.endTime.slice(0, 5) === group.end,
+                    (row) => row.startTime.slice(0, 5) === group.start,
                   );
                   return (
-                    <section key={`${group.start}-${group.end}`}>
-                      <time>
-                        {group.start}
-                        <span>–</span>
-                        {group.end}
-                      </time>
+                    <section key={group.start}>
+                      <time>{group.start}</time>
                       <div>
                         {groupRows.map((row) => (
                           <article
+                            className={
+                              row.students.length === 0 ? "unassigned" : ""
+                            }
                             key={row.id}
                             style={
                               { "--schedule-color": row.color } as CSSProperties
@@ -638,15 +635,22 @@ function ClassScheduleBoard({
                             >
                               <b>{row.className}</b>
                               <small>
-                                {row.subject} ·{" "}
+                                {row.startTime.slice(0, 5)}–
+                                {row.endTime.slice(0, 5)} · {row.subject} ·{" "}
                                 {row.teachers
                                   .map((teacher) => teacher.name)
                                   .join("·") || "담당 미배정"}
                               </small>
                               <em>
-                                {[row.room, `${row.students.length}명`]
-                                  .filter(Boolean)
-                                  .join(" · ")}
+                                {row.students.length === 0 ? (
+                                  <span className="mobile-unassigned-badge">
+                                    미배정
+                                  </span>
+                                ) : (
+                                  [row.room, `${row.students.length}명`]
+                                    .filter(Boolean)
+                                    .join(" · ")
+                                )}
                               </em>
                             </button>
                             <button
@@ -655,7 +659,7 @@ function ClassScheduleBoard({
                               aria-label={`${row.className} 수업 배정 수정`}
                               onClick={() => onEdit(row)}
                             >
-                              수정
+                              ⋮
                             </button>
                           </article>
                         ))}
