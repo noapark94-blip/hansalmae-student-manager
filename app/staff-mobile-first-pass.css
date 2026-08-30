@@ -32,6 +32,92 @@
   .class-day-workspace .learning-homework.assigned textarea{min-height:70px!important;height:70px!important}
 }
 
+/* Fourth staff-only mobile density pass: calendars, account, directory and profile. */
+@media(max-width:700px){
+  .correction-month-modal{width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:22px 22px 0 0!important;overflow-y:auto!important;overflow-x:hidden!important}
+  .correction-month-modal>header{min-height:88px!important;padding:16px 14px 12px!important}
+  .correction-month-modal>header h2{font-size:22px!important;line-height:1.2!important}
+  .correction-month-modal>header p{font-size:9px!important;line-height:1.4!important}
+  .correction-month-modal>header>button{width:39px!important;height:39px!important;min-height:39px!important}
+  .correction-month-toolbar{min-height:58px!important;padding:8px 10px!important;gap:7px!important}
+  .correction-month-toolbar b{font-size:17px!important}
+  .correction-month-toolbar button{height:38px!important;min-height:38px!important;padding:0 10px!important}
+  .correction-month-weekdays,.correction-month-grid{width:100%!important;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;overflow:visible!important}
+  .correction-month-weekdays{padding:0 4px!important}
+  .correction-month-weekdays b{min-width:0!important;padding:9px 0!important;font-size:8px!important}
+  .correction-month-grid{padding:0 4px 10px!important}
+  .correction-month-grid>button{min-width:0!important;min-height:70px!important;padding:5px 3px!important;border-radius:0!important}
+  .correction-month-grid>button>span{font-size:10px!important}
+  .correction-month-grid>button>div{gap:2px!important;margin-top:4px!important}
+  .correction-month-grid>button em{overflow:hidden!important;font-size:6.5px!important;line-height:1.2!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+
+  [class*="my-account_page"],[class*="my-account_page"]{padding-bottom:18px!important}
+  [class*="my-account_heading"]{gap:2px!important;margin-bottom:11px!important;padding-top:2px!important}
+  [class*="my-account_heading"] h1{font-size:25px!important;line-height:1.15!important}
+  [class*="my-account_heading"]>p:last-child{margin-top:5px!important;font-size:11px!important;line-height:1.4!important}
+  [class*="my-account_eyebrow"]{font-size:10px!important}
+  [class*="my-account_grid"]{gap:10px!important}
+  [class*="my-account_card"]{border-radius:15px!important}
+  [class*="my-account_cardHeader"]{min-height:64px!important;padding:11px 12px!important;gap:10px!important}
+  [class*="my-account_cardHeader"] h2{font-size:14px!important}
+  [class*="my-account_cardHeader"] p{margin-top:2px!important;font-size:9px!important}
+  [class*="my-account_icon"]{width:36px!important;height:36px!important;flex-basis:36px!important;border-radius:11px!important}
+  [class*="my-account_icon"] svg{width:18px!important;height:18px!important}
+  [class*="my-account_form"]{gap:10px!important;padding:12px!important}
+  [class*="my-account_form"] label{font-size:10px!important}
+  [class*="my-account_form"] input{height:40px!important;min-height:40px!important;margin-top:5px!important;padding:0 11px!important;border-radius:10px!important;font-size:12px!important}
+  [class*="my-account_readonlyGrid"],[class*="my-account_passwordGrid"]{grid-template-columns:1fr!important;gap:9px!important}
+  [class*="my-account_actions"] button{width:100%!important;height:41px!important;min-height:41px!important;border-radius:11px!important;font-size:11px!important}
+
+  .notification-drawer>header{min-height:calc(72px + env(safe-area-inset-top))!important;padding:calc(12px + env(safe-area-inset-top)) 14px 11px!important}
+  .notification-drawer>header h2{margin-top:3px!important;font-size:21px!important}
+  .notification-drawer>header small{font-size:9px!important}
+  .notification-drawer>header>button{width:38px!important;height:38px!important;border-radius:11px!important;font-size:23px!important}
+  .notification-toolbar{min-height:43px!important;padding:0 14px!important}
+  .guardian-push-setting{min-height:62px!important;padding:9px 14px!important;grid-template-columns:34px minmax(0,1fr) 44px!important;gap:9px!important}
+  .guardian-push-setting-icon{width:34px!important;height:34px!important;border-radius:11px!important}
+  .guardian-push-setting-icon svg{width:18px!important;height:18px!important}
+  .guardian-push-setting-copy b{font-size:10px!important}.guardian-push-setting-copy span{font-size:8px!important}
+  .notification-list article{padding:11px 13px!important;grid-template-columns:32px minmax(0,1fr)!important;gap:9px!important}
+  .notification-list article>i{width:32px!important;height:32px!important}
+  .notification-list article b{font-size:10px!important}.notification-list article small{font-size:7.5px!important}.notification-list article p{font-size:8.5px!important}
+
+  .grade-progression-card{margin-bottom:10px!important;padding:13px!important;border-radius:16px!important}
+  .grade-progression-card>header{gap:8px!important}
+  .grade-progression-card header span{font-size:10px!important}
+  .grade-progression-card h2{margin:3px 0!important;font-size:18px!important}
+  .grade-progression-card header p,.grade-progression-guide span,.grade-progression-actions small{font-size:10px!important;line-height:1.45!important}
+  .grade-progression-card header>b{padding:5px 8px!important;font-size:9px!important}
+  .grade-progression-guide{margin-top:10px!important;padding:10px!important;border-radius:11px!important}
+  .grade-progression-summary{gap:6px!important;margin-top:10px!important}
+  .grade-progression-summary span{padding:8px!important;border-radius:10px!important}
+  .grade-progression-summary b{font-size:15px!important}
+  .student-page-layout>.lifecycle-dashboard>header{padding:10px 11px 0!important;gap:7px!important}
+  .student-page-layout>.lifecycle-dashboard>.lifecycle-status-cards{padding:8px 11px 11px!important}
+  .lifecycle-status-cards{gap:6px!important}
+  .lifecycle-status-cards button{min-height:62px!important;padding:8px!important;gap:7px!important}
+  .lifecycle-status-cards button>i{width:30px!important;height:30px!important;flex-basis:30px!important}
+  .lifecycle-status-cards b{font-size:15px!important}
+  .student-list-tools{padding:10px!important;gap:7px!important}
+  .student-list-tools>.search-wrap{flex-basis:40px!important;height:40px!important;min-height:40px!important}
+  .student-list-tools>.search-wrap input{height:38px!important;min-height:38px!important;font-size:11px!important}
+  .student-list-filters{gap:6px!important}
+  .student-list-filters label{gap:3px!important}
+  .student-list-filters select{height:38px!important;min-height:38px!important;padding-top:0!important;padding-bottom:0!important;font-size:10px!important}
+
+  .student-profile-card input,.student-profile-card select{height:40px!important;min-height:40px!important;padding:0 11px!important;border-radius:10px!important;font-size:11px!important}
+  .student-profile-card textarea{height:78px!important;min-height:78px!important;padding:10px 11px!important;font-size:11px!important}
+  .student-profile-card label{gap:4px!important;font-size:9px!important}
+  .student-personal-schedule{margin-top:10px!important;padding:10px!important;border-radius:11px!important}
+  .student-personal-schedule>header{margin-bottom:8px!important}
+  .student-personal-schedule h3{font-size:13px!important}
+  .student-relevant-timetable{gap:7px!important}
+  .student-relevant-timetable h4{padding:7px 9px!important;font-size:9px!important}
+  .student-relevant-timetable section>div{padding:5px!important}
+  .student-relevant-timetable article{min-height:48px!important;padding:7px!important;grid-template-columns:58px minmax(0,1fr)!important;gap:6px!important}
+  .student-relevant-timetable time{font-size:8px!important}.student-relevant-timetable b{font-size:9px!important}.student-relevant-timetable small{font-size:7px!important}
+}
+
 /* Third staff-only mobile density pass: timetable and student detail hub. */
 @media(max-width:700px){
   .absence-heading{margin-bottom:12px!important}
@@ -121,6 +207,13 @@
   .class-day-workspace .class-roster-shortcut{align-items:stretch!important;flex-direction:column!important}
   .class-day-workspace .class-roster-actions{width:100%!important}
   .class-day-workspace .class-roster-actions>button{width:100%!important}
+}
+
+/* Keep fourth-pass profile controls authoritative after the earlier density blocks. */
+@media(max-width:700px){
+  .student-profile-card input,.student-profile-card select{height:40px!important;min-height:40px!important;padding:0 11px!important;border-radius:10px!important;font-size:11px!important}
+  .student-profile-card textarea{height:78px!important;min-height:78px!important;padding:10px 11px!important;font-size:11px!important}
+  .student-personal-schedule{margin-top:10px!important;padding:10px!important}
 }
 
 /* Second staff-only mobile density pass: operations, billing and work forms. */
