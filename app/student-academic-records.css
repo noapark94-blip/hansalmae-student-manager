@@ -132,11 +132,12 @@
  .academic-line-chart .academic-chart-mobile{display:block!important;width:100%!important;min-width:0!important;height:auto!important;max-height:205px}
  .academic-chart-grid text{font-size:8px}.academic-chart-point text{font-size:10px}.academic-chart-label text:first-of-type{font-size:9px}.academic-chart-label text:nth-of-type(2){font-size:8px}
  .academic-list{gap:9px}
- .academic-list>article{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:0!important;height:auto!important;padding:14px!important;border-radius:15px!important;box-shadow:0 7px 18px rgba(65,39,49,.03)}
+ .academic-list>article{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;gap:10px;min-height:0!important;height:auto!important;padding:14px!important;border-radius:15px!important;box-shadow:0 7px 18px rgba(65,39,49,.03)}
  .academic-list article>div:first-child{gap:5px}
  .academic-list span,.academic-list p,.academic-list small{font-size:9px!important;line-height:1.45}
  .academic-list b{font-size:13px;line-height:1.35}
- .academic-list footer{align-self:center;display:flex;justify-content:flex-end;gap:4px}
- .academic-list footer button{height:32px!important;min-height:32px!important;padding:0 9px!important;border-radius:9px!important;font-size:9px!important}
+ .academic-list footer{align-self:end;display:flex;justify-content:flex-end;gap:3px;margin:0;padding:3px;border:1px solid #eadfe4;border-radius:11px;background:#f7f2f4;box-shadow:0 3px 10px rgba(67,39,50,.04)}
+ .academic-list footer button{width:auto!important;min-width:48px!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 10px!important;border:0!important;border-radius:8px!important;background:#fff!important;color:#5f5057!important;font-size:9px!important;font-weight:850!important;box-shadow:0 1px 4px rgba(66,39,50,.05)!important}
+ .academic-list footer .danger{background:#fff1f5!important;color:#b63659!important;box-shadow:none!important}
  .academic-delete{justify-content:space-between}
 }
