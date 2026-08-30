@@ -1075,6 +1075,12 @@ function VehicleBoard({
     today >= 1 && today <= 5 ? today : 1,
   );
   const [showExcluded, setShowExcluded] = useState(false);
+  const [mobileDirection, setMobileDirection] = useState<"pickup" | "dropoff">(
+    "pickup",
+  );
+  const [expandedVehicleTime, setExpandedVehicleTime] = useState<string | null>(
+    "16:00",
+  );
   const [selectedStudent, setSelectedStudent] = useState<AutoVehicleRow | null>(
     null,
   );
@@ -1317,6 +1323,78 @@ function VehicleBoard({
         <span className="pickup">등원</span>
         <span className="dropoff">하원</span>
         <small>연속 수업·첨삭은 첫 등원과 마지막 하원에만 표시됩니다.</small>
+      </div>
+      <div className="mobile-auto-vehicle">
+        <div
+          className="mobile-auto-direction"
+          role="group"
+          aria-label="차량 운행 방향"
+        >
+          {(["pickup", "dropoff"] as const).map((direction) => {
+            const count = times.reduce(
+              (total, time) => total + students(time, direction).length,
+              0,
+            );
+            return (
+              <button
+                type="button"
+                key={direction}
+                className={mobileDirection === direction ? "active" : ""}
+                onClick={() => {
+                  setMobileDirection(direction);
+                  setExpandedVehicleTime(
+                    times.find((time) => students(time, direction).length) ??
+                      times[0],
+                  );
+                }}
+              >
+                <span>{direction === "pickup" ? "등원" : "하원"}</span>
+                <em>{count}명</em>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mobile-auto-times">
+          {times.map((time) => {
+            const timeRows = students(time, mobileDirection);
+            const open = expandedVehicleTime === time;
+            return (
+              <section className={open ? "open" : ""} key={time}>
+                <button
+                  type="button"
+                  className="mobile-auto-time-toggle"
+                  aria-expanded={open}
+                  onClick={() =>
+                    setExpandedVehicleTime((current) =>
+                      current === time ? null : time,
+                    )
+                  }
+                >
+                  <span>
+                    <b>{time}</b>
+                    <small>
+                      {mobileDirection === "pickup" ? "등원" : "하원"} 예정
+                    </small>
+                  </span>
+                  <em>{timeRows.length}명</em>
+                  <i aria-hidden="true">⌄</i>
+                </button>
+                {open &&
+                  (timeRows.length ? (
+                    <div className="mobile-auto-students">
+                      {timeRows.map((student) =>
+                        renderStudent(student, mobileDirection),
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mobile-auto-empty">
+                      예정된 학생이 없습니다.
+                    </p>
+                  ))}
+              </section>
+            );
+          })}
+        </div>
       </div>
       <div className="auto-vehicle-grid">
         <div className="auto-vehicle-grid-head">
