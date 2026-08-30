@@ -315,6 +315,15 @@
 
 /* Class creator: keep the action bar separate from the scrolling form on mobile. */
 @media(max-width:700px){
+  .admin-class-filters{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;min-height:0!important;margin:0 0 12px!important;padding:8px!important;border:1px solid #eadfe4!important;border-radius:14px!important;background:#fff!important;box-shadow:0 4px 16px rgba(55,35,45,.035)!important}
+  .admin-class-filter-modes{grid-column:1/-1!important;width:100%!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;padding:3px!important;border-radius:10px!important;background:#f7f3f5!important}
+  .admin-class-filter-modes button{width:100%!important;height:34px!important;min-width:0!important;padding:0 3px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#756970!important;font-size:10.5px!important;font-weight:800!important;white-space:nowrap!important}
+  .admin-class-filter-modes button.active{color:#fff!important;background:var(--hm-accent)!important;box-shadow:0 4px 10px rgba(146,45,97,.17)!important}
+  .admin-class-filters>label{grid-column:1/2!important;width:100%!important;min-width:0!important;height:38px!important;padding:0!important;border:0!important;display:flex!important;align-items:center!important;gap:7px!important}
+  .admin-class-filters>label>span{flex:0 0 auto!important;color:#8b7e85!important;font-size:9.5px!important;font-weight:800!important;white-space:nowrap!important}
+  .admin-class-filters select{flex:1 1 auto!important;min-width:0!important;width:100%!important;height:38px!important;padding:0 28px 0 10px!important;border:1px solid #e5d9df!important;border-radius:9px!important;background:#fff!important;color:#4f4248!important;font-size:11px!important;font-weight:750!important}
+  .admin-class-filters>strong{grid-column:2/3!important;margin:0!important;padding:0 4px!important;color:var(--hm-accent)!important;font-size:12px!important;white-space:nowrap!important}
+  .admin-class-filters>strong small{color:#9a8f94!important;font-size:9px!important;font-weight:700!important}
   .class-creator{height:calc(94dvh - env(safe-area-inset-top))!important;max-height:calc(94dvh - env(safe-area-inset-top))!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
   .class-creator>header{position:relative!important;top:auto!important;flex:0 0 auto!important}
   .class-creator>.modal-body{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:18px!important}
