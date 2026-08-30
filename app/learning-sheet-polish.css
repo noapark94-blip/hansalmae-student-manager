@@ -150,6 +150,19 @@
     white-space:nowrap;
     box-shadow:none!important;
   }
+  .class-day-workspace .class-day-notice>span{min-width:0;flex:1}
+  .class-day-workspace .learning-makeup-deactivate{
+    width:auto!important;
+    min-width:0!important;
+    height:38px!important;
+    min-height:38px!important;
+    flex:0 0 auto;
+    padding:0 13px!important;
+    border-radius:10px!important;
+    font-size:11px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
   .class-day-workspace .class-learning-board>header,
   .class-day-workspace .class-week-strip,
   .class-day-workspace .learning-common-record,
