@@ -32,6 +32,91 @@
   .class-day-workspace .learning-homework.assigned textarea{min-height:70px!important;height:70px!important}
 }
 
+/* Third staff-only mobile density pass: timetable and student detail hub. */
+@media(max-width:700px){
+  .absence-heading{margin-bottom:12px!important}
+  .absence-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .absence-summary button{min-height:70px!important;padding:10px 11px!important}
+  .absence-summary small{font-size:9px!important}
+  .absence-summary b{font-size:17px!important}
+  .absence-summary span{font-size:8px!important}
+
+  .schedule-tabs{gap:5px!important;margin-bottom:10px!important;padding-bottom:2px!important}
+  .schedule-tabs button{min-height:38px!important;padding:0 12px!important;border-radius:10px!important;font-size:10px!important}
+  .hub-panel{padding:12px!important}
+  .hub-panel .hub-toolbar{margin-bottom:10px!important;padding-bottom:10px!important;gap:9px!important}
+  .hub-panel .hub-toolbar h2{font-size:18px!important}
+  .hub-panel .hub-toolbar p{font-size:9px!important;line-height:1.45!important}
+  .hub-panel .hub-add{min-height:38px!important;height:38px!important;padding:0 11px!important;font-size:10px!important}
+  .schedule-subject-filter{gap:5px!important;margin-bottom:10px!important}
+  .schedule-subject-filter button{min-height:34px!important;padding:0 9px!important;font-size:9px!important}
+  .mobile-schedule-controls{margin-bottom:9px!important}
+  .mobile-schedule-view{padding:4px!important;border-radius:11px!important}
+  .mobile-schedule-view button{min-height:38px!important;height:38px!important;font-size:11px!important}
+  .mobile-schedule-days{gap:4px!important;margin-top:8px!important}
+  .mobile-schedule-days button{min-height:49px!important;padding:6px 2px!important;border-radius:10px!important}
+  .mobile-daily-schedule>section{grid-template-columns:72px minmax(0,1fr)!important}
+  .mobile-daily-schedule>section>time{padding:12px 7px!important;font-size:10px!important}
+  .mobile-daily-schedule article{min-height:76px!important;padding:9px!important}
+  .mobile-daily-main b{font-size:12px!important}
+  .mobile-daily-main small,.mobile-daily-main em{font-size:8px!important}
+  .weekly-schedule-view.mobile-visible{margin:0 -4px!important}
+  .weekly-schedule-view.mobile-visible .aligned-schedule{min-width:720px!important}
+  .weekly-schedule-view.mobile-visible .aligned-schedule-row{min-height:94px!important}
+  .weekly-schedule-view.mobile-visible .aligned-class-card{padding:7px!important}
+
+  .student-hub-modal{width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:22px 22px 0 0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+  .student-hub-modal>header{flex:0 0 auto!important;min-height:92px!important;padding:18px 16px 14px!important}
+  .student-hub-modal>header h2{font-size:23px!important;line-height:1.15!important}
+  .student-hub-modal>header span{font-size:11px!important;line-height:1.4!important}
+  .student-hub-modal>header>button{width:40px!important;height:40px!important;min-height:40px!important;border-radius:11px!important;font-size:22px!important}
+  .student-hub-tabs{flex:0 0 auto!important;gap:0!important;padding:0 8px!important;overflow-x:auto!important;scrollbar-width:none!important;scroll-snap-type:x proximity!important}
+  .student-hub-tabs::-webkit-scrollbar{display:none!important}
+  .student-hub-tabs button{min-height:44px!important;padding:0 10px!important;font-size:10px!important;white-space:nowrap!important;scroll-snap-align:start!important}
+  .student-hub-body{flex:1 1 auto!important;min-height:0!important;padding:14px!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+  .student-hub-body .hub-section-title{min-height:0!important;margin-bottom:10px!important;gap:8px!important}
+  .student-hub-body .hub-section-title h3,.student-tab-intro h3{font-size:16px!important}
+  .student-hub-body .hub-section-title p,.student-tab-intro p{font-size:9px!important;line-height:1.45!important}
+
+  .student-profile-settings{border-radius:12px!important}
+  .student-profile-card{padding:12px!important}
+  .student-profile-card>header{margin-bottom:11px!important;padding-bottom:9px!important}
+  .student-profile-card textarea{min-height:92px!important;height:92px!important}
+  .student-profile-savebar{padding:9px 12px!important}
+  .student-profile-savebar button{min-height:40px!important;height:40px!important}
+  .student-danger-zone{padding:11px 12px!important}
+  .student-profile-settings>.student-lifecycle{padding:12px!important}
+
+  .student-tab-intro{margin-bottom:10px!important;gap:10px!important}
+  .student-tab-intro nav{gap:5px!important;padding-bottom:2px!important}
+  .student-tab-intro nav button{min-height:36px!important;padding:0 10px!important;font-size:9px!important}
+  .student-summary-cards{gap:7px!important}
+  .student-summary-cards article{min-height:72px!important;padding:10px!important;gap:5px!important}
+  .student-summary-cards b{font-size:17px!important}
+  .student-learning-context{margin-bottom:9px!important;padding:9px 11px!important;gap:5px!important}
+  .student-learning-filters{gap:8px!important}
+  .student-learning-subject-tabs{gap:5px!important}
+  .student-learning-subject-tabs button{min-height:36px!important;padding:0 10px!important}
+  .student-hub-empty{min-height:150px!important;padding:34px 12px!important;display:grid!important;place-items:center!important}
+
+  .student-record-selects,.student-exam-selects,.consultation-period-filters{gap:7px!important}
+  .student-record-selects label,.student-exam-selects label,.consultation-period-filters label{min-width:0!important;width:100%!important}
+  .student-record-selects select,.student-exam-selects select,.consultation-period-filters select{height:40px!important;min-height:40px!important}
+  .student-record-list article{min-height:50px!important;padding:9px 10px!important;gap:8px!important}
+  .student-record-source-tabs,.student-record-range-tabs,.student-exam-source-tabs,.student-exam-subject-tabs,.student-exam-range-tabs{gap:5px!important}
+  .student-record-source-tabs button,.student-record-range-tabs button,.student-exam-source-tabs button,.student-exam-subject-tabs button,.student-exam-range-tabs button{min-height:34px!important;padding:0 9px!important;font-size:9px!important}
+  .student-exam-progress{margin-top:10px!important;padding:10px!important}
+  .student-exam-summary{gap:6px!important;margin-top:9px!important}
+  .student-exam-summary>div{padding:8px 9px!important}
+  .student-exam-progress svg{height:130px!important;margin-top:9px!important}
+
+  .student-consultation-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-bottom:9px!important}
+  .student-consultation-summary article{min-height:66px!important;padding:9px!important;gap:4px!important}
+  .student-guardian-consultation-alert{margin-bottom:9px!important;padding:9px 10px!important}
+  .student-consultation-records>article{padding:10px 11px!important}
+  .student-consultation-records article>p{margin-top:7px!important;padding:9px!important}
+}
+
 @media(max-width:390px){
   .class-day-workspace .class-roster-shortcut{align-items:stretch!important;flex-direction:column!important}
   .class-day-workspace .class-roster-actions{width:100%!important}
@@ -125,4 +210,11 @@
   .absence-groups{padding:8px!important;gap:9px!important}
   .absence-groups article>header{padding:11px 12px!important}
   .absence-row{padding:10px!important;gap:8px!important}
+}
+
+@media(max-width:700px){
+  .absence-summary button{min-height:70px!important;padding:10px 11px!important}
+  .absence-summary small{font-size:9px!important}
+  .absence-summary b{font-size:17px!important}
+  .absence-summary span{font-size:8px!important}
 }
