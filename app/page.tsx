@@ -729,9 +729,7 @@ export default function Home() {
           <>
             <header className="staff-app-topbar">
               <button type="button" className="staff-app-brand" onClick={() => selectView("dashboard")} aria-label="한살매 수업노트 홈으로 이동">
-                <img src="/hansalmae-logo.png" alt="" />
                 <b>한살매 수업노트</b>
-                <small>{roleLabels[profile.role]}</small>
               </button>
               <div>
                 <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
