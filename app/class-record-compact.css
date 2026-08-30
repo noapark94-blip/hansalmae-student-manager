@@ -52,38 +52,38 @@
 }
 
 /* Wide desktop: keep each correction record on one continuous table row. */
-@media(min-width:1200px){
-  .correction-learning-board .learning-exam-card{
+@media(min-width:901px){
+  .class-learning-board.correction-learning-board .learning-exam-card{
     padding:0!important;
     border:0!important;
     border-radius:0!important;
     background:transparent!important;
     box-shadow:none!important;
   }
-  .correction-learning-board .correction-exam{
+  .class-learning-board.correction-learning-board .learning-exam.individual.correction-exam{
     display:grid!important;
-    grid-template-columns:minmax(104px,.72fr) minmax(145px,1.22fr) minmax(138px,.9fr) minmax(140px,1fr)!important;
+    grid-template-columns:minmax(0,.72fr) minmax(0,1.22fr) minmax(0,.9fr) minmax(0,1fr)!important;
     align-items:start!important;
     gap:6px!important;
   }
-  .correction-learning-board .correction-exam>select{
+  .class-learning-board.correction-learning-board .correction-exam>select{
     grid-column:1!important;
     grid-row:1!important;
   }
-  .correction-learning-board .correction-exam>input:nth-of-type(1){
+  .class-learning-board.correction-learning-board .correction-exam>input:nth-of-type(1){
     grid-column:2!important;
     grid-row:1!important;
   }
-  .correction-learning-board .correction-exam>span{
+  .class-learning-board.correction-learning-board .correction-exam>span{
     grid-column:3!important;
     grid-row:1!important;
     min-width:0!important;
   }
-  .correction-learning-board .correction-exam>input:nth-of-type(2){
+  .class-learning-board.correction-learning-board .correction-exam>input:nth-of-type(2){
     grid-column:4!important;
     grid-row:1!important;
   }
-  .correction-learning-board .learning-exam-card>.exam-percent{
+  .class-learning-board.correction-learning-board .learning-exam-card>.exam-percent{
     margin-top:5px!important;
   }
 }
