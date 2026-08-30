@@ -38,6 +38,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[scheduleChangeRow,setScheduleChangeRow]=useState<Occurrence|null>(null);
   const[attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
   const[weekRosterDate,setWeekRosterDate]=useState<string|null>(null);
+  const[openStudentKey,setOpenStudentKey]=useState<string|null>(null);
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -125,14 +126,29 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
 
   const renderRow=(row:Occurrence)=>{
     const key=reportKey(row),report=drafts[key]??{},status=report.attendanceStatus??"scheduled";
+    const detailCount=[Boolean(report.examTitle||report.examScore!=null),Boolean(report.correctionContent?.trim())].filter(Boolean).length;
+    const detailsOpen=openStudentKey===key;
     const showRecordedBy=Boolean(report.recordedByName)&&(status!=="scheduled"||hasCorrectionDetails(report));
     const score=report.examScore,max=report.examMaxScore??100,converted=score==null||!Number.isFinite(Number(score))||!Number.isFinite(Number(max))||Number(max)<=0?null:Math.round(Number(score)/Number(max)*1000)/10;
     const originalLabel=row.kind==="move"&&row.exception?`${weekdays[isoWeekday(row.exception.originalDate)-1]} ${row.assignment.startTime.slice(0,5)} → ${weekdays[isoWeekday(row.date)-1]} ${row.startTime.slice(0,5)}`:row.kind==="extra"?"정규 일정 외 추가 첨삭":"";
     const changeReason=row.kind!=="fixed"?row.exception?.note?.trim()||"변경 사유 미입력":"";
-    return <article key={key} className={row.assignment.isDateOverride?"correction-date-override-row":undefined}>
+    return <article key={key} className={`${row.assignment.isDateOverride?"correction-date-override-row ":""}${report.published?"correction-mobile-complete":""}`}>
+      <div className="correction-mobile-student-summary">
+        <button type="button" className="correction-mobile-student-toggle" aria-expanded={detailsOpen} onClick={()=>setOpenStudentKey(current=>current===key?null:key)}>
+          <i>{row.assignment.studentName[0]}</i>
+          <span><b>{row.assignment.studentName}</b><small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small></span>
+          <em className={report.published?"complete":""}>{report.published?"입력 완료":detailCount?`${detailCount}/2 입력`:"미입력"}</em>
+          <strong aria-hidden="true">{detailsOpen?"⌃":"⌄"}</strong>
+        </button>
+        <button type="button" className="correction-mobile-history-button" onClick={()=>setHistoryStudent(row.assignment)}>기록</button>
+      </div>
       <div className="learning-person-attendance"><span className={`learning-student ${row.assignment.isDateOverride?"date-override":""}`}><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b>{row.assignment.isDateOverride?<span className="correction-date-override-badge">누락 보정</span>:null}<span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{showRecordedBy?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
-      <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore===undefined?100:(report.examMaxScore??"")} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
-      <div className="correction-task-cell"><textarea value={report.correctionContent??""} onChange={e=>updateDraft(row,{correctionContent:e.target.value})} placeholder="오늘 실제로 진행한 첨삭 과제·오답·개념 설명 내용을 기록하세요." rows={5}/></div>
+      <div className={`correction-mobile-student-details ${detailsOpen?"open":""}`}>
+        <div className="correction-mobile-detail-label"><span>시험 기록</span><small>선택 입력</small></div>
+        <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore===undefined?100:(report.examMaxScore??"")} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
+        <div className="correction-mobile-detail-label"><span>오늘 한 첨삭</span><small>과제·오답·개념 설명</small></div>
+        <div className="correction-task-cell"><textarea value={report.correctionContent??""} onChange={e=>updateDraft(row,{correctionContent:e.target.value})} placeholder="오늘 실제로 진행한 첨삭 과제·오답·개념 설명 내용을 기록하세요." rows={5}/></div>
+      </div>
     </article>;
   };
 
