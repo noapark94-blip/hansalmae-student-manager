@@ -345,3 +345,45 @@
 @media(min-width:701px){
   .class-creator .mobile-only-hint{display:none!important}
 }
+
+/* Student learning history: compact, single-frame mobile calendars. */
+@media(max-width:700px){
+  .student-unified-learning .student-learning-history-grid{width:100%!important;min-width:0!important;border-radius:14px!important;overflow:hidden!important}
+  .student-unified-learning .student-learning-calendar-panel{width:100%!important;min-width:0!important;overflow:hidden!important;border-right:0!important}
+  .student-unified-learning .student-learning-calendar-head,
+  .student-unified-learning .student-learning-weekdays,
+  .student-unified-learning .student-learning-days{width:100%!important;min-width:0!important;max-width:100%!important}
+  .student-unified-learning .student-learning-calendar-head{height:46px!important;min-height:46px!important;padding:0 10px!important;gap:10px!important}
+  .student-unified-learning .student-learning-calendar-head b{min-width:112px!important;font-size:13px!important}
+  .student-unified-learning .student-learning-calendar-head button{width:32px!important;height:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important}
+  .student-unified-learning .student-learning-weekdays span{padding:8px 2px!important;font-size:9px!important}
+  .student-unified-learning .student-learning-days{grid-template-rows:none!important;grid-auto-rows:46px!important}
+  .student-unified-learning .student-learning-days button,
+  .student-unified-learning .student-learning-days .blank{width:auto!important;min-width:0!important;min-height:46px!important;height:46px!important;padding:6px!important;gap:3px!important;overflow:hidden!important}
+  .student-unified-learning .student-learning-days button>span{font-size:10px!important}
+  .student-unified-learning .student-learning-days button.has-record small{width:7px!important;height:7px!important;margin:1px 0 0!important;padding:0!important;border-radius:999px!important;background:#78ad91!important;color:transparent!important;font-size:0!important;overflow:hidden!important}
+  .student-unified-learning .student-learning-selected{border-top:0!important;background:#fff!important}
+  .student-unified-learning .student-learning-selected>header{padding:12px 13px!important}
+  .student-unified-learning .student-learning-cards{padding:10px!important}
+
+  .student-unified-learning .correction-history-embedded{display:block!important;width:100%!important;max-width:100%!important;overflow:visible!important}
+  .student-unified-learning .correction-history-embedded>.correction-history-summary{gap:6px!important;padding:0 0 8px!important}
+  .student-unified-learning .correction-history-embedded>.correction-history-summary>div{min-height:64px!important;padding:9px 10px!important;border-radius:12px!important}
+  .student-unified-learning .correction-history-embedded>.correction-history-filter{gap:6px!important;padding:0 0 9px!important}
+  .student-unified-learning .correction-history-embedded>.correction-history-filter button{min-width:0!important;min-height:36px!important;padding:0 14px!important}
+  .student-unified-learning .correction-history-embedded>.correction-history-calendar-wrap{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:1px solid #e8dde2!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 7px 20px rgba(61,40,50,.035)!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar{display:flex!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-radius:0!important;overflow:hidden!important;flex-direction:column!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar{height:46px!important;min-height:46px!important;gap:10px!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar strong{min-width:112px!important;font-size:13px!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-toolbar button{width:32px!important;height:32px!important;min-height:32px!important;border-radius:9px!important;font-size:18px!important}
+  .student-unified-learning .correction-history-embedded .correction-history-weekdays{width:100%!important;min-width:0!important;padding:8px 0!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid{width:100%!important;min-width:0!important;grid-template-rows:none!important;grid-auto-rows:46px!important;padding:0!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>button,
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>.blank{width:auto!important;min-width:0!important;min-height:46px!important;height:46px!important;padding:6px!important;overflow:hidden!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid>button>div{display:flex!important;align-items:center!important;gap:3px!important;margin-top:4px!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid em{width:6px!important;height:6px!important;padding:0!important;border-radius:999px!important;color:transparent!important;font-size:0!important;overflow:hidden!important}
+  .student-unified-learning .correction-history-embedded .correction-history-calendar-grid small{font-size:7px!important}
+  .student-unified-learning .correction-history-embedded .correction-history-day-panel{width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;border:0!important;border-top:1px solid #eee5e9!important;border-radius:0!important;overflow:visible!important;background:#fff!important}
+  .student-unified-learning .correction-history-embedded .correction-history-day-panel>header{padding:12px 13px!important;background:#fcfafb!important}
+  .student-unified-learning .correction-history-embedded .correction-history-day-list{overflow:visible!important;padding:10px!important}
+}
