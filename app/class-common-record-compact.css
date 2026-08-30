@@ -42,6 +42,7 @@
 .learning-common-card{min-width:0;min-height:170px;padding:10px 11px;border:1px solid #e7dde1;border-radius:13px;background:#fff;display:flex;flex-direction:column;gap:7px;box-shadow:0 4px 14px rgba(61,39,49,.035)}
 .learning-common-card.filled{border-color:#d9adbf;background:linear-gradient(180deg,#fff,#fffafd)}
 .learning-common-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.learning-common-card-toggle{width:100%;padding:0;border:0;background:transparent;color:inherit;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;text-align:left}.learning-common-card-toggle>span{display:grid;gap:2px}.learning-common-card-toggle small{color:#a04470;font-size:8px;font-weight:850}.learning-common-card-toggle b{color:#3c3237;font-size:12px;line-height:1.35}.learning-common-card-toggle em{max-width:78px;padding:2px 5px;border-radius:999px;background:#f3eff1;color:#887b81;font-size:7px;line-height:1.2;font-style:normal;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.learning-common-card-toggle>i{display:none}.learning-common-mobile-apply,.mobile-student-record-head{display:none}
 .learning-common-card>header span,.learning-card-disclosure>span{display:grid;gap:2px}
 .learning-common-card>header small,.learning-card-disclosure small{color:#a04470;font-size:8px;font-weight:850}
 .learning-common-card>header b,.learning-card-disclosure b{color:#3c3237;font-size:12px;line-height:1.35}
