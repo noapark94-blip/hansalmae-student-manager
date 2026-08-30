@@ -312,3 +312,22 @@
   .absence-summary b{font-size:17px!important}
   .absence-summary span{font-size:8px!important}
 }
+
+/* Class creator: keep the action bar separate from the scrolling form on mobile. */
+@media(max-width:700px){
+  .class-creator{height:calc(94dvh - env(safe-area-inset-top))!important;max-height:calc(94dvh - env(safe-area-inset-top))!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+  .class-creator>header{position:relative!important;top:auto!important;flex:0 0 auto!important}
+  .class-creator>.modal-body{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:18px!important}
+  .class-creator>footer{position:relative!important;bottom:auto!important;flex:0 0 auto!important;background:#fff!important;backdrop-filter:none!important;box-shadow:0 -8px 22px rgba(55,35,45,.06)!important}
+  .class-creator>.form-error{flex:0 0 auto!important;margin:8px 17px 0!important}
+  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;min-width:0!important;min-height:54px!important;padding:8px 10px!important;gap:7px!important}
+  .class-creator .teacher-picker>div>label>i{width:27px!important;height:27px!important;flex:0 0 27px!important}
+  .class-creator .teacher-picker>div>label>span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .class-creator .class-color-options::after{content:"직접 선택";flex:0 0 auto;color:#8c8085;font-size:8.5px;font-weight:700;white-space:nowrap}
+  .class-creator .desktop-only-hint{display:none!important}
+  .class-creator .mobile-only-hint{display:inline!important}
+}
+
+@media(min-width:701px){
+  .class-creator .mobile-only-hint{display:none!important}
+}
