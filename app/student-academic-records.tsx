@@ -28,27 +28,43 @@ const emptyForm = (type:RecordType,schoolGrade:string):FormValues => ({
 const numeric = (value:string) => value.trim()==="" ? null : Number(value);
 const recordColumns = "id,record_type,academic_year,school_grade,semester,exam_date,exam_name,subject,score,grade,achievement_level,rank,cohort_size,school_average,standard_score,percentile,note,created_at";
 const schoolExamNames=["1학기 중간고사","1학기 기말고사","2학기 중간고사","2학기 기말고사","기타"];
+const examCategory=(item:AcademicRecord)=>{
+  if(item.record_type==="school"){
+    if(item.exam_name.includes("중간고사"))return "중간고사";
+    if(item.exam_name.includes("기말고사"))return "기말고사";
+  }else{
+    if(item.exam_name.includes("수능"))return "수능";
+    if(item.exam_name.includes("모의고사"))return "모의고사";
+  }
+  return item.exam_name;
+};
 
-function AcademicTrendChart({items,type}:{items:AcademicRecord[];type:RecordType}) {
+function AcademicTrendSvg({items,type,mobile=false}:{items:AcademicRecord[];type:RecordType;mobile?:boolean}) {
   const values=items.map(item=>type==="mock"?(item.percentile??item.score):(item.score??null));
-  const chartWidth=900;
-  const chartHeight=230;
-  const plotTop=30;
-  const plotBottom=165;
-  const xAt=(index:number)=>items.length===1?chartWidth/2:72+(index*(chartWidth-144))/(items.length-1);
+  const chartWidth=mobile?360:900;
+  const chartHeight=mobile?190:230;
+  const plotTop=mobile?26:30;
+  const plotBottom=mobile?124:165;
+  const side=mobile?38:72;
+  const xAt=(index:number)=>items.length===1?chartWidth/2:side+(index*(chartWidth-side*2))/(items.length-1);
   const yAt=(value:number)=>plotBottom-(Math.max(0,Math.min(100,value))/100)*(plotBottom-plotTop);
   const validPoints=values.flatMap((value,index)=>value===null?[]:[{x:xAt(index),y:yAt(value),value,index}]);
   const path=validPoints.map((point,index)=>`${index===0?"M":"L"} ${point.x} ${point.y}`).join(" ");
+  const labelY=mobile?154:194;
+  const detailY=mobile?174:214;
+  const label=(value:string)=>mobile&&value.length>9?`${value.slice(0,8)}…`:value;
 
-  return <div className="academic-line-chart">
-    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${type==="mock"?"백분위 우선":"원점수 기준"} 최근 성적 선 그래프`} preserveAspectRatio="none">
-      {[100,75,50,25,0].map(value=>{const y=yAt(value);return <g key={value} className="academic-chart-grid"><line x1="52" x2={chartWidth-28} y1={y} y2={y}/><text x="42" y={y+4} textAnchor="end">{value}</text></g>})}
+  return <svg className={mobile?"academic-chart-mobile":"academic-chart-desktop"} viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${type==="mock"?"백분위 우선":"원점수 기준"} 최근 성적 선 그래프`} preserveAspectRatio={mobile?"xMidYMid meet":"none"}>
+      {[100,75,50,25,0].map(value=>{const y=yAt(value);return <g key={value} className="academic-chart-grid"><line x1={mobile?28:52} x2={chartWidth-(mobile?12:28)} y1={y} y2={y}/><text x={mobile?22:42} y={y+4} textAnchor="end">{value}</text></g>})}
       {validPoints.length>1?<path className="academic-chart-area" d={`${path} L ${validPoints.at(-1)?.x} ${plotBottom} L ${validPoints[0].x} ${plotBottom} Z`}/>:null}
       {path?<path className="academic-chart-line" d={path}/>:null}
       {validPoints.map(point=><g key={items[point.index].id} className="academic-chart-point"><circle cx={point.x} cy={point.y} r="8"/><circle cx={point.x} cy={point.y} r="3"/><text x={point.x} y={point.y-14} textAnchor="middle">{point.value}점</text></g>)}
-      {items.map((item,index)=><g key={item.id} className="academic-chart-label"><text x={xAt(index)} y="194" textAnchor="middle">{item.exam_name}</text><text x={xAt(index)} y="214" textAnchor="middle">{item.subject} · {item.exam_date.slice(5).replace("-",".")}</text></g>)}
+      {items.map((item,index)=><g key={item.id} className="academic-chart-label"><text x={xAt(index)} y={labelY} textAnchor="middle">{label(item.exam_name)}</text><text x={xAt(index)} y={detailY} textAnchor="middle">{item.subject} · {item.exam_date.slice(5).replace("-",".")}</text></g>)}
     </svg>
-  </div>;
+}
+
+function AcademicTrendChart({items,type}:{items:AcademicRecord[];type:RecordType}) {
+  return <div className="academic-line-chart"><AcademicTrendSvg items={items} type={type}/><AcademicTrendSvg items={items} type={type} mobile/></div>;
 }
 
 export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supabase:SupabaseClient;studentId:string;studentGrade:string}) {
@@ -67,6 +83,7 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
   const [deleteId]=useState<string|null>(null);
   const [year,setYear]=useState("all");
   const [subject,setSubject]=useState("all");
+  const [category,setCategory]=useState("all");
 
   useEffect(()=>{
     let active=true;
@@ -82,11 +99,13 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
   const typed=useMemo(()=>records.filter(item=>item.record_type===type),[records,type]);
   const years=useMemo(()=>Array.from(new Set(typed.map(item=>item.academic_year))).sort((a,b)=>b-a),[typed]);
   const subjects=useMemo(()=>Array.from(new Set(typed.map(item=>item.subject))).sort(),[typed]);
-  const visible=useMemo(()=>typed.filter(item=>(year==="all"||item.academic_year===Number(year))&&(subject==="all"||item.subject===subject)),[typed,year,subject]);
+  const categorySource=useMemo(()=>typed.filter(item=>(year==="all"||item.academic_year===Number(year))&&(subject==="all"||item.subject===subject)),[typed,year,subject]);
+  const categories=useMemo(()=>Array.from(new Set(categorySource.map(examCategory))).sort(),[categorySource]);
+  const visible=useMemo(()=>categorySource.filter(item=>category==="all"||examCategory(item)===category),[categorySource,category]);
   const trend=visible.slice(0,6).toReversed();
   const latest=visible[0];
 
-  const switchType=(next:RecordType)=>{setType(next);setYear("all");setSubject("all");setDeleteId(null);setEditorOpen(false);};
+  const switchType=(next:RecordType)=>{setType(next);setYear("all");setSubject("all");setCategory("all");setDeleteId(null);setEditorOpen(false);};
   const update=(key:keyof FormValues,value:string)=>setForm(current=>({...current,[key]:value}));
   const openNew=()=>{setEditingId(null);setForm(emptyForm(type,initialSchoolGrade));setMessage("");setEditorOpen(true);};
   const openEdit=(item:AcademicRecord)=>{
@@ -121,7 +140,7 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
 
   return <section className="academic-records">
     <div className="student-tab-intro academic-heading"><div><h3>성적 관리</h3><p>{isMiddleSchool?"학교 내신 점수와 A~E 성취도를 관리합니다.":"내신 5등급과 모의고사·수능 9등급 성적을 구분해 관리합니다."}</p></div><button type="button" className="academic-add-button" onClick={openNew}>성적 등록</button></div>
-    <div className="academic-toolbar"><nav className={isMiddleSchool?"single":undefined} aria-label="성적 종류">{isMiddleSchool?<button type="button" className="active" disabled>내신 성적</button>:([['school','내신 성적'],['mock','모의고사·수능']] as [RecordType,string][]).map(([id,label])=><button type="button" key={id} className={type===id?"active":""} onClick={()=>switchType(id)}>{label}</button>)}</nav><div className="academic-filters"><label><span>연도</span><select value={year} onChange={e=>setYear(e.target.value)}><option value="all">전체</option>{years.map(value=><option key={value}>{value}</option>)}</select></label><label><span>과목</span><select value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">전체</option>{subjects.map(value=><option key={value}>{value}</option>)}</select></label></div></div>
+    <div className="academic-toolbar"><nav className={isMiddleSchool?"single":undefined} aria-label="성적 종류">{isMiddleSchool?<button type="button" className="active" disabled>내신 성적</button>:([['school','내신 성적'],['mock','모의고사·수능']] as [RecordType,string][]).map(([id,label])=><button type="button" key={id} className={type===id?"active":""} onClick={()=>switchType(id)}>{label}</button>)}</nav><div className="academic-filters"><label><span>연도</span><select value={year} onChange={e=>{setYear(e.target.value);setCategory("all");}}><option value="all">전체</option>{years.map(value=><option key={value}>{value}</option>)}</select></label><label><span>과목</span><select value={subject} onChange={e=>{setSubject(e.target.value);setCategory("all");}}><option value="all">전체 과목</option>{subjects.map(value=><option key={value}>{value}</option>)}</select></label><label className="academic-category-filter"><span>시험 분류</span><select value={category} onChange={e=>setCategory(e.target.value)}><option value="all">전체 시험</option>{categories.map(value=><option key={value}>{value}</option>)}</select></label></div></div>
     {message?<p className="academic-message">{message}</p>:null}
     {editorOpen?<form className="academic-editor" onSubmit={save}><div className="academic-editor-heading"><div><b>{editingId?"성적 수정":"새 성적 등록"}</b><span>{type==="school"?(isMiddleSchool?"학교 내신 점수와 A~E 성취도를 입력합니다.":"학교 내신 점수와 1~5등급을 입력합니다."):"모의고사·수능 점수와 1~9등급을 입력합니다."}</span></div><button type="button" aria-label="등록 창 닫기" onClick={()=>setEditorOpen(false)}>×</button></div><div className="academic-form-grid">
       <label><span>연도 *</span><input type="number" min="2000" max="2100" required value={form.academicYear} onChange={e=>update("academicYear",e.target.value)}/></label>
@@ -135,6 +154,6 @@ export function StudentAcademicRecords({supabase,studentId,studentGrade}:{supaba
       {type==="school"?<><label><span>석차</span><input type="number" min="1" value={form.rank} onChange={e=>update("rank",e.target.value)}/></label><label><span>재적 인원</span><input type="number" min="1" value={form.cohortSize} onChange={e=>update("cohortSize",e.target.value)}/></label><label><span>학교 평균</span><input type="number" min="0" max="100" step="0.01" value={form.schoolAverage} onChange={e=>update("schoolAverage",e.target.value)}/></label></>:<><label><span>표준점수</span><input type="number" min="0" step="0.01" value={form.standardScore} onChange={e=>update("standardScore",e.target.value)}/></label><label><span>백분위</span><input type="number" min="0" max="100" step="0.01" value={form.percentile} onChange={e=>update("percentile",e.target.value)}/></label></>}
       <label className="wide"><span>메모</span><textarea rows={2} value={form.note} onChange={e=>update("note",e.target.value)} placeholder="시험 범위, 특이사항 등을 기록하세요."/></label>
     </div><div className="academic-editor-actions"><small>{isMiddleSchool?"원점수·성취도·석차 중 하나 이상 입력해 주세요.":"원점수·등급·석차 중 하나 이상 입력해 주세요."}</small><div><button type="button" onClick={()=>setEditorOpen(false)}>취소</button><button className="academic-primary" disabled={saving}>{saving?"저장 중…":"저장"}</button></div></div></form>:null}
-    {!loading&&visible.length?<><div className="academic-summary"><article><span>최근 시험</span><b>{latest.exam_name}</b><small>{latest.exam_date}</small></article><article><span>최근 원점수</span><b>{latest.score??"-"}<small>{latest.score!==null?"점":""}</small></b><small>{latest.subject}</small></article><article><span>{latest.achievement_level?"최근 성취도":"최근 등급"}</span><b>{latest.achievement_level??latest.grade??"-"}<small>{latest.grade!==null?"등급":""}</small></b><small>{visible.length}건 기록</small></article></div><section className="academic-trend"><header><div><b>최근 성적 변화</b><small>시험별 점수 흐름을 한눈에 확인합니다.</small></div><span>{type==="mock"?"백분위 우선":"원점수 기준"}</span></header><AcademicTrendChart items={trend} type={type}/></section><div className="academic-list">{visible.map(item=><article key={item.id}><div><span>{item.academic_year}년{item.semester?` · ${item.semester}학기`:""} · {item.exam_date}</span><b>{item.exam_name} · {item.subject}</b><p>{item.score!==null?`원점수 ${item.score}`:""}{item.standard_score!==null?` · 표준점수 ${item.standard_score}`:""}{item.percentile!==null?` · 백분위 ${item.percentile}`:""}{item.achievement_level?` · 성취도 ${item.achievement_level}`:""}{item.grade!==null?` · ${item.grade}등급`:""}{item.rank!==null?` · ${item.rank}/${item.cohort_size??"-"}등`:""}{item.school_average!==null?` · 학교 평균 ${item.school_average}`:""}</p>{item.note?<small>{item.note}</small>:null}</div><footer><button type="button" onClick={()=>openEdit(item)}>수정</button><button type="button" className="danger" onClick={()=>setDeleteId(item.id)}>삭제</button></footer>{deleteId===item.id?<div className="academic-delete"><span>이 성적 기록을 삭제할까요?</span><div><button type="button" onClick={()=>setDeleteId(null)}>취소</button><button type="button" className="danger-fill" disabled={saving} onClick={()=>void remove(item.id)}>삭제</button></div></div>:null}</article>)}</div></>:loading?<p className="academic-empty">성적 기록을 불러오는 중이에요…</p>:<p className="academic-empty">아직 등록된 {type==="school"?"내신":"모의고사·수능"} 성적이 없습니다.</p>}
+    {!loading&&visible.length?<><div className="academic-summary"><article><span>최근 시험</span><b>{latest.exam_name}</b><small>{latest.exam_date}</small></article><article><span>최근 원점수</span><b>{latest.score??"-"}<small>{latest.score!==null?"점":""}</small></b><small>{latest.subject}</small></article><article><span>{latest.achievement_level?"최근 성취도":"최근 등급"}</span><b>{latest.achievement_level??latest.grade??"-"}<small>{latest.grade!==null?"등급":""}</small></b><small>{visible.length}건 기록</small></article></div><section className="academic-trend"><header><div><b>최근 성적 변화</b><small>같은 과목과 시험 분류의 흐름을 비교해 보세요.</small></div><span>{type==="mock"?"백분위 우선":"원점수 기준"}</span></header><div className="academic-trend-context"><span>{subject==="all"?"전체 과목":subject}</span><span>{category==="all"?"전체 시험":category}</span></div><AcademicTrendChart items={trend} type={type}/></section><div className="academic-list">{visible.map(item=><article key={item.id}><div><span>{item.academic_year}년{item.semester?` · ${item.semester}학기`:""} · {item.exam_date}</span><b>{item.exam_name} · {item.subject}</b><p>{item.score!==null?`원점수 ${item.score}`:""}{item.standard_score!==null?` · 표준점수 ${item.standard_score}`:""}{item.percentile!==null?` · 백분위 ${item.percentile}`:""}{item.achievement_level?` · 성취도 ${item.achievement_level}`:""}{item.grade!==null?` · ${item.grade}등급`:""}{item.rank!==null?` · ${item.rank}/${item.cohort_size??"-"}등`:""}{item.school_average!==null?` · 학교 평균 ${item.school_average}`:""}</p>{item.note?<small>{item.note}</small>:null}</div><footer><button type="button" onClick={()=>openEdit(item)}>수정</button><button type="button" className="danger" onClick={()=>setDeleteId(item.id)}>삭제</button></footer>{deleteId===item.id?<div className="academic-delete"><span>이 성적 기록을 삭제할까요?</span><div><button type="button" onClick={()=>setDeleteId(null)}>취소</button><button type="button" className="danger-fill" disabled={saving} onClick={()=>void remove(item.id)}>삭제</button></div></div>:null}</article>)}</div></>:loading?<p className="academic-empty">성적 기록을 불러오는 중이에요…</p>:<p className="academic-empty">선택한 조건에 해당하는 {type==="school"?"내신":"모의고사·수능"} 성적이 없습니다.</p>}
   </section>;
 }
