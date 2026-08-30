@@ -1,0 +1,39 @@
+/* Staff mobile density pass. Every rule is intentionally isolated from desktop. */
+@media(max-width:700px){
+  .teacher-home-heading{margin-bottom:14px!important;gap:10px!important}
+  .teacher-home-heading h1{font-size:26px!important;line-height:1.2!important}
+  .teacher-home-heading>div:last-child{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .teacher-home-heading>div:last-child>button{width:100%!important;min-height:40px!important;height:40px!important;padding:0 10px!important;font-size:11px!important}
+
+  .class-day-workspace>header{padding:14px!important;gap:7px!important}
+  .class-day-workspace>header h2{font-size:20px!important;line-height:1.25!important}
+  .class-day-workspace>header span{font-size:10px!important;line-height:1.45!important}
+  .class-day-workspace>.class-workspace-grid.class-log-grid{margin:10px 6px 12px!important}
+  .class-day-workspace .class-roster-shortcut{min-height:0!important;padding:12px!important;align-items:center!important;flex-direction:row!important;gap:10px!important}
+  .class-day-workspace .class-roster-shortcut h3{font-size:13px!important}
+  .class-day-workspace .class-roster-shortcut p{margin-top:4px!important;font-size:9px!important;line-height:1.4!important}
+  .class-day-workspace .class-roster-actions{width:auto!important;flex:0 0 auto!important}
+  .class-day-workspace .class-roster-actions>button{width:auto!important;min-width:108px!important;height:38px!important;min-height:38px!important;padding:0 10px!important;font-size:10px!important;white-space:nowrap!important}
+
+  .class-day-workspace .class-learning-board{margin-top:10px!important}
+  .class-day-workspace .class-learning-board>header{padding:12px!important;flex-direction:row!important}
+  .class-day-workspace .class-learning-board>header h3{font-size:16px!important}
+  .class-day-workspace .class-learning-board>header .learning-header-actions>button{height:34px!important;min-height:34px!important;padding:0 9px!important;font-size:9px!important}
+  .class-day-workspace .class-week-navigation{padding:7px 6px!important}
+  .class-day-workspace .learning-compact-heading{padding:9px 11px!important}
+  .class-day-workspace .learning-common-grid{padding:8px!important;gap:7px!important}
+  .class-day-workspace .learning-common-card{padding:10px!important}
+  .class-day-workspace .learning-common-card textarea{min-height:72px!important;height:72px!important}
+  .class-day-workspace .learning-common-card .learning-common-apply{min-height:38px!important;height:38px!important}
+  .class-day-workspace .learning-board-rows{padding:8px!important}
+  .class-day-workspace .learning-board-rows>article{margin-bottom:8px!important}
+  .class-day-workspace .learning-board-rows>article>div{padding:11px!important}
+  .class-day-workspace .learning-individual-content textarea,
+  .class-day-workspace .learning-homework.assigned textarea{min-height:70px!important;height:70px!important}
+}
+
+@media(max-width:390px){
+  .class-day-workspace .class-roster-shortcut{align-items:stretch!important;flex-direction:column!important}
+  .class-day-workspace .class-roster-actions{width:100%!important}
+  .class-day-workspace .class-roster-actions>button{width:100%!important}
+}

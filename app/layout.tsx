@@ -66,6 +66,7 @@ import "./lesson-roster-override.css";
 import "./schedule-conflict-alert.css";
 import "./student-detail-desktop-readability.css";
 import "./class-workspace-desktop-polish.css";
+import "./staff-mobile-first-pass.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { AppDialogHost } from "./app-dialog";
