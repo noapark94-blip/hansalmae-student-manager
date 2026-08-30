@@ -102,6 +102,7 @@ button:disabled { cursor:wait; opacity:.7; }
 .primary { border:0; color:#fff; background:var(--wine); border-radius:11px; padding:11px 17px; font-weight:750; font-size:13px; box-shadow:0 5px 15px rgba(146,45,97,.16); }
 .primary:hover { background:var(--wine-dark); }.primary.small { padding:10px 15px; }
 .menu-button { display:none; border:0; background:transparent; font-size:20px; }
+.sidebar-collapse-toggle { display:none; }
 .content { max-width:1480px; margin:0 auto; padding:34px; }
 .page-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:27px; }
 .page-heading.compact { align-items:center; }

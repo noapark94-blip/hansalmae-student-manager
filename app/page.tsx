@@ -41,6 +41,7 @@ import confirmStyles from "./message-confirm.module.css";
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
+const SIDEBAR_COLLAPSED_STORAGE_KEY = "hansalmae:sidebar-collapsed";
 const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "reports", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
@@ -227,6 +228,7 @@ export default function Home() {
   const [adminHomeMode, setAdminHomeMode] = useState<"operations" | "classes">("operations");
   const [staffLessonTarget,setStaffLessonTarget]=useState<StaffLessonTarget|null>(null);
   const [mobileNav, setMobileNav] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true");
   const [staffMoreOpen, setStaffMoreOpen] = useState(false);
   const [familyMoreOpen, setFamilyMoreOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -243,6 +245,14 @@ export default function Home() {
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
   const [guardianDesktopUrl, setGuardianDesktopUrl] = useState<string | null>(null);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 761px)");
@@ -673,7 +683,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}`}>
+    <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
       <PushDeviceAccountSync key={user.id} supabase={supabase} />
       {["guardian", "teacher", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
@@ -685,7 +695,8 @@ export default function Home() {
               <span>수업노트</span>
             </div>
           </button>
-          <SidebarNavigation supabase={supabase} role={profile.role} items={allowedNav} activeView={view} onSelect={selectView} />
+          <button type="button" className="sidebar-collapse-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"} title={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"}><span>{sidebarCollapsed ? "›" : "‹"}</span><b>{sidebarCollapsed ? "" : "메뉴 접기"}</b></button>
+          <SidebarNavigation supabase={supabase} role={profile.role} items={allowedNav} activeView={view} onSelect={selectView} sidebarCollapsed={sidebarCollapsed} />
           <div className="sidebar-bottom">
             <div className="teacher-card">
               <div className="avatar">{profile.display_name.slice(0, 1)}</div>

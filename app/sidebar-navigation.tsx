@@ -26,7 +26,7 @@ const defaultLayout: MenuLayout = {
   labels: {},
 };
 
-export function SidebarNavigation({ supabase, role, items, activeView, onSelect }: { supabase: SupabaseClient; role: UserRole; items: MenuItem[]; activeView: View; onSelect: (view: View) => void }) {
+export function SidebarNavigation({ supabase, role, items, activeView, onSelect, sidebarCollapsed = false }: { supabase: SupabaseClient; role: UserRole; items: MenuItem[]; activeView: View; onSelect: (view: View) => void; sidebarCollapsed?: boolean }) {
   const usableItems = useMemo(() => items.filter((item) => !hiddenStandaloneViews.has(item.id) && (item.id !== "assignments" || ["admin","teacher","assistant","manager"].includes(role))), [items, role]);
   const [layout, setLayout] = useState<MenuLayout>(defaultLayout);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -144,12 +144,12 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect 
   }
 
   return <nav aria-label="주요 메뉴" className="folder-navigation">
-    <button type="button" className="menu-customize-button" onClick={beginEditing}><span className="nav-icon"><HansalmaeIcon name="menu" /></span>메뉴 편집</button>
+    <button type="button" className="menu-customize-button" onClick={beginEditing} title={sidebarCollapsed ? "메뉴 편집" : undefined}><span className="nav-icon"><HansalmaeIcon name="menu" /></span>메뉴 편집</button>
     {folders.map((folder) => <section className="nav-folder" key={folder.id}>
       <button type="button" className="nav-folder-title" aria-expanded={!collapsed[folder.id]} onClick={() => setCollapsed((current) => ({ ...current, [folder.id]: !current[folder.id] }))}>
         <span>{folder.name}</span><i>{collapsed[folder.id] ? "＋" : "－"}</i>
       </button>
-      {!collapsed[folder.id] && <div className="nav-folder-items">{folder.itemIds.map((id) => { const item = itemMap.get(id); return item ? <button type="button" key={id} className={isActive(id)?"active":""} onClick={() => selectItem(id)}><span className="nav-icon"><HansalmaeIcon name={viewIcon[id]} /></span>{displayLabel(layout, item)}</button> : null; })}</div>}
+      {(!collapsed[folder.id] || sidebarCollapsed) && <div className="nav-folder-items">{folder.itemIds.map((id) => { const item = itemMap.get(id); return item ? <button type="button" key={id} className={isActive(id)?"active":""} onClick={() => selectItem(id)} title={sidebarCollapsed ? displayLabel(layout, item) : undefined}><span className="nav-icon"><HansalmaeIcon name={viewIcon[id]} /></span>{displayLabel(layout, item)}</button> : null; })}</div>}
     </section>)}
   </nav>;
 }
