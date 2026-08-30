@@ -135,6 +135,21 @@
 
 @media(max-width:900px){
   .class-day-workspace .class-learning-board{border-radius:0 0 15px 15px!important}
+  .class-day-workspace .learning-common-title{align-items:center!important;gap:10px!important}
+  .class-day-workspace .learning-common-title>div{min-width:0}
+  .class-day-workspace .learning-makeup-activate{
+    width:auto!important;
+    min-width:0!important;
+    height:38px!important;
+    min-height:38px!important;
+    flex:0 0 auto;
+    padding:0 13px!important;
+    border-radius:10px!important;
+    font-size:11px!important;
+    line-height:1!important;
+    white-space:nowrap;
+    box-shadow:none!important;
+  }
   .class-day-workspace .class-learning-board>header,
   .class-day-workspace .class-week-strip,
   .class-day-workspace .learning-common-record,
