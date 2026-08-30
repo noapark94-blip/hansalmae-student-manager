@@ -161,6 +161,31 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteName, setDeleteName] = useState("");
   useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    const scrollY = window.scrollY;
+    const previous = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyWidth: body.style.width,
+      rootOverflow: root.style.overflow,
+    };
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    root.style.overflow = "hidden";
+    return () => {
+      body.style.overflow = previous.bodyOverflow;
+      body.style.position = previous.bodyPosition;
+      body.style.top = previous.bodyTop;
+      body.style.width = previous.bodyWidth;
+      root.style.overflow = previous.rootOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+  useEffect(() => {
     let active = true;
     void Promise.all([
       supabase.rpc("staff_student_detail_hub", { p_student_id: student.id }),

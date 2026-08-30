@@ -348,6 +348,8 @@
 
 /* Student learning history: compact, single-frame mobile calendars. */
 @media(max-width:700px){
+  .student-hub-modal .student-hub-body{scrollbar-width:none!important;-ms-overflow-style:none!important}
+  .student-hub-modal .student-hub-body::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
   .student-unified-learning .student-learning-history-grid{width:100%!important;min-width:0!important;border-radius:14px!important;overflow:hidden!important}
   .student-unified-learning .student-learning-calendar-panel{width:100%!important;min-width:0!important;overflow:hidden!important;border-right:0!important}
   .student-unified-learning .student-learning-calendar-head,
