@@ -87,8 +87,8 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   const exam=summarize(examItems,type==="weekly"?3:4);
   const homework=summarize(homeworkItems,type==="weekly"?3:4);
   const date=type==="daily"?formatDay(start):formatPeriod(...Object.values(periodFor(type,start)) as [string,string]);
-  const detailLines=[`수업  ${lesson}`,`출결  ${attendance}`,exam&&`시험  ${exam}`,homework&&`과제  ${homework}`].filter(Boolean).join("\n");
-  const body=`[한살매 수업노트]\n\n${name} 학생의 ${date} ${type==="daily"?"학습기록":"주간 학습요약"}입니다.\n\n${detailLines}\n\n자세한 수업 내용과 선생님 피드백은\n한살매 수업노트에서 확인해 주세요.`;
+  const detailLines=[`수업: ${lesson}`,`출결: ${attendance}`,exam&&`시험: ${exam}`,homework&&`과제: ${homework}`].filter(Boolean).join("\n");
+  const body=`[한살매 수업노트]\n\n${name} 학생의 ${date} ${type==="daily"?"학습기록":"주간 학습요약"}입니다.\n\n${detailLines}\n\n자세한 수업 내용과 선생님 피드백은\n아래 학습기록 확인 버튼에서 확인해 주세요.`;
   return{lesson,attendance,exam,homework,body};
 }
 function short(value:string,max:number){const clean=value.replace(/\s+/g," ").trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean}
