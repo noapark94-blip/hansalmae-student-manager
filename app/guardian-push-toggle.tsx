@@ -17,6 +17,7 @@ const STAFF_LAST_PROMPTED_KEY = "staff_push_last_prompted_at";
 const STAFF_WAS_ENABLED_KEY = "staff_push_was_enabled";
 const STAFF_DISABLED_PROMPT_STATE_KEY = "staff_push_disabled_prompt_state";
 const STAFF_INTENTIONALLY_DISABLED_KEY = "staff_push_intentionally_disabled";
+const STAFF_PUSH_PROMPT_MEDIA = "(max-width: 767px)";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const PUSH_ROLES = new Set(["guardian", "teacher", "assistant", "admin", "manager"]);
 
@@ -108,8 +109,22 @@ export function GuardianPushPrompt({ supabase, role = "guardian" }: { supabase: 
   const [disabledState, setDisabledState] = useState<DisabledState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [staffMobilePrompt, setStaffMobilePrompt] = useState(!staff);
 
   useEffect(() => {
+    if (!staff) return;
+    const media = window.matchMedia(STAFF_PUSH_PROMPT_MEDIA);
+    const update = () => {
+      setStaffMobilePrompt(media.matches);
+      if (!media.matches) setMode(null);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [staff]);
+
+  useEffect(() => {
+    if (staff && !staffMobilePrompt) return;
     let active = true;
     void supabase.auth.getUser().then(async ({ data }) => {
       const user = data.user;
@@ -147,7 +162,7 @@ export function GuardianPushPrompt({ supabase, role = "guardian" }: { supabase: 
       if (!Number.isFinite(lastPrompted) || Date.now() - lastPrompted >= WEEK_MS) setMode("weekly");
     }).catch(() => { /* Keep the app usable if push status cannot be checked. */ });
     return () => { active = false; };
-  }, [disabledPromptStateKey, guideSeenKey, intentionallyDisabledKey, lastPromptedKey, supabase, wasEnabledKey]);
+  }, [disabledPromptStateKey, guideSeenKey, intentionallyDisabledKey, lastPromptedKey, staff, staffMobilePrompt, supabase, wasEnabledKey]);
 
   const close = useCallback(async () => {
     if (saving) return;
