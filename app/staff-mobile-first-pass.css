@@ -320,10 +320,9 @@
   .class-creator>.modal-body{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:18px!important}
   .class-creator>footer{position:relative!important;bottom:auto!important;flex:0 0 auto!important;background:#fff!important;backdrop-filter:none!important;box-shadow:0 -8px 22px rgba(55,35,45,.06)!important}
   .class-creator>.form-error{flex:0 0 auto!important;margin:8px 17px 0!important}
-  .class-creator .teacher-picker>div{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;padding:2px 1px 7px!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;scrollbar-width:none!important}
-  .class-creator .teacher-picker>div::-webkit-scrollbar{display:none!important}
-  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;flex:0 0 auto!important;min-width:max-content!important;min-height:42px!important;padding:7px 10px!important;gap:6px!important;border-radius:999px!important}
-  .class-creator .teacher-picker>div>label>input{width:16px!important;height:16px!important;flex:0 0 16px!important}
+  .class-creator .teacher-picker>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:2px 0 7px!important;overflow:visible!important}
+  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:48px!important;padding:9px 12px!important;gap:8px!important;border-radius:14px!important;background:#fff!important;box-shadow:0 2px 8px rgba(55,35,45,.025)!important}
+  .class-creator .teacher-picker>div>label>input{width:17px!important;height:17px!important;flex:0 0 17px!important}
   .class-creator .teacher-picker>div>label>i{display:none!important}
   .class-creator .teacher-picker>div>label>span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
   .class-creator .teacher-picker>div>label.active{border-color:#b74a7d!important;background:#fbf0f5!important;box-shadow:0 0 0 2px rgba(146,45,97,.07)!important}
