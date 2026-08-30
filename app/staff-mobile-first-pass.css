@@ -6,6 +6,7 @@
   .teacher-home-heading>div:last-child>button{width:100%!important;min-height:40px!important;height:40px!important;padding:0 10px!important;font-size:0!important}
   .teacher-home-heading .teacher-home-actions>button{font-size:0!important}
   .teacher-home-heading .teacher-home-actions>button::after{font-size:11px!important}
+  .teacher-home-heading .teacher-home-actions>button:first-child::after{content:"클래스 관리"!important}
 
   .class-day-workspace>header{padding:14px!important;gap:7px!important}
   .class-day-workspace>header h2{font-size:20px!important;line-height:1.25!important}
