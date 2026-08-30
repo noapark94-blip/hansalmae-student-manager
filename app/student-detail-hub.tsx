@@ -457,6 +457,10 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           </label>
         </div>
       </header>
+      {subjects.length?<div className="student-exam-mobile-filter-selects">
+        <label><span>과목 선택</span><select value={selectedSubject} onChange={event=>{setSubject(event.target.value);setCategory("");setSelectedId(null)}}>{subjects.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+        <label><span>시험 카테고리</span><select value={selectedCategory} onChange={event=>{setCategory(event.target.value);setSelectedId(null)}}>{categories.map(value=><option key={value} value={value}>{examTypeLabel(value)}</option>)}</select></label>
+      </div>:null}
       {subjects.length?<div className="student-exam-filter-groups"><div><small>과목</small><nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>{setSubject(value);setCategory("");setSelectedId(null)}}>{value}</button>)}</nav></div>{categories.length?<div><small>시험 카테고리</small><nav className="student-exam-category-tabs" aria-label="시험 카테고리">{categories.map(value=><button type="button" key={value} className={selectedCategory===value?"active":""} onClick={()=>{setCategory(value);setSelectedId(null)}}>{examTypeLabel(value)}</button>)}</nav></div>:null}</div>:null}
       {scored.length ? (
         <>
