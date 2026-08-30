@@ -37,3 +37,92 @@
   .class-day-workspace .class-roster-actions{width:100%!important}
   .class-day-workspace .class-roster-actions>button{width:100%!important}
 }
+
+/* Second staff-only mobile density pass: operations, billing and work forms. */
+@media(max-width:700px){
+  .operations-overview .overview-kpis{gap:7px!important;margin-bottom:8px!important}
+  .operations-overview .overview-kpis>article,
+  .operations-overview .overview-kpis>button{min-height:84px!important;padding:11px 12px!important;gap:5px!important;border-radius:13px!important}
+  .operations-overview .overview-kpis span{font-size:9px!important}
+  .operations-overview .overview-kpis b{font-size:19px!important}
+  .operations-overview .overview-kpis small{font-size:8.5px!important}
+  .operations-overview .overview-secondary{margin-bottom:10px!important;padding:9px 11px!important;gap:6px!important}
+  .operations-overview .operations-checks>header{padding:14px!important}
+  .operations-overview .operations-check-grid{padding:9px!important;gap:8px!important}
+  .operations-overview .operations-check-grid>article>div:first-child{padding:11px!important}
+  .operations-overview .check-preview{padding:0 11px 9px!important}
+  .operations-overview .operations-details-toggle{padding:13px 14px!important}
+  .operations-overview .operations-details-body{padding:0 11px 11px!important}
+  .operations-overview .analytics-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;padding:10px 0!important}
+  .operations-overview .analytics-actions label{width:100%!important}
+  .operations-overview .analytics-actions input{height:38px!important;min-height:38px!important}
+  .operations-overview .analytics-actions>.secondary-button{grid-column:1/-1;width:100%!important;height:38px!important;min-height:38px!important}
+  .operations-overview .analytics-monthly{margin-bottom:9px!important}
+  .operations-overview .analytics-monthly>header{padding:10px 11px!important}
+  .operations-overview .analytics-monthly>div{padding:10px!important;gap:7px!important}
+  .operations-overview .analytics-monthly article{grid-template-columns:54px minmax(0,1fr)!important;gap:6px!important}
+  .operations-overview .analytics-monthly article>small{font-size:7.5px!important}
+
+  .tuition-page-heading{margin-bottom:12px!important;gap:10px!important}
+  .tuition-page-heading h1{font-size:24px!important}
+  .tuition-heading-actions{gap:6px!important}
+  .tuition-month-picker,
+  .tuition-heading-actions>.secondary-button,
+  .tuition-heading-actions>.primary{height:40px!important;min-height:40px!important}
+  .tuition-summary-five{gap:7px!important;margin-bottom:10px!important}
+  .tuition-summary-five article{min-height:76px!important;padding:11px 12px!important;gap:5px!important;border-radius:12px!important}
+  .tuition-summary-five article span{font-size:9px!important}
+  .tuition-summary-five article b{font-size:16px!important}
+  .tuition-summary-five article small{font-size:8px!important}
+  .tuition-advanced-filterbar{padding:9px!important;margin-bottom:9px!important;gap:9px!important}
+  .tuition-advanced-filterbar select{height:38px!important}
+  .tuition-sort-controls>span,.tuition-sort-controls button{height:38px!important}
+  .tuition-toolbar{min-height:0!important;padding:8px!important;gap:8px!important}
+  .tuition-filters button{height:34px!important;padding:0 9px!important}
+  .tuition-search,.tuition-reminder-button{height:36px!important;min-height:36px!important}
+  .tuition-empty{min-height:170px!important;padding:36px 14px!important}
+
+  .consultation-summary{min-height:0!important;padding:10px 12px!important}
+  .consultation-alert{margin-bottom:10px!important}
+  .consultation-alert>header{padding:12px 14px!important}
+  .consultation-alert>div>button{min-height:58px!important;padding:10px 12px!important;gap:9px!important}
+  .consultation-alert button>i{width:30px!important;height:30px!important;flex:0 0 30px!important}
+  .consultation-alert button b{font-size:11px!important}
+  .consultation-alert button small{font-size:8px!important;line-height:1.4!important}
+  .consultation-alert button strong{margin-left:auto!important;font-size:8px!important;white-space:nowrap!important}
+  .consultation-toolbar{min-height:0!important;padding:10px 12px!important}
+  .consultation-list article>header{padding:12px 14px!important;gap:10px!important}
+  .consultation-notes{padding:0 14px 12px!important;gap:7px!important}
+
+  .vocab-page{gap:10px!important}
+  .vocab-builder,.vocab-history,.vocab-preview{padding:12px!important;border-radius:15px!important}
+  .vocab-section-title{margin-bottom:10px!important;gap:8px!important}
+  .vocab-section-title:not(:first-child){margin-top:15px!important;padding-top:14px!important}
+  .vocab-section-title>span{width:28px!important;height:28px!important}
+  .vocab-section-title h2{font-size:16px!important}
+  .vocab-form-grid{gap:7px!important}
+  .vocab-form-grid input,.vocab-form-grid select,.vocab-counts input{height:40px!important;min-height:40px!important}
+  .vocab-counts{gap:6px!important}
+  .vocab-counts label{padding:7px!important}
+  .vocab-counts>strong{height:42px!important}
+  .vocab-create{height:40px!important;margin-top:10px!important}
+
+  .correction-learning-board .correction-subject-rows{padding:7px!important}
+  .correction-learning-board .correction-learning-rows article{margin-bottom:7px!important;border-radius:12px!important}
+  .correction-learning-board .correction-learning-rows>article>div{padding:10px!important}
+  .correction-learning-board .learning-attendance{margin-top:8px!important;gap:5px!important}
+  .correction-learning-board .learning-attendance>button{min-height:35px!important;height:35px!important}
+  .correction-learning-board .correction-exam select,
+  .correction-learning-board .correction-exam input{min-height:38px!important;height:38px!important}
+  .correction-learning-board .correction-task-cell textarea{min-height:70px!important;height:70px!important}
+
+  .absence-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-bottom:10px!important}
+  .absence-summary button{min-height:76px!important;padding:11px 12px!important;gap:4px 8px!important;border-radius:13px!important}
+  .absence-summary b{font-size:18px!important}
+  .absence-filters{padding:10px!important;gap:7px!important}
+  .absence-filters input,.absence-filters select{height:40px!important;min-height:40px!important;padding:0 10px!important}
+  .absence-empty{min-height:190px!important;padding:28px 18px!important;text-align:center!important}
+  .absence-groups{padding:8px!important;gap:9px!important}
+  .absence-groups article>header{padding:11px 12px!important}
+  .absence-row{padding:10px!important;gap:8px!important}
+}
