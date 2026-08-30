@@ -372,6 +372,9 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
           <span>
             {scheduleText(classRoom.schedules)}
             {classRoom.room ? ` · ${classRoom.room}` : ""}
+            {classRoom.teachers.length
+              ? ` · ${classRoom.teachers.map((teacher) => `${teacher.name}T`).join(" · ")}`
+              : ""}
           </span>
         </div>
         <div className="class-header-actions">
