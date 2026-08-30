@@ -9,17 +9,17 @@ $schemaPath = Join-Path $backupDirectory "schema.sql"
 $dataPath = Join-Path $backupDirectory "data.sql"
 $rolesPath = Join-Path $backupDirectory "roles.sql"
 
-Write-Host "1/3 데이터베이스 구조를 백업합니다..."
+Write-Host "1/3 Backing up database schema..."
 npx.cmd supabase db dump --linked --file $schemaPath
-if ($LASTEXITCODE -ne 0) { throw "데이터베이스 구조 백업에 실패했습니다." }
+if ($LASTEXITCODE -ne 0) { throw "Database schema backup failed." }
 
-Write-Host "2/3 실제 데이터를 백업합니다..."
+Write-Host "2/3 Backing up database data..."
 npx.cmd supabase db dump --linked --data-only --use-copy --file $dataPath
-if ($LASTEXITCODE -ne 0) { throw "데이터 백업에 실패했습니다." }
+if ($LASTEXITCODE -ne 0) { throw "Database data backup failed." }
 
-Write-Host "3/3 사용자 정의 역할을 백업합니다..."
+Write-Host "3/3 Backing up custom roles..."
 npx.cmd supabase db dump --linked --role-only --file $rolesPath
-if ($LASTEXITCODE -ne 0) { throw "역할 백업에 실패했습니다." }
+if ($LASTEXITCODE -ne 0) { throw "Database role backup failed." }
 
-Write-Host "백업 완료: $backupDirectory"
-Write-Host "schema.sql, data.sql, roles.sql 파일이 생성되었습니다."
+Write-Host "Backup completed: $backupDirectory"
+Write-Host "Created schema.sql, data.sql, and roles.sql."
