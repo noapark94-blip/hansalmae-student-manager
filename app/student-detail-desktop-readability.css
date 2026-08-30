@@ -37,12 +37,19 @@
   .student-hub-modal .student-exam-point-detail b{overflow:hidden;font-size:10.5px;text-overflow:ellipsis;white-space:nowrap}
   .student-hub-modal .student-exam-point-detail>strong{flex:0 0 auto;color:#922d61;font-size:11px;text-align:right}
   .student-hub-modal .student-exam-point-detail>strong small{display:block;margin-top:3px;color:#8b7e84;font-size:7.5px}
+  .student-hub-modal .student-exam-records.collapsed article:nth-child(n+3){display:none}
+  .student-hub-modal .student-exam-records.expanded{max-height:420px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#dbcbd3 transparent}
+  .student-hub-modal .student-exam-records-toggle{width:100%;min-height:46px;margin-top:9px;padding:0 15px;border:1px solid #e7dce1;border-radius:13px;background:linear-gradient(180deg,#fff,#fcf9fa);color:#65575e;font:inherit;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 5px 16px rgba(72,43,56,.035);cursor:pointer}
+  .student-hub-modal .student-exam-records-toggle span{font-size:10px;font-weight:850}
+  .student-hub-modal .student-exam-records-toggle i{display:inline-block;color:#9d2c63;font-size:15px;font-style:normal;line-height:1;transition:transform .18s ease}
+  .student-hub-modal .student-exam-records-toggle.open i{transform:rotate(180deg)}
 }
 
 @media(min-width:761px){
   .student-exam-mobile-bars{display:none!important}
   .student-exam-line-mobile{display:none!important}
   .student-exam-mobile-filter-selects{display:none!important}
+  .student-exam-records-toggle{display:none!important}
   .student-hub-modal>header span{font-size:12px;line-height:1.5}
   .student-hub-tabs button{font-size:11px;padding-inline:14px}
 

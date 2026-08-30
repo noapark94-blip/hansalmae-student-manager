@@ -399,6 +399,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const[category,setCategory]=useState("");
   const[range,setRange]=useState<"week"|"month"|"quarter"|"all">("month");
   const[selectedId,setSelectedId]=useState<string|null>(null);
+  const[recordsExpanded,setRecordsExpanded]=useState(false);
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
   const subjectItems=sourceItems.filter(item=>item.subject===selectedSubject);
   const categories=Array.from(new Set(subjectItems.map(item=>examCategoryLabel(item.examType,item.examTitle))));
@@ -487,7 +488,7 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           <div className={`student-exam-bars student-exam-mobile-bars ${source}`} style={{gridTemplateColumns:`repeat(${scored.length},minmax(64px,1fr))`}} role="img" aria-label={`${selectedSubject} ${examTypeLabel(selectedCategory)} 시험 성적`}>
             {scored.map(item=><article key={item.id} title={`${item.examTitle||examTypeLabel(item.examType)} · ${item.score}/${item.maxScore}`}><div><i style={{height:`${Math.max(5,Math.min(100,item.percent??0))}%`}}><b>{item.percent}점</b></i></div><strong>{item.examTitle||examTypeLabel(item.examType)}</strong><small>{formatDate(item.lessonDate)}</small></article>)}
           </div>
-          <div className="student-exam-records">
+          <div className={`student-exam-records${recordsExpanded?" expanded":" collapsed"}`}>
             {scored
               .slice()
               .reverse()
@@ -505,6 +506,10 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
                 </article>
               ))}
           </div>
+          {scored.length>2?<button type="button" className={`student-exam-records-toggle${recordsExpanded?" open":""}`} aria-expanded={recordsExpanded} onClick={()=>setRecordsExpanded(value=>!value)}>
+            <span>{recordsExpanded?"기록 접기":`전체 기록 ${scored.length}건 펼치기`}</span>
+            <i aria-hidden="true">⌄</i>
+          </button>:null}
         </>
       ) : (
         <Empty text={`아직 점수가 입력된 ${sourceLabel(source)} 시험이 없습니다.`} />
