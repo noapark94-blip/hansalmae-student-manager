@@ -33,7 +33,7 @@ Deno.serve(async request=>{
   const resultRow=claimed[0],variables=resultRow.template_variables;
   const start=String(variables.periodStart),end=String(variables.periodEnd),period=input.reportType==="daily"?formatDate(start):`${formatDate(start)}~${formatDate(end)}`;
   const examSummary=String(input.examSummary??"").trim(),homeworkSummary=String(input.homeworkSummary??"").trim();
-  const learningDetails=[...labelLines("시험",examSummary),...labelLines("과제",homeworkSummary)].join("\n")||"수업 기록 완료";
+  const learningDetails=[formatDetailGroup("시험",examSummary),formatDetailGroup("과제",homeworkSummary)].filter(Boolean).join("\n")||"수업 기록 완료";
   const kakaoVariables={"#{학생명}":variables.studentName,[input.reportType==="weekly"?"#{기간}":"#{기록일}"]:period,"#{수업요약}":variables.lessonSummary,"#{출결요약}":variables.attendanceSummary,"#{학습상세요약}":learningDetails};
   const details=[`■ 수업\n${variables.lessonSummary}`,`■ 출결\n${variables.attendanceSummary}`,`■ 학습 상세\n${learningDetails}`].join("\n\n");
   const fallback=`[한살매 수업노트]\n\n${variables.studentName} 학생의 ${period} ${input.reportType==="weekly"?"주간 학습요약":"학습기록"}입니다.\n\n${details}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`;
@@ -47,4 +47,4 @@ Deno.serve(async request=>{
 });
 
 function formatDate(value:string){const parts=value.split("-");return `${Number(parts[1])}월 ${Number(parts[2])}일`}
-function labelLines(label:string,value:string){return value?value.split("\n").map(line=>line.startsWith("외 ")?line:`${label}: ${line}`):[]}
+function formatDetailGroup(label:string,value:string){if(!value)return"";return value.split("\n").map((line,index)=>index===0?`${label}: ${line}`:`　　 ${line}`).join("\n")}
