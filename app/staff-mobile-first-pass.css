@@ -320,9 +320,15 @@
   .class-creator>.modal-body{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding-bottom:18px!important}
   .class-creator>footer{position:relative!important;bottom:auto!important;flex:0 0 auto!important;background:#fff!important;backdrop-filter:none!important;box-shadow:0 -8px 22px rgba(55,35,45,.06)!important}
   .class-creator>.form-error{flex:0 0 auto!important;margin:8px 17px 0!important}
-  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;min-width:0!important;min-height:54px!important;padding:8px 10px!important;gap:7px!important}
-  .class-creator .teacher-picker>div>label>i{width:27px!important;height:27px!important;flex:0 0 27px!important}
+  .class-creator .teacher-picker>div{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;padding:2px 1px 7px!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;scrollbar-width:none!important}
+  .class-creator .teacher-picker>div::-webkit-scrollbar{display:none!important}
+  .class-creator .teacher-picker>div>label{box-sizing:border-box!important;flex:0 0 auto!important;min-width:max-content!important;min-height:42px!important;padding:7px 10px!important;gap:6px!important;border-radius:999px!important}
+  .class-creator .teacher-picker>div>label>input{width:16px!important;height:16px!important;flex:0 0 16px!important}
+  .class-creator .teacher-picker>div>label>i{display:none!important}
   .class-creator .teacher-picker>div>label>span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .class-creator .teacher-picker>div>label.active{border-color:#b74a7d!important;background:#fbf0f5!important;box-shadow:0 0 0 2px rgba(146,45,97,.07)!important}
+  .class-creator .class-color-options>button{position:relative!important}
+  .class-creator .class-color-options>button.used>i{position:absolute!important;right:-3px!important;bottom:-3px!important;width:8px!important;height:8px!important;border:2px solid #fff!important;border-radius:50%!important;background:#3f3439!important;box-shadow:0 0 0 1px rgba(63,52,57,.2)!important}
   .class-creator .class-color-options::after{content:"직접 선택";flex:0 0 auto;color:#8c8085;font-size:8.5px;font-weight:700;white-space:nowrap}
   .class-creator .desktop-only-hint{display:none!important}
   .class-creator .mobile-only-hint{display:inline!important}
