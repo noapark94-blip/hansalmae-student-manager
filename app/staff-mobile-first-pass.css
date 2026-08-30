@@ -792,6 +792,130 @@
     display: none !important;
   }
 
+  .schedule-editor .class-editor-form {
+    padding: 14px !important;
+    gap: 11px !important;
+  }
+  .class-editor-form > .editor-field {
+    gap: 6px !important;
+  }
+  .class-editor-form > .editor-field > b,
+  .class-editor-schedule-grid .editor-field > b,
+  .class-editor-schedule-grid .military-time-input > b {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #51484c !important;
+  }
+  .class-editor-form .editor-field select,
+  .class-editor-form .editor-field input {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 11px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+  }
+  .class-editor-schedule-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    border: 1px solid #e8dfe3 !important;
+    border-radius: 13px !important;
+    background: #fcfafb !important;
+  }
+  .class-editor-schedule-grid > .editor-field:first-child {
+    grid-column: 1 / -1 !important;
+  }
+  .class-editor-schedule-grid .military-time-input {
+    position: relative !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 5px !important;
+    color: #51484c !important;
+  }
+  .class-editor-schedule-grid .military-time-input input {
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    box-sizing: border-box !important;
+    padding: 0 10px !important;
+    border: 1px solid #ded6d9 !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #30282c !important;
+    font-size: 16px !important;
+    font-weight: 750 !important;
+    text-align: center !important;
+  }
+  .class-editor-schedule-grid .military-time-input small {
+    margin: 0 !important;
+    color: #9b9095 !important;
+    font-size: 7.5px !important;
+    text-align: center !important;
+  }
+  .class-editor-form > .editor-checklist {
+    padding: 10px !important;
+    border-color: #e5dade !important;
+    border-radius: 13px !important;
+  }
+  .class-editor-form > .editor-checklist legend {
+    padding: 0 6px !important;
+    font-size: 10px !important;
+  }
+  .class-editor-form > .editor-checklist > div {
+    max-height: 184px !important;
+    overflow-y: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .class-editor-form > .editor-checklist label {
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 8px 9px !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: #faf8f9 !important;
+    gap: 7px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+  .class-editor-form > .editor-checklist label:has(input:checked) {
+    border-color: #d69ab7 !important;
+    background: #fff3f8 !important;
+    color: #8f2858 !important;
+    font-weight: 800 !important;
+  }
+  .class-editor-form > .editor-checklist input {
+    width: 20px !important;
+    height: 20px !important;
+    flex: 0 0 20px !important;
+  }
+  .class-editor-form > footer {
+    margin-top: 2px !important;
+    padding-top: 11px !important;
+    border-top: 1px solid #eee5e9 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.45fr) !important;
+    gap: 8px !important;
+  }
+  .class-editor-form > footer > button {
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    margin: 0 !important;
+    border-radius: 11px !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+  }
+  .class-editor-form > footer .danger-link {
+    border: 1px solid #e5cbd4 !important;
+    background: #fff !important;
+    color: #bd405d !important;
+  }
+
   .student-hub-modal {
     width: 100vw !important;
     max-width: none !important;

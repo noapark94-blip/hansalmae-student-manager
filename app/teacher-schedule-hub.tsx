@@ -2018,7 +2018,7 @@ function ClassEditor({
       description="공동담당 선생님은 모두 개인 시간표에 자동 표시됩니다."
       onClose={onClose}
     >
-      <form onSubmit={submit}>
+      <form className="class-editor-form" onSubmit={submit}>
         <FormSelect
           label="클래스"
           value={classId}
@@ -2026,7 +2026,7 @@ function ClassEditor({
           options={data.classes}
           disabled={Boolean(row)}
         />
-        <div className="form-pair">
+        <div className="form-pair class-editor-schedule-grid">
           <DaySelect value={weekday} onChange={setWeekday} count={7} />
           <MilitaryTimeInput
             label="시작 시간"
@@ -2067,6 +2067,8 @@ function ClassEditor({
           saving={saving}
           editing={Boolean(row)}
           onDelete={remove}
+          saveLabel="변경사항 저장"
+          deleteLabel="배정 삭제"
         />
       </form>
     </EditorModal>
@@ -2667,20 +2669,24 @@ function EditorFooter({
   saving,
   editing = false,
   onDelete,
+  saveLabel = "저장",
+  deleteLabel = "삭제",
 }: {
   saving: boolean;
   editing?: boolean;
   onDelete?: () => void;
+  saveLabel?: string;
+  deleteLabel?: string;
 }) {
   return (
     <footer>
       {editing && onDelete && (
         <button className="danger-link" type="button" onClick={onDelete}>
-          삭제
+          {deleteLabel}
         </button>
       )}
       <button className="primary" disabled={saving}>
-        {saving ? "저장 중…" : "저장"}
+        {saving ? "저장 중…" : saveLabel}
       </button>
     </footer>
   );
