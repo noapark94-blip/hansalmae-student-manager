@@ -228,7 +228,7 @@
   .teacher-home-heading p { display:none; }
   .teacher-home-actions { gap:6px; }
   .teacher-home-actions button { min-height:38px; padding:0 11px; border-radius:10px; font-size:0; }
-  .teacher-home-actions button:first-child::after { content:"관리"; font-size:12px; }
+  .teacher-home-actions button:first-child::after { content:"클래스 관리"; font-size:12px; }
   .teacher-home-actions button:nth-child(2) { display:none; }
   .teacher-home-actions button:last-child::after { content:"새 클래스"; font-size:12px; }
   .teacher-home-actions button:last-child { font-size:0; }
