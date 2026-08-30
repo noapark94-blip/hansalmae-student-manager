@@ -425,12 +425,19 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const points=scored.map((item,index)=>({item,x:pointX(index),y:pointY(item.percent??0)}));
   const path=points.map(point=>`${point.x},${point.y}`).join(" ");
   const averageY=average===null?null:pointY(average);
+  const mobileChartWidth=360,mobileChartHeight=232,mobilePadX=30,mobilePadTop=34,mobilePadBottom=58;
+  const mobilePlotHeight=mobileChartHeight-mobilePadTop-mobilePadBottom;
+  const mobilePointX=(index:number)=>scored.length===1?mobileChartWidth/2:mobilePadX+(index*(mobileChartWidth-mobilePadX*2))/(scored.length-1);
+  const mobilePointY=(value:number)=>mobilePadTop+((100-Math.max(0,Math.min(100,value)))/100)*mobilePlotHeight;
+  const mobilePoints=scored.map((item,index)=>({item,x:mobilePointX(index),y:mobilePointY(item.percent??0)}));
+  const mobilePath=mobilePoints.map(point=>`${point.x},${point.y}`).join(" ");
+  const mobileAverageY=average===null?null:mobilePointY(average);
   return (
     <section className="student-exam-progress">
       <header>
         <div>
           <h3>시험 성적 추이</h3>
-          <p>수업 종류와 과목, 시험 항목을 선택해 100점 환산 점수의 흐름을 확인합니다.</p>
+          <p>수업 종류와 과목, 시험 카테고리를 선택해 100점 환산 점수의 흐름을 확인합니다.</p>
         </div>
         <div className="student-exam-selects">
           <label>
@@ -450,19 +457,26 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
           </label>
         </div>
       </header>
-      {subjects.length?<div className="student-exam-filter-groups"><div><small>과목</small><nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>{setSubject(value);setCategory("");setSelectedId(null)}}>{value}</button>)}</nav></div>{categories.length?<div><small>시험 항목</small><nav className="student-exam-category-tabs" aria-label="시험 항목">{categories.map(value=><button type="button" key={value} className={selectedCategory===value?"active":""} onClick={()=>{setCategory(value);setSelectedId(null)}}>{examTypeLabel(value)}</button>)}</nav></div>:null}</div>:null}
+      {subjects.length?<div className="student-exam-filter-groups"><div><small>과목</small><nav className="student-exam-subject-tabs" aria-label="과목">{subjects.map(value=><button type="button" key={value} className={selectedSubject===value?"active":""} onClick={()=>{setSubject(value);setCategory("");setSelectedId(null)}}>{value}</button>)}</nav></div>{categories.length?<div><small>시험 카테고리</small><nav className="student-exam-category-tabs" aria-label="시험 카테고리">{categories.map(value=><button type="button" key={value} className={selectedCategory===value?"active":""} onClick={()=>{setCategory(value);setSelectedId(null)}}>{examTypeLabel(value)}</button>)}</nav></div>:null}</div>:null}
       {scored.length ? (
         <>
           <div className="student-exam-summary"><div><span>최근 점수</span><b>{latest===null?"–":`${latest}점`}</b></div><div><span>최근 3회 평균</span><b>{average===null?"–":`${average}점`}</b></div><div><span>직전 대비</span><b className={delta===null?"":delta>0?"up":delta<0?"down":""}>{delta===null?"–":delta>0?`+${delta}점`:delta===0?"변동 없음":`${delta}점`}</b></div><div><span>선택 기간 시험</span><b>{scored.length}회</b></div></div>
           <section className="student-exam-line-card" aria-label={`${sourceLabel(source)} ${selectedSubject} ${examTypeLabel(selectedCategory)} 시험 성적 추이`}>
             <header><div><b>{selectedSubject} · {examTypeLabel(selectedCategory)}</b><span>점수를 선택하면 시험 상세정보가 표시됩니다.</span></div><em>평균 {average}점</em></header>
-            <div className="student-exam-line-scroll"><div className="student-exam-line-canvas" style={{"--student-exam-points":scored.length} as CSSProperties}><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="시험 점수 선형 그래프">
+            <div className="student-exam-line-scroll"><div className="student-exam-line-canvas" style={{"--student-exam-points":scored.length} as CSSProperties}><svg className="student-exam-line-desktop" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="시험 점수 선형 그래프">
               <defs><linearGradient id="studentExamArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a9346b" stopOpacity=".2"/><stop offset="100%" stopColor="#a9346b" stopOpacity="0"/></linearGradient></defs>
               {[100,75,50,25,0].map(value=><g key={value}><line className="grid" x1={padX} x2={chartWidth-padX} y1={pointY(value)} y2={pointY(value)}/><text className="axis" x="8" y={pointY(value)+4}>{value}</text></g>)}
               {averageY!==null?<line className="average" x1={padX} x2={chartWidth-padX} y1={averageY} y2={averageY}/>:null}
               {points.length>1?<polygon className="area" points={`${points[0].x},${chartHeight-padBottom} ${path} ${points.at(-1)!.x},${chartHeight-padBottom}`}/>:null}
               {points.length>1?<polyline className="line" points={path}/>:null}
               {points.map(point=><g key={point.item.id} className={selected?.id===point.item.id?"selected":""} role="button" tabIndex={0} onClick={()=>setSelectedId(point.item.id)} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setSelectedId(point.item.id)}}}><circle className="halo" cx={point.x} cy={point.y} r="11"/><circle className="dot" cx={point.x} cy={point.y} r="5"/><text className="value" x={point.x} y={Math.max(16,point.y-13)} textAnchor="middle">{point.item.percent}점</text><text className="date" x={point.x} y={chartHeight-25} textAnchor="middle">{formatShortExamDate(point.item.lessonDate)}</text><text className="label" x={point.x} y={chartHeight-9} textAnchor="middle">{point.item.examTitle||examTypeLabel(point.item.examType)}</text></g>)}
+            </svg><svg className="student-exam-line-mobile" viewBox={`0 0 ${mobileChartWidth} ${mobileChartHeight}`} role="img" aria-label="모바일 시험 점수 선형 그래프">
+              <defs><linearGradient id="studentExamAreaMobile" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a9346b" stopOpacity=".2"/><stop offset="100%" stopColor="#a9346b" stopOpacity="0"/></linearGradient></defs>
+              {[100,75,50,25,0].map(value=><g key={value}><line className="grid" x1="24" x2={mobileChartWidth-12} y1={mobilePointY(value)} y2={mobilePointY(value)}/><text className="axis" x="18" y={mobilePointY(value)+3} textAnchor="end">{value}</text></g>)}
+              {mobileAverageY!==null?<line className="average" x1={mobilePadX} x2={mobileChartWidth-mobilePadX} y1={mobileAverageY} y2={mobileAverageY}/>:null}
+              {mobilePoints.length>1?<polygon className="area mobile-area" points={`${mobilePoints[0].x},${mobileChartHeight-mobilePadBottom} ${mobilePath} ${mobilePoints.at(-1)!.x},${mobileChartHeight-mobilePadBottom}`}/>:null}
+              {mobilePoints.length>1?<polyline className="line" points={mobilePath}/>:null}
+              {mobilePoints.map(point=><g key={point.item.id} className={selected?.id===point.item.id?"selected":""} role="button" tabIndex={0} onClick={()=>setSelectedId(point.item.id)} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setSelectedId(point.item.id)}}}><circle className="halo" cx={point.x} cy={point.y} r="12"/><circle className="dot" cx={point.x} cy={point.y} r="5.5"/><text className="value" x={point.x} y={Math.max(18,point.y-14)} textAnchor="middle">{point.item.percent}점</text><text className="date" x={point.x} y={mobileChartHeight-27} textAnchor="middle">{formatShortExamDate(point.item.lessonDate)}</text><text className="label" x={point.x} y={mobileChartHeight-10} textAnchor="middle">{point.item.examTitle||examTypeLabel(point.item.examType)}</text></g>)}
             </svg></div></div>
             {selected?<article className="student-exam-point-detail"><div><small>{formatDate(selected.lessonDate)} · {selectedSubject}</small><b>{selected.examTitle||examTypeLabel(selected.examType)}</b><span>{selected.className} · {sourceLabel(selected.source)}</span></div><strong>{selected.score}/{selected.maxScore}<small>환산 {selected.percent}점</small></strong></article>:null}
           </section>
