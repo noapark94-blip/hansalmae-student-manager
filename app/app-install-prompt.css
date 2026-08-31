@@ -27,3 +27,11 @@
 .install-guide>footer.samsung-install-actions button:last-child{box-shadow:0 7px 18px rgba(146,45,97,.22)}
 @keyframes samsungTapPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.045)}}
 @media(max-width:520px){.samsung-install-guide{max-height:calc(100dvh - 16px)}.samsung-install-body{padding:14px}.samsung-install-body ol{gap:10px}.samsung-install-body li{padding:10px}.samsung-install-question{font-size:13px}}
+
+
+/* Align Samsung guide callouts with the tappable labels on the left */
+.samsung-tap-marker{left:48%;transform:translateY(-50%)}
+.samsung-tap-marker::after{left:auto;right:100%;top:50%;transform:translateY(-50%);border-color:transparent;border-right-color:#a22d66}
+.samsung-tap-marker.step-one{top:70%}
+.samsung-tap-marker.step-two{top:74%}
+@keyframes samsungTapPulse{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.045)}}
