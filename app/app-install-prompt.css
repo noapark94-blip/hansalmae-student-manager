@@ -6,3 +6,24 @@
 @media(max-width:520px){.app-install-button{padding:12px}.app-install-button b{font-size:14px}.app-install-button small{font-size:11px}.install-guide-backdrop{padding:10px;align-items:end}.install-guide{max-height:calc(100dvh - 20px);border-radius:24px 24px 18px 18px}.install-guide>header{padding:18px 17px 15px}.install-guide-body{padding:16px 17px}.install-guide>footer{padding-left:17px;padding-right:17px}.install-steps li{min-height:78px}.install-steps li b{font-size:13px}.install-steps li small,.install-browser-notice span,.install-safe-note{font-size:11px}.install-browser-notice b{font-size:13px}.share-menu-preview{margin-left:0}.install-steps.handoff>li:nth-child(3)>.install-button-preview{margin-left:0}.share-menu-preview>span{min-width:72px}.share-menu-preview>span>b{font-size:9px!important}}
 
 .samsung-install-guide{max-width:440px}.samsung-install-body{padding:20px}.samsung-install-notice{display:flex;align-items:flex-start;gap:12px;padding:15px;border:1px solid #efd9e3;border-radius:15px;background:linear-gradient(145deg,#fff8fb,#fff)}.samsung-install-notice>i{width:30px;height:30px;border-radius:10px;background:#f4dce8;color:#922d61;display:grid;flex:0 0 auto;place-items:center;font-size:15px;font-style:normal;font-weight:900}.samsung-install-notice p{margin:0;display:grid;gap:5px}.samsung-install-notice b{color:#3d3036;font-size:12px}.samsung-install-notice span{color:#796b71;font-size:10px;line-height:1.6}.samsung-install-body ol{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:12px}.samsung-install-body li{display:grid;gap:10px;padding:12px;border:1px solid #ece3e7;border-radius:13px;background:#fff}.samsung-install-body li>div{display:flex;align-items:center;gap:10px}.samsung-install-body li em{width:26px;height:26px;border-radius:50%;background:#922d61;color:#fff;display:grid;flex:0 0 auto;place-items:center;font-size:10px;font-style:normal;font-weight:900}.samsung-install-body li span{display:grid;gap:3px}.samsung-install-body li b{color:#40343a;font-size:11px}.samsung-install-body li small{color:#91838a;font-size:9px;line-height:1.45}.samsung-install-body li>img{display:block;width:min(100%,330px);height:auto;margin:0 auto;border:1px solid #ece5e8;border-radius:14px;background:#f5f3f4}.samsung-install-safe{margin:13px 0 0;padding:10px 12px;border-radius:10px;background:#f2f8f4;color:#496957;font-size:9px;line-height:1.5;text-align:center}.install-guide>footer.samsung-install-actions{display:grid;grid-template-columns:.8fr 1.4fr;gap:8px}.install-guide>footer.samsung-install-actions .secondary-button{background:#f6f1f3;color:#75676e;box-shadow:none}@media(max-width:520px){.samsung-install-guide{width:100%}.samsung-install-body{padding:16px}.install-guide>footer.samsung-install-actions{grid-template-columns:1fr 1.45fr}}
+
+
+/* Samsung Internet one-touch install guide */
+.samsung-install-guide{max-height:min(92dvh,780px)}
+.samsung-install-guide>header div small{color:#a22d66;font-weight:800}
+.samsung-install-body{overflow-y:auto}
+.samsung-install-body .samsung-install-notice{box-shadow:0 7px 22px rgba(119,44,80,.06)}
+.samsung-install-body ol{counter-reset:samsung-step}
+.samsung-install-body li{overflow:hidden;box-shadow:0 7px 22px rgba(48,29,38,.045)}
+.samsung-shot{position:relative;width:min(100%,330px);margin:0 auto;border:1px solid #e9dfe4;border-radius:16px;background:#f2eff1;overflow:hidden}
+.samsung-shot img{display:block;width:100%;height:auto}
+.samsung-tap-marker{position:absolute;left:50%;z-index:2;transform:translateX(-50%);display:flex!important;align-items:center!important;gap:6px!important;width:max-content!important;padding:7px 11px!important;border:2px solid #fff;border-radius:999px;background:#a22d66!important;color:#fff!important;font-size:10px!important;font-weight:900;line-height:1;box-shadow:0 4px 13px rgba(77,20,48,.35);animation:samsungTapPulse 1.5s ease-in-out infinite}
+.samsung-tap-marker::before{content:"";width:9px;height:9px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.26)}
+.samsung-tap-marker::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#a22d66}
+.samsung-tap-marker.step-one{top:59%}
+.samsung-tap-marker.step-two{top:72%}
+.samsung-install-question{margin:15px 0 2px;color:#392d33;font-size:14px;font-weight:850;text-align:center}
+.install-guide>footer.samsung-install-actions{grid-template-columns:.72fr 1.4fr;position:sticky;bottom:0;background:#fff}
+.install-guide>footer.samsung-install-actions button:last-child{box-shadow:0 7px 18px rgba(146,45,97,.22)}
+@keyframes samsungTapPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.045)}}
+@media(max-width:520px){.samsung-install-guide{max-height:calc(100dvh - 16px)}.samsung-install-body{padding:14px}.samsung-install-body ol{gap:10px}.samsung-install-body li{padding:10px}.samsung-install-question{font-size:13px}}
