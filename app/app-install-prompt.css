@@ -35,3 +35,7 @@
 .samsung-tap-marker.step-one{top:70%}
 .samsung-tap-marker.step-two{top:74%}
 @keyframes samsungTapPulse{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.045)}}
+
+
+/* Keep the first callout on the same line as “세부정보 더 보기” */
+.samsung-tap-marker.step-one{top:67.5%}
