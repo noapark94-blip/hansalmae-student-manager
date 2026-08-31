@@ -19,7 +19,7 @@ function isStandalone() {
 }
 
 function isAndroidInAppBrowser(ua: string) {
-  return /Android/i.test(ua) && /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+  return /Android/i.test(ua) && /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\/|SamsungBrowser/i.test(ua);
 }
 
 function openAndroidChromeInstallFlow() {
