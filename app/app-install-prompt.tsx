@@ -186,8 +186,8 @@ export function AppInstallPrompt() {
             <div className="samsung-install-body">
               <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>잠시 후 보안 안내가 표시될 수 있어요.</b><span>삼성 인터넷이 웹앱을 설치하는 방식 때문에 나타나는 안내이며, 한살매 수업노트의 개인정보나 학습기록에 문제가 있다는 뜻은 아닙니다.</span></p></div>
               <ol>
-                <li><em>1</em><span><b>‘세부정보 더 보기’를 눌러 주세요</b><small>Google Play 프로텍트 안내 아래쪽에 있습니다.</small></span></li>
-                <li><em>2</em><span><b>‘무시하고 설치’를 눌러 주세요</b><small>설치 후 홈 화면에 한살매노트 아이콘이 생깁니다.</small></span></li>
+                <li><div><em>1</em><span><b>‘세부정보 더 보기’를 눌러 주세요</b><small>Google Play 프로텍트 안내 아래쪽에 있습니다.</small></span></div><Image src="/samsung-install-warning-step1.png" width={359} height={538} sizes="(max-width: 520px) 78vw, 330px" alt="Google Play 프로텍트 화면에서 세부정보 더 보기 위치" /></li>
+                <li><div><em>2</em><span><b>‘무시하고 설치하기’를 눌러 주세요</b><small>설치 후 홈 화면에 한살매노트 아이콘이 생깁니다.</small></span></div><Image src="/samsung-install-warning-step2.png" width={359} height={538} sizes="(max-width: 520px) 78vw, 330px" alt="Google Play 프로텍트 화면에서 무시하고 설치하기 위치" /></li>
               </ol>
               <p className="samsung-install-safe">별도의 권한 허용이나 Play 스토어 가입은 필요하지 않습니다.</p>
             </div>
@@ -197,7 +197,7 @@ export function AppInstallPrompt() {
                 const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
                 setSamsungGuide(false);
                 if (promptEvent) void launchAndroidPrompt(promptEvent);
-              }}>확인하고 설치하기</button>
+              }}>원터치 설치</button>
             </footer>
           </section>
         </div>
