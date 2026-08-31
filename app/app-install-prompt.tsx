@@ -8,29 +8,67 @@ type InstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+type InstallWindow = Window & {
+  __hansalmaeInstallPrompt?: InstallPromptEvent | null;
+};
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+}
+
+async function prepareAndroidInstall() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.register("/push-service-worker.js");
+    await navigator.serviceWorker.ready;
+    // Update an older registration in the background, but never block the install button.
+    void registration.update().catch(() => undefined);
+  } catch {
+    // The install UI below will stay available and explain that the browser cannot install.
+  }
+}
+
 export function AppInstallPrompt() {
   const [device, setDevice] = useState<"android" | "ios" | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [guide, setGuide] = useState<"ios" | null>(null);
   const [installed, setInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [androidMessage, setAndroidMessage] = useState("");
 
   useEffect(() => {
-    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-    setInstalled(standalone);
+    setInstalled(isStandalone());
 
     const ua = navigator.userAgent;
+    const android = /Android/i.test(ua);
     if (/iPhone|iPad|iPod/i.test(ua)) setDevice("ios");
-    else if (/Android/i.test(ua)) setDevice("android");
+    else if (android) setDevice("android");
+
+    const installWindow = window as InstallWindow;
+    if (installWindow.__hansalmaeInstallPrompt) {
+      setInstallPrompt(installWindow.__hansalmaeInstallPrompt);
+    }
 
     const receivePrompt = (event: Event) => {
       event.preventDefault();
-      setInstallPrompt(event as InstallPromptEvent);
+      const promptEvent = event as InstallPromptEvent;
+      installWindow.__hansalmaeInstallPrompt = promptEvent;
+      setInstallPrompt(promptEvent);
+      setAndroidMessage("");
     };
-    const finishInstall = () => setInstalled(true);
+    const finishInstall = () => {
+      installWindow.__hansalmaeInstallPrompt = null;
+      setInstallPrompt(null);
+      setInstalled(true);
+    };
     window.addEventListener("beforeinstallprompt", receivePrompt);
     window.addEventListener("appinstalled", finishInstall);
+
+    // Android must already have an active service worker when Chrome evaluates
+    // installability. Register it on the login screen instead of waiting for push setup.
+    if (android) void prepareAndroidInstall();
+
     return () => {
       window.removeEventListener("beforeinstallprompt", receivePrompt);
       window.removeEventListener("appinstalled", finishInstall);
@@ -39,34 +77,80 @@ export function AppInstallPrompt() {
 
   if (!device || installed) return null;
 
+  const waitForPrompt = (timeoutMs = 1800) => new Promise<InstallPromptEvent | null>((resolve) => {
+    const installWindow = window as InstallWindow;
+    if (installWindow.__hansalmaeInstallPrompt) {
+      resolve(installWindow.__hansalmaeInstallPrompt);
+      return;
+    }
+    let done = false;
+    const finish = (event?: Event) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.clearTimeout(timer);
+      const promptEvent = event as InstallPromptEvent | undefined;
+      resolve(promptEvent ?? installWindow.__hansalmaeInstallPrompt ?? null);
+    };
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      const promptEvent = event as InstallPromptEvent;
+      installWindow.__hansalmaeInstallPrompt = promptEvent;
+      setInstallPrompt(promptEvent);
+      finish(promptEvent);
+    };
+    const timer = window.setTimeout(() => finish(), timeoutMs);
+    window.addEventListener("beforeinstallprompt", onPrompt, { once: true });
+  });
+
   const openInstall = async () => {
     if (device === "ios") {
       setGuide("ios");
       return;
     }
-    if (!installPrompt || installing) return;
+    if (installing) return;
+
     setInstalling(true);
+    setAndroidMessage("");
     try {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") setInstalled(true);
+      await prepareAndroidInstall();
+      if (isStandalone()) {
+        setInstalled(true);
+        return;
+      }
+
+      let promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
+      if (!promptEvent) promptEvent = await waitForPrompt();
+
+      if (!promptEvent) {
+        const ua = navigator.userAgent;
+        const inAppBrowser = /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+        setAndroidMessage(inAppBrowser
+          ? "카카오톡·네이버 앱 안에서는 바로 설치할 수 없습니다. Chrome에서 이 페이지를 열어 설치해 주세요."
+          : "Chrome이 아직 설치 준비를 마치지 못했습니다. 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+        return;
+      }
+
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      (window as InstallWindow).__hansalmaeInstallPrompt = null;
       setInstallPrompt(null);
+      if (choice.outcome === "accepted") setInstalled(true);
     } finally {
       setInstalling(false);
     }
   };
 
-  const androidReady = device !== "android" || Boolean(installPrompt);
-
   return (
     <>
-      <button type="button" className="app-install-button" disabled={!androidReady || installing} onClick={() => void openInstall()}>
+      <button type="button" className="app-install-button" disabled={installing} onClick={() => void openInstall()}>
         <span className="app-install-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg>
         </span>
-        <span><b>{installing ? "설치창 여는 중…" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : androidReady ? "버튼을 누르면 바로 설치창이 열립니다" : "안드로이드 설치 준비 중…"}</small></span>
+        <span><b>{installing ? "설치창 여는 중…" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
         <i aria-hidden="true">›</i>
       </button>
+      {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}
 
       {guide && (
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setGuide(null); }}>
