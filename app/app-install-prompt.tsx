@@ -50,6 +50,7 @@ export function AppInstallPrompt() {
   const [installed, setInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [androidMessage, setAndroidMessage] = useState("");
+  const [samsungGuide, setSamsungGuide] = useState(false);
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -144,6 +145,10 @@ export function AppInstallPrompt() {
     const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
 
     if (promptEvent) {
+      if (/SamsungBrowser/i.test(ua)) {
+        setSamsungGuide(true);
+        return;
+      }
       await launchAndroidPrompt(promptEvent);
       return;
     }
@@ -169,6 +174,46 @@ export function AppInstallPrompt() {
         <i aria-hidden="true">›</i>
       </button>
       {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}
+
+      {samsungGuide && (
+        <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSamsungGuide(false); }}>
+          <section className="install-guide samsung-install-guide" role="dialog" aria-modal="true" aria-labelledby="samsung-install-title">
+            <header>
+              <Image className="install-guide-logo" src="/hansalmae-logo.png" width={42} height={42} alt="" aria-hidden="true" />
+              <div><small>설치 전 꼭 확인해 주세요</small><h2 id="samsung-install-title">안드로이드 설치 안내</h2></div>
+              <button type="button" aria-label="설치 안내 닫기" onClick={() => setSamsungGuide(false)}>×</button>
+            </header>
+            <div className="samsung-install-body">
+              <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>아래 보안 안내가 나타날 수 있어요.</b><span>삼성인터넷의 웹앱 설치 과정에서 표시되는 안내입니다. 그림에 표시된 순서대로 눌러 주세요.</span></p></div>
+              <ol>
+                <li>
+                  <div><em>1</em><span><b>‘세부정보 더 보기’를 눌러 주세요</b><small>첫 번째 경고 화면 아래쪽에 있습니다.</small></span></div>
+                  <div className="samsung-shot">
+                    <Image src="/samsung-install-warning-step1.png" width={359} height={538} sizes="(max-width: 520px) 82vw, 330px" alt="Google Play 프로텍트 화면의 세부정보 더 보기" />
+                    <span className="samsung-tap-marker step-one">여기를 누르세요</span>
+                  </div>
+                </li>
+                <li>
+                  <div><em>2</em><span><b>‘무시하고 설치하기’를 눌러 주세요</b><small>설치가 끝나면 홈 화면에 한살매노트가 생깁니다.</small></span></div>
+                  <div className="samsung-shot">
+                    <Image src="/samsung-install-warning-step2.png" width={359} height={538} sizes="(max-width: 520px) 82vw, 330px" alt="Google Play 프로텍트 화면의 무시하고 설치하기" />
+                    <span className="samsung-tap-marker step-two">여기를 누르세요</span>
+                  </div>
+                </li>
+              </ol>
+              <p className="samsung-install-question">한살매 수업노트를 설치하시겠습니까?</p>
+            </div>
+            <footer className="samsung-install-actions">
+              <button type="button" className="secondary-button" onClick={() => setSamsungGuide(false)}>취소</button>
+              <button type="button" onClick={() => {
+                const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
+                setSamsungGuide(false);
+                if (promptEvent) void launchAndroidPrompt(promptEvent);
+              }}>원터치 설치</button>
+            </footer>
+          </section>
+        </div>
+      )}
 
       {guide && (
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setGuide(null); }}>
