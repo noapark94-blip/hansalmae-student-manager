@@ -22,10 +22,9 @@ async function prepareAndroidInstall() {
   try {
     const registration = await navigator.serviceWorker.register("/push-service-worker.js");
     await navigator.serviceWorker.ready;
-    // Update an older registration in the background, but never block the install button.
     void registration.update().catch(() => undefined);
   } catch {
-    // The install UI below will stay available and explain that the browser cannot install.
+    // Installation UI below explains unsupported browser states.
   }
 }
 
@@ -57,16 +56,17 @@ export function AppInstallPrompt() {
       setInstallPrompt(promptEvent);
       setAndroidMessage("");
     };
+
     const finishInstall = () => {
       installWindow.__hansalmaeInstallPrompt = null;
       setInstallPrompt(null);
       setInstalled(true);
     };
+
     window.addEventListener("beforeinstallprompt", receivePrompt);
     window.addEventListener("appinstalled", finishInstall);
 
-    // Android must already have an active service worker when Chrome evaluates
-    // installability. Register it on the login screen instead of waiting for push setup.
+    // Prepare installability as soon as the Android login screen mounts.
     if (android) void prepareAndroidInstall();
 
     return () => {
@@ -77,32 +77,6 @@ export function AppInstallPrompt() {
 
   if (!device || installed) return null;
 
-  const waitForPrompt = (timeoutMs = 1800) => new Promise<InstallPromptEvent | null>((resolve) => {
-    const installWindow = window as InstallWindow;
-    if (installWindow.__hansalmaeInstallPrompt) {
-      resolve(installWindow.__hansalmaeInstallPrompt);
-      return;
-    }
-    let done = false;
-    const finish = (event?: Event) => {
-      if (done) return;
-      done = true;
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.clearTimeout(timer);
-      const promptEvent = event as InstallPromptEvent | undefined;
-      resolve(promptEvent ?? installWindow.__hansalmaeInstallPrompt ?? null);
-    };
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      const promptEvent = event as InstallPromptEvent;
-      installWindow.__hansalmaeInstallPrompt = promptEvent;
-      setInstallPrompt(promptEvent);
-      finish(promptEvent);
-    };
-    const timer = window.setTimeout(() => finish(), timeoutMs);
-    window.addEventListener("beforeinstallprompt", onPrompt, { once: true });
-  });
-
   const openInstall = async () => {
     if (device === "ios") {
       setGuide("ios");
@@ -110,27 +84,28 @@ export function AppInstallPrompt() {
     }
     if (installing) return;
 
-    setInstalling(true);
     setAndroidMessage("");
+
+    if (isStandalone()) {
+      setInstalled(true);
+      return;
+    }
+
+    // Do not await service-worker setup here. Android Chrome requires prompt()
+    // to run directly from the user's tap, just like the vocabulary app flow.
+    const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
+
+    if (!promptEvent) {
+      const ua = navigator.userAgent;
+      const inAppBrowser = /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+      setAndroidMessage(inAppBrowser
+        ? "카카오톡·네이버 앱 안에서는 바로 설치할 수 없습니다. Chrome에서 이 페이지를 열어 설치해 주세요."
+        : "Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+      return;
+    }
+
+    setInstalling(true);
     try {
-      await prepareAndroidInstall();
-      if (isStandalone()) {
-        setInstalled(true);
-        return;
-      }
-
-      let promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
-      if (!promptEvent) promptEvent = await waitForPrompt();
-
-      if (!promptEvent) {
-        const ua = navigator.userAgent;
-        const inAppBrowser = /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
-        setAndroidMessage(inAppBrowser
-          ? "카카오톡·네이버 앱 안에서는 바로 설치할 수 없습니다. Chrome에서 이 페이지를 열어 설치해 주세요."
-          : "Chrome이 아직 설치 준비를 마치지 못했습니다. 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
-        return;
-      }
-
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
       (window as InstallWindow).__hansalmaeInstallPrompt = null;
