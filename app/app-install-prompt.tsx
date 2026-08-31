@@ -10,11 +10,26 @@ type InstallPromptEvent = Event & {
 
 type InstallWindow = Window & {
   __hansalmaeInstallPrompt?: InstallPromptEvent | null;
+  __hansalmaeAutoInstall?: boolean;
 };
 
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+}
+
+function isAndroidInAppBrowser(ua: string) {
+  return /Android/i.test(ua) && /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+}
+
+function openAndroidChromeInstallFlow() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("install", "1");
+  const fallbackUrl = url.toString();
+  const scheme = url.protocol.replace(":", "");
+  const target = `${url.host}${url.pathname}${url.search}${url.hash}`;
+  const intentUrl = `intent://${target}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+  window.location.href = intentUrl;
 }
 
 async function prepareAndroidInstall() {
@@ -45,6 +60,9 @@ export function AppInstallPrompt() {
     else if (android) setDevice("android");
 
     const installWindow = window as InstallWindow;
+    const installRequested = android && new URL(window.location.href).searchParams.get("install") === "1";
+    if (installRequested) installWindow.__hansalmaeAutoInstall = true;
+
     if (installWindow.__hansalmaeInstallPrompt) {
       setInstallPrompt(installWindow.__hansalmaeInstallPrompt);
     }
@@ -55,10 +73,29 @@ export function AppInstallPrompt() {
       installWindow.__hansalmaeInstallPrompt = promptEvent;
       setInstallPrompt(promptEvent);
       setAndroidMessage("");
+
+      if (installWindow.__hansalmaeAutoInstall) {
+        installWindow.__hansalmaeAutoInstall = false;
+        window.setTimeout(() => {
+          void (async () => {
+            try {
+              await promptEvent.prompt();
+              const choice = await promptEvent.userChoice;
+              installWindow.__hansalmaeInstallPrompt = null;
+              setInstallPrompt(null);
+              if (choice.outcome === "accepted") setInstalled(true);
+            } catch {
+              // Some Chrome versions require another explicit tap after the handoff.
+              setAndroidMessage("설치 버튼을 한 번 눌러 주세요.");
+            }
+          })();
+        }, 0);
+      }
     };
 
     const finishInstall = () => {
       installWindow.__hansalmaeInstallPrompt = null;
+      installWindow.__hansalmaeAutoInstall = false;
       setInstallPrompt(null);
       setInstalled(true);
     };
@@ -66,7 +103,6 @@ export function AppInstallPrompt() {
     window.addEventListener("beforeinstallprompt", receivePrompt);
     window.addEventListener("appinstalled", finishInstall);
 
-    // Prepare installability as soon as the Android login screen mounts.
     if (android) void prepareAndroidInstall();
 
     return () => {
@@ -91,29 +127,32 @@ export function AppInstallPrompt() {
       return;
     }
 
-    // Do not await service-worker setup here. Android Chrome requires prompt()
-    // to run directly from the user's tap, just like the vocabulary app flow.
+    const ua = navigator.userAgent;
     const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
 
-    if (!promptEvent) {
-      const ua = navigator.userAgent;
-      const inAppBrowser = /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
-      setAndroidMessage(inAppBrowser
-        ? "카카오톡·네이버 앱 안에서는 바로 설치할 수 없습니다. Chrome에서 이 페이지를 열어 설치해 주세요."
-        : "Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+    if (promptEvent) {
+      setInstalling(true);
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        (window as InstallWindow).__hansalmaeInstallPrompt = null;
+        setInstallPrompt(null);
+        if (choice.outcome === "accepted") setInstalled(true);
+      } finally {
+        setInstalling(false);
+      }
       return;
     }
 
-    setInstalling(true);
-    try {
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      (window as InstallWindow).__hansalmaeInstallPrompt = null;
-      setInstallPrompt(null);
-      if (choice.outcome === "accepted") setInstalled(true);
-    } finally {
-      setInstalling(false);
+    if (isAndroidInAppBrowser(ua)) {
+      // KakaoTalk/Naver/etc. cannot expose beforeinstallprompt reliably.
+      // Hand the same user tap directly to Android Chrome and request installation there.
+      (window as InstallWindow).__hansalmaeAutoInstall = true;
+      openAndroidChromeInstallFlow();
+      return;
     }
+
+    setAndroidMessage("Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
   };
 
   return (
