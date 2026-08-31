@@ -8,6 +8,7 @@ import styles from "./communication-board.module.css";
 import confirmStyles from "./message-confirm.module.css";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import { AccountInviteSmsBoard } from "./account-invite-sms-board";
 
 type Named = { id: string; name: string };
 type Announcement = {
@@ -107,6 +108,7 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"notice" | "message">("notice");
+  const [messageMode, setMessageMode] = useState<"general" | "invite">("general");
   const [noticeFilter, setNoticeFilter] = useState<
     "all" | "published" | "scheduled" | "draft" | "ended"
   >("all");
@@ -226,12 +228,10 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
               : "학원에서 전달한 중요한 안내를 확인하세요."}
           </p>
         </div>
-        {data.isStaff && (
+        {data.isStaff && (tab === "notice" || messageMode === "general") && (
           <button
             className={`primary ${styles.createButton}`}
-            onClick={() =>
-              tab === "notice" ? setEditor("new") : setComposer(true)
-            }
+            onClick={() => tab === "notice" ? setEditor("new") : setComposer(true)}
           >
             {tab === "notice" ? "＋ 공지 작성" : "＋ 문자 작성"}
           </button>
@@ -420,20 +420,16 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
         </>
       ) : (
         <section className={styles.messageSection}>
-          <div className={styles.messageIntro}>
-            <div>
-              <b>문자 발송 관리</b>
-              <span>
-                작성한 문자를 확인하고 승인한 뒤 발송 상태를 관리합니다.
-              </span>
-            </div>
-            <em>SOLAPI 연결</em>
-          </div>
-          <MessageLogBoard
-            data={approval}
-            supabase={supabase}
-            onChanged={load}
-          />
+          <nav className={styles.messageModes} aria-label="문자 종류 전환">
+            <button type="button" className={messageMode === "general" ? styles.selected : ""} onClick={() => setMessageMode("general")}><b>일반 문자</b><span>공지·개별 안내</span></button>
+            <button type="button" className={messageMode === "invite" ? styles.selected : ""} onClick={() => setMessageMode("invite")}><b>초대코드 문자</b><span>발송·가입·재발송</span></button>
+          </nav>
+          {messageMode === "general" ? <>
+            <div className={styles.messageIntro}><div><b>문자 발송 관리</b><span>작성한 문자를 확인하고 승인한 뒤 발송 상태를 관리합니다.</span></div><em>SOLAPI 연결</em></div>
+            <MessageLogBoard data={approval} supabase={supabase} onChanged={load}/>
+          </> : (
+            <AccountInviteSmsBoard supabase={supabase}/>
+          )}
         </section>
       )}
       {editor && (

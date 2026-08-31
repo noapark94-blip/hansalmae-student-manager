@@ -1,0 +1,43 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import styles from "./communication-board.module.css";
+
+type Role="student"|"guardian"|"teacher";
+type Status="unsent"|"sent"|"joined"|"failed";
+type Student={id:string;name:string;school:string|null;grade:string|null;hasStudentAccount:boolean;hasStudentPhone:boolean;guardianName:string|null;hasGuardianAccount:boolean;hasGuardianPhone:boolean};
+type Invite={id:string;role:Role;studentId:string|null;targetName:string;studentName:string|null;maskedPhone:string|null;codeHint:string;createdAt:string;expiresAt:string;smsSentAt:string|null;smsAttempts:number;smsLastError:string|null;usedAt:string|null;revokedAt:string|null;status:Status};
+type Board={students:Student[];invites:Invite[]};
+const roleLabels:Record<Role,string>={student:"학생",guardian:"학부모",teacher:"선생님"};
+const statusLabels:Record<Status,string>={unsent:"미발송",sent:"발송완료",joined:"가입완료",failed:"발송실패"};
+
+export function AccountInviteSmsBoard({supabase}:{supabase:SupabaseClient}){
+  const [data,setData]=useState<Board>({students:[],invites:[]}),[loading,setLoading]=useState(true),[error,setError]=useState(""),[message,setMessage]=useState("");
+  const [role,setRole]=useState<Role|"all">("all"),[status,setStatus]=useState<Status|"all">("all"),[query,setQuery]=useState(""),[composer,setComposer]=useState(false),[sending,setSending]=useState("");
+  const load=useCallback(async()=>{setLoading(true);const{data:next,error:loadError}=await supabase.rpc("admin_account_invite_sms_board");if(loadError||!next)setError(loadError?.message??"초대 문자 내역을 불러오지 못했습니다.");else{setData(next as Board);setError("")}setLoading(false)},[supabase]);
+  useEffect(()=>{void load()},[load]);
+  const counts=useMemo(()=>data.invites.reduce((result,row)=>{result[row.status]++;return result},{unsent:0,sent:0,joined:0,failed:0} as Record<Status,number>),[data.invites]);
+  const visible=data.invites.filter(row=>(role==="all"||row.role===role)&&(status==="all"||row.status===status)&&(!query.trim()||`${row.targetName} ${row.studentName??""}`.includes(query.trim())));
+  const resend=async(row:Invite)=>{setSending(row.id);setMessage("");const{data:result,error:sendError}=await supabase.functions.invoke("send-account-invite-sms",{body:{action:"resend",inviteId:row.id}});if(sendError){let text=sendError.message;const context=(sendError as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}setMessage(text)}else{const sent=result as{recipientName?:string;recipientPhone?:string};setMessage(`${sent.recipientName??row.targetName}님 ${sent.recipientPhone??"등록 연락처"}로 새 초대코드를 발송했습니다.`);await load()}setSending("")};
+  return <section className={styles.inviteSmsBoard}>
+    <div className={styles.messageIntro}><div><b>회원가입 초대코드 문자</b><span>발송 여부와 가입 완료를 구분하고, 미가입자에게 새 코드로 다시 발송합니다.</span></div><button type="button" className="primary" onClick={()=>setComposer(true)}>＋ 초대문자 발송</button></div>
+    <div className={styles.inviteSummary}>{(["unsent","sent","joined","failed"] as Status[]).map(item=><button type="button" key={item} className={status===item?styles.selected:""} onClick={()=>setStatus(current=>current===item?"all":item)}><span>{statusLabels[item]}</span><b>{counts[item]}</b></button>)}</div>
+    <div className={styles.inviteControls}><nav>{(["all","guardian","teacher","student"] as const).map(item=><button type="button" key={item} className={role===item?styles.selected:""} onClick={()=>setRole(item)}>{item==="all"?"전체":roleLabels[item]}</button>)}</nav><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="이름 검색"/></div>
+    {(error||message)&&<p className="attendance-error">{error||message}</p>}
+    {loading?<p className={styles.inviteEmpty}>초대 문자 내역을 불러오는 중이에요…</p>:visible.length===0?<p className={styles.inviteEmpty}>선택한 조건의 초대 내역이 없습니다.</p>:<div className={styles.inviteTable}>{visible.map(row=><article key={row.id}><span className={`${styles.inviteRole} ${styles[row.role]}`}>{roleLabels[row.role]}</span><div><b>{row.targetName}</b><small>{row.studentName&&row.studentName!==row.targetName?`${row.studentName} 학생 · `:""}{row.maskedPhone??"연락처 미등록"}</small></div><span className={`${styles.inviteStatus} ${styles[row.status]}`}>{statusLabels[row.status]}</span><div className={styles.inviteDates}><small>{row.smsSentAt?`발송 ${formatDate(row.smsSentAt)}`:`발급 ${formatDate(row.createdAt)}`}</small>{row.usedAt&&<small>가입 {formatDate(row.usedAt)}</small>}{row.smsLastError&&<small className={styles.inviteError}>{row.smsLastError}</small>}</div>{row.status!=="joined"&&<button type="button" className="secondary-button" disabled={sending===row.id} onClick={()=>void resend(row)}>{sending===row.id?"발송 중…":row.smsSentAt?"재발송":"새 코드 발송"}</button>}</article>)}</div>}
+    {composer&&<InviteSmsComposer students={data.students} supabase={supabase} onClose={()=>setComposer(false)} onSent={async text=>{setComposer(false);setMessage(text);await load()}}/>}
+  </section>
+}
+
+function InviteSmsComposer({students,supabase,onClose,onSent}:{students:Student[];supabase:SupabaseClient;onClose:()=>void;onSent:(message:string)=>Promise<void>}){
+  const [role,setRole]=useState<Role>("guardian"),[studentId,setStudentId]=useState(""),[name,setName]=useState(""),[phone,setPhone]=useState(""),[saving,setSaving]=useState(false),[error,setError]=useState("");
+  const available=students.filter(student=>role==="student"?!student.hasStudentAccount:role==="guardian"?!student.hasGuardianAccount:true);
+  const selected=students.find(student=>student.id===studentId);
+  const submit=async(event:FormEvent)=>{event.preventDefault();setSaving(true);setError("");const{data,error:sendError}=await supabase.functions.invoke("send-account-invite-sms",{body:{action:"issueAndSend",role,studentId:role==="teacher"?undefined:studentId,recipientName:role==="teacher"?name:undefined,recipientPhone:role==="teacher"?phone:undefined}});if(sendError){let text=sendError.message;const context=(sendError as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}setError(text);setSaving(false);return}const result=data as{recipientName?:string;recipientPhone?:string};await onSent(`${result.recipientName??"대상"}님 ${result.recipientPhone??"등록 연락처"}로 초대코드를 발송했습니다.`)};
+  return <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}><section className={`student-modal ${styles.inviteComposer}`} role="dialog" aria-modal="true"><header><div><p className="eyebrow">SOLAPI 초대문자</p><h2>회원가입 초대코드 발송</h2><span>14일 동안 사용할 수 있는 새 코드를 발급해 바로 보냅니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header><form onSubmit={submit}><fieldset><legend>가입 대상</legend><div>{(["guardian","teacher","student"] as Role[]).map(item=><button type="button" key={item} className={role===item?styles.on:""} onClick={()=>{setRole(item);setStudentId("");setError("")}}>{roleLabels[item]}</button>)}</div></fieldset>{role==="teacher"?<><label>선생님 이름<input required value={name} onChange={event=>setName(event.target.value)} placeholder="이름"/></label><label>휴대전화 번호<input required inputMode="tel" value={phone} onChange={event=>setPhone(formatPhone(event.target.value))} placeholder="010-0000-0000"/></label></>:<label>연결 학생<select required value={studentId} onChange={event=>setStudentId(event.target.value)}><option value="">학생을 선택해 주세요</option>{available.map(student=><option key={student.id} value={student.id}>{student.name}{student.school?` · ${student.school}`:""}{student.grade?` · ${student.grade}`:""}</option>)}</select>{selected&&<small>{role==="guardian"?`${selected.guardianName??"학부모"} · ${selected.hasGuardianPhone?"등록 연락처로 발송":"연락처 미등록"}`:selected.hasStudentPhone?"학생 등록 연락처로 발송":"학생 연락처 미등록"}</small>}</label>}{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"발송 중…":"초대코드 발급·발송"}</button></footer></form></section></div>
+}
+
+const formatDate=(value:string)=>new Intl.DateTimeFormat("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(value));
+const formatPhone=(value:string)=>{const v=value.replace(/\D/g,"").slice(0,11);if(v.length<4)return v;if(v.length<8)return `${v.slice(0,3)}-${v.slice(3)}`;return `${v.slice(0,3)}-${v.slice(3,7)}-${v.slice(7)}`};
