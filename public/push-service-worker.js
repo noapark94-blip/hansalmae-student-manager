@@ -1,6 +1,13 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
 
+// Keep the app under an active service-worker scope so Android Chrome can
+// evaluate PWA installability immediately on the login screen.
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener("push", event => {
   const payload = event.data?.json() ?? {};
   event.waitUntil(self.registration.showNotification(payload.title ?? "한살매 수업노트", {
