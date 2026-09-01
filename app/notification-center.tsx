@@ -43,7 +43,7 @@ type ThreadComment = {
 };
 export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
-export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
+export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
@@ -138,6 +138,12 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
   async function openItem(item: InboxItem) {
     markItemRead(item);
     if (item.inboxType !== "staff") {
+      if(item.inboxType==="general"&&item.sourceType==="announcement"&&item.sourceId){
+        void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
+        setOpen(false);
+        onOpenAnnouncement?.(item.sourceId);
+        return;
+      }
       const correctionId=item.eventKey==="correction-report"?item.sourceId:undefined;
       const lessonId=item.lessonId??(!correctionId&&item.sourceType==="learning_report"?item.sourceId:undefined);
       if(!lessonId&&!correctionId)return;
@@ -292,7 +298,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenStaffLe
                     key={`${item.inboxType??mode}-${item.id}`}
                     className={!item.readAt ? "unread" : ""}
                     onClick={() => void openItem(item)}
-                    role={item.inboxType === "staff"||item.lessonId||(item.sourceType==="learning_report"&&item.sourceId) ? "button" : undefined}
+                    role={item.inboxType === "staff"||item.lessonId||(["learning_report","announcement"].includes(item.sourceType??"")&&item.sourceId) ? "button" : undefined}
                   >
                     <i aria-hidden="true"><HansalmaeIcon name={item.inboxType === "general" ? "bell" : "chat"} size={18}/></i>
                     <span>
@@ -408,6 +414,7 @@ function sameData(left: unknown, right: unknown) {
 }
 
 function familyNotificationTitle(item:InboxItem){
+  if(item.sourceType==="announcement")return item.title??"새 학원 공지가 등록됐어요";
   if(item.eventKey==="correction-report")return `${item.studentName} 학생의 첨삭 기록이 등록됐어요`;
   if(item.eventKey==="learning-report")return `${item.studentName} 학생의 수업 기록이 등록됐어요`;
   return item.title??`${item.studentName} 학생 알림`;
