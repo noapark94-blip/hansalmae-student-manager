@@ -66,6 +66,7 @@ import "./lesson-roster-override.css";
 import "./schedule-conflict-alert.css";
 import "./student-detail-desktop-readability.css";
 import "./class-workspace-desktop-polish.css";
+import "./class-student-schedule-assignment.css";
 import "./staff-mobile-first-pass.css";
 import "./app-update-manager.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
