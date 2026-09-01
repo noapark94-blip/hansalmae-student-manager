@@ -722,7 +722,7 @@ export default function Home() {
               <span>수업노트</span>
             </button>
             <div>
-              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} />
+              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
             </div>
           </header>
         ) : (
@@ -990,6 +990,14 @@ function FamilyMoreSheet({ activeView, displayName, role, onSelect, onClose, onS
           </span>
         </div>
         <div className="family-more-menu">
+          <button type="button" className={activeView === "communications" ? "active" : ""} onClick={() => onSelect("communications")}>
+            <i><HansalmaeIcon name="notice" size={21} /></i>
+            <span>
+              <b>학원 공지</b>
+              <small>학원에서 전달한 안내를 모아 확인해요.</small>
+            </span>
+            <em>›</em>
+          </button>
           <button type="button" className={activeView === "my-account" ? "active" : ""} onClick={() => onSelect("my-account")}>
             <i><HansalmaeIcon name="user" size={21} /></i>
             <span>
