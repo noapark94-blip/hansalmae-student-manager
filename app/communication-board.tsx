@@ -27,6 +27,7 @@ type Announcement = {
 };
 type MessageLog = {
   id: string;
+  batchId: string | null;
   studentName: string | null;
   recipientName: string;
   recipientPhone: string;
@@ -461,13 +462,36 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
             setComposer(false);
             await load();
             setError(
-              `${count}건을 발송 대기열에 등록했습니다. 내용을 확인한 뒤 발송 승인해 주세요.`,
+              `수신자 ${count}명을 하나의 발송 묶음으로 등록했습니다. 내용을 확인한 뒤 발송 승인해 주세요.`,
             );
           }}
         />
       )}
     </div>
   );
+}
+
+type MessageBatch = { id: string; rows: MessageLog[] };
+
+function groupMessageLogs(items: MessageLog[]) {
+  const groups = new Map<string, MessageLog[]>();
+  for (const row of items) {
+    const key = row.batchId ?? row.id;
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+  return [...groups].map(([id, rows]) => ({ id, rows }) satisfies MessageBatch);
+}
+
+function messageBatchStatus(rows: MessageLog[]) {
+  const statuses = new Set(rows.map((row) => row.status));
+  if (statuses.size === 1) return messageStatus(rows[0].status);
+  const sent = rows.filter((row) => row.status === "sent").length;
+  const failed = rows.filter((row) => row.status === "failed").length;
+  if (failed) return `일부 실패 ${failed}건`;
+  if (sent) return `${sent}/${rows.length}건 발송`;
+  return "처리 상태 혼합";
 }
 
 function MessageLogBoard({
@@ -483,7 +507,8 @@ function MessageLogBoard({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [sendConfirm, setSendConfirm] = useState<string[] | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<MessageLog | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; label: string } | null>(null);
+  const batches = groupMessageLogs(data.items);
   const actionable = data.items.filter(
     (row) => row.status === "pending_approval" || row.status === "failed",
   );
@@ -519,53 +544,29 @@ function MessageLogBoard({
     await onChanged();
     setSaving(false);
   };
-  const cancel = async () => {
-    if (
-      !selected.length ||
-      !(await appConfirm({
-        eyebrow: "문자 발송 취소",
-        title: `선택한 문자 ${selected.length}건을 취소할까요?`,
-        notice: "이미 발송된 문자는 취소되지 않습니다.",
-        confirmLabel: "발송 취소",
-        tone: "danger",
-      }))
-    )
-      return;
-    setSaving(true);
-    setMessage("");
-    const { error } = await supabase.rpc("staff_set_message_approval", {
-      p_message_ids: selected,
-      p_action: "cancel",
-    });
-    if (error) setMessage("선택한 문자를 취소하지 못했습니다.");
-    else {
-      setSelected([]);
-      await onChanged();
-    }
-    setSaving(false);
-  };
   const remove = async () => {
     if (!deleteTarget) return;
     setSaving(true);
     setMessage("");
     const { data: deleted, error } = await supabase.rpc(
-      "staff_delete_message_log",
-      { p_message_id: deleteTarget.id },
+      "staff_delete_message_logs",
+      { p_message_ids: deleteTarget.ids },
     );
     if (error || !deleted)
-      setMessage(error?.message ?? "발송 중인 문자 내역은 삭제할 수 없습니다.");
+      setMessage(error?.message ?? "삭제할 수 있는 문자 대기 내역이 없습니다.");
     else {
-      setSelected((current) => current.filter((id) => id !== deleteTarget.id));
+      setMessage(`${deleted}건을 대기열에서 삭제했습니다.`);
+      setSelected((current) => current.filter((id) => !deleteTarget.ids.includes(id)));
       await onChanged();
     }
     setDeleteTarget(null);
     setSaving(false);
   };
-  const toggle = (id: string) =>
+  const toggleMany = (ids: string[]) =>
     setSelected((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
+      ids.every((id) => current.includes(id))
+        ? current.filter((id) => !ids.includes(id))
+        : Array.from(new Set([...current, ...ids])),
     );
   return (
     <>
@@ -600,15 +601,15 @@ function MessageLogBoard({
               )
             }
           />{" "}
-          승인 대기·실패 전체 선택
+          대기·실패 묶음 전체 선택
         </label>
         <span>
           <button
             disabled={saving || !selected.length}
-            className="secondary-button"
-            onClick={() => void cancel()}
+            className="danger-button"
+            onClick={() => setDeleteTarget({ ids: selected, label: `선택한 문자 ${selected.length}건` })}
           >
-            선택 취소
+            선택 삭제
           </button>
           <button
             disabled={saving || !selected.length}
@@ -626,58 +627,72 @@ function MessageLogBoard({
           <span>등록/승인</span>
           <span>상태·관리</span>
         </div>
-        {data.items.length === 0 ? (
+        {batches.length === 0 ? (
           <p className="communication-empty">문자 발송 대기 내역이 없습니다.</p>
         ) : (
-          data.items.map((row) => (
-            <article key={row.id}>
-              <span className="message-recipient">
-                <input
-                  type="checkbox"
-                  disabled={
-                    !["pending_approval", "failed"].includes(row.status)
-                  }
-                  checked={selected.includes(row.id)}
-                  onChange={() => toggle(row.id)}
-                />
-                <span>
-                  <b>{row.recipientName}</b>
-                  <small>
-                    {row.studentName && row.studentName !== row.recipientName
-                      ? `${row.studentName} 학생 · `
-                      : ""}
-                    {row.recipientPhone}
-                  </small>
+          batches.map((batch) => {
+            const first = batch.rows[0];
+            const actionableRows = batch.rows.filter((row) => ["pending_approval", "failed"].includes(row.status));
+            const deletableRows = batch.rows.filter((row) => ["pending_approval", "failed", "cancelled"].includes(row.status));
+            const studentNames = Array.from(new Set(batch.rows.map((row) => row.studentName ?? row.recipientName)));
+            const statusClass = batch.rows.some((row) => row.status === "failed")
+              ? "failed"
+              : batch.rows.every((row) => row.status === "sent")
+                ? "sent"
+                : batch.rows.some((row) => row.status === "sending")
+                  ? "sending"
+                  : first.status;
+            return (
+              <article key={batch.id} className={styles.messageBatch}>
+                <span className="message-recipient">
+                  <input
+                    type="checkbox"
+                    disabled={!actionableRows.length}
+                    checked={actionableRows.length > 0 && actionableRows.every((row) => selected.includes(row.id))}
+                    onChange={() => toggleMany(actionableRows.map((row) => row.id))}
+                  />
+                  <span>
+                    <b>{batch.rows.length > 1 ? `개별 학생 ${studentNames.length}명` : first.recipientName}</b>
+                    <small>
+                      {batch.rows.length > 1
+                        ? `${studentNames.slice(0, 4).join(" · ")}${studentNames.length > 4 ? ` 외 ${studentNames.length - 4}명` : ""} · 수신 ${batch.rows.length}건`
+                        : `${first.studentName && first.studentName !== first.recipientName ? `${first.studentName} 학생 · ` : ""}${first.recipientPhone}`}
+                    </small>
+                  </span>
                 </span>
-              </span>
-              <p>{row.body}</p>
-              <time>
-                {formatDateTime(row.approvedAt ?? row.sentAt ?? row.createdAt)}
-                {row.approvedBy && <small>{row.approvedBy} 승인</small>}
-              </time>
-              <span className="message-row-actions">
-                <i className={row.status}>{messageStatus(row.status)}</i>
-                <button
-                  type="button"
-                  disabled={saving || row.status === "sending"}
-                  onClick={() => setDeleteTarget(row)}
-                >
-                  삭제
-                </button>
-              </span>
-              {row.errorMessage && (
-                <em>
-                  {row.errorMessage}
+                <p>{first.body}</p>
+                <time>
+                  {formatDateTime(first.approvedAt ?? first.sentAt ?? first.createdAt)}
+                  {first.approvedBy && <small>{first.approvedBy} 승인</small>}
+                </time>
+                <span className="message-row-actions">
+                  <i className={statusClass}>{messageBatchStatus(batch.rows)}</i>
                   <button
-                    disabled={saving}
-                    onClick={() => requestSend([row.id])}
+                    type="button"
+                    disabled={saving || !deletableRows.length}
+                    onClick={() => setDeleteTarget({ ids: deletableRows.map((row) => row.id), label: batch.rows.length > 1 ? `개별 학생 ${studentNames.length}명 묶음` : `${first.recipientName} 문자` })}
                   >
-                    재시도
+                    삭제
                   </button>
-                </em>
-              )}
-            </article>
-          ))
+                </span>
+                {batch.rows.length > 1 && (
+                  <details className={styles.messageBatchDetails}>
+                    <summary>대상 {batch.rows.length}건 펼쳐보기</summary>
+                    <div>
+                      {batch.rows.map((row) => (
+                        <div key={row.id}>
+                          <span><b>{row.recipientName}</b><small>{row.studentName ?? "학생 정보 없음"} · {row.recipientPhone}</small></span>
+                          <i className={row.status}>{messageStatus(row.status)}</i>
+                          {row.status === "failed" && <button type="button" disabled={saving} onClick={() => requestSend([row.id])}>재시도</button>}
+                          {["pending_approval", "failed", "cancelled"].includes(row.status) && <button type="button" disabled={saving} onClick={() => setDeleteTarget({ ids: [row.id], label: `${row.recipientName} 문자 1건` })}>제외</button>}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </article>
+            );
+          })
         )}
       </section>
       {sendConfirm && (
@@ -699,10 +714,10 @@ function MessageLogBoard({
           icon="delete"
           danger
           eyebrow="발송 내역 삭제"
-          title="이 내역을 삭제할까요?"
-          copy={`${deleteTarget.recipientName} 수신자에게 등록된 문자 내역을 앱에서 삭제합니다.`}
-          notice="SOLAPI에 이미 접수된 발송 내역은 SOLAPI 사이트에 그대로 남습니다."
-          confirmLabel="내역 삭제"
+          title={`${deleteTarget.label}을 삭제할까요?`}
+          copy="선택한 대기·실패 문자를 발송 대기열에서 삭제합니다."
+          notice="이미 발송 중이거나 발송 완료된 문자는 삭제되지 않고 기록으로 보존됩니다."
+          confirmLabel="대기열에서 삭제"
           savingLabel="삭제 중…"
           saving={saving}
           onCancel={() => setDeleteTarget(null)}
