@@ -67,11 +67,13 @@ import "./schedule-conflict-alert.css";
 import "./student-detail-desktop-readability.css";
 import "./class-workspace-desktop-polish.css";
 import "./staff-mobile-first-pass.css";
+import "./app-update-manager.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { AppDialogHost } from "./app-dialog";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
+import { AppUpdateManager } from "./app-update-manager";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hansalmae-student-manager.vercel.app"),
@@ -120,5 +122,6 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><AppDialogHost /><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
+  const currentVersion = process.env.VERCEL_GIT_COMMIT_SHA ?? "development";
+  return <html lang="ko"><body><AppUpdateManager currentVersion={currentVersion} /><AppDialogHost /><EscapeModalCloser /><ClassEditorPermanentDelete /><CorrectionSubjectTabs /><CorrectionHubUnified />{children}</body></html>;
 }
