@@ -171,10 +171,14 @@ export function FamilyLiveDashboard({
   supabase,
   profile,
   onNavigate,
+  studentId,
+  onStudentChange,
 }: {
   supabase: SupabaseClient;
   profile: Profile;
   onNavigate: (view: FamilyView) => void;
+  studentId: string | null;
+  onStudentChange: (studentId:string|null) => void;
 }) {
   const [data, setData] = useState<Data | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -194,11 +198,12 @@ export function FamilyLiveDashboard({
         const parsed = next as Data;
         setData((current) => JSON.stringify(current) === JSON.stringify(parsed) ? current : parsed);
         setSelectedId(parsed.selectedStudent?.id ?? null);
+        onStudentChange(parsed.selectedStudent?.id ?? null);
         if(!todayResult.error){const nextLessons=(todayResult.data??[]) as TodayLesson[];setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons)}
       }
       if (!background) setLoading(false);
     },
-    [supabase],
+    [onStudentChange, supabase],
   );
   useEffect(() => {
     let targetStudentId: string | null = null;
@@ -206,8 +211,8 @@ export function FamilyLiveDashboard({
       const target = JSON.parse(window.sessionStorage.getItem("hansalmae:family-report-target") ?? "null") as { studentId?: string } | null;
       targetStudentId = target?.studentId ?? null;
     } catch { /* Ignore a malformed stale navigation target. */ }
-    void load(targetStudentId);
-  }, [load]);
+    void load(targetStudentId ?? studentId);
+  }, [load, studentId]);
   useEffect(()=>{
     const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId,true)};
     const timer=window.setInterval(refresh,5000);
@@ -297,7 +302,7 @@ export function FamilyLiveDashboard({
               <select
                 disabled={loading}
                 value={selectedId ?? ""}
-                onChange={(e) => void load(e.target.value)}
+                onChange={(e) => onStudentChange(e.target.value)}
               >
                 {data?.children.map((child) => (
                   <option key={child.id} value={child.id}>
@@ -524,7 +529,7 @@ export function FamilyLiveDashboard({
     </div>
   );
 }
-export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+export function FamilyScheduleView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
   const [data, setData] = useState<Data | null>(null);
   const [corrections, setCorrections] = useState<RegularCorrection[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -545,10 +550,11 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
       setData(parsed);
       setCorrections((correctionResult.data ?? []) as RegularCorrection[]);
       setSelectedId(parsed.selectedStudent?.id ?? null);
+      onStudentChange(parsed.selectedStudent?.id ?? null);
     }
     setLoading(false);
-  }, [supabase]);
-  useEffect(() => { void load(null); }, [load]);
+  }, [onStudentChange, supabase]);
+  useEffect(() => { void load(studentId); }, [load, studentId]);
   if (loading && !data) return <section className="panel hub-message">정규시간표를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
@@ -564,7 +570,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
       <section className="family-schedule-student">
         <i>{selected.name.slice(0, 1)}</i>
         <span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span>
-        {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
+        {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
       </section>
       <nav className="family-schedule-legend" aria-label="시간표 카테고리">
         <button type="button" className={scheduleFilter === "all" ? "active" : ""} onClick={() => setScheduleFilter("all")}>전체</button>
@@ -594,7 +600,7 @@ export function FamilyScheduleView({ supabase, profile }: { supabase: SupabaseCl
   </div>;
 }
 
-export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+export function FamilyCalendarView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
   const [data, setData] = useState<Data | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -608,10 +614,11 @@ export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseCl
       const parsed = next as Data;
       setData(parsed);
       setSelectedId(parsed.selectedStudent?.id ?? null);
+      onStudentChange(parsed.selectedStudent?.id ?? null);
     }
     setLoading(false);
-  }, [supabase]);
-  useEffect(() => { void load(null); }, [load]);
+  }, [onStudentChange, supabase]);
+  useEffect(() => { void load(studentId); }, [load, studentId]);
   if (loading && !data) return <section className="panel hub-message">학습캘린더를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
@@ -623,7 +630,7 @@ export function FamilyCalendarView({ supabase, profile }: { supabase: SupabaseCl
     </header>
     {error && <p className="attendance-error">{error}</p>}
     {selected ? <>
-      {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <label className="family-calendar-child-select"><span>자녀 선택</span><select disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>}
+      {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <label className="family-calendar-child-select"><span>자녀 선택</span><select disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>}
       <FamilyLearningReportFeed supabase={supabase} studentId={selected.id} studentName={selected.name} displayMode="calendar" />
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
@@ -649,7 +656,7 @@ function summaryPeriodText(range: SummaryRange, today: string) {
   return `${startParts}–${month}. ${day}. 최근 7일`;
 }
 
-export function FamilySummaryReportView({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+export function FamilySummaryReportView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
   const [dashboard, setDashboard] = useState<Data | null>(null);
   const [lessons, setLessons] = useState<SummaryLessonReport[]>([]);
   const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
@@ -672,6 +679,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
     const nextId = nextDashboard.selectedStudent?.id ?? null;
     setDashboard(nextDashboard);
     setSelectedId(nextId);
+    onStudentChange(nextId);
     if (!nextId) {
       setLessons([]);
       setCorrections([]);
@@ -686,8 +694,8 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
     setLessons((lessonResult.data ?? []) as SummaryLessonReport[]);
     setCorrections((correctionResult.data ?? []) as SummaryCorrectionReport[]);
     setLoading(false);
-  }, [supabase]);
-  useEffect(() => { void load(null); }, [load]);
+  }, [onStudentChange, supabase]);
+  useEffect(() => { void load(studentId); }, [load, studentId]);
   useEffect(() => { setVisibleHighlightCount(3); }, [range, selectedId]);
 
   const today = seoulDate();
@@ -720,7 +728,7 @@ export function FamilySummaryReportView({ supabase, profile }: { supabase: Supab
     </header>
     {profile.role === "guardian" && (dashboard?.children.length ?? 0) > 1 && <label className="family-report-child-select">
       <span>자녀 선택</span>
-      <select disabled={loading} value={selectedId ?? ""} onChange={(event) => void load(event.target.value)}>{dashboard?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>
+      <select disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{dashboard?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>
     </label>}
     <nav className="family-report-range" aria-label="리포트 기간">
       {(Object.keys(summaryRangeLabels) as SummaryRange[]).map((item) => <button type="button" key={item} className={range === item ? "active" : ""} onClick={() => setRange(item)}>{summaryRangeLabels[item]}</button>)}
