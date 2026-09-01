@@ -16,12 +16,17 @@ function koreaHour() {
 
 function hasUnsavedWork() {
   if (document.querySelector(".modal-backdrop, .nested-modal-backdrop, [role='dialog'], [role='alertdialog']")) return true;
-  if (document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus")) return true;
+  const focusedControl = document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus");
+  // Remembered credentials and typing on the login screen are safe to discard:
+  // the browser/password manager keeps them, and they must never trap an old
+  // application bundle behind the update prompt.
+  if (focusedControl && !focusedControl.closest(".login-card")) return true;
 
   // Navigation filters and the guardian child selector are controlled fields too,
   // but changing them does not create unsaved work. Only compare fields that
   // belong to an actual form so those persistent UI controls cannot block an update.
   return Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("form input, form textarea, form select")).some((field) => {
+    if (field.closest(".login-card")) return false;
     if (field.disabled || field.type === "hidden" || field.type === "button" || field.type === "submit") return false;
     if (field instanceof HTMLInputElement && (field.type === "checkbox" || field.type === "radio")) {
       return field.checked !== field.defaultChecked;
