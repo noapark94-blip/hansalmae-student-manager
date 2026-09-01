@@ -215,11 +215,22 @@ export function FamilyLiveDashboard({
   }, [load, studentId]);
   useEffect(()=>{
     const refresh=()=>{if(document.visibilityState==="visible")void load(selectedId,true)};
-    const timer=window.setInterval(refresh,5000);
+    const timer=window.setInterval(refresh,60000);
+    const announcementsChannel=supabase
+      .channel(`family-announcements:${profile.id}`)
+      .on("postgres_changes",{event:"*",schema:"public",table:"announcements"},refresh)
+      .subscribe();
     window.addEventListener("focus",refresh);
     document.addEventListener("visibilitychange",refresh);
-    return()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh)};
-  },[load,selectedId]);
+    window.addEventListener("online",refresh);
+    return()=>{
+      window.clearInterval(timer);
+      window.removeEventListener("focus",refresh);
+      window.removeEventListener("online",refresh);
+      document.removeEventListener("visibilitychange",refresh);
+      void supabase.removeChannel(announcementsChannel);
+    };
+  },[load,profile.id,selectedId,supabase]);
   const selected = data?.selectedStudent;
   const rate = useMemo(
     () =>
