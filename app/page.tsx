@@ -1024,7 +1024,7 @@ function FamilyMoreSheet({ activeView, displayName, role, onSelect, onClose, onS
           </button>
         </div>
         <button type="button" className="family-more-signout" onClick={onSignOut}>
-          <span aria-hidden="true">⏻</span>
+          <span><HansalmaeIcon name="logout" size={16} /></span>
           로그아웃
         </button>
       </section>
@@ -1401,7 +1401,7 @@ function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClos
             <em>내 계정 ›</em>
           </button>
           <button type="button" className="staff-sheet-signout" onClick={onSignOut}>
-            <span aria-hidden="true">⏻</span>
+            <span><HansalmaeIcon name="logout" size={16} /></span>
             <b>로그아웃</b>
           </button>
         </footer>

@@ -79,3 +79,4 @@
 .family-report-history-toggle>i{color:#94878d;font-size:12px;font-style:normal}
 .family-report-history-toggle>i em{display:inline-block;margin-left:5px;font-size:16px;font-style:normal;transition:transform .18s}
 .family-report-history-toggle.open>i em{transform:rotate(180deg)}
+.family-more-signout>span{display:grid;place-items:center;line-height:1}

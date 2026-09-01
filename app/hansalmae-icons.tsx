@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { View } from "./page";
 
-type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "edit" | "bus" | "chat" | "notice" | "bell" | "wallet" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu";
+type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "edit" | "bus" | "chat" | "notice" | "bell" | "wallet" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu" | "logout";
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="M3.5 10.5 12 3.8l8.5 6.7"/><path d="M5.8 9.3v10h12.4v-10"/><path d="M9.4 19.3v-5.8h5.2v5.8"/></>,
@@ -26,6 +26,7 @@ const paths: Record<IconName, ReactNode> = {
   book: <><path d="M4.5 5.5c3.1-.8 5.6-.2 7.5 1.7v12c-1.9-1.9-4.4-2.5-7.5-1.7Z"/><path d="M19.5 5.5c-3.1-.8-5.6-.2-7.5 1.7v12c1.9-1.9 4.4-2.5 7.5-1.7Z"/></>,
   exam: <><path d="M6 3.5h8.8L18.5 7v13.5H6Z"/><path d="M14.5 3.8v3.7h3.7M9 11h6M9 14h6M9 17h3"/><path d="m7.7 10.8.8.8 1.4-1.8"/></>,
   menu: <><path d="M5 7h14M5 12h14M5 17h14"/></>,
+  logout: <><path d="M10 4H5v16h5"/><path d="m15 8 4 4-4 4M19 12H9"/></>,
 };
 
 export const viewIcon: Record<View, IconName> = {
