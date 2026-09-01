@@ -549,12 +549,13 @@ function examTypeLabel(value: string) { return examCategoryLabel(value); }
 type ExamSourceFilter="all"|ExamProgressItem["source"];
 function sourceLabel(value:ExamSourceFilter){return value==="all"?"전체 수업":value==="regular"?"정규수업":value==="correction"?"첨삭수업":value==="makeup"?"보강수업":"추가수업"}
 function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: () => void }) {
+  const currentClasses = classes.filter((item) => item.status === "active");
   return (
     <>
       <div className="hub-section-title class-section-title">
         <div>
           <h3>수강 클래스</h3>
-          <p>현재 및 이전 수강 기록입니다.</p>
+          <p>현재 수강 중인 클래스만 표시합니다.</p>
         </div>
         {onAssign && (
           <button className="primary" onClick={onAssign}>
@@ -563,10 +564,10 @@ function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: ()
         )}
       </div>
       <div className="student-record-list">
-        {classes.length ? (
-          classes.map((item) => (
+        {currentClasses.length ? (
+          currentClasses.map((item) => (
             <article key={item.id}>
-              <i className={item.status} style={item.status === "active" ? { background: item.color ?? "#922D61" } : undefined} />
+              <i className={item.status} style={{ background: item.color ?? "#922D61" }} />
               <span>
                 <b>{item.name}</b>
                 <small>
@@ -574,11 +575,11 @@ function ClassesTab({ classes, onAssign }: { classes: ClassItem[]; onAssign?: ()
                   {item.room ? ` · ${item.room}` : ""} · {item.teachers || "담당 미배정"}
                 </small>
               </span>
-              <em>{item.status === "active" ? "수강 중" : item.status === "paused" ? "일시 중지" : "종료"}</em>
+              <em>수강 중</em>
             </article>
           ))
         ) : (
-          <Empty text="수강 기록이 없습니다." />
+          <Empty text="현재 수강 중인 클래스가 없습니다." />
         )}
       </div>
     </>
