@@ -43,7 +43,7 @@ type ThreadComment = {
 };
 export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
-export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: () => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
+export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: (studentId?:string) => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
@@ -150,7 +150,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
       if(item.inboxType==="general")void supabase.rpc("mark_family_notifications_read",{p_notification_id:item.id});
       setOpen(false);
       sessionStorage.setItem("hansalmae:family-report-target",JSON.stringify({lessonId,correctionId,studentId:item.studentId}));
-      onOpenFamilyReport?.();
+      onOpenFamilyReport?.(item.studentId);
       window.setTimeout(()=>window.dispatchEvent(new CustomEvent("hansalmae:open-family-report",{detail:{lessonId,correctionId,studentId:item.studentId}})),50);
       return;
     }
