@@ -2702,10 +2702,11 @@ function GuardianSelfSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()
 
 function LoadingScreen() {
   return (
-    <main className="auth-shell">
+    <main className="auth-shell auth-loading-shell">
       <section className="auth-card loading">
-        <img src="/hansalmae-logo.png" alt="" />
-        <p>로그인 정보를 확인하고 있어요…</p>
+        <AuthBrand />
+        <p>오늘의 배움을 불러오고 있어요</p>
+        <span className="auth-loading-progress" aria-hidden="true"><i /></span>
       </section>
     </main>
   );
