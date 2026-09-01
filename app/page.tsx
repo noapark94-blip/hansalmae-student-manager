@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
 import { TeacherScheduleHub } from "./teacher-schedule-hub";
@@ -231,6 +231,8 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true");
   const [staffMoreOpen, setStaffMoreOpen] = useState(false);
   const [familyMoreOpen, setFamilyMoreOpen] = useState(false);
+  const [familyStudentId, setFamilyStudentId] = useState<string | null>(null);
+  const [familyStudentReady, setFamilyStudentReady] = useState(false);
   const [toast, setToast] = useState("");
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [studentTimetables, setStudentTimetables] = useState<Record<string, WeeklyTimetableRow[]>>({});
@@ -458,6 +460,19 @@ export default function Home() {
     setQuery("");
     setSearchOpen(false);
   };
+
+  useEffect(() => {
+    if (!user) { setFamilyStudentReady(false); return; }
+    setFamilyStudentId(window.localStorage.getItem(`hansalmae:family-student:${user.id}`));
+    setFamilyStudentReady(true);
+  }, [user]);
+  const selectFamilyStudent = useCallback((studentId: string | null) => {
+    setFamilyStudentId(studentId);
+    if (!user) return;
+    const key = `hansalmae:family-student:${user.id}`;
+    if (studentId) window.localStorage.setItem(key, studentId);
+    else window.localStorage.removeItem(key);
+  }, [user]);
 
   const openStaffLessonTarget = (target: StaffLessonTarget) => {
     setStaffLessonTarget(target);
@@ -722,7 +737,7 @@ export default function Home() {
               <span>수업노트</span>
             </button>
             <div>
-              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={()=>selectView("dashboard")} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
+              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={(studentId)=>{if(studentId)selectFamilyStudent(studentId);selectView("dashboard")}} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
             </div>
           </header>
         ) : (
@@ -821,6 +836,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}${staffLessonTarget ? " staff-lesson-deep-link" : ""}`}>
+          {familyAccount && !familyStudentReady && <section className="panel hub-message">자녀 정보를 불러오는 중이에요…</section>}
           {view === "dashboard" && staffAccount && !staffLessonTarget && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
@@ -836,7 +852,7 @@ export default function Home() {
             </>
           )}
           {view === "dashboard" && (profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} />}
+          {familyStudentReady && view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} familyStudentId={familyStudentId} onFamilyStudentChange={selectFamilyStudent} />}
           {view === "students" && (
             <div className="student-page-layout">
               {profile.role === "admin" && <GradeProgressionBoard supabase={supabase} onChanged={() => window.location.reload()} />}
@@ -848,7 +864,7 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : <FamilyScheduleView supabase={supabase} profile={profile} />)}
+          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
           {view === "attendance" && (["admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
@@ -856,9 +872,9 @@ export default function Home() {
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
           {view === "alimtalk" && profile.role === "admin" && <AlimtalkSendCenter supabase={supabase} students={students} />}
-          {view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} />}
-          {view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} />}
-          {view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} />}
+          {familyStudentReady && view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
+          {familyStudentReady && view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
+          {familyStudentReady && view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
@@ -1394,7 +1410,7 @@ function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClos
   );
 }
 
-function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void }) {
+function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onNavigate, familyStudentId = null, onFamilyStudentChange = () => undefined }: { supabase: NonNullable<ReturnType<typeof createSupabaseBrowserClient>>; profile: Profile; activeStudentCount: number; studentsLoading: boolean; onNavigate: (view: View) => void; familyStudentId?: string | null; onFamilyStudentChange?: (studentId:string|null)=>void }) {
   const [live, setLive] = useState<LiveDashboard | null>(null);
   const [assignmentCount, setAssignmentCount] = useState<AssignmentCount | null>(null);
   const [consultationCount, setConsultationCount] = useState<ConsultationCount | null>(null);
@@ -1416,7 +1432,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
     };
   }, [profile.role, supabase]);
   if (profile.role === "student" || profile.role === "guardian") {
-    return <FamilyLiveDashboard supabase={supabase} profile={profile} onNavigate={onNavigate} />;
+    return <FamilyLiveDashboard supabase={supabase} profile={profile} onNavigate={onNavigate} studentId={familyStudentId} onStudentChange={onFamilyStudentChange} />;
   }
   const attendance = live?.attendance;
   const nextClass = live?.todayClasses.find(
