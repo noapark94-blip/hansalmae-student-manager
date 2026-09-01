@@ -2703,8 +2703,12 @@ function GuardianSelfSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()
 function LoadingScreen() {
   return (
     <main className="auth-loading-shell" role="status" aria-live="polite">
-      <section className="auth-loading-minimal">
-        <span className="auth-loading-label">로그인 정보를 확인하고 있어요</span>
+      <section className="auth-loading-content">
+        <div className="auth-loading-brand">
+          <img src="/app-icon-192-v3.png" alt="" />
+          <p><strong>한살매</strong><span>수업노트</span></p>
+        </div>
+        <p className="auth-loading-copy">오늘의 배움을 불러오고 있어요</p>
         <span className="auth-loading-progress" aria-hidden="true"><i /></span>
       </section>
     </main>
