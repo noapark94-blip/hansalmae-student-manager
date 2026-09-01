@@ -39,16 +39,21 @@ export function AppUpdateManager({ currentVersion }: { currentVersion: string })
   const mountedAt = useRef(0);
   const reloading = useRef(false);
 
+  const reloadWithVersion = useCallback(() => {
+    if (reloading.current || !availableVersion) return;
+    reloading.current = true;
+    window.sessionStorage.setItem("hansalmae:app-update-applied", availableVersion);
+    window.location.reload();
+  }, [availableVersion]);
+
   const applyUpdate = useCallback(() => {
     if (reloading.current || !availableVersion) return;
     if (hasUnsavedWork()) {
       setWaitingForSave(true);
       return;
     }
-    reloading.current = true;
-    window.sessionStorage.setItem("hansalmae:app-update-applied", availableVersion);
-    window.location.reload();
-  }, [availableVersion]);
+    reloadWithVersion();
+  }, [availableVersion, reloadWithVersion]);
 
   const checkVersion = useCallback(async () => {
     try {
@@ -110,7 +115,7 @@ export function AppUpdateManager({ currentVersion }: { currentVersion: string })
         <b>{waitingForSave ? "작성 중인 내용을 먼저 저장해 주세요" : "새 버전이 준비됐어요"}</b>
         <small>{waitingForSave ? "저장하거나 창을 닫으면 자동으로 적용됩니다." : "지금 업데이트해도 로그인은 유지됩니다."}</small>
       </span>
-      <button type="button" onClick={applyUpdate}>{waitingForSave ? "저장 후 적용" : "지금 업데이트"}</button>
+      <button type="button" onClick={waitingForSave ? reloadWithVersion : applyUpdate}>{waitingForSave ? "저장 완료 후 업데이트" : "지금 업데이트"}</button>
     </aside>
   );
 }
