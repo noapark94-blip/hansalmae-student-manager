@@ -841,10 +841,33 @@ function AnnouncementEditor({
   const [expiresTime, setExpiresTime] = useState(
     initialExpiry.slice(11, 16) || "23:59",
   );
+  const [studentQuery, setStudentQuery] = useState("");
+  const [noticeStudents, setNoticeStudents] = useState<MessageTargetStudent[]>(
+    () => data.students.map((student) => ({ ...student, school: "", grade: "", classIds: [], classNames: [], subjects: [] })),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (audience !== "student") return;
+    let active = true;
+    void supabase.rpc("staff_message_target_options").then(({ data: next }) => {
+      if (!active || !next) return;
+      setNoticeStudents((next as MessageTargetOptions).students);
+    });
+    return () => {
+      active = false;
+    };
+  }, [audience, supabase]);
+  const normalizedStudentQuery = studentQuery.trim().toLocaleLowerCase("ko-KR");
+  const visibleNoticeStudents = noticeStudents.filter((student) =>
+    !normalizedStudentQuery || [student.name, student.school, student.grade, ...student.classNames, ...student.subjects]
+      .join(" ")
+      .toLocaleLowerCase("ko-KR")
+      .includes(normalizedStudentQuery),
+  );
   const changeAudience = (value: "all" | "class" | "student") => {
     setAudience(value);
+    setStudentQuery("");
     setTargetId(
       value === "class"
         ? (data.classes[0]?.id ?? "")
@@ -929,23 +952,40 @@ function AnnouncementEditor({
             </div>
           </fieldset>
           {audience !== "all" && (
-            <label className="full">
-              {audience === "class" ? "공개할 클래스" : "공개할 학생"}
-              <select
-                required
-                value={targetId}
-                onChange={(event) => setTargetId(event.target.value)}
-              >
-                <option value="">선택해 주세요</option>
-                {(audience === "class" ? data.classes : data.students).map(
-                  (item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
+            <>
+              {audience === "student" && (
+                <label className={`full ${styles.noticeStudentSearch}`}>
+                  학생 검색
+                  <input
+                    type="search"
+                    value={studentQuery}
+                    onChange={(event) => {
+                      setStudentQuery(event.target.value);
+                      setTargetId("");
+                    }}
+                    placeholder="이름·학교·학년·클래스로 검색"
+                  />
+                  <small>검색 결과 {visibleNoticeStudents.length}명</small>
+                </label>
+              )}
+              <label className="full">
+                {audience === "class" ? "공개할 클래스" : "공개할 학생"}
+                <select
+                  required
+                  value={targetId}
+                  onChange={(event) => setTargetId(event.target.value)}
+                >
+                  <option value="">선택해 주세요</option>
+                  {audience === "class"
+                    ? data.classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)
+                    : visibleNoticeStudents.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {[student.name, student.school, student.grade, student.classNames.join(" · ")].filter(Boolean).join(" · ")}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </>
           )}
           <fieldset className={`${styles.segmentField} full`}>
             <legend>게시 방식</legend>
