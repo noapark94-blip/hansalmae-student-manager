@@ -157,6 +157,13 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    if (loading || data.isStaff) return;
+    const targetId = sessionStorage.getItem("hansalmae:announcement-target");
+    if (!targetId) return;
+    sessionStorage.removeItem("hansalmae:announcement-target");
+    window.setTimeout(() => document.getElementById(`announcement-${targetId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  }, [data.isStaff, loading]);
   const remove = async (row: Announcement) => {
     if (
       !(await appConfirm({
@@ -334,6 +341,7 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
                 const readAt = reads[row.id];
                 return (
                   <article
+                    id={`announcement-${row.id}`}
                     className={`panel ${styles.noticeCard} ${!data.isStaff && !readAt ? "announcement-unread" : ""}`}
                     key={row.id}
                   >
