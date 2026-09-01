@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { FamilyLearningNote, type TodayLesson } from "./family-learning-note";
@@ -185,6 +186,7 @@ export function FamilyLiveDashboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [todayLessons,setTodayLessons]=useState<TodayLesson[]>([]);
+  const [childPickerOpen,setChildPickerOpen]=useState(false);
   const load = useCallback(
     async (id: string | null, background = false) => {
       if (!background) setLoading(true);
@@ -231,6 +233,14 @@ export function FamilyLiveDashboard({
       void supabase.removeChannel(announcementsChannel);
     };
   },[load,profile.id,selectedId,supabase]);
+  useEffect(()=>{
+    if(!childPickerOpen)return;
+    const previous=document.body.style.overflow;
+    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setChildPickerOpen(false)};
+    document.body.style.overflow="hidden";
+    window.addEventListener("keydown",close);
+    return()=>{document.body.style.overflow=previous;window.removeEventListener("keydown",close)};
+  },[childPickerOpen]);
   const selected = data?.selectedStudent;
   const rate = useMemo(
     () =>
@@ -308,21 +318,21 @@ export function FamilyLiveDashboard({
             <i aria-hidden="true">›</i>
           </section>}
           {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && (
-            <label className="family-child-switcher">
-              <span>자녀 선택</span>
-              <select
-                disabled={loading}
-                value={selectedId ?? ""}
-                onChange={(e) => onStudentChange(e.target.value)}
-              >
-                {data?.children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {child.name} · {[child.school, child.grade].filter(Boolean).join(" ")}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <button type="button" className="family-child-switcher" disabled={loading} onClick={()=>setChildPickerOpen(true)} aria-haspopup="dialog" aria-expanded={childPickerOpen}>
+              <i aria-hidden="true">{selected.name.slice(0,1)}</i>
+              <span><small>보고 있는 자녀</small><b>{selected.name}</b><em>{[selected.school,selected.grade].filter(Boolean).join(" · ")||"학생 정보"}</em></span>
+              <strong><small>자녀 변경</small><em aria-hidden="true">⌄</em></strong>
+            </button>
           )}
+          {childPickerOpen&&data?.children.length&&typeof document!=="undefined"?createPortal(
+            <div className="family-child-picker" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setChildPickerOpen(false)}}>
+              <section role="dialog" aria-modal="true" aria-labelledby="family-child-picker-title">
+                <i className="family-child-picker-handle" aria-hidden="true"/>
+                <header><span><small>학습기록 전환</small><h2 id="family-child-picker-title">자녀 선택</h2></span><button type="button" onClick={()=>setChildPickerOpen(false)} aria-label="자녀 선택창 닫기">×</button></header>
+                <div>{data.children.map(child=>{const active=child.id===selectedId;return <button type="button" key={child.id} className={active?"active":""} aria-pressed={active} onClick={()=>{setChildPickerOpen(false);if(!active)onStudentChange(child.id)}}><i aria-hidden="true">{child.name.slice(0,1)}</i><span><b>{child.name}</b><small>{[child.school,child.grade].filter(Boolean).join(" · ")||"학생 정보"}</small></span><em aria-hidden="true">{active?"✓":"›"}</em></button>})}</div>
+                <p>선택한 자녀의 학습피드·시간표·성적 기록으로 바로 전환됩니다.</p>
+              </section>
+            </div>,document.body):null}
           <FamilyLearningNote
             studentName={selected.name}
             attendance={data?.recentAttendance ?? []}
