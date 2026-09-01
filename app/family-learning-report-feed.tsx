@@ -86,6 +86,7 @@ type Report = {
   room: string | null;
   teacherName: string;
   lessonContent: string;
+  classNotice: string;
   homeworkContent: string;
   examContent: string;
   attendance: AttendanceInfo;
@@ -1293,6 +1294,13 @@ function ReportDetail({
                       : null,
                   ];
                 })}
+              />
+            )}
+            {(item.classNotice || "").trim() && (
+              <ReportSection
+                icon="notice"
+                title="안내"
+                text={item.classNotice || ""}
               />
             )}
             {item.homeworkResult && previousHomework && (
