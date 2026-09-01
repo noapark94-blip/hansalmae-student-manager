@@ -12,7 +12,7 @@ export type NextLesson = { classDate:string; startTime:string; subject:string; n
 
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"결석"};
 
-export function FamilyLearningNote({studentName,attendance,assignments,announcements,todayLessons,nextLesson,onNavigate,onSchedule}:{studentName:string;attendance:Attendance[];assignments:Assignment[];announcements:Announcement[];todayLessons:TodayLesson[];nextLesson:NextLesson|null;onNavigate:(view:FamilyView)=>void;onSchedule:()=>void}){
+export function FamilyLearningNote({studentName,attendance,assignments,announcements,todayLessons,nextLesson,onNavigate,onSchedule,compactAnnouncement=false}:{studentName:string;attendance:Attendance[];assignments:Assignment[];announcements:Announcement[];todayLessons:TodayLesson[];nextLesson:NextLesson|null;onNavigate:(view:FamilyView)=>void;onSchedule:()=>void;compactAnnouncement?:boolean}){
   const [summaryOpen,setSummaryOpen]=useState(false);
   const [now,setNow]=useState(()=>new Date());
   useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),30000);return()=>window.clearInterval(timer)},[]);
@@ -47,6 +47,11 @@ export function FamilyLearningNote({studentName,attendance,assignments,announcem
         <em aria-hidden="true">›</em>
       </button>}
     </div>
+    {compactAnnouncement&&latestNotice&&<button type="button" className="family-note-announcement" onClick={()=>onNavigate("communications")} aria-label={`학원 공지: ${latestNotice.title}`}>
+      <i><HansalmaeIcon name="notice" size={16}/></i>
+      <span><small>학원 공지</small><b>{latestNotice.title}</b></span>
+      <em aria-hidden="true">›</em>
+    </button>}
     {summaryOpen&&<section className="family-note-today-detail">
       <header><b>오늘의 수업</b><button type="button" onClick={()=>setSummaryOpen(false)}>닫기</button></header>
       {todayLessons.length?<div>{todayLessons.map(item=>{const live=item.attendanceStatus==="present"&&isLessonLive(item,now);return <article key={item.id}><time>{item.startTime.slice(0,5)}</time><span><b>{item.subject} {item.label}</b><small>{[item.teacherName,item.room].filter(Boolean).join(" · ")}</small></span><em className={live?"live":item.attendanceStatus??"pending"}>{live?<><i/>수업 중</>:attendanceLabel[item.attendanceStatus??""]??"입력 전"}</em></article>})}</div>:<p>오늘 예정된 수업이 없습니다.</p>}

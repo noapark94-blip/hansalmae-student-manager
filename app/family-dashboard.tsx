@@ -320,6 +320,7 @@ export function FamilyLiveDashboard({
             todayLessons={effectiveTodayLessons}
             nextLesson={data?.upcomingClasses[0] ?? null}
             onSchedule={() => onNavigate("schedule")}
+            compactAnnouncement={profile.role === "guardian"}
             onNavigate={(view) =>
               onNavigate(view === "communications" ? "communications" : "reports")
             }
