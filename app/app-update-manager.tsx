@@ -18,7 +18,10 @@ function hasUnsavedWork() {
   if (document.querySelector(".modal-backdrop, .nested-modal-backdrop, [role='dialog'], [role='alertdialog']")) return true;
   if (document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus")) return true;
 
-  return Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")).some((field) => {
+  // Navigation filters and the guardian child selector are controlled fields too,
+  // but changing them does not create unsaved work. Only compare fields that
+  // belong to an actual form so those persistent UI controls cannot block an update.
+  return Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("form input, form textarea, form select")).some((field) => {
     if (field.disabled || field.type === "hidden" || field.type === "button" || field.type === "submit") return false;
     if (field instanceof HTMLInputElement && (field.type === "checkbox" || field.type === "radio")) {
       return field.checked !== field.defaultChecked;
