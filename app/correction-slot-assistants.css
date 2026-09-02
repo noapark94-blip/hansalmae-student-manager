@@ -3,7 +3,7 @@
 .correction-assistant-actions>button span{font-size:11px;font-weight:900}
 .correction-assistant-actions>button small{padding-left:8px;border-left:1px solid #ead4df;color:#9b7a89;font-size:8px;font-weight:750}
 .correction-slot-assistants{display:grid;gap:3px;margin-top:7px}
-.correction-slot-assistants small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 4px;border:1px solid #e6c9d7;border-radius:6px;background:#f9eaf1;color:#8f2c5e;font-size:7px;font-weight:850;line-height:1.2;text-align:center}
+.correction-slot-assistants .correction-slot-assistant-name{display:block;box-sizing:border-box;width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 2px;border:1px solid #e6c9d7;border-radius:6px;background:#f9eaf1;color:#8f2c5e;font-size:7px!important;font-weight:800;line-height:1.15;text-align:center;letter-spacing:-.2px}
 .correction-assistant-backdrop{z-index:100}
 .correction-assistant-editor{width:min(1120px,calc(100vw - 36px));max-width:1120px;max-height:min(88vh,920px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(121,72,96,.08);background:#fff;box-shadow:0 30px 90px rgba(52,31,42,.22)}
 .correction-assistant-editor>header{flex:0 0 auto}

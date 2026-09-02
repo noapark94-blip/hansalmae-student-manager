@@ -10,6 +10,10 @@ type Staff={id:string;name:string};
 type Assistant={id:string;name:string};
 type SlotAssistant={weekday:number;startTime:string;assistantId:string;assistantName:string};
 type AssistantBoard={canManage:boolean;assistants:Assistant[];assignments:SlotAssistant[]};
+const assistantShortName=(name:string)=>{
+  const compact=name.trim().replace(/\s+/g,"");
+  return /^[가-힣]{2,}$/.test(compact)?compact.slice(1):compact;
+};
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;validFrom:string;validUntil:string|null;tutorId:string|null;tutorName:string|null;supervisorId:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={weekStart:string;students:Student[];staff:Staff[];assignments:Assignment[];exceptions:Exception[]};
@@ -92,7 +96,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
           const hasAny=visibleEntries.length>0;
           const slotAssistants=assistantsBySlot.get(`${weekday}-${start}`)??[];
           return <article className="correction-slot correction-slot-clickable" key={start} role="button" tabIndex={0} aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setEditor({weekday,slot:start});}}}>
-            <div className="correction-slot-time"><b>{start}</b><span>– {end}</span>{slotAssistants.length?<div className="correction-slot-assistants" aria-label={`담당 조교 ${slotAssistants.map(item=>item.assistantName).join(", ")}`}>{slotAssistants.map(item=><small key={item.assistantId}>{item.assistantName}</small>)}</div>:null}</div>
+            <div className="correction-slot-time"><b>{start}</b><span>– {end}</span>{slotAssistants.length?<div className="correction-slot-assistants" aria-label={`담당 조교 ${slotAssistants.map(item=>item.assistantName).join(", ")}`}>{slotAssistants.map(item=><small className="correction-slot-assistant-name" key={item.assistantId} title={item.assistantName}>{assistantShortName(item.assistantName)}</small>)}</div>:null}</div>
             <div className="correction-slot-content">
               {hasAny?<div className="correction-slot-roster"><header className="correction-slot-summary" onClick={event=>event.stopPropagation()}><span><b>{visibleEntries.length}명</b>{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const count=visibleEntries.filter(entry=>entry.assignment.subject===subject).length;return count?<small className={`subject-${subject}`} key={subject}>{subject} {count}</small>:null})}</span><button type="button" aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})}>＋</button></header><div className="correction-slot-students" onClick={event=>event.stopPropagation()}>{displayEntries.map(entry=><button key={entry.key} data-subject={entry.assignment.subject} className={`correction-student subject-${entry.assignment.subject} ${entry.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:entry.assignment,date});}}><span><b>{entry.assignment.studentName}</b><small>{entry.assignment.grade||"-"}</small></span></button>)}{hiddenCount>0?<button type="button" className="correction-slot-more" onClick={()=>setSlotRoster({day,date,start,end,entries:visibleEntries})}>+{hiddenCount}명</button>:null}</div></div>:<p className={`correction-slot-empty ${subjectFilter==="전체"?"add-prompt":"filtered-empty"}`}>{subjectFilter==="전체"?"학생 추가":`${subjectFilter} 학생 없음`}</p>}
             </div>
