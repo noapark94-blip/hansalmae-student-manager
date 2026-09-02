@@ -89,10 +89,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/app-icon-192-v11.png", sizes: "192x192", type: "image/png" },
-      { url: "/app-icon-512-v11.png", sizes: "512x512", type: "image/png" },
+      { url: "/app-icon-192-v12.png", sizes: "192x192", type: "image/png" },
+      { url: "/app-icon-512-v12.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon-v11.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon-v12.png", sizes: "180x180", type: "image/png" }],
   },
   alternates: { canonical: "/" },
   openGraph: {
