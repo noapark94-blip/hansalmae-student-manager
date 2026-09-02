@@ -2705,7 +2705,7 @@ function LoadingScreen() {
     <main className="auth-loading-shell" role="status" aria-live="polite">
       <section className="auth-loading-content">
         <div className="auth-loading-brand">
-          <img src="/app-icon-192-v9.png" alt="" />
+          <img src="/app-icon-192-v10.png" alt="" />
           <p><strong>한살매</strong><span>수업노트</span></p>
         </div>
         <p className="auth-loading-copy">오늘의 배움을 불러오고 있어요</p>

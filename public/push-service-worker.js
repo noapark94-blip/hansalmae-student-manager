@@ -12,8 +12,8 @@ self.addEventListener("push", event => {
   const payload = event.data?.json() ?? {};
   event.waitUntil(self.registration.showNotification(payload.title ?? "한살매 수업노트", {
     body: payload.body ?? "새 알림이 도착했습니다.",
-    icon: "/app-icon-192-v9.png",
-    badge: "/app-icon-192-v9.png",
+    icon: "/app-icon-192-v10.png",
+    badge: "/app-icon-192-v10.png",
     tag: payload.notificationId ?? "hansalmae-notification",
     data: { url: payload.url ?? "/", notificationId: payload.notificationId },
   }));
