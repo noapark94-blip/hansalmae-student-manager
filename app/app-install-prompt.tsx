@@ -179,7 +179,7 @@ export function AppInstallPrompt() {
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSamsungGuide(false); }}>
           <section className="install-guide samsung-install-guide" role="dialog" aria-modal="true" aria-labelledby="samsung-install-title">
             <header>
-              <Image className="install-guide-logo" src="/app-icon-192-v7.png" width={42} height={42} alt="" aria-hidden="true" />
+              <Image className="install-guide-logo" src="/app-icon-192-v8.png" width={42} height={42} alt="" aria-hidden="true" />
               <div><small>설치 전 꼭 확인해 주세요</small><h2 id="samsung-install-title">안드로이드 설치 안내</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setSamsungGuide(false)}>×</button>
             </header>
@@ -219,7 +219,7 @@ export function AppInstallPrompt() {
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setGuide(null); }}>
           <section className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
             <header>
-              <Image className="install-guide-logo" src="/app-icon-192-v7.png" width={42} height={42} alt="" aria-hidden="true" />
+              <Image className="install-guide-logo" src="/app-icon-192-v8.png" width={42} height={42} alt="" aria-hidden="true" />
               <div><small>한살매 수업노트</small><h2 id="install-guide-title">아이폰에 설치하기</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>
