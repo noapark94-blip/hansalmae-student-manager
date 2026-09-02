@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="20" x2="478" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DB5D90"/>
+      <stop offset=".48" stop-color="#AA3472"/>
+      <stop offset="1" stop-color="#65245D"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(108 63) rotate(43) scale(338 278)">
+      <stop stop-color="white" stop-opacity=".22"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="depth" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(456 472) rotate(-137) scale(305 260)">
+      <stop stop-color="#372356" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#372356" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#42132F" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#shine)"/>
+  <rect width="512" height="512" fill="url(#depth)"/>
+  <g filter="url(#shadow)" stroke="#FFFDF9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="188" stroke-width="18"/>
+    <path d="M199 112C309 76 405 143 421 231" stroke-width="7"/>
+    <path d="M93 289C110 386 205 438 309 421" stroke-width="7"/>
+    <g transform="translate(63 63) scale(.72)" stroke-width="46">
+      <path d="M79 126V386M176 126V386M80 256H176"/>
+      <path d="M310 160C288 124 218 125 199 178C176 243 309 239 309 310C309 378 228 398 193 347"/>
+      <path d="M340 386V127L399 247L458 127V386"/>
+    </g>
+  </g>
+</svg>
