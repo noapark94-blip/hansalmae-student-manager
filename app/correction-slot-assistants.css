@@ -1,0 +1,42 @@
+.correction-assistant-actions{display:flex;justify-content:flex-end;margin:0 0 10px}
+.correction-assistant-actions>button{display:flex;align-items:center;gap:8px;min-height:36px;padding:7px 12px;border:1px solid #dcb8ca;border-radius:10px;background:#fff8fb;color:#8f2b5d;cursor:pointer}
+.correction-assistant-actions>button span{font-size:11px;font-weight:900}
+.correction-assistant-actions>button small{padding-left:8px;border-left:1px solid #ead4df;color:#9b7a89;font-size:8px;font-weight:750}
+.correction-slot-assistants{display:grid;gap:3px;margin-top:7px}
+.correction-slot-assistants small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 4px;border:1px solid #e6c9d7;border-radius:6px;background:#f9eaf1;color:#8f2c5e;font-size:7px;font-weight:850;line-height:1.2;text-align:center}
+.correction-assistant-backdrop{z-index:100}
+.correction-assistant-editor{width:min(1120px,calc(100vw - 36px));max-width:1120px;max-height:min(88vh,920px);display:flex;flex-direction:column;overflow:hidden}
+.correction-assistant-editor>header{flex:0 0 auto}
+.correction-assistant-editor>header span{display:block;margin-top:5px;color:#8b7b83;font-size:12px}
+.correction-assistant-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:18px 24px;overflow-y:auto;background:#fbf8fa}
+.correction-assistant-grid>section{overflow:hidden;border:1px solid #eadde3;border-radius:14px;background:#fff}
+.correction-assistant-grid h3{margin:0;padding:11px 13px;border-bottom:1px solid #f0e7eb;background:#fffafd;color:#482f3b;font-size:13px}
+.correction-assistant-row{display:grid;grid-template-columns:84px minmax(0,1fr);gap:9px;align-items:center;padding:9px 11px;border-bottom:1px solid #f3ebee}
+.correction-assistant-row:last-child{border-bottom:0}
+.correction-assistant-row>span{display:grid;gap:1px}
+.correction-assistant-row>span b{color:#40343a;font-size:11px}
+.correction-assistant-row>span small{color:#a09198;font-size:9px}
+.correction-assistant-row>div{display:flex;flex-wrap:wrap;gap:6px}
+.correction-assistant-row>div button{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:5px 9px;border:1px solid #e5d8de;border-radius:999px;background:#fff;color:#74636b;font-size:10px;font-weight:800;cursor:pointer}
+.correction-assistant-row>div button.active{border-color:#aa3d72;background:#f8e7ef;color:#8f285b;box-shadow:0 2px 8px rgba(146,45,97,.08)}
+.correction-assistant-row>div button i{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;background:#9b2f68;color:#fff;font-size:8px;font-style:normal}
+.correction-assistant-editor>footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid #eadfe4;background:#fff}
+.correction-assistant-empty{margin:24px;padding:30px;border:1px dashed #dfcbd5;border-radius:14px;background:#fffafd;color:#8a6f7b;text-align:center;font-size:12px}
+.correction-assistant-mobile-days{display:none}
+
+@media(max-width:900px){
+  .correction-assistant-actions{margin-bottom:8px}
+  .correction-assistant-actions>button{width:100%;justify-content:center}
+  .correction-slot-assistants{margin-top:5px}
+  .correction-slot-assistants small{font-size:7px;padding:3px 2px}
+  .correction-assistant-editor{width:calc(100vw - 20px);max-height:90dvh}
+  .correction-assistant-editor>header span{font-size:11px;line-height:1.5}
+  .correction-assistant-mobile-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:10px 14px;border-bottom:1px solid #eee3e8;background:#fff}
+  .correction-assistant-mobile-days button{min-width:0;padding:8px 0;border:1px solid #e5d8de;border-radius:8px;background:#fff;color:#806d76;font-size:10px;font-weight:850}
+  .correction-assistant-mobile-days button.active{border-color:#922d61;background:#922d61;color:#fff}
+  .correction-assistant-grid{display:block;padding:12px 14px}
+  .correction-assistant-grid>section{display:none}
+  .correction-assistant-grid>section.mobile-active{display:block}
+  .correction-assistant-row{grid-template-columns:74px minmax(0,1fr)}
+  .correction-assistant-editor>footer{padding:12px 14px}
+}

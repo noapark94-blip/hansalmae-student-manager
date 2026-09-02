@@ -28,6 +28,7 @@ import "./class-creator-polish.css";
 import "./learning-sheet-polish.css";
 import "./kidsnote-final-polish.css";
 import "./correction-management.css";
+import "./correction-slot-assistants.css";
 import "./correction-report.css";
 import "./correction-management-override.css";
 import "./correction-calendar-polish.css";

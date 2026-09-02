@@ -7,6 +7,9 @@ import confirmStyles from "./message-confirm.module.css";
 
 type Student={id:string;name:string;school:string|null;grade:string|null};
 type Staff={id:string;name:string};
+type Assistant={id:string;name:string};
+type SlotAssistant={weekday:number;startTime:string;assistantId:string;assistantName:string};
+type AssistantBoard={canManage:boolean;assistants:Assistant[];assignments:SlotAssistant[]};
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;validFrom:string;validUntil:string|null;tutorId:string|null;tutorName:string|null;supervisorId:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={weekStart:string;students:Student[];staff:Staff[];assignments:Assignment[];exceptions:Exception[]};
@@ -29,13 +32,20 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
   const[selectedDay,setSelectedDay]=useState(1);
   const[subjectFilter,setSubjectFilter]=useState<SubjectFilter>("전체");
   const[slotRoster,setSlotRoster]=useState<SlotRosterState>(null);
+  const[assistantData,setAssistantData]=useState<AssistantBoard|null>(null);
+  const[assistantEditorOpen,setAssistantEditorOpen]=useState(false);
 
   const load=useCallback(async()=>{
     setLoading(true);
     setError("");
-    const{data:next,error:loadError}=await supabase.rpc("correction_management_board_v2",{p_anchor:anchor});
-    if(loadError){setError(`첨삭 시간표를 불러오지 못했습니다. ${loadError.message}`);setData(null);}
-    else setData(next as Board);
+    const[boardResult,assistantResult]=await Promise.all([
+      supabase.rpc("correction_management_board_v2",{p_anchor:anchor}),
+      supabase.rpc("correction_slot_assistant_board")
+    ]);
+    if(boardResult.error){setError(`첨삭 시간표를 불러오지 못했습니다. ${boardResult.error.message}`);setData(null);}
+    else setData(boardResult.data as Board);
+    if(assistantResult.error){setError(current=>current||`담당 조교 정보를 불러오지 못했습니다. ${assistantResult.error.message}`);setAssistantData(null);}
+    else setAssistantData(assistantResult.data as AssistantBoard);
     setLoading(false);
   },[anchor,supabase]);
 
@@ -47,6 +57,11 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
   },[load]);
   const occurrences=useMemo(()=>buildOccurrences(data),[data]);
   const movedFrom=useMemo(()=>new Map<string,Exception>(),[]);
+  const assistantsBySlot=useMemo(()=>{
+    const result=new Map<string,SlotAssistant[]>();
+    for(const item of assistantData?.assignments??[]){const key=`${item.weekday}-${item.startTime.slice(0,5)}`;result.set(key,[...(result.get(key)??[]),item]);}
+    return result;
+  },[assistantData]);
   const changeWeek=(delta:number)=>setAnchor(current=>addDays(current,delta));
 
   return <>
@@ -56,6 +71,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     </div>
     <div className="correction-week-toolbar"><button onClick={()=>changeWeek(-7)}>‹ 이전 주</button><strong>{data?formatWeek(data.weekStart):"주간 시간표"}</strong><button onClick={()=>changeWeek(7)}>다음 주 ›</button><button className="today" onClick={()=>setAnchor(koreaToday())}>이번 주</button></div>
     {error&&<p className="attendance-error">{error}</p>}
+    {assistantData?.canManage?<div className="correction-assistant-actions"><button type="button" onClick={()=>setAssistantEditorOpen(true)}><span>담당 조교 설정</span><small>요일·시간대별 배정</small></button></div>:null}
     <nav className="correction-mobile-days">{days.map((day,index)=><button key={day} className={selectedDay===index+1?"active":""} onClick={()=>setSelectedDay(index+1)}>{day}</button>)}</nav>
     <nav className="correction-timetable-subject-filter" aria-label="첨삭 과목 필터">{(["전체","국어","영어","수학"] as SubjectFilter[]).map(subject=>{const count=subject==="전체"?occurrences.length:occurrences.filter(item=>item.assignment.subject===subject).length;return <button type="button" key={subject} className={subjectFilter===subject?"active":""} onClick={()=>setSubjectFilter(subject)}><span>{subject}</span><em>{count}명</em></button>})}</nav>
     {loading?<section className="panel correction-empty">첨삭 시간표를 불러오는 중이에요…</section>:!data?<section className="panel correction-empty">첨삭 시간표를 표시할 수 없습니다.</section>:<section className="correction-week-board">{days.map((day,index)=>{
@@ -74,8 +90,9 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
           const displayEntries=visibleEntries.slice(0,displayLimit);
           const hiddenCount=visibleEntries.length-displayEntries.length;
           const hasAny=visibleEntries.length>0;
+          const slotAssistants=assistantsBySlot.get(`${weekday}-${start}`)??[];
           return <article className="correction-slot correction-slot-clickable" key={start} role="button" tabIndex={0} aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setEditor({weekday,slot:start});}}}>
-            <div className="correction-slot-time"><b>{start}</b><span>– {end}</span></div>
+            <div className="correction-slot-time"><b>{start}</b><span>– {end}</span>{slotAssistants.length?<div className="correction-slot-assistants" aria-label={`담당 조교 ${slotAssistants.map(item=>item.assistantName).join(", ")}`}>{slotAssistants.map(item=><small key={item.assistantId}>{item.assistantName}</small>)}</div>:null}</div>
             <div className="correction-slot-content">
               {hasAny?<div className="correction-slot-roster"><header className="correction-slot-summary" onClick={event=>event.stopPropagation()}><span><b>{visibleEntries.length}명</b>{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const count=visibleEntries.filter(entry=>entry.assignment.subject===subject).length;return count?<small className={`subject-${subject}`} key={subject}>{subject} {count}</small>:null})}</span><button type="button" aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})}>＋</button></header><div className="correction-slot-students" onClick={event=>event.stopPropagation()}>{displayEntries.map(entry=><button key={entry.key} data-subject={entry.assignment.subject} className={`correction-student subject-${entry.assignment.subject} ${entry.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:entry.assignment,date});}}><span><b>{entry.assignment.studentName}</b><small>{entry.assignment.grade||"-"}</small></span></button>)}{hiddenCount>0?<button type="button" className="correction-slot-more" onClick={()=>setSlotRoster({day,date,start,end,entries:visibleEntries})}>+{hiddenCount}명</button>:null}</div></div>:<p className={`correction-slot-empty ${subjectFilter==="전체"?"add-prompt":"filtered-empty"}`}>{subjectFilter==="전체"?"학생 추가":`${subjectFilter} 학생 없음`}</p>}
             </div>
@@ -86,6 +103,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} overrideDate={editor.overrideDate} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await load();}}/>:null}
     {action&&data?<ScheduleActionModal assignment={action.assignment} originalDate={action.date} supabase={supabase} onEdit={()=>{setEditor({row:action.assignment});setAction(null);}} onClose={()=>setAction(null)} onSaved={async()=>{setAction(null);await load();}}/>:null}
     {slotRoster?<SlotRosterModal value={slotRoster} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
+    {assistantEditorOpen&&assistantData?<AssistantScheduleEditor value={assistantData} supabase={supabase} onClose={()=>setAssistantEditorOpen(false)} onSaved={async()=>{setAssistantEditorOpen(false);await load();}}/>:null}
   </>;
 }
 
@@ -100,6 +118,24 @@ export function CorrectionDateAssignmentEditor({date,supabase,onClose,onSaved}:{
 
 function SlotRosterModal({value,onClose,onSelect}:{value:NonNullable<SlotRosterState>;onClose:()=>void;onSelect:(assignment:Assignment)=>void}){
   return <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}><section className="student-modal correction-slot-roster-modal"><header><div><p className="eyebrow">첨삭 시간 전체 명단</p><h2>{value.day}요일 {value.start}–{value.end}</h2><span>학생을 누르면 이번 주 일정 변경·취소 메뉴를 열 수 있습니다.</span></div><button type="button" onClick={onClose}>×</button></header><div className="correction-slot-roster-groups">{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const entries=value.entries.filter(entry=>entry.assignment.subject===subject);if(!entries.length)return null;return <section className={`subject-${subject}`} key={subject}><header><b>{subject}</b><span>{entries.length}명</span></header><div>{entries.map(entry=><button type="button" key={entry.key} onClick={()=>onSelect(entry.assignment)}><b>{entry.assignment.studentName}</b><small>{[entry.assignment.school,entry.assignment.grade].filter(Boolean).join(" · ")||"학생 정보 없음"}</small></button>)}</div></section>})}</div><footer><button type="button" className="primary" onClick={onClose}>확인</button></footer></section></div>;
+}
+
+function AssistantScheduleEditor({value,supabase,onClose,onSaved}:{value:AssistantBoard;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
+  const initial=useMemo(()=>new Set(value.assignments.map(item=>`${item.weekday}-${item.startTime.slice(0,5)}-${item.assistantId}`)),[value.assignments]);
+  const[selected,setSelected]=useState(initial);
+  const[mobileDay,setMobileDay]=useState(1);
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState("");
+  const toggle=(weekday:number,start:string,assistantId:string)=>setSelected(current=>{const next=new Set(current);const key=`${weekday}-${start}-${assistantId}`;if(next.has(key))next.delete(key);else next.add(key);return next;});
+  const submit=async()=>{
+    setSaving(true);setError("");
+    const assignments:Array<{weekday:number;startTime:string;assistantId:string}>=[];
+    for(let weekday=1;weekday<=7;weekday++){const slots=weekday<=5?weekdaySlots:weekendSlots;for(const[start]of slots){for(const assistant of value.assistants){if(selected.has(`${weekday}-${start}-${assistant.id}`))assignments.push({weekday,startTime:start,assistantId:assistant.id});}}}
+    const{error:saveError}=await supabase.rpc("staff_save_correction_slot_assistants",{p_assignments:assignments});
+    if(saveError){setError(saveError.message);setSaving(false);return;}
+    await onSaved();
+  };
+  return <div className="modal-backdrop correction-assistant-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)onClose();}}><section className="student-modal correction-assistant-editor"><header><div><p className="eyebrow">매주 반복 담당표</p><h2>시간대별 담당 조교</h2><span>각 시간대에 근무하는 조교를 모두 선택해 주세요. 관리자와 선생님이 수정할 수 있습니다.</span></div><button type="button" onClick={onClose} disabled={saving}>×</button></header>{value.assistants.length?<><nav className="correction-assistant-mobile-days">{days.map((day,index)=><button type="button" key={day} className={mobileDay===index+1?"active":""} onClick={()=>setMobileDay(index+1)}>{day}</button>)}</nav><div className="correction-assistant-grid">{days.map((day,index)=>{const weekday=index+1;const slots=weekday<=5?weekdaySlots:weekendSlots;return <section key={day} className={mobileDay===weekday?"mobile-active":""}><h3>{day}요일</h3>{slots.map(([start,end])=><div className="correction-assistant-row" key={start}><span><b>{start}</b><small>– {end}</small></span><div>{value.assistants.map(assistant=>{const active=selected.has(`${weekday}-${start}-${assistant.id}`);return <button type="button" key={assistant.id} className={active?"active":""} aria-pressed={active} onClick={()=>toggle(weekday,start,assistant.id)}>{active?<i>✓</i>:null}{assistant.name}</button>})}</div></div>)}</section>})}</div></>:<p className="correction-assistant-empty">활성 상태인 조교 계정이 없습니다. 먼저 계정 관리에서 조교 계정을 등록해 주세요.</p>}{error?<p className="form-error">{error}</p>:null}<footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button type="button" className="primary" disabled={saving||!value.assistants.length} onClick={()=>void submit()}>{saving?"저장 중…":"담당표 저장"}</button></footer></section></div>;
 }
 
 function AssignmentEditor({row,initialWeekday,initialSlot,overrideDate,data,supabase,onClose,onSaved}:{row?:Assignment;initialWeekday?:number;initialSlot?:string;overrideDate?:string;data:Board;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
