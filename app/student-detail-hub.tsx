@@ -427,9 +427,9 @@ function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const[recordsExpanded,setRecordsExpanded]=useState(false);
   const selectedSubject=subject&&subjects.includes(subject)?subject:(subjects[0]??"");
   const subjectItems=sourceItems.filter(item=>item.subject===selectedSubject);
-  const categories=Array.from(new Set(subjectItems.map(item=>examCategoryLabel(item.examType,item.examTitle))));
+  const categories=Array.from(new Set(subjectItems.map(item=>examCategoryLabel(item.examType))));
   const selectedCategory=category&&categories.includes(category)?category:(categories[0]??"");
-  const allScored=subjectItems.filter(item=>examCategoryLabel(item.examType,item.examTitle)===selectedCategory);
+  const allScored=subjectItems.filter(item=>examCategoryLabel(item.examType)===selectedCategory);
   const rangeDays=range==="week"?7:range==="month"?30:range==="quarter"?90:null;
   const cutoffDate=new Date();
   cutoffDate.setHours(0,0,0,0);
