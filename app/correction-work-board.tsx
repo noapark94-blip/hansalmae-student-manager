@@ -39,6 +39,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
   const[weekRosterDate,setWeekRosterDate]=useState<string|null>(null);
   const[openStudentKey,setOpenStudentKey]=useState<string|null>(null);
+  const[incompleteOnly,setIncompleteOnly]=useState(false);
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -62,8 +63,13 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   },[date,supabase]);
 
   useEffect(()=>{void load()},[load]);
+  const selectDate=(nextDate:string)=>{setIncompleteOnly(false);setDate(nextDate)};
   const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
   const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
+  const completedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true).length;
+  const incompleteRows=rows.filter(row=>drafts[reportKey(row)]?.published!==true);
+  const readyToCompleteCount=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")!=="scheduled").length;
+  const visibleRows=incompleteOnly?incompleteRows:rows;
   const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>({...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}}));
 
   const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
@@ -91,7 +97,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     if(nextStatus==="late"){setAttendanceEditor({row,status:"late",value:String(current.lateMinutes??10)});return}
     if(nextStatus==="absent"){setAttendanceEditor({row,status:"absent",value:current.absenceReason??""});return}
     setSaving(key);setError("");
-    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:null,absenceReason:""},current.published===true)}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
+    try{await persist(row,{...current,attendanceStatus:nextStatus,lateMinutes:null,absenceReason:""},current.published===true&&nextStatus!=="scheduled")}catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.")}
     setSaving("");
   };
 
@@ -109,9 +115,18 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   const saveAll=async(complete:boolean)=>{
-    if(complete){const missing=rows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled").map(row=>row.assignment.studentName);if(missing.length){setError(`출결 미입력 학생: ${missing.join(", ")}`);return}}
+    const ready=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")!=="scheduled");
+    const missing=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled");
+    if(complete&&ready.length===0){setError("완료할 학생의 출결을 먼저 입력해 주세요.");return}
+    if(complete&&missing.length&&!await appConfirm({
+      eyebrow:"일부 학생 첨삭 완료",
+      title:`입력된 ${ready.length}명만 완료할까요?`,
+      copy:`완료 ${ready.length}명 · 미완료 ${missing.length}명`,
+      notice:"미완료 학생은 기록 중 상태로 남으며, 나중에 이어서 완료할 수 있습니다.",
+      confirmLabel:`${ready.length}명 완료`,
+    }))return;
     setSaving("all");setError("");
-    try{for(const row of rows)await persist(row,drafts[reportKey(row)]??{},complete)}
+    try{for(const row of rows){const report=drafts[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
     await load();setSaving("");
   };
@@ -154,13 +169,13 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
 
   return <section className="class-learning-board correction-learning-board" spellCheck={false}>
     <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘 한 첨삭과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions">{date<koreaToday()?<button type="button" className="secondary-button" onClick={()=>setMissingStudentOpen(true)}>이 날짜 누락 학생</button>:null}<button type="button" className="secondary-button correction-calendar-button" onClick={()=>setMonthOpen(true)}>전체 첨삭 캘린더</button></div></header>
-    <div className="class-week-navigation correction-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>setDate(addDays(date,-7))}>‹</button><div className="class-week-strip correction-week-strip">{weekDates.map((day,index)=>{const dayRows=buildOccurrences(data,day),overflow=dayRows.length-6;return <button key={day} className={`${day===date?"active":""} ${dayRows.length?"scheduled":""}`} aria-current={day===date?"date":undefined} onClick={()=>setDate(day)}><span>{weekdays[index]}</span><b>{+day.slice(8)}</b><small className="correction-mobile-day-count">{dayRows.length?`${dayRows.length}명`:"없음"}</small><div>{dayRows.slice(0,6).map(row=>{const report=drafts[reportKey(row)]??{};const status=report.attendanceStatus??"scheduled";return <em key={reportKey(row)} className={`subject-${row.assignment.subject} status-${status} ${row.assignment.isDateOverride?"date-override":""}`}>{row.assignment.studentName}{row.assignment.isDateOverride?<span className="correction-date-override-badge compact">보정</span>:null}{row.kind!=="fixed"?<span className={`correction-direct-badge compact ${row.kind}`}>{row.kind==="move"?"변경":"추가"}</span>:null}</em>})}{overflow>0?<span className="correction-week-more" role="button" tabIndex={0} onClick={event=>{event.stopPropagation();setWeekRosterDate(day)}} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();event.stopPropagation();setWeekRosterDate(day)}}}>+{overflow}명</span>:null}{!dayRows.length?<small>첨삭 없음</small>:null}</div></button>})}</div><button type="button" aria-label="다음 주" onClick={()=>setDate(addDays(date,7))}>›</button></div>
+    <div className="class-week-navigation correction-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>selectDate(addDays(date,-7))}>‹</button><div className="class-week-strip correction-week-strip">{weekDates.map((day,index)=>{const dayRows=buildOccurrences(data,day),overflow=dayRows.length-6;return <button key={day} className={`${day===date?"active":""} ${dayRows.length?"scheduled":""}`} aria-current={day===date?"date":undefined} onClick={()=>selectDate(day)}><span>{weekdays[index]}</span><b>{+day.slice(8)}</b><small className="correction-mobile-day-count">{dayRows.length?`${dayRows.length}명`:"없음"}</small><div>{dayRows.slice(0,6).map(row=>{const report=drafts[reportKey(row)]??{};const status=report.attendanceStatus??"scheduled";return <em key={reportKey(row)} className={`subject-${row.assignment.subject} status-${status} ${row.assignment.isDateOverride?"date-override":""}`}>{row.assignment.studentName}{row.assignment.isDateOverride?<span className="correction-date-override-badge compact">보정</span>:null}{row.kind!=="fixed"?<span className={`correction-direct-badge compact ${row.kind}`}>{row.kind==="move"?"변경":"추가"}</span>:null}</em>})}{overflow>0?<span className="correction-week-more" role="button" tabIndex={0} onClick={event=>{event.stopPropagation();setWeekRosterDate(day)}} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();event.stopPropagation();setWeekRosterDate(day)}}}>+{overflow}명</span>:null}{!dayRows.length?<small>첨삭 없음</small>:null}</div></button>})}</div><button type="button" aria-label="다음 주" onClick={()=>selectDate(addDays(date,7))}>›</button></div>
     <CorrectionReportReadStatus key={`${date}-${Object.values(drafts).filter(report=>report.published).length}`} supabase={supabase} date={date}/>
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span>시험 기록</span><span>오늘 한 첨삭과제</span></div>
-    {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=rows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:null}</div>}
+    {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=visibleRows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:incompleteOnly&&!visibleRows.length?<div className="makeup-empty"><p>미완료 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    {rows.length?<footer><span><b>{completed?"첨삭 완료":"기록 중"}</b> · 완료해야 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</span><span className="learning-completion-actions">{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"첨삭 완료"}</button></>}</span></footer>:null}
-    {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={setDate} onClose={()=>setMonthOpen(false)}/>:null}
+    {rows.length?<footer><span className="correction-completion-summary"><b>{completed?"전체 완료":`완료 ${completedCount}명 · 미완료 ${rows.length-completedCount}명`}</b><small>완료된 학생만 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</small></span><span className="learning-completion-actions">{!completed&&incompleteRows.length?<button type="button" className={`secondary-button correction-incomplete-filter ${incompleteOnly?"active":""}`} disabled={saving==="all"} onClick={()=>setIncompleteOnly(value=>!value)}>{incompleteOnly?"전체 학생 보기":`미완료 ${incompleteRows.length}명만 보기`}</button>:null}{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||readyToCompleteCount===0} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":readyToCompleteCount?`입력된 ${readyToCompleteCount}명 완료`:"출결 입력 후 완료"}</button></>}</span></footer>:null}
+    {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={selectDate} onClose={()=>setMonthOpen(false)}/>:null}
     {missingStudentOpen?<CorrectionDateAssignmentEditor date={date} supabase={supabase} onClose={()=>setMissingStudentOpen(false)} onSaved={async()=>{setMissingStudentOpen(false);await load()}}/>:null}
     {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
     {scheduleChangeRow?.exception?<CorrectionScheduleChangeModal row={scheduleChangeRow} supabase={supabase} onClose={()=>setScheduleChangeRow(null)} onReverted={async()=>{setScheduleChangeRow(null);await load();}}/>:null}
