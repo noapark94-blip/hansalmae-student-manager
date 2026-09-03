@@ -23,9 +23,16 @@ Deno.serve(async request=>{
   if(!url||!anon||!service||!apiKey||!apiSecret||!sender)return json({error:"초대 문자 발송 서버 설정을 확인해 주세요."},500);
   if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
   let input:Input;try{input=await request.json()}catch{return json({error:"초대 정보를 확인해 주세요."},400)}
-  const auth=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false}}),admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {data:{user},error:userError}=await auth.auth.getUser();if(userError||!user)return json({error:"로그인을 다시 확인해 주세요."},401);
-  const {data:actor}=await admin.from("profiles").select("role,is_active").eq("id",user.id).single();if(actor?.role!=="admin"||!actor.is_active)return json({error:"관리자만 초대 문자를 보낼 수 있습니다."},403);
+  const token=bearer.slice(7).trim(),verifier=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+  const {data:{user},error:userError}=await verifier.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);
+  const admin=createClient(url,service,{global:{headers:{Authorization:`Bearer ${service}`}},auth:{persistSession:false,autoRefreshToken:false}});
+  const auth=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
+  const [{data:actor,error:actorError},{data:actorRole,error:roleError}]=await Promise.all([
+    admin.from("profiles").select("role,is_active").eq("id",user.id).maybeSingle(),
+    auth.rpc("current_user_role")
+  ]);
+  const isAdmin=(actor?.role==="admin"&&actor.is_active===true)||actorRole==="admin";
+  if(!isAdmin){console.error("[send-account-invite-sms] admin authorization failed",{userId:user.id,profileRole:actor?.role??null,isActive:actor?.is_active??null,actorError:actorError?.message??null,rpcRole:actorRole??null,roleError:roleError?.message??null});return json({error:"관리자 권한을 확인하지 못했습니다. 다시 로그인한 뒤 시도해 주세요."},403)}
 
   let invite:Invite|undefined,code=normalize(input.code??""),phone="",recipientName="",studentName="";
   const issuing=input.action==="issueAndSend"||input.action==="resend";
