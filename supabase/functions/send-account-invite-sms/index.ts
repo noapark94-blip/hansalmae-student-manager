@@ -25,7 +25,7 @@ Deno.serve(async request=>{
   let input:Input;try{input=await request.json()}catch{return json({error:"초대 정보를 확인해 주세요."},400)}
   const token=bearer.slice(7).trim(),verifier=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:{user},error:userError}=await verifier.auth.getUser(token);if(userError||!user)return json({error:"로그인 세션이 만료되었습니다. 다시 로그인해 주세요."},401);
-  const admin=createClient(url,service,{global:{headers:{Authorization:`Bearer ${service}`}},auth:{persistSession:false,autoRefreshToken:false}});
+  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   const auth=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
   const [{data:actor,error:actorError},{data:actorRole,error:roleError}]=await Promise.all([
     admin.from("profiles").select("role,is_active").eq("id",user.id).maybeSingle(),
@@ -46,7 +46,8 @@ Deno.serve(async request=>{
     }
     if(!role||!["student","guardian","teacher"].includes(role))return json({error:"학생·학부모·선생님 중 대상을 선택해 주세요."},400);
     if(role==="student"||role==="guardian"){
-      const {data:student}=await admin.from("students").select("id,name,phone,profile_id,status").eq("id",studentId??"").single();
+      const {data:student,error:studentError}=await admin.from("students").select("id,name,phone,profile_id,status").eq("id",studentId??"").maybeSingle();
+      if(studentError){console.error("[send-account-invite-sms] student lookup failed",{studentId,error:studentError.message,code:studentError.code});return json({error:"학생 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."},500)}
       if(!student||!["active","재원"].includes(String(student.status)))return json({error:"재원 학생을 선택해 주세요."},400);
       studentName=student.name;recipientName=student.name;
       if(role==="student"){
