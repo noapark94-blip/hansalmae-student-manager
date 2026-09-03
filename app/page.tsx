@@ -2229,7 +2229,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
   const subjectCount = (subject: MainSubjectFilter) => subject === "전체" ? classes.length : classes.filter((item) => classMainSubject(item) === subject).length;
   return (
     <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description={step === "classes" ? "한 학생에게 여러 과목·세부 반을 동시에 배정합니다." : "실제로 참석하는 요일별 반을 선택하세요. 선택하지 않으면 기존처럼 모든 수강 반에 표시됩니다."} onClose={onClose}>
-      <form onSubmit={submit}>
+      <form className={step === "schedules" ? "schedule-assignment-form" : undefined} onSubmit={submit}>
         {step === "classes" ? (
           classes.length ? (
             <>
@@ -2257,16 +2257,23 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
             <p className="modal-empty">등록된 클래스가 없습니다.</p>
           )
         ) : (
-          <div className="schedule-choice-list">
+          <div className="student-schedule-choice-list" aria-label="실제 참석 요일 선택">
             {scheduleChoices.map((item) => (
-              <button type="button" key={item.scheduleId} className={scheduleIds.includes(item.scheduleId) ? "selected" : ""} onClick={() => toggleSchedule(item.scheduleId)}>
-                <i style={{ background: item.color }} />
+              <button
+                type="button"
+                key={item.scheduleId}
+                className={scheduleIds.includes(item.scheduleId) ? "selected" : ""}
+                aria-pressed={scheduleIds.includes(item.scheduleId)}
+                onClick={() => toggleSchedule(item.scheduleId)}
+              >
+                <i aria-hidden="true">{scheduleIds.includes(item.scheduleId) ? "✓" : ""}</i>
                 <span>
                   <b>
                     {["월", "화", "수", "목", "금", "토", "일"][item.weekday - 1]} · {item.className}
                   </b>
                   <small>
-                    {item.subject} · {item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}
+                    {item.className.includes(item.subject) ? "" : `${item.subject} · `}
+                    {item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}
                   </small>
                 </span>
               </button>
