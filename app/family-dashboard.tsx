@@ -282,19 +282,6 @@ export function FamilyLiveDashboard({
     return <section className="panel hub-message error">{error}</section>;
   return (
     <div className="family-mobile-home">
-      {profile.role === "student" && <section className="family-app-welcome">
-        <p>
-          {profile.role === "student"
-            ? "오늘도 차근차근"
-            : "자녀의 오늘을 확인하세요"}
-        </p>
-        <h1>
-          {profile.role === "student"
-            ? `안녕하세요, ${profile.display_name}님`
-            : `${studentGivenName(selected?.name) ?? "자녀"}의 학습 공간`}
-        </h1>
-        <span>수업·출결·시험·숙제를 한곳에서 확인하세요.</span>
-      </section>}
       {error && <p className="attendance-error">{error}</p>}
       {!selected ? (
         <section className="panel family-empty">
@@ -302,21 +289,6 @@ export function FamilyLiveDashboard({
         </section>
       ) : (
         <>
-          {profile.role === "student" && <section className="family-profile-card">
-            <div className="family-profile-avatar">
-              {selected.name.slice(0, 1)}
-            </div>
-            <div>
-              <b>{selected.name}</b>
-              <span>
-                {[selected.school, selected.grade]
-                  .filter(Boolean)
-                  .join(" · ") || "한살매 학생"}
-              </span>
-              <small>나의 학습 정보</small>
-            </div>
-            <i aria-hidden="true">›</i>
-          </section>}
           {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && (
             <button type="button" className="family-child-switcher" disabled={loading} onClick={()=>setChildPickerOpen(true)} aria-haspopup="dialog" aria-expanded={childPickerOpen}>
               <i aria-hidden="true">{selected.name.slice(0,1)}</i>
@@ -341,7 +313,7 @@ export function FamilyLiveDashboard({
             todayLessons={effectiveTodayLessons}
             nextLesson={data?.upcomingClasses[0] ?? null}
             onSchedule={() => onNavigate("schedule")}
-            compactAnnouncement={profile.role === "guardian"}
+            compactAnnouncement
             onNavigate={(view) =>
               onNavigate(view === "communications" ? "communications" : "reports")
             }

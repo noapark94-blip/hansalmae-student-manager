@@ -172,20 +172,42 @@
   .analytics-table-row{grid-template-columns:minmax(96px,1.3fr) repeat(3,minmax(38px,.55fr))!important}
 }
 
-/* Compact, readable class timetable for phones. Desktop keeps the full weekly grid. */
-.mobile-schedule-controls,.mobile-daily-schedule{display:none}
+/* Shared weekly/day timetable switcher. Desktop opens weekly; phones open the selected day. */
+.mobile-schedule-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;margin:16px 0}
+.mobile-schedule-view{display:grid;grid-template-columns:1fr 1fr;min-width:250px;padding:4px;border:1px solid #e7dde1;border-radius:13px;background:#f7f2f5;box-shadow:inset 0 1px 2px rgba(67,39,51,.03)}
+.mobile-schedule-view button{min-height:40px;padding:0 16px;border:0;border-radius:10px;background:transparent;color:#83767c;font:inherit;font-size:10px;font-weight:850;cursor:pointer;transition:background .16s,color .16s,box-shadow .16s}
+.mobile-schedule-view button.active,.mobile-schedule-view button.auto-week{background:#fff;color:var(--wine);box-shadow:0 4px 12px rgba(67,39,51,.08)}
+.mobile-schedule-days{display:grid;grid-template-columns:repeat(7,minmax(58px,1fr));gap:7px}
+.mobile-schedule-days button{min-width:0;min-height:48px;padding:6px 5px;border:1px solid #e9e0e4;border-radius:12px;background:#fff;color:#665a60;display:grid;place-items:center;gap:1px;font:inherit;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
+.mobile-schedule-days button:hover{border-color:#ca8daa;transform:translateY(-1px)}
+.mobile-schedule-days button span{font-size:11px;font-weight:850}.mobile-schedule-days button small{color:#978a91;font-size:8px;font-weight:750}
+.mobile-schedule-days button.active{border-color:var(--wine);background:#fff5f9;color:var(--wine);box-shadow:0 5px 14px rgba(146,45,97,.08)}
+.mobile-schedule-days button.active small{color:#a53269}
+.schedule-view-controls.auto .mobile-schedule-days{display:none}
+.mobile-daily-schedule{display:grid;gap:0;border:1px solid #e5dce0;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 28px rgba(58,37,47,.045)}
+.mobile-daily-schedule.auto{display:none}
+.mobile-daily-schedule>section{display:grid;grid-template-columns:92px minmax(0,1fr);border-top:1px solid #eee6e9}
+.mobile-daily-schedule>section:first-of-type{border-top:0}.mobile-daily-schedule>section>time{padding:18px 9px;background:#fbf8f9;color:#4e4248;text-align:center;font-size:10px;font-weight:850;line-height:1.45}
+.mobile-daily-schedule>section>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;padding:10px}
+.mobile-daily-schedule article{position:relative;min-width:0;min-height:82px;border:1px solid color-mix(in srgb,var(--schedule-color) 18%,#e7dfe2);border-left:4px solid var(--schedule-color);border-radius:12px;background:color-mix(in srgb,var(--schedule-color) 8%,white);overflow:hidden}
+.mobile-daily-schedule article.unassigned{opacity:.72;background:#faf8f9}
+.mobile-daily-main{width:100%;min-height:82px;padding:12px 34px 12px 12px;border:0;background:transparent;text-align:left;display:flex;flex-direction:column;gap:5px;cursor:pointer}
+.mobile-daily-main b,.mobile-daily-main small,.mobile-daily-main em{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}.mobile-daily-main b{color:#352c31;font-size:11px;font-weight:850;white-space:nowrap}.mobile-daily-main small{color:#665a60;font-size:8px;line-height:1.4;white-space:normal}.mobile-daily-main em{color:#95888e;font-size:8px;font-style:normal;white-space:nowrap}
+.mobile-daily-edit{position:absolute;right:7px;top:7px;width:25px;height:25px;padding:0;border:1px solid color-mix(in srgb,var(--schedule-color) 28%,white);border-radius:8px;background:rgba(255,255,255,.88);color:var(--wine);font-size:10px;cursor:pointer}
+.mobile-daily-empty{margin:0;padding:36px 18px;text-align:center;color:var(--muted);font-size:11px}
 @media (max-width:760px){
-  .mobile-schedule-controls{display:grid;gap:10px;margin:12px 0}
+  .mobile-schedule-controls{display:grid;grid-template-columns:1fr;gap:10px;margin:12px 0}
   .mobile-schedule-view{display:grid;grid-template-columns:1fr 1fr;padding:3px;border:1px solid var(--line);border-radius:12px;background:#f7f3f5}
   .mobile-schedule-view button{min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:750}
-  .mobile-schedule-view button.active{background:#fff;color:var(--wine);box-shadow:0 2px 8px rgba(62,31,44,.08)}
-  .mobile-schedule-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+  .mobile-schedule-view button.auto-week{background:transparent;color:var(--muted);box-shadow:none}
+  .mobile-schedule-view button.active,.mobile-schedule-view button.auto-day{background:#fff;color:var(--wine);box-shadow:0 2px 8px rgba(62,31,44,.08)}
+  .mobile-schedule-days,.schedule-view-controls.auto .mobile-schedule-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
   .mobile-schedule-days button{min-width:0;min-height:48px;padding:6px 2px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#665a60;display:grid;place-items:center;gap:1px}
   .mobile-schedule-days button span{font-size:11px;font-weight:800}.mobile-schedule-days button small{font-size:8px;color:var(--muted)}
   .mobile-schedule-days button.active{border-color:var(--wine);background:#fbf0f5;color:var(--wine)}
-  .mobile-daily-schedule{display:grid;gap:0;border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff}
+  .mobile-daily-schedule,.mobile-daily-schedule.auto{display:grid;gap:0;border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff}
   .mobile-daily-schedule>section{display:grid;grid-template-columns:70px minmax(0,1fr);border-top:1px solid var(--line)}
-  .mobile-daily-schedule>section:first-child{border-top:0}.mobile-daily-schedule>section>time{padding:16px 7px;background:#faf8f7;text-align:center;font-size:10px;font-weight:800;line-height:1.45}
+  .mobile-daily-schedule>section:first-of-type{border-top:0}.mobile-daily-schedule>section>time{padding:16px 7px;background:#faf8f7;text-align:center;font-size:10px;font-weight:800;line-height:1.45}
   .mobile-daily-schedule>section>time span{display:block;color:#ad9fa5}.mobile-daily-schedule>section>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:8px}
   .mobile-daily-schedule article{position:relative;min-width:0;min-height:88px;border-left:4px solid var(--schedule-color);border-radius:10px;background:color-mix(in srgb,var(--schedule-color) 10%,white);overflow:hidden}
   .mobile-daily-main{width:100%;min-height:88px;padding:11px 8px 28px;border:0;background:transparent;text-align:left;display:flex;flex-direction:column;gap:4px}
@@ -221,4 +243,8 @@
   .correction-timetable-mode button.correction-student{min-height:40px!important;padding:7px 8px!important;border:1px solid #eee4e8!important;border-left:3px solid #b35a83!important;border-radius:9px!important;background:#fbf6f8!important;text-align:left!important;justify-content:flex-start!important}
   .correction-timetable-mode button.correction-student.subject-수학{border-left-color:#537ba3!important;background:#f5f8fb!important}.correction-timetable-mode button.correction-student.subject-국어{border-left-color:#aa7e3f!important;background:#fbf8f2!important}
   .correction-timetable-mode button.correction-student b{font-size:10px!important}.correction-timetable-mode button.correction-student small{margin-top:2px;font-size:7px!important;color:#8a7d83!important}
+}
+
+@media (max-width:700px){
+  .mobile-weekly-agenda.auto,.weekly-schedule-view.mobile-visible{display:none!important}
 }

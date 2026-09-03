@@ -419,10 +419,12 @@ function ClassScheduleBoard({
   onRoster: (row: ClassSchedule) => void;
 }) {
   const [subjectFilter, setSubjectFilter] = useState<ScheduleSubject>("전체");
-  const [mobileView, setMobileView] = useState<"day" | "week">("day");
+  const [scheduleView, setScheduleView] = useState<"auto" | "day" | "week">(
+    "auto",
+  );
   const [selectedDay, setSelectedDay] = useState(() => {
     const day = new Date().getDay();
-    return day === 0 ? 1 : day;
+    return day === 0 ? 7 : day;
   });
   const [expandedWeekday, setExpandedWeekday] = useState<number | null>(
     selectedDay,
@@ -565,7 +567,9 @@ function ClassScheduleBoard({
       )}
       {filteredRows.length > 0 && (
         <>
-          <div className="mobile-schedule-controls">
+          <div
+            className={`mobile-schedule-controls schedule-view-controls${scheduleView === "auto" ? " auto" : ""}`}
+          >
             <div
               className="mobile-schedule-view"
               role="group"
@@ -573,20 +577,32 @@ function ClassScheduleBoard({
             >
               <button
                 type="button"
-                className={mobileView === "day" ? "active" : ""}
-                onClick={() => setMobileView("day")}
+                className={
+                  scheduleView === "day"
+                    ? "active"
+                    : scheduleView === "auto"
+                      ? "auto-day"
+                      : ""
+                }
+                onClick={() => setScheduleView("day")}
               >
-                일간
+                요일별 보기
               </button>
               <button
                 type="button"
-                className={mobileView === "week" ? "active" : ""}
-                onClick={() => setMobileView("week")}
+                className={
+                  scheduleView === "week"
+                    ? "active"
+                    : scheduleView === "auto"
+                      ? "auto-week"
+                      : ""
+                }
+                onClick={() => setScheduleView("week")}
               >
-                주간
+                주간 보기
               </button>
             </div>
-            {mobileView === "day" && (
+            {scheduleView !== "week" && (
               <nav className="mobile-schedule-days" aria-label="시간표 요일">
                 {weekdays.map((day, index) => (
                   <button
@@ -600,15 +616,17 @@ function ClassScheduleBoard({
                       {
                         filteredRows.filter((row) => row.weekday === index + 1)
                           .length
-                      }
+                      }개
                     </small>
                   </button>
                 ))}
               </nav>
             )}
           </div>
-          {mobileView === "day" && (
-            <div className="mobile-daily-schedule">
+          {scheduleView !== "week" && (
+            <div
+              className={`mobile-daily-schedule${scheduleView === "auto" ? " auto" : ""}`}
+            >
               {selectedDayGroups.length ? (
                 selectedDayGroups.map((group) => {
                   const groupRows = selectedDayRows.filter(
@@ -674,8 +692,10 @@ function ClassScheduleBoard({
               )}
             </div>
           )}
-          {mobileView === "week" && (
-            <div className="mobile-weekly-agenda">
+          {scheduleView !== "day" && (
+            <div
+              className={`mobile-weekly-agenda${scheduleView === "auto" ? " auto" : ""}`}
+            >
               {weeklyDays.map(({ day, weekday, rows: dayRows }) => {
                 const open = expandedWeekday === weekday;
                 const first = dayRows[0];
@@ -763,7 +783,9 @@ function ClassScheduleBoard({
               })}
             </div>
           )}
-          <div className="weekly-schedule-view">
+          {scheduleView !== "day" && <div
+            className={`weekly-schedule-view${scheduleView === "auto" ? " auto" : " mobile-visible"}`}
+          >
             <div className="aligned-schedule">
               <div className="aligned-schedule-head">
                 <b>시간</b>
@@ -831,7 +853,7 @@ function ClassScheduleBoard({
                 </div>
               ))}
             </div>
-          </div>
+          </div>}
         </>
       )}
       {filteredRows.length === 0 && (

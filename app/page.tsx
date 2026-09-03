@@ -246,7 +246,7 @@ export default function Home() {
   const [enrollmentStudent, setEnrollmentStudent] = useState<StudentRow | null>(null);
   const [studentDetails, setStudentDetails] = useState<StudentDetails | null>(null);
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>("all");
-  const [guardianDesktopUrl, setGuardianDesktopUrl] = useState<string | null>(null);
+  const [familyDesktopUrl, setFamilyDesktopUrl] = useState<string | null>(null);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((current) => {
@@ -259,18 +259,18 @@ export default function Home() {
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 761px)");
     const currentUrl = new URL(window.location.href);
-    const isEmbeddedGuardianView = currentUrl.searchParams.has("guardian-mobile-view");
-    const syncGuardianViewport = () => {
-      if (isEmbeddedGuardianView || !desktop.matches) {
-        setGuardianDesktopUrl(null);
+    const isEmbeddedFamilyView = currentUrl.searchParams.has("family-mobile-view");
+    const syncFamilyViewport = () => {
+      if (isEmbeddedFamilyView || !desktop.matches) {
+        setFamilyDesktopUrl(null);
         return;
       }
-      currentUrl.searchParams.set("guardian-mobile-view", "1");
-      setGuardianDesktopUrl(currentUrl.toString());
+      currentUrl.searchParams.set("family-mobile-view", "1");
+      setFamilyDesktopUrl(currentUrl.toString());
     };
-    syncGuardianViewport();
-    desktop.addEventListener("change", syncGuardianViewport);
-    return () => desktop.removeEventListener("change", syncGuardianViewport);
+    syncFamilyViewport();
+    desktop.addEventListener("change", syncFamilyViewport);
+    return () => desktop.removeEventListener("change", syncFamilyViewport);
   }, []);
 
   useEffect(() => {
@@ -689,10 +689,10 @@ export default function Home() {
   const staffAccount = ["admin","teacher","assistant","manager"].includes(profile.role);
   const signedInDisplayName = accountDisplayName(profile);
 
-  if (profile.role === "guardian" && guardianDesktopUrl) {
+  if (familyAccount && familyDesktopUrl) {
     return (
-      <main className="guardian-desktop-shell">
-        <iframe className="guardian-desktop-phone" src={guardianDesktopUrl} title="학부모 모바일 화면" />
+      <main className="family-desktop-shell">
+        <iframe className="family-desktop-phone" src={familyDesktopUrl} title={`${roleLabels[profile.role]} 모바일 화면`} />
       </main>
     );
   }
