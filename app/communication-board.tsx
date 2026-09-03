@@ -570,7 +570,7 @@ function MessageLogBoard({
     );
   return (
     <>
-      <div className="makeup-summary">
+      <div className={styles.messageSummary}>
         <span>
           승인 대기 <b>{data.pending}</b>
         </span>
@@ -585,7 +585,7 @@ function MessageLogBoard({
         </span>
       </div>
       {message && <p className="attendance-error">{message}</p>}
-      <div className="message-approval-actions">
+      <div className={styles.messageApprovalActions}>
         <label>
           <input
             type="checkbox"
@@ -620,8 +620,8 @@ function MessageLogBoard({
           </button>
         </span>
       </div>
-      <section className="panel message-log">
-        <div className="message-log-head">
+      <section className={`panel ${styles.messageLog}`}>
+        <div className={styles.messageLogHead}>
           <span>선택·수신자</span>
           <span>문자 내용</span>
           <span>등록/승인</span>
@@ -644,7 +644,7 @@ function MessageLogBoard({
                   : first.status;
             return (
               <article key={batch.id} className={styles.messageBatch}>
-                <span className="message-recipient">
+                <span className={styles.messageRecipient}>
                   <input
                     type="checkbox"
                     disabled={!actionableRows.length}
@@ -665,7 +665,7 @@ function MessageLogBoard({
                   {formatDateTime(first.approvedAt ?? first.sentAt ?? first.createdAt)}
                   {first.approvedBy && <small>{first.approvedBy} 승인</small>}
                 </time>
-                <span className="message-row-actions">
+                <span className={styles.messageRowActions}>
                   <i className={statusClass}>{messageBatchStatus(batch.rows)}</i>
                   <button
                     type="button"
