@@ -1,6 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 type InstallPromptEvent = Event & {
@@ -191,7 +193,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
       </button>
       {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}
 
-      {samsungGuide && (
+      {samsungGuide && <InstallPortal>
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSamsungGuide(false); }}>
           <section className="install-guide samsung-install-guide" role="dialog" aria-modal="true" aria-labelledby="samsung-install-title">
             <header>
@@ -229,9 +231,9 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
             </footer>
           </section>
         </div>
-      )}
+      </InstallPortal>}
 
-      {guide && (
+      {guide && <InstallPortal>
         <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setGuide(null); }}>
           <section className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
             <header>
@@ -243,9 +245,14 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
             <footer><button type="button" onClick={() => setGuide(null)}>확인했어요</button></footer>
           </section>
         </div>
-      )}
+      </InstallPortal>}
     </>
   );
+}
+
+function InstallPortal({ children }: { children: ReactNode }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
 }
 
 function IosGuide() {
