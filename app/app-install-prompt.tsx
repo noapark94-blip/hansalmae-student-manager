@@ -55,11 +55,11 @@ async function prepareAndroidInstall() {
 export function AppInstallPrompt({ placement = "login" }: { placement?: "login" | "topbar" }) {
   const [device, setDevice] = useState<"android" | "ios" | "desktop" | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const [guide, setGuide] = useState<"ios" | "android-kakao" | null>(null);
+  const [guide, setGuide] = useState<"ios" | null>(null);
   const [installed, setInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [androidMessage, setAndroidMessage] = useState("");
-  const [samsungGuide, setSamsungGuide] = useState(false);
+  const [androidGuide, setAndroidGuide] = useState<"direct" | "kakao" | null>(null);
   const [attention, setAttention] = useState(false);
   const [hiddenInKakao, setHiddenInKakao] = useState(false);
   const [confirmInstalled, setConfirmInstalled] = useState(false);
@@ -87,6 +87,10 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
 
     if (installWindow.__hansalmaeInstallPrompt) {
       setInstallPrompt(installWindow.__hansalmaeInstallPrompt);
+      if (installRequested) {
+        installWindow.__hansalmaeAutoInstall = false;
+        setAndroidGuide("direct");
+      }
     }
 
     const receivePrompt = (event: Event) => {
@@ -98,20 +102,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
 
       if (installWindow.__hansalmaeAutoInstall) {
         installWindow.__hansalmaeAutoInstall = false;
-        window.setTimeout(() => {
-          void (async () => {
-            try {
-              await promptEvent.prompt();
-              const choice = await promptEvent.userChoice;
-              installWindow.__hansalmaeInstallPrompt = null;
-              setInstallPrompt(null);
-              if (choice.outcome === "accepted") setInstalled(true);
-            } catch {
-              // Some Chrome versions require another explicit tap after the handoff.
-              setAndroidMessage("설치 버튼을 한 번 눌러 주세요.");
-            }
-          })();
-        }, 0);
+        setAndroidGuide("direct");
       }
     };
 
@@ -171,16 +162,12 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
     const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
 
     if (device === "android" && isKakaoInAppBrowser(ua)) {
-      setGuide("android-kakao");
+      setAndroidGuide("kakao");
       return;
     }
 
     if (promptEvent) {
-      if (/SamsungBrowser/i.test(ua)) {
-        setSamsungGuide(true);
-        return;
-      }
-      await launchAndroidPrompt(promptEvent);
+      setAndroidGuide("direct");
       return;
     }
 
@@ -207,21 +194,22 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
         <span className="app-install-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg>
         </span>
-        <span><b>{installing ? "설치 중…" : placement === "topbar" ? "앱 설치" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
+        <span><b>{installing ? "설치 중…" : placement === "topbar" ? "앱 설치" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "안내 확인 후 안드로이드에 설치하기"}</small></span>
         <i aria-hidden="true">›</i>
       </button>
       {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}
 
-      {samsungGuide && <InstallPortal>
-        <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSamsungGuide(false); }}>
+      {androidGuide && <InstallPortal>
+        <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setAndroidGuide(null); }}>
           <section className="install-guide samsung-install-guide" role="dialog" aria-modal="true" aria-labelledby="samsung-install-title">
             <header>
               <Image className="install-guide-logo" src="/app-icon-192-v13.png" width={42} height={42} alt="" aria-hidden="true" />
               <div><small>설치 전 꼭 확인해 주세요</small><h2 id="samsung-install-title">안드로이드 설치 안내</h2></div>
-              <button type="button" aria-label="설치 안내 닫기" onClick={() => setSamsungGuide(false)}>×</button>
+              <button type="button" aria-label="설치 안내 닫기" onClick={() => setAndroidGuide(null)}>×</button>
             </header>
             <div className="samsung-install-body">
-              <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>아래 보안 안내가 나타날 수 있어요.</b><span>삼성인터넷의 웹앱 설치 과정에서 표시되는 안내입니다. 그림에 표시된 순서대로 눌러 주세요.</span></p></div>
+              {androidGuide === "kakao" && <div className="samsung-install-notice"><i aria-hidden="true">1</i><p><b>먼저 Chrome으로 이동합니다.</b><span>아래 버튼을 누르면 현재 화면을 Chrome으로 넘기고 설치를 이어서 진행합니다.</span></p></div>}
+              <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>설치 중 아래 보안 안내가 나타날 수 있어요.</b><span>안드로이드의 웹앱 설치 과정에서 표시되는 안내입니다. 그림에 표시된 순서대로 눌러 주세요.</span></p></div>
               <ol>
                 <li>
                   <div><em>1</em><span><b>‘세부정보 더 보기’를 눌러 주세요</b><small>첫 번째 경고 화면 아래쪽에 있습니다.</small></span></div>
@@ -241,12 +229,17 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
               <p className="samsung-install-question">한살매 수업노트를 설치하시겠습니까?</p>
             </div>
             <footer className="samsung-install-actions">
-              <button type="button" className="secondary-button" onClick={() => setSamsungGuide(false)}>취소</button>
+              {androidGuide === "kakao" ? <button type="button" className="secondary-button installed-already" onClick={() => setConfirmInstalled(true)}>이미 설치했어요</button> : <button type="button" className="secondary-button" onClick={() => setAndroidGuide(null)}>취소</button>}
               <button type="button" onClick={() => {
+                if (androidGuide === "kakao") {
+                  openAndroidChromeInstallFlow();
+                  return;
+                }
                 const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
-                setSamsungGuide(false);
+                setAndroidGuide(null);
                 if (promptEvent) void launchAndroidPrompt(promptEvent);
-              }}>원터치 설치</button>
+                else setAndroidMessage("Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+              }}>{androidGuide === "kakao" ? "Chrome에서 설치 계속" : "설치 시작"}</button>
             </footer>
           </section>
         </div>
@@ -260,13 +253,12 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
               <div><small>한살매 수업노트</small><h2 id="install-guide-title">{guide === "ios" ? "아이폰에 설치하기" : "앱으로 열기"}</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>
-            {guide === "ios" ? <IosGuide /> : <AndroidKakaoGuide />}
+            <IosGuide />
             <footer className={isKakaoInAppBrowser() ? "install-guide-choice-actions" : ""}>
               {isKakaoInAppBrowser() && <button type="button" className="installed-already" onClick={() => setConfirmInstalled(true)}>이미 설치했어요</button>}
               <button type="button" onClick={() => {
-                if (guide === "android-kakao") openAndroidChromeInstallFlow();
-                else setGuide(null);
-              }}>{guide === "android-kakao" ? "Chrome에서 설치 계속" : "확인했어요"}</button>
+                setGuide(null);
+              }}>확인했어요</button>
             </footer>
           </section>
         </div>
@@ -282,6 +274,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
               window.dispatchEvent(new Event(INSTALL_VISIBILITY_EVENT));
               setConfirmInstalled(false);
               setGuide(null);
+              setAndroidGuide(null);
             }}>네, 설치되어 있어요</button></div>
           </section>
         </div>
@@ -321,13 +314,6 @@ function IosGuide() {
   const safari = /Safari/i.test(ua) && !inAppBrowser;
   return <div className="install-guide-body">
     {!safari ? <SafariHandoff isKakao={/KAKAOTALK|DaumApps/i.test(ua)} /> : <SafariInstallSteps />}
-  </div>;
-}
-
-function AndroidKakaoGuide() {
-  return <div className="install-guide-body android-kakao-guide">
-    <p className="install-guide-lead"><b>현재 카카오톡 내부 화면입니다.</b><br/>안드로이드 앱 설치는 Chrome에서 이어서 진행해 주세요.</p>
-    <ol className="install-steps"><li><em>1</em><span><b>아래 ‘Chrome에서 설치 계속’을 눌러 주세요</b><small>현재 로그인 화면을 Chrome으로 안전하게 넘깁니다.</small></span></li><li><em>2</em><span><b>Chrome의 설치창에서 ‘설치’를 눌러 주세요</b><small>완료되면 홈 화면에 한살매 수업노트가 생깁니다.</small></span></li></ol>
   </div>;
 }
 
