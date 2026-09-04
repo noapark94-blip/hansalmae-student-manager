@@ -8,7 +8,7 @@ import styles from "./alimtalk-send-center.module.css";
 
 type ReportType="daily"|"weekly";
 type ListMode="ready"|"sent";
-type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;attendance:{status:string;lateMinutes:number|null}|null;exams:{examTitle:string;score:number|null;maxScore:number}[]};
+type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;attendance:{status:string;lateMinutes:number|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
 type Recipient={guardianName:string;maskedPhone:string;available:boolean};
 type History={id:string;studentId:string;studentName:string;reportType:ReportType;periodStart:string;status:string;sentAt:string|null;errorMessage:string|null};
 type Preview={lesson:string;attendance:string;exam:string;homework:string;body:string};
@@ -85,17 +85,31 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
 }
 
 function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[]):Preview{
-  const counts=new Map<string,number>();for(const row of lessons){const key=`${row.subject} ${kindLabel[row.source]}`;counts.set(key,(counts.get(key)??0)+1)}
+  const counts=new Map<string,number>();for(const row of lessons){const key=row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`;counts.set(key,(counts.get(key)??0)+1)}
   const lesson=counts.size?Array.from(counts).map(([label,count])=>`${label}${count>1?` ${count}회`:""}`).join(" · "):"완료된 수업 없음";
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
-  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>`${exam.examTitle||"시험"} ${exam.score}/${exam.maxScore}`);return scored.length?scored:row.examContent?[short(row.examContent,42)]:[]}));
-  const homeworkItems=unique(lessons.map(row=>row.homeworkContent).filter(Boolean).map(value=>short(value,48)));
+  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));return scored.length?scored:row.examContent?[`${row.subject}: ${short(row.examContent,42)}`]:[]}));
+  const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:short(row.homeworkContent,48)})));
   const exam=summarize(examItems,type==="weekly"?3:4);
   const homework=summarize(homeworkItems,type==="weekly"?3:4);
   const date=type==="daily"?formatDay(start):formatPeriod(...Object.values(periodFor(type,start)) as [string,string]);
   const learningDetails=buildLearningDetails(exam,homework);
   const body=`[한살매 수업노트]\n\n${name} 학생의 ${date} ${type==="daily"?"학습기록":"주간 학습요약"}입니다.\n\n■ 수업\n${lesson}\n\n■ 출결\n${attendance}\n\n■ 학습 상세\n${learningDetails}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`;
   return{lesson,attendance,exam,homework,body};
+}
+function formatExam(subject:string,exam:Lesson["exams"][number]){
+  const category=exam.examType.trim()||"시험";
+  const title=exam.examTitle.trim();
+  const maxScore=Number(exam.maxScore);
+  const score=Number(exam.score);
+  const wordUnit=category.replace(/\s+/g,"").includes("단어시험")?"개":"";
+  const converted=Number.isFinite(score)&&Number.isFinite(maxScore)&&maxScore>0?` (${Math.round(score*100/maxScore)}점)`:"";
+  return `${subject}: ${category}${title&&title!==category?` · ${title}`:""} ${score}/${maxScore}${wordUnit}${converted}`;
+}
+function groupBySubject(items:{subject:string;value:string}[]){
+  const grouped=new Map<string,string[]>();
+  for(const item of items){const values=grouped.get(item.subject)??[];if(!values.includes(item.value))values.push(item.value);grouped.set(item.subject,values)}
+  return Array.from(grouped,([subject,values])=>`${subject}: ${values.join(" / ")}`);
 }
 function short(value:string,max:number){const clean=value.replace(/\s+/g," ").trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean}
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
