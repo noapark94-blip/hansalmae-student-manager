@@ -89,7 +89,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   const lesson=counts.size?Array.from(counts).map(([label,count])=>`${label}${count>1?` ${count}회`:""}`).join(" · "):"완료된 수업 없음";
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
   const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));return scored.length?scored:row.examContent?[`${row.subject}: ${short(row.examContent,42)}`]:[]}));
-  const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:short(row.homeworkContent,48)})));
+  const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
   const exam=summarize(examItems,type==="weekly"?3:4);
   const homework=summarize(homeworkItems,type==="weekly"?3:4);
   const date=type==="daily"?formatDay(start):formatPeriod(...Object.values(periodFor(type,start)) as [string,string]);
@@ -109,13 +109,14 @@ function formatExam(subject:string,exam:Lesson["exams"][number]){
 function groupBySubject(items:{subject:string;value:string}[]){
   const grouped=new Map<string,string[]>();
   for(const item of items){const values=grouped.get(item.subject)??[];if(!values.includes(item.value))values.push(item.value);grouped.set(item.subject,values)}
-  return Array.from(grouped,([subject,values])=>`${subject}: ${values.join(" / ")}`);
+  return Array.from(grouped,([subject,values])=>values.flatMap(value=>value.split("\n")).map((line,index)=>index===0?`${subject}: ${line}`:`　　 ${line}`).join("\n"));
 }
 function short(value:string,max:number){const clean=value.replace(/\s+/g," ").trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean}
+function cleanMultiline(value:string){return value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).join("\n")}
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
 function summarize(values:string[],limit:number){if(!values.length)return"";const shown=values.slice(0,limit);return `${shown.join("\n")}${values.length>limit?`\n외 ${values.length-limit}건`:""}`}
 function buildLearningDetails(exam:string,homework:string){return [formatDetailGroup("시험",exam),formatDetailGroup("과제",homework)].filter(Boolean).join("\n")||"수업 기록 완료"}
-function formatDetailGroup(label:string,value:string){if(!value)return"";return value.split("\n").map((line,index)=>index===0?`${label}: ${line}`:`　　 ${line}`).join("\n")}
+function formatDetailGroup(label:string,value:string){return value?`${label}\n${value}`:""}
 function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function periodFor(type:ReportType,anchor:string){if(type==="daily")return{start:anchor,end:anchor};const date=new Date(`${anchor}T12:00:00+09:00`);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);const start=todayFrom(date);date.setDate(date.getDate()+6);return{start,end:todayFrom(date)}}
 function todayFrom(date:Date){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date)}

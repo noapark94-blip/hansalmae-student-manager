@@ -47,4 +47,4 @@ Deno.serve(async request=>{
 });
 
 function formatDate(value:string){const parts=value.split("-");return `${Number(parts[1])}월 ${Number(parts[2])}일`}
-function formatDetailGroup(label:string,value:string){if(!value)return"";return value.split("\n").map((line,index)=>index===0?`${label}: ${line}`:`　　 ${line}`).join("\n")}
+function formatDetailGroup(label:string,value:string){return value?`${label}\n${value}`:""}
