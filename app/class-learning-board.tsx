@@ -1788,7 +1788,7 @@ export function ExamCategoryModal({
             <p className="eyebrow">개인 설정</p>
             <h2>시험 카테고리 관리</h2>
             <span>
-              선생님별 시험 종류를 추가·이름 변경하거나 영구 삭제할 수 있습니다.
+              관리자·선생님·조교가 함께 쓰는 시험 종류를 추가·이름 변경하거나 영구 삭제할 수 있습니다.
             </span>
           </div>
           <button onClick={onClose}>×</button>

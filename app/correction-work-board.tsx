@@ -6,13 +6,13 @@ import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { appConfirm } from "./app-dialog";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
+import { ExamCategoryModal, type ExamCategory } from "./class-learning-board";
 
 type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;validFrom:string;validUntil:string|null;tutorName:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={assignment:Assignment;date:string;startTime:string;endTime:string;kind:"fixed"|"move"|"extra";exception?:Exception};
 type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;absenceReason?:string;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null};
-type ExamCategory={id:string;name:string;isActive:boolean;sortOrder:number};
 type AttendanceEditor={row:Occurrence;status:"late"|"absent";value:string};
 type CorrectionReadStatus={reportAvailable:boolean;totalStudents:number;confirmedStudents:number;unconfirmedStudents:number;unlinkedStudents:number;students:{studentId:string;studentName:string;school:string|null;grade:string|null;status:"confirmed"|"unconfirmed"|"unlinked";viewedAt:string|null}[]};
 
@@ -33,6 +33,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[saving,setSaving]=useState("");
   const[error,setError]=useState("");
   const[monthOpen,setMonthOpen]=useState(false);
+  const[categoryOpen,setCategoryOpen]=useState(false);
   const[missingStudentOpen,setMissingStudentOpen]=useState(false);
   const[historyStudent,setHistoryStudent]=useState<Assignment|null>(null);
   const[scheduleChangeRow,setScheduleChangeRow]=useState<Occurrence|null>(null);
@@ -63,6 +64,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   },[date,supabase]);
 
   useEffect(()=>{void load()},[load]);
+  const refreshCategories=useCallback(async()=>{
+    const{data:next,error:categoryError}=await supabase.rpc("staff_exam_categories");
+    if(categoryError)setError(categoryError.message);
+    else setCategories((next??[]) as ExamCategory[]);
+  },[supabase]);
   const selectDate=(nextDate:string)=>{setIncompleteOnly(false);setDate(nextDate)};
   const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
   const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
@@ -171,11 +177,12 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘 한 첨삭과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions">{date<koreaToday()?<button type="button" className="secondary-button" onClick={()=>setMissingStudentOpen(true)}>이 날짜 누락 학생</button>:null}<button type="button" className="secondary-button correction-calendar-button" onClick={()=>setMonthOpen(true)}>전체 첨삭 캘린더</button></div></header>
     <div className="class-week-navigation correction-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>selectDate(addDays(date,-7))}>‹</button><div className="class-week-strip correction-week-strip">{weekDates.map((day,index)=>{const dayRows=buildOccurrences(data,day),overflow=dayRows.length-6;return <button key={day} className={`${day===date?"active":""} ${dayRows.length?"scheduled":""}`} aria-current={day===date?"date":undefined} onClick={()=>selectDate(day)}><span>{weekdays[index]}</span><b>{+day.slice(8)}</b><small className="correction-mobile-day-count">{dayRows.length?`${dayRows.length}명`:"없음"}</small><div>{dayRows.slice(0,6).map(row=>{const report=drafts[reportKey(row)]??{};const status=report.attendanceStatus??"scheduled";return <em key={reportKey(row)} className={`subject-${row.assignment.subject} status-${status} ${row.assignment.isDateOverride?"date-override":""}`}>{row.assignment.studentName}{row.assignment.isDateOverride?<span className="correction-date-override-badge compact">보정</span>:null}{row.kind!=="fixed"?<span className={`correction-direct-badge compact ${row.kind}`}>{row.kind==="move"?"변경":"추가"}</span>:null}</em>})}{overflow>0?<span className="correction-week-more" role="button" tabIndex={0} onClick={event=>{event.stopPropagation();setWeekRosterDate(day)}} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();event.stopPropagation();setWeekRosterDate(day)}}}>+{overflow}명</span>:null}{!dayRows.length?<small>첨삭 없음</small>:null}</div></button>})}</div><button type="button" aria-label="다음 주" onClick={()=>selectDate(addDays(date,7))}>›</button></div>
     <CorrectionReportReadStatus key={`${date}-${Object.values(drafts).filter(report=>report.published).length}`} supabase={supabase} date={date}/>
-    <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span>시험 기록</span><span>오늘 한 첨삭과제</span></div>
+    <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span className="learning-exam-heading"><b>시험 기록</b><button type="button" onClick={()=>setCategoryOpen(true)}>시험 카테고리 관리</button></span><span>오늘 한 첨삭과제</span></div>
     {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=visibleRows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:incompleteOnly&&!visibleRows.length?<div className="makeup-empty"><p>미완료 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
     {rows.length?<footer><span className="correction-completion-summary"><b>{completed?"전체 완료":`완료 ${completedCount}명 · 미완료 ${rows.length-completedCount}명`}</b><small>완료된 학생만 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</small></span><span className="learning-completion-actions">{!completed&&incompleteRows.length?<button type="button" className={`secondary-button correction-incomplete-filter ${incompleteOnly?"active":""}`} disabled={saving==="all"} onClick={()=>setIncompleteOnly(value=>!value)}>{incompleteOnly?"전체 학생 보기":`미완료 ${incompleteRows.length}명만 보기`}</button>:null}{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||readyToCompleteCount===0} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":readyToCompleteCount?`입력된 ${readyToCompleteCount}명 완료`:"출결 입력 후 완료"}</button></>}</span></footer>:null}
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={selectDate} onClose={()=>setMonthOpen(false)}/>:null}
+    {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={refreshCategories}/>:null}
     {missingStudentOpen?<CorrectionDateAssignmentEditor date={date} supabase={supabase} onClose={()=>setMissingStudentOpen(false)} onSaved={async()=>{setMissingStudentOpen(false);await load()}}/>:null}
     {historyStudent?<CorrectionHistoryModal supabase={supabase} student={historyStudent} onClose={()=>setHistoryStudent(null)}/>:null}
     {scheduleChangeRow?.exception?<CorrectionScheduleChangeModal row={scheduleChangeRow} supabase={supabase} onClose={()=>setScheduleChangeRow(null)} onReverted={async()=>{setScheduleChangeRow(null);await load();}}/>:null}
