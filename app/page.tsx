@@ -150,6 +150,16 @@ function formatPhoneNumber(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
+const SIGNUP_EMAIL_PATTERN = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}$/i;
+const COMMON_EMAIL_DOMAINS = [
+  ["네이버", "naver.com"],
+  ["Gmail", "gmail.com"],
+  ["다음", "daum.net"],
+  ["한메일", "hanmail.net"],
+  ["카카오", "kakao.com"],
+  ["iCloud", "icloud.com"],
+] as const;
+
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "dashboard", label: "홈", icon: "⌂" },
   { id: "students", label: "학생", icon: "人" },
@@ -2572,6 +2582,11 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
   };
   const register = async (event: FormEvent) => {
     event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!SIGNUP_EMAIL_PATTERN.test(normalizedEmail)) {
+      setMessage("이메일을 아이디@도메인.com 형식으로 정확히 입력해 주세요.");
+      return;
+    }
     if (password !== confirm) {
       setMessage("비밀번호가 서로 일치하지 않습니다.");
       return;
@@ -2582,7 +2597,7 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
       await invoke({
         action: "register",
         code,
-        email,
+        email: normalizedEmail,
         password,
         displayName,
         phone,
@@ -2663,7 +2678,15 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
               <label>
                 이메일
                 <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" />
+                <small className="signup-email-help">이메일 아이디를 입력한 뒤 자주 쓰는 주소를 선택할 수 있어요.</small>
               </label>
+              <div className="signup-email-domains" aria-label="자주 쓰는 이메일 주소">
+                {COMMON_EMAIL_DOMAINS.map(([label,domain])=><button type="button" key={domain} onClick={()=>{
+                  const local=email.trim().split("@")[0];
+                  if(!local){setMessage("이메일 아이디를 먼저 입력해 주세요.");return;}
+                  setEmail(`${local}@${domain}`);setMessage("");
+                }}>{label}<small>@{domain}</small></button>)}
+              </div>
               {role === "guardian" && (
                 <label>
                   연락처

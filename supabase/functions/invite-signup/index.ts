@@ -12,6 +12,28 @@ const json = (body: Record<string, unknown>, status = 200) =>
 const normalizeCode = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 const hashCode = async (code: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code)));
 const toHex = (bytes: Uint8Array) => `\\x${[...bytes].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+const emailPattern = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}$/i;
+const domainCache = new Map<string, { valid: boolean; expiresAt: number }>();
+
+async function hasMailServer(domain: string) {
+  const cached = domainCache.get(domain);
+  if (cached && cached.expiresAt > Date.now()) return cached.valid;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4500);
+  try {
+    const response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
+      headers: { Accept: "application/dns-json" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error("메일 도메인 확인 서버가 응답하지 않습니다.");
+    const result = await response.json() as { Status?: number; Answer?: Array<{ type?: number; data?: string }> };
+    const valid = result.Status === 0 && Boolean(result.Answer?.some((answer) => answer.type === 15 && !/^\d+\s+\.$/.test(answer.data?.trim() ?? "")));
+    domainCache.set(domain, { valid, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return valid;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -47,11 +69,17 @@ Deno.serve(async (request) => {
       valid: true,
       role: invite.role,
       targetName: invite.targetName,
+      targetNames: invite.targetNames,
     });
   const email = input.email?.trim().toLowerCase(),
     name = invite.role === "student" ? String(invite.targetName ?? "").trim() : input.displayName?.trim(),
     phone = input.phone?.trim() ?? "";
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "올바른 이메일을 입력해 주세요." }, 400);
+  if (!email || !emailPattern.test(email)) return json({ error: "이메일을 아이디@도메인.com 형식으로 정확히 입력해 주세요." }, 400);
+  try {
+    if (!await hasMailServer(email.slice(email.lastIndexOf("@") + 1))) return json({ error: "사용할 수 없는 이메일 도메인입니다. 이메일 주소를 다시 확인해 주세요." }, 400);
+  } catch {
+    return json({ error: "이메일 도메인을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요." }, 503);
+  }
   if (!input.password || input.password.length < 8) return json({ error: "비밀번호는 8자 이상 입력해 주세요." }, 400);
   if (!name) return json({ error: "이름을 입력해 주세요." }, 400);
   if (invite.role === "guardian" && !phone) return json({ error: "학부모 연락처를 입력해 주세요." }, 400);
