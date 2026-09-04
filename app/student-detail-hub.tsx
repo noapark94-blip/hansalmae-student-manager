@@ -10,6 +10,13 @@ import { CorrectionHistoryModal } from "./correction-history-modal";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
 import { examCategoryLabel } from "./exam-display";
 
+function formatPhoneNumber(value:string){
+  const digits=value.replace(/\D/g,"").slice(0,11);
+  if(digits.length<=3)return digits;
+  if(digits.length<=7)return `${digits.slice(0,3)}-${digits.slice(3)}`;
+  return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+}
+
 type StudentValues = {
   id: string;
   name: string;
@@ -312,7 +319,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
                     </label>
                     <label>
                     학생 연락처
-                    <input value={values.phone} onChange={(event) => update("phone", event.target.value)} />
+                    <input type="tel" inputMode="numeric" maxLength={13} value={values.phone} onChange={(event) => update("phone", formatPhoneNumber(event.target.value))} placeholder="숫자만 입력" />
                     </label>
                     <label>
                     학부모 성함
@@ -320,7 +327,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
                     </label>
                     <label>
                     학부모 연락처
-                    <input type="tel" inputMode="numeric" value={values.guardianPhone??""} onChange={(event)=>update("guardianPhone",event.target.value)} placeholder="숫자만 입력" />
+                    <input type="tel" inputMode="numeric" maxLength={13} value={values.guardianPhone??""} onChange={(event)=>update("guardianPhone",formatPhoneNumber(event.target.value))} placeholder="숫자만 입력" />
                     </label>
                   </div>
                 </section>
