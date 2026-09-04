@@ -104,7 +104,7 @@ function formatExam(subject:string,exam:Lesson["exams"][number]){
   const score=Number(exam.score);
   const wordUnit=category.replace(/\s+/g,"").includes("단어시험")?"개":"";
   const converted=Number.isFinite(score)&&Number.isFinite(maxScore)&&maxScore>0?` (${Math.round(score*100/maxScore)}점)`:"";
-  return `${subject}: ${category}${title&&title!==category?` · ${title}`:""} ${score}/${maxScore}${wordUnit}${converted}`;
+  return `${subject}: ${category}${title&&title!==category?`(${title})`:""} ${score}/${maxScore}${wordUnit}${converted}`;
 }
 function groupBySubject(items:{subject:string;value:string}[]){
   const grouped=new Map<string,string[]>();
