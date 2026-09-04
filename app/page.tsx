@@ -2526,6 +2526,7 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
     [code, setCode] = useState(""),
     [role, setRole] = useState(""),
     [targetName, setTargetName] = useState(""),
+    [targetNames, setTargetNames] = useState<string[]>([]),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [confirm, setConfirm] = useState(""),
@@ -2559,6 +2560,7 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
         nextTargetName = String(data.targetName);
       setRole(nextRole);
       setTargetName(nextTargetName);
+      setTargetNames(Array.isArray(data.targetNames) ? data.targetNames.map(String) : nextTargetName ? [nextTargetName] : []);
       setDisplayName(nextRole === "student" ? nextTargetName : "");
       setStep(2);
     } catch (next) {
@@ -2646,8 +2648,9 @@ function InviteSignup({ supabase, onBack }: { supabase: SupabaseClient; onBack: 
           <div className="signup-step-content">
             <section className="signup-target">
               <span>{roleLabels[role]} 계정</span>
-              <b>{targetName}</b>
-              <small>이 연결 정보는 가입 후 자동으로 적용됩니다.</small>
+              <b>{role==="guardian"&&targetNames.length>1?`연결 예정 자녀 ${targetNames.length}명`:targetName}</b>
+              {role==="guardian"&&targetNames.length>1?<div className="signup-target-children">{targetNames.map(name=><em key={name}>{name}</em>)}</div>:null}
+              <small>{role==="guardian"&&targetNames.length>1?"가입 완료와 동시에 위 자녀들이 모두 연결됩니다.":"이 연결 정보는 가입 후 자동으로 적용됩니다."}</small>
             </section>
             <form onSubmit={register}>
               <label>

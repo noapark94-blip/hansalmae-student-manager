@@ -12,7 +12,7 @@ const randomCode=()=>{const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",bytes=crypt
 async function authorization(apiKey:string,apiSecret:string){const date=new Date().toISOString(),salt=crypto.randomUUID().replaceAll("-","");const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(apiSecret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);const signed=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(date+salt));return `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${hex(new Uint8Array(signed))}`}
 
 type InviteRole="student"|"guardian"|"teacher";
-type Input={action?:"send"|"issueAndSend"|"resend";inviteId?:string;code?:string;role?:InviteRole;studentId?:string;recipientName?:string;recipientPhone?:string};
+type Input={action?:"send"|"issueAndSend"|"resend";inviteId?:string;code?:string;role?:InviteRole;studentId?:string;studentIds?:string[];recipientName?:string;recipientPhone?:string};
 type Invite={id:string;role:InviteRole;student_id:string|null;code_hash:string;expires_at:string;used_at:string|null;revoked_at:string|null;recipient_name:string|null;recipient_phone:string|null};
 
 Deno.serve(async request=>{
@@ -31,6 +31,7 @@ Deno.serve(async request=>{
   const {data:prepared,error:prepareError}=await auth.rpc("admin_prepare_account_invite_sms",{p_action:action,p_invite_id:input.inviteId??null,p_code:normalize(input.code??"")||null,p_role:input.role??null,p_student_id:input.studentId??null,p_recipient_name:input.recipientName??null,p_recipient_phone:input.recipientPhone??null});
   if(prepareError||!prepared){console.error("[send-account-invite-sms] prepare failed",{action,code:prepareError?.code??null,error:prepareError?.message??null});return json({error:prepareError?.message??"초대 정보를 준비하지 못했습니다."},400)}
   const resultRow=prepared as{inviteId:string;code:string;role:InviteRole;recipientName:string;studentName:string;recipientPhone:string};
+  if(resultRow.role==="guardian"&&(input.studentIds?.length??0)>1){const{error:linkError}=await auth.rpc("admin_set_guardian_invite_students",{p_invite_id:resultRow.inviteId,p_student_ids:input.studentIds});if(linkError)return json({error:linkError.message},400)}
   const code=normalize(resultRow.code),phone=digits(resultRow.recipientPhone),recipientName=resultRow.recipientName,studentName=resultRow.studentName??"";
   const formatted=`${code.slice(0,4)}-${code.slice(4)}`,roleLabel=resultRow.role==="student"?"학생":resultRow.role==="guardian"?"학부모":"선생님";
   const text=`[한살매 수업노트]\n${roleLabel} 회원가입 초대코드: ${formatted}\n아래 주소에서 '학원에서 받은 초대코드로 가입'을 선택해 주세요.\nhttps://hansalmae-student-manager.vercel.app`;
