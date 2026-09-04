@@ -116,7 +116,7 @@ function cleanMultiline(value:string){return value.split(/\r?\n/).map(line=>line
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
 function summarize(values:string[],limit:number){if(!values.length)return"";const shown=values.slice(0,limit);return `${shown.join("\n")}${values.length>limit?`\n외 ${values.length-limit}건`:""}`}
 function buildLearningDetails(exam:string,homework:string){return [formatDetailGroup("시험",exam),formatDetailGroup("과제",homework)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
-function formatDetailGroup(label:string,value:string){return value?`<${label}>\n\n${value}`:""}
+function formatDetailGroup(label:string,value:string){return value?`<${label}>\n${value}`:""}
 function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function periodFor(type:ReportType,anchor:string){if(type==="daily")return{start:anchor,end:anchor};const date=new Date(`${anchor}T12:00:00+09:00`);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);const start=todayFrom(date);date.setDate(date.getDate()+6);return{start,end:todayFrom(date)}}
 function todayFrom(date:Date){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(date)}
