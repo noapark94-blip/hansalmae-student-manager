@@ -43,14 +43,15 @@ async function prepareAndroidInstall() {
   }
 }
 
-export function AppInstallPrompt() {
-  const [device, setDevice] = useState<"android" | "ios" | null>(null);
+export function AppInstallPrompt({ placement = "login" }: { placement?: "login" | "topbar" }) {
+  const [device, setDevice] = useState<"android" | "ios" | "desktop" | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [guide, setGuide] = useState<"ios" | null>(null);
   const [installed, setInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [androidMessage, setAndroidMessage] = useState("");
   const [samsungGuide, setSamsungGuide] = useState(false);
+  const [attention, setAttention] = useState(false);
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -59,6 +60,11 @@ export function AppInstallPrompt() {
     const android = /Android/i.test(ua);
     if (/iPhone|iPad|iPod/i.test(ua)) setDevice("ios");
     else if (android) setDevice("android");
+    else setDevice("desktop");
+
+    if (placement === "topbar") {
+      setAttention(window.sessionStorage.getItem("hansalmae:install-button-seen") !== "1");
+    }
 
     const installWindow = window as InstallWindow;
     const installRequested = android && new URL(window.location.href).searchParams.get("install") === "1";
@@ -110,7 +116,7 @@ export function AppInstallPrompt() {
       window.removeEventListener("beforeinstallprompt", receivePrompt);
       window.removeEventListener("appinstalled", finishInstall);
     };
-  }, []);
+  }, [placement]);
 
   if (!device || installed) return null;
 
@@ -128,6 +134,10 @@ export function AppInstallPrompt() {
   };
 
   const openInstall = async () => {
+    if (placement === "topbar") {
+      window.sessionStorage.setItem("hansalmae:install-button-seen", "1");
+      setAttention(false);
+    }
     if (device === "ios") {
       setGuide("ios");
       return;
@@ -166,11 +176,17 @@ export function AppInstallPrompt() {
 
   return (
     <>
-      <button type="button" className="app-install-button" disabled={installing} onClick={() => void openInstall()}>
+      <button
+        type="button"
+        className={`app-install-button${placement === "topbar" ? ` app-install-topbar${attention ? " is-calling" : ""}` : ""}`}
+        disabled={installing}
+        onClick={() => void openInstall()}
+        aria-label={installing ? "앱 설치창 여는 중" : "한살매 수업노트 앱 설치"}
+      >
         <span className="app-install-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg>
         </span>
-        <span><b>{installing ? "설치창 여는 중…" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
+        <span><b>{installing ? "설치 중…" : placement === "topbar" ? "앱 설치" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : device === "desktop" ? "이 기기에 앱으로 설치하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
         <i aria-hidden="true">›</i>
       </button>
       {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}

@@ -737,6 +737,7 @@ export default function Home() {
               <span>수업노트</span>
             </button>
             <div>
+              {profile.role === "guardian" && <AppInstallPrompt placement="topbar" />}
               <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={(studentId)=>{if(studentId)selectFamilyStudent(studentId);selectView("dashboard")}} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
             </div>
           </header>
