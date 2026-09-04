@@ -32,7 +32,7 @@ import { AlimtalkSendCenter } from "./alimtalk-send-center";
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
 import { useMobileGreeting } from "./mobile-greeting";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
-import { AppInstallPrompt } from "./app-install-prompt";
+import { AppInstallPrompt, KakaoInstallButtonRecovery } from "./app-install-prompt";
 import { GuardianPushPrompt, PushDeviceAccountSync } from "./guardian-push-toggle";
 import { GradeProgressionBoard } from "./grade-progression-board";
 import { VocabularyTestGenerator } from "./vocabulary-test-generator";
@@ -1023,6 +1023,7 @@ function FamilyMoreSheet({ activeView, displayName, role, onSelect, onClose, onS
             </span>
             <em>›</em>
           </button>
+          {role === "guardian" && <KakaoInstallButtonRecovery />}
         </div>
         <button type="button" className="family-more-signout" onClick={onSignOut}>
           <span><HansalmaeIcon name="logout" size={16} /></span>

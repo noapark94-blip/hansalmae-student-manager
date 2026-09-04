@@ -15,6 +15,9 @@ type InstallWindow = Window & {
   __hansalmaeAutoInstall?: boolean;
 };
 
+const KAKAO_INSTALL_HIDDEN_KEY = "hansalmae:kakao-install-button-hidden";
+const INSTALL_VISIBILITY_EVENT = "hansalmae:install-visibility-change";
+
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
@@ -22,6 +25,10 @@ function isStandalone() {
 
 function isAndroidInAppBrowser(ua: string) {
   return /Android/i.test(ua) && /KAKAOTALK|DaumApps|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+}
+
+function isKakaoInAppBrowser(ua = navigator.userAgent) {
+  return /KAKAOTALK|DaumApps/i.test(ua);
 }
 
 function openAndroidChromeInstallFlow() {
@@ -48,12 +55,14 @@ async function prepareAndroidInstall() {
 export function AppInstallPrompt({ placement = "login" }: { placement?: "login" | "topbar" }) {
   const [device, setDevice] = useState<"android" | "ios" | "desktop" | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const [guide, setGuide] = useState<"ios" | null>(null);
+  const [guide, setGuide] = useState<"ios" | "android-kakao" | null>(null);
   const [installed, setInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [androidMessage, setAndroidMessage] = useState("");
   const [samsungGuide, setSamsungGuide] = useState(false);
   const [attention, setAttention] = useState(false);
+  const [hiddenInKakao, setHiddenInKakao] = useState(false);
+  const [confirmInstalled, setConfirmInstalled] = useState(false);
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -64,8 +73,12 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
     else if (android) setDevice("android");
     else setDevice("desktop");
 
+    let syncVisibility: (() => void) | null = null;
     if (placement === "topbar") {
       setAttention(window.sessionStorage.getItem("hansalmae:install-button-seen") !== "1");
+      syncVisibility = () => setHiddenInKakao(isKakaoInAppBrowser(ua) && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
+      syncVisibility();
+      window.addEventListener(INSTALL_VISIBILITY_EVENT, syncVisibility);
     }
 
     const installWindow = window as InstallWindow;
@@ -117,10 +130,11 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
     return () => {
       window.removeEventListener("beforeinstallprompt", receivePrompt);
       window.removeEventListener("appinstalled", finishInstall);
+      if (syncVisibility) window.removeEventListener(INSTALL_VISIBILITY_EVENT, syncVisibility);
     };
   }, [placement]);
 
-  if (!device || installed) return null;
+  if (!device || installed || hiddenInKakao) return null;
 
   const launchAndroidPrompt = async (promptEvent: InstallPromptEvent) => {
     setInstalling(true);
@@ -155,6 +169,11 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
 
     const ua = navigator.userAgent;
     const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
+
+    if (device === "android" && isKakaoInAppBrowser(ua)) {
+      setGuide("android-kakao");
+      return;
+    }
 
     if (promptEvent) {
       if (/SamsungBrowser/i.test(ua)) {
@@ -238,16 +257,57 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
           <section className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
             <header>
               <Image className="install-guide-logo" src="/app-icon-192-v13.png" width={42} height={42} alt="" aria-hidden="true" />
-              <div><small>한살매 수업노트</small><h2 id="install-guide-title">아이폰에 설치하기</h2></div>
+              <div><small>한살매 수업노트</small><h2 id="install-guide-title">{guide === "ios" ? "아이폰에 설치하기" : "앱으로 열기"}</h2></div>
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>
-            <IosGuide />
-            <footer><button type="button" onClick={() => setGuide(null)}>확인했어요</button></footer>
+            {guide === "ios" ? <IosGuide /> : <AndroidKakaoGuide />}
+            <footer className={isKakaoInAppBrowser() ? "install-guide-choice-actions" : ""}>
+              {isKakaoInAppBrowser() && <button type="button" className="installed-already" onClick={() => setConfirmInstalled(true)}>이미 설치했어요</button>}
+              <button type="button" onClick={() => {
+                if (guide === "android-kakao") openAndroidChromeInstallFlow();
+                else setGuide(null);
+              }}>{guide === "android-kakao" ? "Chrome에서 설치 계속" : "확인했어요"}</button>
+            </footer>
+          </section>
+        </div>
+      </InstallPortal>}
+      {confirmInstalled && <InstallPortal>
+        <div className="install-guide-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmInstalled(false); }}>
+          <section className="install-installed-confirm" role="alertdialog" aria-modal="true" aria-labelledby="installed-confirm-title">
+            <span className="app-install-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17l9-10" /></svg></span>
+            <h2 id="installed-confirm-title">한살매 앱이 홈 화면에 설치되어 있나요?</h2>
+            <p>확인하면 카카오톡 화면에서는 앱 설치 버튼을 숨깁니다. 더보기에서 언제든 다시 표시할 수 있어요.</p>
+            <div><button type="button" className="secondary-button" onClick={() => setConfirmInstalled(false)}>아니요, 돌아가기</button><button type="button" onClick={() => {
+              window.localStorage.setItem(KAKAO_INSTALL_HIDDEN_KEY, "1");
+              window.dispatchEvent(new Event(INSTALL_VISIBILITY_EVENT));
+              setConfirmInstalled(false);
+              setGuide(null);
+            }}>네, 설치되어 있어요</button></div>
           </section>
         </div>
       </InstallPortal>}
     </>
   );
+}
+
+export function KakaoInstallButtonRecovery() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const sync = () => setVisible(!isStandalone() && isKakaoInAppBrowser() && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
+    sync();
+    window.addEventListener(INSTALL_VISIBILITY_EVENT, sync);
+    return () => window.removeEventListener(INSTALL_VISIBILITY_EVENT, sync);
+  }, []);
+  if (!visible) return null;
+  return <button type="button" onClick={() => {
+    window.localStorage.removeItem(KAKAO_INSTALL_HIDDEN_KEY);
+    window.sessionStorage.removeItem("hansalmae:install-button-seen");
+    window.dispatchEvent(new Event(INSTALL_VISIBILITY_EVENT));
+  }}>
+    <i aria-hidden="true">↓</i>
+    <span><b>앱 설치 버튼 다시 표시</b><small>실수로 숨긴 설치 버튼을 상단에 다시 보여요.</small></span>
+    <em>›</em>
+  </button>;
 }
 
 function InstallPortal({ children }: { children: ReactNode }) {
@@ -261,6 +321,13 @@ function IosGuide() {
   const safari = /Safari/i.test(ua) && !inAppBrowser;
   return <div className="install-guide-body">
     {!safari ? <SafariHandoff isKakao={/KAKAOTALK|DaumApps/i.test(ua)} /> : <SafariInstallSteps />}
+  </div>;
+}
+
+function AndroidKakaoGuide() {
+  return <div className="install-guide-body android-kakao-guide">
+    <p className="install-guide-lead"><b>현재 카카오톡 내부 화면입니다.</b><br/>안드로이드 앱 설치는 Chrome에서 이어서 진행해 주세요.</p>
+    <ol className="install-steps"><li><em>1</em><span><b>아래 ‘Chrome에서 설치 계속’을 눌러 주세요</b><small>현재 로그인 화면을 Chrome으로 안전하게 넘깁니다.</small></span></li><li><em>2</em><span><b>Chrome의 설치창에서 ‘설치’를 눌러 주세요</b><small>완료되면 홈 화면에 한살매 수업노트가 생깁니다.</small></span></li></ol>
   </div>;
 }
 
