@@ -134,7 +134,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
     };
   }, [placement]);
 
-  if (!device || installed || hiddenInKakao) return null;
+  if (!device || device === "desktop" || installed || hiddenInKakao) return null;
 
   const launchAndroidPrompt = async (promptEvent: InstallPromptEvent) => {
     setInstalling(true);
@@ -207,7 +207,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
         <span className="app-install-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v3.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V15" /></svg>
         </span>
-        <span><b>{installing ? "설치 중…" : placement === "topbar" ? "앱 설치" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : device === "desktop" ? "이 기기에 앱으로 설치하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
+        <span><b>{installing ? "설치 중…" : placement === "topbar" ? "앱 설치" : "한살매 수업노트 설치"}</b><small>{device === "ios" ? "아이폰 홈 화면에 추가하기" : "누르면 바로 안드로이드 설치창이 열립니다"}</small></span>
         <i aria-hidden="true">›</i>
       </button>
       {androidMessage && <p className="app-install-status" role="status">{androidMessage}</p>}
