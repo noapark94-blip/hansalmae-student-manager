@@ -4,6 +4,7 @@ const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Heade
 const json=(body:Record<string,unknown>,status=200)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,"Content-Type":"application/json"}});
 const digits=(value:string)=>value.replace(/\D/g,"");
 const credential=(value:string|undefined)=>(value??"").trim().replace(/^(\"|')(.*)\1$/,"$2").replace(/[\s\uFEFF]+/g,"");
+const namedKey=(value:string|undefined)=>{try{const keys=JSON.parse(value??"{}") as Record<string,string>;return credential(keys.default)}catch{return ""}};
 const normalize=(value:string)=>value.toUpperCase().replace(/[^A-Z0-9]/g,"");
 const hash=async(value:string)=>new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)));
 const hex=(value:Uint8Array)=>Array.from(value,byte=>byte.toString(16).padStart(2,"0")).join("");
@@ -17,7 +18,7 @@ type Invite={id:string;role:InviteRole;student_id:string|null;code_hash:string;e
 Deno.serve(async request=>{
   if(request.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
   if(request.method!=="POST")return json({error:"지원하지 않는 요청입니다."},405);
-  const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=namedKey(Deno.env.get("SUPABASE_SECRET_KEYS"))||credential(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   const apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
   const bearer=request.headers.get("Authorization");
   if(!url||!anon||!service||!apiKey||!apiSecret||!sender)return json({error:"초대 문자 발송 서버 설정을 확인해 주세요."},500);
