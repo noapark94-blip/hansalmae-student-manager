@@ -62,3 +62,11 @@
 
 /* Keep the first callout on the same line as “세부정보 더 보기” */
 .samsung-tap-marker.step-one{top:67.5%}
+
+/* Keep Android guide content and actions in separate, non-overlapping rows */
+.samsung-install-guide{display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+.samsung-install-guide>header{position:relative}
+.samsung-install-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:20px}
+.install-guide>footer.samsung-install-actions{position:relative;z-index:2;bottom:auto;grid-template-columns:minmax(0,.9fr) minmax(0,1.65fr);padding-top:12px;background:#fff;box-shadow:0 -8px 24px rgba(64,38,50,.06)}
+.install-guide>footer.samsung-install-actions button{min-width:0;padding:0 8px;white-space:nowrap;font-size:11px}
+@media(max-width:380px){.install-guide>footer.samsung-install-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);padding-right:12px;padding-left:12px}.install-guide>footer.samsung-install-actions button{font-size:10px}}
