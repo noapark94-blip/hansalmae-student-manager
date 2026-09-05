@@ -8,8 +8,8 @@
   @supports (-webkit-touch-callout:none){
     input,select,textarea{font-size:16px!important}
   }
-  body:has(input:focus,select:focus,textarea:focus) .staff-bottom-nav,
-  body:has(input:focus,select:focus,textarea:focus) .family-bottom-nav{
+  body:has(input:focus,textarea:focus) .staff-bottom-nav,
+  body:has(input:focus,textarea:focus) .family-bottom-nav{
     display:none!important;
   }
 }
