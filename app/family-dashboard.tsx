@@ -29,6 +29,35 @@ type Child = {
   school: string | null;
   grade: string | null;
 };
+
+export function FamilyChildSwitcher({ childOptions, selected, loading = false, onStudentChange }: { childOptions: Child[]; selected: Child; loading?: boolean; onStudentChange: (studentId: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
+  }, [open]);
+  if (childOptions.length < 2) return null;
+  return <>
+    <button type="button" className="family-child-switcher" disabled={loading} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}>
+      <i aria-hidden="true">{selected.name.slice(0, 1)}</i>
+      <span><small>보고 있는 자녀</small><b>{selected.name}</b><em>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "학생 정보"}</em></span>
+      <strong><small>자녀 변경</small><em aria-hidden="true">⌄</em></strong>
+    </button>
+    {open && typeof document !== "undefined" ? createPortal(
+      <div className="family-child-picker" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="family-child-picker-title">
+          <i className="family-child-picker-handle" aria-hidden="true" />
+          <header><span><small>학습기록 전환</small><h2 id="family-child-picker-title">자녀 선택</h2></span><button type="button" onClick={() => setOpen(false)} aria-label="자녀 선택창 닫기">×</button></header>
+          <div>{childOptions.map((child) => { const active = child.id === selected.id; return <button type="button" key={child.id} className={active ? "active" : ""} aria-pressed={active} onClick={() => { setOpen(false); if (!active) onStudentChange(child.id); }}><i aria-hidden="true">{child.name.slice(0, 1)}</i><span><b>{child.name}</b><small>{[child.school, child.grade].filter(Boolean).join(" · ") || "학생 정보"}</small></span><em aria-hidden="true">{active ? "✓" : "›"}</em></button>; })}</div>
+          <p>선택한 자녀의 학습피드·시간표·성적 기록으로 바로 전환됩니다.</p>
+        </section>
+      </div>, document.body) : null}
+  </>;
+}
 type ClassItem = {
   id: string;
   name: string;
@@ -186,7 +215,6 @@ export function FamilyLiveDashboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [todayLessons,setTodayLessons]=useState<TodayLesson[]>([]);
-  const [childPickerOpen,setChildPickerOpen]=useState(false);
   const load = useCallback(
     async (id: string | null, background = false) => {
       if (!background) setLoading(true);
@@ -233,14 +261,6 @@ export function FamilyLiveDashboard({
       void supabase.removeChannel(announcementsChannel);
     };
   },[load,profile.id,selectedId,supabase]);
-  useEffect(()=>{
-    if(!childPickerOpen)return;
-    const previous=document.body.style.overflow;
-    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setChildPickerOpen(false)};
-    document.body.style.overflow="hidden";
-    window.addEventListener("keydown",close);
-    return()=>{document.body.style.overflow=previous;window.removeEventListener("keydown",close)};
-  },[childPickerOpen]);
   const selected = data?.selectedStudent;
   const rate = useMemo(
     () =>
@@ -289,22 +309,7 @@ export function FamilyLiveDashboard({
         </section>
       ) : (
         <>
-          {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && (
-            <button type="button" className="family-child-switcher" disabled={loading} onClick={()=>setChildPickerOpen(true)} aria-haspopup="dialog" aria-expanded={childPickerOpen}>
-              <i aria-hidden="true">{selected.name.slice(0,1)}</i>
-              <span><small>보고 있는 자녀</small><b>{selected.name}</b><em>{[selected.school,selected.grade].filter(Boolean).join(" · ")||"학생 정보"}</em></span>
-              <strong><small>자녀 변경</small><em aria-hidden="true">⌄</em></strong>
-            </button>
-          )}
-          {childPickerOpen&&data?.children.length&&typeof document!=="undefined"?createPortal(
-            <div className="family-child-picker" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setChildPickerOpen(false)}}>
-              <section role="dialog" aria-modal="true" aria-labelledby="family-child-picker-title">
-                <i className="family-child-picker-handle" aria-hidden="true"/>
-                <header><span><small>학습기록 전환</small><h2 id="family-child-picker-title">자녀 선택</h2></span><button type="button" onClick={()=>setChildPickerOpen(false)} aria-label="자녀 선택창 닫기">×</button></header>
-                <div>{data.children.map(child=>{const active=child.id===selectedId;return <button type="button" key={child.id} className={active?"active":""} aria-pressed={active} onClick={()=>{setChildPickerOpen(false);if(!active)onStudentChange(child.id)}}><i aria-hidden="true">{child.name.slice(0,1)}</i><span><b>{child.name}</b><small>{[child.school,child.grade].filter(Boolean).join(" · ")||"학생 정보"}</small></span><em aria-hidden="true">{active?"✓":"›"}</em></button>})}</div>
-                <p>선택한 자녀의 학습피드·시간표·성적 기록으로 바로 전환됩니다.</p>
-              </section>
-            </div>,document.body):null}
+          {profile.role === "guardian" && <FamilyChildSwitcher childOptions={data?.children ?? []} selected={selected} loading={loading} onStudentChange={onStudentChange} />}
           <FamilyLearningNote
             studentName={selected.name}
             attendance={data?.recentAttendance ?? []}
@@ -526,7 +531,6 @@ export function FamilyLiveDashboard({
 export function FamilyScheduleView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
   const [data, setData] = useState<Data | null>(null);
   const [corrections, setCorrections] = useState<RegularCorrection[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scheduleFilter, setScheduleFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -543,7 +547,6 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
       const parsed = next as Data;
       setData(parsed);
       setCorrections((correctionResult.data ?? []) as RegularCorrection[]);
-      setSelectedId(parsed.selectedStudent?.id ?? null);
       onStudentChange(parsed.selectedStudent?.id ?? null);
     }
     setLoading(false);
@@ -561,11 +564,7 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
     </header>
     {error && <p className="attendance-error">{error}</p>}
     {selected ? <>
-      <section className="family-schedule-student">
-        <i>{selected.name.slice(0, 1)}</i>
-        <span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span>
-        {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <select aria-label="자녀 선택" disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>}
-      </section>
+      {profile.role === "guardian" ? <FamilyChildSwitcher childOptions={data?.children ?? []} selected={selected} loading={loading} onStudentChange={onStudentChange} /> : <section className="family-schedule-student"><i>{selected.name.slice(0, 1)}</i><span><b>{selected.name}</b><small>{[selected.school, selected.grade].filter(Boolean).join(" · ") || "한살매 학생"}</small></span></section>}
       <nav className="family-schedule-legend" aria-label="시간표 카테고리">
         <button type="button" className={scheduleFilter === "all" ? "active" : ""} onClick={() => setScheduleFilter("all")}>전체</button>
         {scheduleSubjects.map((subject) => <button type="button" key={subject} className={scheduleFilter === `subject:${subject}` ? "active" : ""} onClick={() => setScheduleFilter(`subject:${subject}`)}>{subject}</button>)}
@@ -596,7 +595,6 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
 
 export function FamilyCalendarView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
   const [data, setData] = useState<Data | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(async (studentId: string | null) => {
@@ -607,7 +605,6 @@ export function FamilyCalendarView({ supabase, profile, studentId, onStudentChan
     else {
       const parsed = next as Data;
       setData(parsed);
-      setSelectedId(parsed.selectedStudent?.id ?? null);
       onStudentChange(parsed.selectedStudent?.id ?? null);
     }
     setLoading(false);
@@ -624,7 +621,7 @@ export function FamilyCalendarView({ supabase, profile, studentId, onStudentChan
     </header>
     {error && <p className="attendance-error">{error}</p>}
     {selected ? <>
-      {profile.role === "guardian" && (data?.children.length ?? 0) > 1 && <label className="family-calendar-child-select"><span>자녀 선택</span><select disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{data?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>}
+      {profile.role === "guardian" && <FamilyChildSwitcher childOptions={data?.children ?? []} selected={selected} loading={loading} onStudentChange={onStudentChange} />}
       <FamilyLearningReportFeed supabase={supabase} studentId={selected.id} studentName={selected.name} displayMode="calendar" />
     </> : <section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
   </div>;
@@ -720,10 +717,7 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
       <h1>학습리포트</h1>
       <span>수업·첨삭·출결·과제·시험 기록을 모아봤어요.</span>
     </header>
-    {profile.role === "guardian" && (dashboard?.children.length ?? 0) > 1 && <label className="family-report-child-select">
-      <span>자녀 선택</span>
-      <select disabled={loading} value={selectedId ?? ""} onChange={(event) => onStudentChange(event.target.value)}>{dashboard?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select>
-    </label>}
+    {profile.role === "guardian" && selected && <FamilyChildSwitcher childOptions={dashboard?.children ?? []} selected={selected} loading={loading} onStudentChange={onStudentChange} />}
     <nav className="family-report-range" aria-label="리포트 기간">
       {(Object.keys(summaryRangeLabels) as SummaryRange[]).map((item) => <button type="button" key={item} className={range === item ? "active" : ""} onClick={() => setRange(item)}>{summaryRangeLabels[item]}</button>)}
     </nav>
