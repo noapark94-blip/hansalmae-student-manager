@@ -71,3 +71,11 @@
 .install-guide>footer.samsung-install-actions button{min-width:0;padding:0 8px;white-space:nowrap;font-size:11px}
 @media(max-width:380px){.install-guide>footer.samsung-install-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);padding-right:12px;padding-left:12px}.install-guide>footer.samsung-install-actions button{font-size:10px}}
 .android-chrome-handoff{display:flex;align-items:center;gap:11px;margin-bottom:10px;padding:12px 14px;border-radius:14px;background:#f7f1f4;color:#4b3942}.android-chrome-handoff>i{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#4285f4 0 34%,#34a853 34% 58%,#fbbc05 58% 78%,#ea4335 78%);display:grid;flex:0 0 auto;place-items:center;color:#fff;font-size:11px;font-style:normal;font-weight:900;box-shadow:inset 0 0 0 3px #fff}.android-chrome-handoff>p{margin:0;display:grid;gap:3px}.android-chrome-handoff b{font-size:12px}.android-chrome-handoff span{color:#807179;font-size:10px;line-height:1.45}
+
+
+/* Reveal guide actions only after the reader reaches the end of the guide. */
+.install-guide{display:block;overflow-y:auto;overscroll-behavior:contain}
+.install-guide>.install-guide-body,
+.samsung-install-guide>.samsung-install-body{min-height:auto;overflow:visible}
+.install-guide>footer,
+.install-guide>footer.samsung-install-actions{position:relative;bottom:auto;box-shadow:none}
