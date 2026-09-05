@@ -218,8 +218,8 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setAndroidGuide(null)}>×</button>
             </header>
             <div className="samsung-install-body">
-              {androidGuide === "kakao" && <div className="samsung-install-notice"><i aria-hidden="true">1</i><p><b>먼저 Chrome으로 이동합니다.</b><span>아래 버튼을 누르면 현재 화면을 Chrome으로 넘기고 설치를 이어서 진행합니다.</span></p></div>}
-              <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>설치 중 아래 보안 안내가 나타날 수 있어요.</b><span>안드로이드의 웹앱 설치 과정에서 표시되는 안내입니다. 그림에 표시된 순서대로 눌러 주세요.</span></p></div>
+              {androidGuide === "kakao" && <div className="android-chrome-handoff"><i aria-hidden="true">C</i><p><b>Chrome에서 설치를 진행해요</b><span>아래 버튼을 누르면 현재 화면이 Chrome으로 이어집니다.</span></p></div>}
+              <div className="samsung-install-notice"><i aria-hidden="true">!</i><p><b>보안 경고가 나오면 아래 2단계대로 진행해 주세요</b><span>안드로이드 웹앱 설치 중 표시될 수 있는 정상적인 안내입니다.</span></p></div>
               <ol>
                 <li>
                   <div><em>1</em><span><b>‘세부정보 더 보기’를 눌러 주세요</b><small>첫 번째 경고 화면 아래쪽에 있습니다.</small></span></div>
