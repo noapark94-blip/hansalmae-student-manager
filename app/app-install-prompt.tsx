@@ -41,6 +41,12 @@ function openAndroidChromeInstallFlow() {
   window.location.href = intentUrl;
 }
 
+function reloadAndroidInstallFlow() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("install", "1");
+  window.location.replace(url.toString());
+}
+
 async function prepareAndroidInstall() {
   if (!("serviceWorker" in navigator)) return;
   try {
@@ -179,7 +185,11 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
       return;
     }
 
-    setAndroidMessage("Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+    if (new URL(window.location.href).searchParams.get("install") !== "1") {
+      reloadAndroidInstallFlow();
+      return;
+    }
+    setAndroidGuide("direct");
   };
 
   return (
@@ -238,7 +248,10 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
                 const promptEvent = installPrompt ?? (window as InstallWindow).__hansalmaeInstallPrompt ?? null;
                 setAndroidGuide(null);
                 if (promptEvent) void launchAndroidPrompt(promptEvent);
-                else setAndroidMessage("Chrome에서 페이지를 한 번 새로고침한 뒤 설치 버튼을 눌러 주세요.");
+                else {
+                  setAndroidMessage("설치 준비가 끝나는 중이에요. 잠시 후 앱 설치 버튼을 다시 눌러 주세요.");
+                  if (new URL(window.location.href).searchParams.get("install") !== "1") reloadAndroidInstallFlow();
+                }
               }}>{androidGuide === "kakao" ? "Chrome에서 설치 계속" : "설치 시작"}</button>
             </footer>
           </section>
