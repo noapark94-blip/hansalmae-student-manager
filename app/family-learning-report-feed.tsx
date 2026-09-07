@@ -1004,7 +1004,7 @@ function CorrectionFeedDetail({
                 rows={[
                   item.correctionContent.trim() ? { label: "과제", value: item.correctionContent } : null,
                   item.correctionTaskStatus ? { label: "수행 상태", value: correctionTaskStatusLabel(item.correctionTaskStatus), tone: item.correctionTaskStatus } : null,
-                  item.correctionTaskFeedback.trim() ? { label: "검사 피드백", value: item.correctionTaskFeedback } : null,
+                  item.correctionTaskFeedback.trim() ? { label: "피드백", value: item.correctionTaskFeedback } : null,
                 ]}
               />
             )}
