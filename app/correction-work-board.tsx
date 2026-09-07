@@ -140,7 +140,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const saveAll=async(complete:boolean)=>{
     const ready=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")!=="scheduled");
     const missing=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")==="scheduled");
-    if(complete&&ready.length===0){setError("완료할 학생의 출결을 먼저 입력해 주세요.");return}
+    if(complete&&ready.length===0&&changedCompletedCount===0){setError("완료할 학생의 출결을 먼저 입력해 주세요.");return}
     if(complete&&missing.length&&!await appConfirm({
       eyebrow:"일부 학생 첨삭 완료",
       title:`입력된 ${ready.length}명만 완료할까요?`,
