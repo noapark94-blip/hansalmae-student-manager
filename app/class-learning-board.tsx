@@ -654,6 +654,11 @@ export function ClassLearningBoard({
     }
     for (const row of rows) {
       const exam = row.exams[0];
+      const hasExamInput = Boolean(exam.examTitle.trim() || exam.score !== "" || exam.evaluation.trim());
+      if (hasExamInput && !exam.examType.trim()) {
+        setError(`${row.name} 학생의 시험 종류를 선택해 주세요.`);
+        return;
+      }
       const max = exam.maxScore.trim() === "" ? 100 : +exam.maxScore;
       if (
         exam.score !== "" &&
