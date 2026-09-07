@@ -81,6 +81,9 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
     const max=next.examMaxScore==null||Number(next.examMaxScore)<=0?100:Number(next.examMaxScore);
     const score=next.examScore==null?null:Number(next.examScore);
+    const examType=next.examRange?.startsWith("[종류]")?next.examRange.slice(4).split("\n")[0].trim():"";
+    const hasExamInput=Boolean(next.examTitle?.trim()||score!==null||next.evaluation?.trim());
+    if(hasExamInput&&!examType)throw new Error(`${row.assignment.studentName} 학생의 시험 종류를 선택해 주세요.`);
     if(score!==null&&(!Number.isFinite(score)||score<0||score>max))throw new Error(`${row.assignment.studentName} 학생의 시험 점수를 확인해 주세요.`);
     const{error:saveError}=await supabase.rpc("staff_save_correction_report_v2",{
       p_assignment_id:row.assignment.id,p_correction_date:row.date,p_start_time:row.startTime,p_end_time:row.endTime,
