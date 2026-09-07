@@ -110,6 +110,8 @@ type CorrectionReport = {
   homeworkStatus: string | null;
   homeworkNote: string;
   correctionContent: string;
+  correctionTaskStatus: "completed" | "partial" | "incomplete" | null;
+  correctionTaskFeedback: string;
   assistantFeedback: string;
   nextPreparation: string;
   recordedByName: string | null;
@@ -995,11 +997,15 @@ function CorrectionFeedDetail({
                 ]}
               />
             )}
-            {item.correctionContent.trim() && (
-              <ReportSection
+            {(item.correctionContent.trim() || item.correctionTaskStatus || item.correctionTaskFeedback.trim()) && (
+              <LabeledReportSection
                 icon="book"
-                title="오늘 한 첨삭과제"
-                text={item.correctionContent}
+                title="오늘의 첨삭 과제"
+                rows={[
+                  item.correctionContent.trim() ? { label: "과제", value: item.correctionContent } : null,
+                  item.correctionTaskStatus ? { label: "수행 상태", value: correctionTaskStatusLabel(item.correctionTaskStatus), tone: item.correctionTaskStatus } : null,
+                  item.correctionTaskFeedback.trim() ? { label: "검사 피드백", value: item.correctionTaskFeedback } : null,
+                ]}
               />
             )}
             {item.homeworkInstruction.trim() && (
@@ -1816,6 +1822,8 @@ function normalizeCorrectionReport(report: CorrectionReport): CorrectionReport {
     homeworkInstruction: report.homeworkInstruction ?? "",
     homeworkNote: report.homeworkNote ?? "",
     correctionContent: report.correctionContent ?? "",
+    correctionTaskStatus: report.correctionTaskStatus ?? null,
+    correctionTaskFeedback: report.correctionTaskFeedback ?? "",
     assistantFeedback: report.assistantFeedback ?? "",
     nextPreparation: report.nextPreparation ?? "",
   };
@@ -1843,6 +1851,9 @@ function correctionHomeworkLabel(value: string) {
       excused: "확인 제외",
     }[value] ?? value
   );
+}
+function correctionTaskStatusLabel(value: string) {
+  return ({ completed: "완료", partial: "부분 완료", incomplete: "미완료" }[value] ?? "미확인");
 }
 
 function useUnreadAttention(enabled: boolean) {
