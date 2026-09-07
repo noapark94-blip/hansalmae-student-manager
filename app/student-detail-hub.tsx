@@ -8,7 +8,7 @@ import { StudentLearningHistory } from "./student-learning-history";
 import { StudentAcademicRecords } from "./student-academic-records";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { StudentRelevantTimetable, type WeeklyTimetableRow } from "./weekly-timetable";
-import { examCategoryLabel } from "./exam-display";
+import { examCategoryLabel, isMiscExamCategory } from "./exam-display";
 
 function formatPhoneNumber(value:string){
   const digits=value.replace(/\D/g,"").slice(0,11);
@@ -425,7 +425,7 @@ function SummaryTab({ data }: { data: DetailData }) {
 function StudentExamTrend({ items }: { items: ExamProgressItem[] }) {
   const sourceOptions:ExamSourceFilter[]=["all","regular","correction","makeup","additional"];
   const[source,setSource]=useState<ExamSourceFilter>("all");
-  const sourceItems=items.filter(item=>(source==="all"||item.source===source)&&item.percent!==null);
+  const sourceItems=items.filter(item=>(source==="all"||item.source===source)&&item.percent!==null&&!isMiscExamCategory(item.examType));
   const subjects=Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean)));
   const[subject,setSubject]=useState("");
   const[category,setCategory]=useState("");
