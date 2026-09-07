@@ -31,6 +31,10 @@ function isKakaoInAppBrowser(ua = navigator.userAgent) {
   return /KAKAOTALK|DaumApps/i.test(ua);
 }
 
+function supportsManualInstalledChoice(ua = navigator.userAgent) {
+  return /iPhone|iPad|iPod/i.test(ua) || isKakaoInAppBrowser(ua);
+}
+
 function openAndroidChromeInstallFlow() {
   const url = new URL(window.location.href);
   url.searchParams.set("install", "1");
@@ -82,7 +86,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
     let syncVisibility: (() => void) | null = null;
     if (placement === "topbar") {
       setAttention(window.sessionStorage.getItem("hansalmae:install-button-seen") !== "1");
-      syncVisibility = () => setHiddenInKakao(isKakaoInAppBrowser(ua) && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
+      syncVisibility = () => setHiddenInKakao(supportsManualInstalledChoice(ua) && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
       syncVisibility();
       window.addEventListener(INSTALL_VISIBILITY_EVENT, syncVisibility);
     }
@@ -267,8 +271,8 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
               <button type="button" aria-label="설치 안내 닫기" onClick={() => setGuide(null)}>×</button>
             </header>
             <IosGuide />
-            <footer className={isKakaoInAppBrowser() ? "install-guide-choice-actions" : ""}>
-              {isKakaoInAppBrowser() && <button type="button" className="installed-already" onClick={() => setConfirmInstalled(true)}>이미 설치했어요</button>}
+            <footer className="install-guide-choice-actions">
+              <button type="button" className="installed-already" onClick={() => setConfirmInstalled(true)}>이미 설치했어요</button>
               <button type="button" onClick={() => {
                 setGuide(null);
               }}>확인했어요</button>
@@ -299,7 +303,7 @@ export function AppInstallPrompt({ placement = "login" }: { placement?: "login" 
 export function KakaoInstallButtonRecovery() {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    const sync = () => setVisible(!isStandalone() && isKakaoInAppBrowser() && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
+    const sync = () => setVisible(!isStandalone() && supportsManualInstalledChoice() && window.localStorage.getItem(KAKAO_INSTALL_HIDDEN_KEY) === "1");
     sync();
     window.addEventListener(INSTALL_VISIBILITY_EVENT, sync);
     return () => window.removeEventListener(INSTALL_VISIBILITY_EVENT, sync);
