@@ -8,11 +8,11 @@ import styles from "./alimtalk-send-center.module.css";
 
 type ReportType="daily"|"weekly";
 type ListMode="ready"|"sent";
-type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;attendance:{status:string;lateMinutes:number|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
+type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;correctionTaskStatus?:"completed"|"partial"|"incomplete"|null;correctionTaskFeedback?:string;attendance:{status:string;lateMinutes:number|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
 type Recipient={guardianName:string;maskedPhone:string;available:boolean};
 type TemplateVariables={studentName:string;periodStart:string;periodEnd:string;lessonSummary:string;attendanceSummary:string;learningSummary:string};
 type History={id:string;studentId:string;studentName:string;reportType:ReportType;periodStart:string;status:string;sentAt:string|null;errorMessage:string|null;templateVariables:TemplateVariables;maskedPhone:string;sendCount:number};
-type Preview={lesson:string;attendance:string;exam:string;homework:string;body:string};
+type Preview={lesson:string;attendance:string;exam:string;homework:string;correctionTask:string;body:string};
 type MissingItem={kind:string;title:string;date:string;time:string};
 type ReadyStudent={studentId:string;studentName:string;school:string;grade:string;expectedCount:number;completedCount:number;complete:boolean;missingItems:MissingItem[];lessons:Lesson[];recipient:Recipient};
 
@@ -52,7 +52,7 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
   const loadReady=useCallback(async()=>{setLoading(true);setMessage("");const{data,error}=await supabase.rpc("staff_alimtalk_ready_students",{p_from:period.start,p_to:period.end});if(error){setReadyStudents([]);setChecked(new Set());setMessage(error.message)}else{const rows=(data??[]) as ReadyStudent[];setReadyStudents(rows);setStudentId(current=>rows.some(row=>row.studentId===current)?current:rows[0]?.studentId??"");setChecked(new Set(rows.filter(row=>row.complete&&row.recipient.available).map(row=>row.studentId)))}setLoading(false)},[period.end,period.start,supabase]);
   useEffect(()=>{let active=true;void supabase.rpc("staff_alimtalk_ready_students",{p_from:period.start,p_to:period.end}).then(({data,error})=>{if(!active)return;if(error){setReadyStudents([]);setChecked(new Set());setMessage(error.message);setLoading(false);return}const rows=(data??[]) as ReadyStudent[];setReadyStudents(rows);setStudentId(rows[0]?.studentId??"");setChecked(new Set(rows.filter(row=>row.complete&&row.recipient.available).map(row=>row.studentId)));setLoading(false)});return()=>{active=false}},[period.end,period.start,supabase]);
 
-  async function sendRow(row:ReadyStudent){const itemPreview=buildPreview(row.studentName,period.start,type,row.lessons);const{error}=await supabase.functions.invoke("send-learning-alimtalk",{body:{studentId:row.studentId,reportType:type,periodStart:period.start,periodEnd:period.end,lessonSummary:itemPreview.lesson,attendanceSummary:itemPreview.attendance,examSummary:itemPreview.exam,homeworkSummary:itemPreview.homework,learningSummary:buildLearningDetails(itemPreview.exam,itemPreview.homework)}});if(!error)return null;let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}return text}
+  async function sendRow(row:ReadyStudent){const itemPreview=buildPreview(row.studentName,period.start,type,row.lessons);const{error}=await supabase.functions.invoke("send-learning-alimtalk",{body:{studentId:row.studentId,reportType:type,periodStart:period.start,periodEnd:period.end,lessonSummary:itemPreview.lesson,attendanceSummary:itemPreview.attendance,examSummary:itemPreview.exam,homeworkSummary:itemPreview.homework,learningSummary:buildLearningDetails(itemPreview.exam,itemPreview.homework,itemPreview.correctionTask)}});if(!error)return null;let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}return text}
   async function sendSelected(){if(!checkedRows.length)return;setSending(true);setConfirming(false);setMessage("");let sent=0;const failed:string[]=[];for(let index=0;index<checkedRows.length;index+=3){const batch=checkedRows.slice(index,index+3);const results=await Promise.all(batch.map(async row=>({row,error:await sendRow(row)})));for(const result of results){if(result.error)failed.push(`${result.row.studentName}: ${result.error}`);else sent+=1}}await loadHistory();setChecked(new Set(failed.map(line=>readyStudents.find(row=>line.startsWith(`${row.studentName}:`))?.studentId).filter(Boolean) as string[]));setMessage(failed.length?`${sent}명 발송 접수 · ${failed.length}명 실패 (${failed.slice(0,2).join(" / ")})`:`${sent}명 학부모님께 알림톡 발송을 접수했습니다.`);setSending(false)}
   async function sendCurrentConfirmed(row:ReadyStudent){setIncompletePrompt(null);setSending(true);setMessage("");const error=await sendRow(row);if(error)setMessage(error);else{setMessage(`${row.studentName} 학생 학부모님께 알림톡을 접수했습니다.`);await loadHistory()}setSending(false)}
   async function resendHistory(){if(!resendTarget)return;const target=resendTarget;setResendTarget(null);setSending(true);setMessage("");const{error}=await supabase.functions.invoke("send-learning-alimtalk",{body:{resendDeliveryId:target.id}});let errorText=error?.message??"";const context=(error as{context?:Response}|null)?.context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)errorText=body.error}catch{}if(errorText)setMessage(`${target.studentName} 재발송 실패: ${errorText}`);else{setMessage(`${target.studentName} 학생 학부모님께 저장된 내용 그대로 재발송했습니다.`);await loadHistory()}setSending(false)}
@@ -78,7 +78,7 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
           <div className={styles.readiness}><div><i className={student.complete?styles.ok:styles.warning}>!</i><span><b>{student.complete?"예정 기록 완료":"일부 기록 미작성"}</b><small>{student.completedCount}/{student.expectedCount}건 작성됨</small></span></div><div><i className={student.recipient.available?styles.ok:""}>✓</i><span><b>수신 학부모</b><small>{student.recipient.available?`${student.recipient.guardianName} · ${student.recipient.maskedPhone}`:"등록된 학부모 연락처 없음"}</small></span></div><div><i className={student.lessons.length?styles.ok:""}>✓</i><span><b>내용 자동 생성</b><small>{student.lessons.length?"수업·출결·시험·과제 요약 완료":"작성된 기록 없음"}</small></span></div></div>
           {!student.complete&&<section className={styles.missing}><header><b>아직 작성되지 않은 기록</b><span>{student.missingItems.length}건</span></header><div>{student.missingItems.map((item,index)=><p key={`${item.date}-${item.time}-${item.title}-${index}`}><strong>{formatDay(item.date)} {item.time}</strong><span>{item.kind} · {item.title}</span></p>)}</div><small>현재 발송하면 아래 미리보기에 포함된 작성 완료 기록만 전달됩니다.</small></section>}
           <section className={styles.preview}><div className={styles.kakaoHead}><span>한살매 수업노트</span><small>알림톡 도착 화면 미리보기</small></div><article><pre>{preview.body}</pre><button>학습기록 확인</button></article></section>
-          <section className={styles.variables}><header><b>발송 변수 확인</b><span>내용이 없는 시험·과제 항목은 발송문에서 제외됩니다.</span></header><dl><div><dt>수업</dt><dd>{preview.lesson}</dd></div><div><dt>출결</dt><dd>{preview.attendance}</dd></div><div><dt>시험</dt><dd className={styles.multiline}>{preview.exam||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>과제</dt><dd className={styles.multiline}>{preview.homework||"기록 없음 · 발송문에서 제외"}</dd></div></dl></section>
+          <section className={styles.variables}><header><b>발송 변수 확인</b><span>내용이 없는 시험·과제·첨삭 과제 항목은 발송문에서 제외됩니다.</span></header><dl><div><dt>수업</dt><dd>{preview.lesson}</dd></div><div><dt>출결</dt><dd>{preview.attendance}</dd></div><div><dt>시험</dt><dd className={styles.multiline}>{preview.exam||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>과제</dt><dd className={styles.multiline}>{preview.homework||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>첨삭 과제</dt><dd className={styles.multiline}>{preview.correctionTask||"기록 없음 · 발송문에서 제외"}</dd></div></dl></section>
           <footer className={styles.actions}><div>{message&&<p className={message.includes("접수")?styles.success:styles.error}>{message}</p>}{sentRecord?.status==="sent"&&<span>이 기간은 이미 발송되었습니다.</span>}</div><button className={styles.primary} onClick={sendCurrent} disabled={sending||!student.recipient.available||!student.lessons.length||sentRecord?.status==="sent"}>{sending?"발송 중…":sentRecord?.status==="sent"?"발송 완료":student.complete?"이 학생만 발송":"작성된 기록만 발송"}</button></footer>
         </>:<Empty text="완료 기록을 확인하고 있습니다…"/>}
       </main>
@@ -96,12 +96,14 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
   const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));return scored.length?scored:row.examContent?[`- ${row.subject}: ${short(row.examContent,42)}`]:[]}));
   const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
+  const correctionTaskItems=lessons.filter(row=>row.source==="correction"&&(row.lessonContent.trim()||row.correctionTaskStatus||row.correctionTaskFeedback?.trim())).map(formatCorrectionTask);
   const exam=summarize(examItems,type==="weekly"?3:4);
   const homework=summarize(homeworkItems,type==="weekly"?3:4);
+  const correctionTask=summarize(correctionTaskItems,type==="weekly"?3:4);
   const date=type==="daily"?formatDay(start):formatPeriod(...Object.values(periodFor(type,start)) as [string,string]);
-  const learningDetails=buildLearningDetails(exam,homework);
+  const learningDetails=buildLearningDetails(exam,homework,correctionTask);
   const body=`[한살매 수업노트]\n\n${name} 학생의 ${date} ${type==="daily"?"학습기록":"주간 학습요약"}입니다.\n\n■ 수업\n${lesson}\n\n■ 출결\n${attendance}\n\n■ 학습 상세\n${learningDetails}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`;
-  return{lesson,attendance,exam,homework,body};
+  return{lesson,attendance,exam,homework,correctionTask,body};
 }
 function formatExam(subject:string,exam:Lesson["exams"][number]){
   const category=exam.examType.trim()||"시험";
@@ -121,7 +123,14 @@ function short(value:string,max:number){const clean=value.replace(/\s+/g," ").tr
 function cleanMultiline(value:string){return value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).join("\n")}
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
 function summarize(values:string[],limit:number){if(!values.length)return"";const shown=values.slice(0,limit);return `${shown.join("\n")}${values.length>limit?`\n외 ${values.length-limit}건`:""}`}
-function buildLearningDetails(exam:string,homework:string){return [formatDetailGroup("시험",exam),formatDetailGroup("과제",homework)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
+function formatCorrectionTask(row:Lesson){
+  const content=cleanMultiline(row.lessonContent);
+  const lines=[`- ${row.subject}: ${content||"내용 미입력"}`];
+  if(row.correctionTaskStatus)lines.push(`  수행 상태: ${{completed:"완료",partial:"부분 완료",incomplete:"미완료"}[row.correctionTaskStatus]}`);
+  if(row.correctionTaskFeedback?.trim())lines.push(`  피드백: ${cleanMultiline(row.correctionTaskFeedback)}`);
+  return lines.join("\n");
+}
+function buildLearningDetails(exam:string,homework:string,correctionTask:string){return [formatDetailGroup("시험",exam),formatDetailGroup("과제",homework),formatDetailGroup("첨삭 과제",correctionTask)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
 function formatDetailGroup(label:string,value:string){return value?`<${label}>\n${value}`:""}
 function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function periodFor(type:ReportType,anchor:string){if(type==="daily")return{start:anchor,end:anchor};const date=new Date(`${anchor}T12:00:00+09:00`);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);const start=todayFrom(date);date.setDate(date.getDate()+6);return{start,end:todayFrom(date)}}
