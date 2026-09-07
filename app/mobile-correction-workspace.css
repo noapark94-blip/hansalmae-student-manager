@@ -230,6 +230,8 @@
   .correction-learning-board .correction-exam select,
   .correction-learning-board .correction-exam input{min-height:40px!important;border-radius:9px!important}
   .correction-learning-board .correction-task-cell textarea{min-height:92px!important;font-size:16px!important}
+  .correction-learning-board .correction-task-check input{min-height:44px!important;font-size:16px!important}
+  .correction-learning-board .correction-task-check button{min-height:42px!important;font-size:11px!important}
   .correction-learning-board>footer{
     position:relative!important;
     bottom:auto!important;
