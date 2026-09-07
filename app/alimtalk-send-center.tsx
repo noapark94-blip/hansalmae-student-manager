@@ -94,7 +94,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   const counts=new Map<string,number>();for(const row of lessons){const key=row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`;counts.set(key,(counts.get(key)??0)+1)}
   const lesson=counts.size?Array.from(counts).map(([label,count])=>`${label}${count>1?` ${count}회`:""}`).join(" · "):"완료된 수업 없음";
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
-  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));return scored.length?scored:row.examContent?[`- ${row.subject}: ${short(row.examContent,42)}`]:[]}));
+  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));const content=cleanExamContent(row.examContent);return scored.length?scored:content?[`- ${row.subject}: ${short(content,42)}`]:[]}));
   const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
   const correctionTaskItems=lessons.filter(row=>row.source==="correction"&&(row.lessonContent.trim()||row.correctionTaskStatus||row.correctionTaskFeedback?.trim())).map(formatCorrectionTask);
   const exam=summarize(examItems,type==="weekly"?3:4);
@@ -121,6 +121,7 @@ function groupBySubject(items:{subject:string;value:string}[]){
 }
 function short(value:string,max:number){const clean=value.replace(/\s+/g," ").trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean}
 function cleanMultiline(value:string){return value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).join("\n")}
+function cleanExamContent(value:string){return cleanMultiline(value.replace(/^\[종류\][^\n]*(?:\n|$)/,""))}
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
 function summarize(values:string[],limit:number){if(!values.length)return"";const shown=values.slice(0,limit);return `${shown.join("\n")}${values.length>limit?`\n외 ${values.length-limit}건`:""}`}
 function formatCorrectionTask(row:Lesson){
