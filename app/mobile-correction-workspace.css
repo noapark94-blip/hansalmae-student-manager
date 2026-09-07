@@ -229,9 +229,10 @@
   .correction-learning-board .correction-exam{gap:7px!important}
   .correction-learning-board .correction-exam select,
   .correction-learning-board .correction-exam input{min-height:40px!important;border-radius:9px!important}
-  .correction-learning-board .correction-task-cell textarea{min-height:92px!important;font-size:16px!important}
-  .correction-learning-board .correction-task-check input{min-height:44px!important;font-size:16px!important}
-  .correction-learning-board .correction-task-check button{min-height:42px!important;font-size:11px!important}
+  .correction-learning-board .correction-task-cell textarea{min-height:76px!important;font-size:16px!important}
+  .correction-learning-board .correction-task-check{grid-template-columns:minmax(112px,.85fr) minmax(0,1.15fr)!important;gap:7px!important}
+  .correction-learning-board .correction-task-check select,
+  .correction-learning-board .correction-task-check input{min-height:44px!important;font-size:16px!important;padding-inline:10px!important}
   .correction-learning-board>footer{
     position:relative!important;
     bottom:auto!important;
