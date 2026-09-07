@@ -24,11 +24,19 @@ const hasCorrectionDetails=(report:Report)=>report.published===true||report.exam
   report.teacherInstruction,report.examTitle,report.examRange,report.evaluation,report.homeworkInstruction,
   report.homeworkNote,report.correctionContent,report.correctionTaskStatus,report.correctionTaskFeedback,report.assistantFeedback,report.nextPreparation,
 ].some(value=>Boolean(value?.trim()));
+const reportFingerprint=(report:Report)=>JSON.stringify({
+  attendanceStatus:report.attendanceStatus??"scheduled",lateMinutes:report.lateMinutes??null,absenceReason:report.absenceReason??"",
+  teacherInstruction:report.teacherInstruction??"",examTitle:report.examTitle??"",examRange:report.examRange??"",examScore:report.examScore??null,
+  examMaxScore:report.examMaxScore??100,evaluation:report.evaluation??"",homeworkInstruction:report.homeworkInstruction??"",homeworkStatus:report.homeworkStatus??null,
+  homeworkNote:report.homeworkNote??"",correctionContent:report.correctionContent??"",correctionTaskStatus:report.correctionTaskStatus??null,
+  correctionTaskFeedback:report.correctionTaskFeedback??"",assistantFeedback:report.assistantFeedback??"",nextPreparation:report.nextPreparation??"",
+});
 
 export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[date,setDate]=useState(koreaToday());
   const[data,setData]=useState<Board|null>(null);
   const[drafts,setDrafts]=useState<Record<string,Report>>({});
+  const[savedDrafts,setSavedDrafts]=useState<Record<string,Report>>({});
   const[categories,setCategories]=useState<ExamCategory[]>([]);
   const[loading,setLoading]=useState(true);
   const[saving,setSaving]=useState("");
@@ -59,7 +67,9 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       return [reportKey(row),(response.data??{}) as Report] as const;
     }));
     setData(board);
-    setDrafts(Object.fromEntries(reportRows));
+    const loadedDrafts=Object.fromEntries(reportRows);
+    setDrafts(loadedDrafts);
+    setSavedDrafts(loadedDrafts);
     if(!categoryResponse.error)setCategories((categoryResponse.data??[]) as ExamCategory[]);
     setLoading(false);
   },[date,supabase]);
@@ -76,6 +86,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const completedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true).length;
   const incompleteRows=rows.filter(row=>drafts[reportKey(row)]?.published!==true);
   const readyToCompleteCount=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")!=="scheduled").length;
+  const changedCompletedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true&&reportFingerprint(drafts[reportKey(row)]??{})!==reportFingerprint(savedDrafts[reportKey(row)]??{})).length;
   const visibleRows=incompleteOnly?incompleteRows:rows;
   const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>({...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}}));
 
@@ -98,8 +109,9 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     });
     if(saveError)throw saveError;
     const refreshed=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
-    if(refreshed.error)updateDraft(row,{...next,published:publish,examMaxScore:max});
-    else setDrafts(current=>({...current,[reportKey(row)]:(refreshed.data??{}) as Report}));
+    const saved=refreshed.error?{...next,published:publish,examMaxScore:max}:(refreshed.data??{}) as Report;
+    setDrafts(current=>({...current,[reportKey(row)]:saved}));
+    setSavedDrafts(current=>({...current,[reportKey(row)]:saved}));
   };
 
   const saveAttendance=async(row:Occurrence,status:"present"|"late"|"absent")=>{
@@ -185,7 +197,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span className="learning-exam-heading"><b>시험 기록</b><button type="button" onClick={()=>setCategoryOpen(true)}>시험 카테고리 관리</button></span><span>오늘의 첨삭 과제</span></div>
     {loading?<p className="settings-empty">첨삭 기록을 불러오는 중이에요…</p>:<div className="learning-board-rows correction-learning-rows correction-subject-groups">{subjects.map(subject=>{const subjectRows=visibleRows.filter(row=>row.assignment.subject===subject);if(!subjectRows.length)return null;return <section className={`correction-subject-group subject-${subject}`} key={subject}><header className="correction-subject-header"><div><b>{subject}</b><span>{subjectRows.length}명</span></div><small>{subject} 첨삭 학생</small></header><div className="correction-subject-rows">{subjectRows.map(renderRow)}</div></section>})}{!rows.length?<div className="makeup-empty"><p>이 날짜에 예정된 첨삭 학생이 없습니다.</p></div>:incompleteOnly&&!visibleRows.length?<div className="makeup-empty"><p>미완료 학생이 없습니다.</p></div>:null}</div>}
     {error?<p className="form-error learning-board-error">{error}</p>:null}
-    {rows.length?<footer><span className="correction-completion-summary"><b>{completed?"전체 완료":`완료 ${completedCount}명 · 미완료 ${rows.length-completedCount}명`}</b><small>완료된 학생만 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</small></span><span className="learning-completion-actions">{!completed&&incompleteRows.length?<button type="button" className={`secondary-button correction-incomplete-filter ${incompleteOnly?"active":""}`} disabled={saving==="all"} onClick={()=>setIncompleteOnly(value=>!value)}>{incompleteOnly?"전체 학생 보기":`미완료 ${incompleteRows.length}명만 보기`}</button>:null}{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||readyToCompleteCount===0} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":readyToCompleteCount?`입력된 ${readyToCompleteCount}명 완료`:"출결 입력 후 완료"}</button></>}</span></footer>:null}
+    {rows.length?<footer><span className="correction-completion-summary"><b>{completed?"전체 완료":`완료 ${completedCount}명 · 미완료 ${rows.length-completedCount}명`}</b><small>완료된 학생만 누적 첨삭 횟수와 학생·학부모 리포트에 반영됩니다.</small></span><span className="learning-completion-actions">{!completed&&incompleteRows.length?<button type="button" className={`secondary-button correction-incomplete-filter ${incompleteOnly?"active":""}`} disabled={saving==="all"} onClick={()=>setIncompleteOnly(value=>!value)}>{incompleteOnly?"전체 학생 보기":`미완료 ${incompleteRows.length}명만 보기`}</button>:null}{completed?<><button type="button" className="danger-button" disabled={saving==="all"} onClick={()=>void deleteRecords()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"||changedCompletedCount===0} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":changedCompletedCount?"수정 내용 저장":"저장 완료"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"} onClick={()=>void saveAll(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||(readyToCompleteCount===0&&changedCompletedCount===0)} onClick={()=>void saveAll(true)}>{saving==="all"?"저장 중…":changedCompletedCount?"수정 내용 저장":readyToCompleteCount?`입력된 ${readyToCompleteCount}명 완료`:"출결 입력 후 완료"}</button></>}</span></footer>:null}
     {monthOpen?<CorrectionMonthCalendar supabase={supabase} anchor={date} onSelect={selectDate} onClose={()=>setMonthOpen(false)}/>:null}
     {categoryOpen?<ExamCategoryModal supabase={supabase} categories={categories} onClose={()=>setCategoryOpen(false)} onChanged={refreshCategories}/>:null}
     {missingStudentOpen?<CorrectionDateAssignmentEditor date={date} supabase={supabase} onClose={()=>setMissingStudentOpen(false)} onSaved={async()=>{setMissingStudentOpen(false);await load()}}/>:null}
