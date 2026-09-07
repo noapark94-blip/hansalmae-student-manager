@@ -6,7 +6,7 @@ import Holidays from "date-holidays";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
-import { examCategoryLabel } from "./exam-display";
+import { examCategoryLabel, isMiscExamCategory } from "./exam-display";
 import {
   CommentReactionBar,
   useReportCommentReactions,
@@ -1647,7 +1647,7 @@ export function ExamTrendModal({supabase,studentId,initialSubject,onClose,embedd
   ]).then(([regular,correction])=>{if(!active)return;if(regular.error&&correction.error){setError("성적 기록을 불러오지 못했습니다.");setItems([]);}else{setItems([...((regular.data??[]) as ExamTrendItem[]),...((correction.data??[]) as ExamTrendItem[])]);setError("");}setLoading(false);});return()=>{active=false};},[studentId,supabase]);
   const subjects=useMemo(()=>Array.from(new Set(items.map((item)=>trendSubject(item)))).filter(Boolean),[items]);
   const selectedSubject=subjects.includes(subject)?subject:(subjects[0]??"");
-  const subjectItems=useMemo(()=>items.filter((item)=>trendSubject(item)===selectedSubject&&item.percent!==null),[items,selectedSubject]);
+  const subjectItems=useMemo(()=>items.filter((item)=>trendSubject(item)===selectedSubject&&item.percent!==null&&!isMiscExamCategory(item.examType)),[items,selectedSubject]);
   const categories=useMemo(()=>Array.from(new Set(subjectItems.map(trendCategory).filter(Boolean))),[subjectItems]);
   const selectedCategory=categories.includes(category)?category:(categories[0]??"");
   const categoryItems=useMemo(()=>subjectItems.filter((item)=>trendCategory(item)===selectedCategory).sort((a,b)=>a.lessonDate.localeCompare(b.lessonDate)),[subjectItems,selectedCategory]);
