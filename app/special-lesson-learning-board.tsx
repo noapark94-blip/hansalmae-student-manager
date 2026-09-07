@@ -95,7 +95,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   };
   const save = async (complete: boolean) => {
     if (complete) { const missing = rows.filter((row) => !row.status).map((row) => row.name); if (missing.length) return setError(`출결 미입력 학생: ${missing.join(", ")}`); }
-    for (const row of rows) { const score = Number(row.exam.score), max = Number(row.exam.maxScore); if (row.exam.score !== "" && (!Number.isFinite(score) || !Number.isFinite(max) || max <= 0 || score < 0 || score > max)) return setError(`${row.name} 학생의 점수를 확인해 주세요.`); }
+    for (const row of rows) { const hasExamInput=Boolean(row.exam.examTitle.trim()||row.exam.score!==""||row.exam.evaluation.trim()); if(hasExamInput&&!row.exam.examType.trim())return setError(`${row.name} 학생의 시험 종류를 선택해 주세요.`); const score = Number(row.exam.score), max = Number(row.exam.maxScore); if (row.exam.score !== "" && (!Number.isFinite(score) || !Number.isFinite(max) || max <= 0 || score < 0 || score > max)) return setError(`${row.name} 학생의 점수를 확인해 주세요.`); }
     setSaving("all"); setError("");
     const { error: saveError } = await supabase.rpc("staff_save_special_lesson_learning", { p_session_id: sessionId, p_notice: notice, p_rows: rows.map((row) => ({ studentId: row.id, lessonContent: row.lessonContent, assignedHomework: row.assignedHomework, inspectionStatus: row.inspectionStatus, inspectionNote: row.inspectionNote, exam: { ...row.exam, score: row.exam.score === "" ? null : +row.exam.score, maxScore: +row.exam.maxScore } })) });
     if (saveError) setError(saveError.message); else {
