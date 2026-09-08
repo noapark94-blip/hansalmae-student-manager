@@ -552,6 +552,14 @@ export default function Home() {
     setAcademySchools((current) => current.filter((item) => item.id !== id));
   };
 
+  const renameRegistrationSchool = async (id: string, name: string) => {
+    const { error } = await supabase.rpc("staff_rename_school", { p_school_id: id, p_name: name });
+    if (error) throw error;
+    const { data: schoolData, error: schoolError } = await supabase.rpc("staff_registration_schools");
+    if (schoolError) throw schoolError;
+    setAcademySchools((schoolData ?? []) as SchoolOption[]);
+  };
+
   const reorderRegistrationSchools = async (next: SchoolOption[]) => {
     setAcademySchools(next);
     const { error } = await supabase.rpc("save_user_school_order", {
@@ -923,7 +931,7 @@ export default function Home() {
         />
       )}
       {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => { setStaffMoreOpen(false); setView("dashboard"); void supabase.auth.signOut(); }} />}
-      {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
+      {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onRenameSchool={renameRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
       {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
       {studentDetails && (
@@ -1774,7 +1782,7 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
   );
 }
 
-function StudentRegistrationModal({ classes, schools, onAddSchool, onDeleteSchool, onReorderSchools, onClose, onSubmit }: { classes: AcademyClass[]; schools: SchoolOption[]; onAddSchool: (name: string) => Promise<string>; onDeleteSchool: (id: string) => Promise<void>; onReorderSchools: (schools: SchoolOption[]) => Promise<void>; onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
+function StudentRegistrationModal({ classes, schools, onAddSchool, onRenameSchool, onDeleteSchool, onReorderSchools, onClose, onSubmit }: { classes: AcademyClass[]; schools: SchoolOption[]; onAddSchool: (name: string) => Promise<string>; onRenameSchool: (id: string, name: string) => Promise<void>; onDeleteSchool: (id: string) => Promise<void>; onReorderSchools: (schools: SchoolOption[]) => Promise<void>; onClose: () => void; onSubmit: (values: StudentFormValues) => Promise<void> }) {
   const [values, setValues] = useState<StudentFormValues>({
     name: "",
     school: "",
@@ -1974,7 +1982,7 @@ function StudentRegistrationModal({ classes, schools, onAddSchool, onDeleteSchoo
             onClose={() => setSchoolAddOpen(false)}
           />
         )}{" "}
-        {schoolManagerOpen && <SchoolManager schools={schools} onDelete={onDeleteSchool} onReorder={onReorderSchools} onClose={() => setSchoolManagerOpen(false)} />}
+        {schoolManagerOpen && <SchoolManager schools={schools} onRename={onRenameSchool} onDelete={onDeleteSchool} onReorder={onReorderSchools} onClose={() => setSchoolManagerOpen(false)} />}
       </section>
     </div>
   );
@@ -2042,14 +2050,19 @@ function SchoolAddModal({ onAdd, onAdded, onClose }: { onAdd: (name: string) => 
   );
 }
 
-function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: SchoolOption[]; onDelete: (id: string) => Promise<void>; onReorder: (schools: SchoolOption[]) => Promise<void>; onClose: () => void }) {
+function SchoolManager({ schools, onRename, onDelete, onReorder, onClose }: { schools: SchoolOption[]; onRename: (id: string, name: string) => Promise<void>; onDelete: (id: string) => Promise<void>; onReorder: (schools: SchoolOption[]) => Promise<void>; onClose: () => void }) {
   const [items, setItems] = useState(schools);
+  const [names, setNames] = useState<Record<string, string>>(() => Object.fromEntries(schools.map((school) => [school.id, school.name])));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [renamingId, setRenamingId] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SchoolOption | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  useEffect(() => setItems(schools), [schools]);
+  useEffect(() => {
+    setItems(schools);
+    setNames(Object.fromEntries(schools.map((school) => [school.id, school.name])));
+  }, [schools]);
   const sortable = useSortableOrder((activeId, overId) => setItems((current) => reorderById(current, activeId, overId)));
   const save = async () => {
     setSaving(true);
@@ -2074,6 +2087,22 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
     }
     setDeleting(false);
   };
+  const rename = async (item: SchoolOption) => {
+    const nextName = names[item.id]?.trim() ?? "";
+    if (!nextName) {
+      setError("학교 이름을 입력해 주세요.");
+      return;
+    }
+    setRenamingId(item.id);
+    setError("");
+    try {
+      await onRename(item.id, nextName);
+      setItems((current) => current.map((school) => school.id === item.id ? { ...school, name: nextName } : school));
+    } catch (next) {
+      setError(next instanceof Error ? next.message : "학교 이름을 수정하지 못했습니다.");
+    }
+    setRenamingId("");
+  };
   return (
     <div className="modal-backdrop nested">
       <section className="student-modal school-manager" role="dialog" aria-modal="true">
@@ -2093,10 +2122,13 @@ function SchoolManager({ schools, onDelete, onReorder, onClose }: { schools: Sch
               <button type="button" data-drag-handle aria-label={`${item.name} 순서 이동`}>
                 ☷
               </button>
-              <b>{item.name}</b>
-              <button type="button" className="danger" disabled={deleting} onClick={() => { setDeleteError(""); setDeleteTarget(item); }}>
-                삭제
-              </button>
+              <input aria-label={item.name + " 학교 이름"} maxLength={40} value={names[item.id] ?? item.name} disabled={renamingId === item.id} onChange={(event) => setNames((current) => ({ ...current, [item.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } }} />
+              <span>
+                {(names[item.id]?.trim() ?? "") !== item.name && <button type="button" disabled={Boolean(renamingId) || !names[item.id]?.trim()} onClick={() => void rename(item)}>{renamingId === item.id ? "저장 중…" : "이름 저장"}</button>}
+                <button type="button" className="danger" disabled={deleting || Boolean(renamingId)} onClick={() => { setDeleteError(""); setDeleteTarget(item); }}>
+                  삭제
+                </button>
+              </span>
             </article>
           ))}
         </div>
