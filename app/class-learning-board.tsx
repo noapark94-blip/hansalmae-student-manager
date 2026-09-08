@@ -110,6 +110,28 @@ type MakeupOption = {
   selected: boolean;
 };
 type AttendanceEditor = { row: Row; status: "late" | "absent"; value: string };
+type RevisionRow = {
+  studentId: string;
+  status: Status | null;
+  lateMinutes: number | null;
+  absenceReason: string | null;
+  note: string | null;
+  lessonContent: string;
+  assignedHomework: string;
+  inspectionStatus: string;
+  inspectionNote: string;
+  exam: ExamDraft;
+};
+type RevisionPayload = {
+  notice: string;
+  lessonContent: string;
+  rows: RevisionRow[];
+};
+type RevisionDraftResult = {
+  payload: RevisionPayload;
+  savedAt: string;
+  savedBy: string;
+};
 
 const attendance: [Status, string][] = [
   ["present", "출석"],
@@ -181,6 +203,9 @@ export function ClassLearningBoard({
   const [lessonState, setLessonState] = useState<"draft" | "completed">(
     "draft",
   );
+  const [hasRevisionDraft, setHasRevisionDraft] = useState(false);
+  const [revisionSavedAt, setRevisionSavedAt] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [attendanceEditor, setAttendanceEditor] =
     useState<AttendanceEditor | null>(null);
 
@@ -280,6 +305,10 @@ export function ClassLearningBoard({
         p_class_id: classId,
         p_date: date,
       }),
+      supabase.rpc("staff_class_revision_draft", {
+        p_class_id: classId,
+        p_date: date,
+      }),
     ]).then(
       ([
         examResponse,
@@ -288,6 +317,7 @@ export function ClassLearningBoard({
         noticeResponse,
         categoryResponse,
         lessonResponse,
+        revisionResponse,
       ]) => {
         if (!active) return;
         if (
@@ -295,7 +325,8 @@ export function ClassLearningBoard({
           homeworkResponse.error ||
           weekResponse.error ||
           noticeResponse.error ||
-          categoryResponse.error
+          categoryResponse.error ||
+          revisionResponse.error
         ) {
           setError(
             "개인별 기록을 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.",
@@ -313,6 +344,11 @@ export function ClassLearningBoard({
             item,
           ]),
         );
+        const revision = revisionResponse.data as RevisionDraftResult | null;
+        const revisionPayload = revision?.payload ?? null;
+        const revisionByStudent = new Map(
+          (revisionPayload?.rows ?? []).map((item) => [item.studentId, item]),
+        );
         setRows(
           students.map((student) => {
             const raw = examsByStudent.get(student.id);
@@ -329,12 +365,33 @@ export function ClassLearningBoard({
                   }
                 : null);
             const hw = homeworkByStudent.get(student.id);
+            const draft = revisionByStudent.get(student.id);
+            const draftExam = draft?.exam;
             return {
               ...student,
-              status: student.status === "excused" ? "absent" : student.status,
-              lessonContent: hw?.lessonContent ?? "",
+              status: draft
+                ? draft.status
+                : student.status === "excused"
+                  ? "absent"
+                  : student.status,
+              lateMinutes: draft ? draft.lateMinutes : student.lateMinutes,
+              absenceReason: draft
+                ? draft.absenceReason
+                : student.absenceReason,
+              note: draft ? draft.note : student.note,
+              lessonContent: draft?.lessonContent ?? hw?.lessonContent ?? "",
               exams: [
-                exam
+                draftExam
+                  ? {
+                      id: draftExam.id ?? "",
+                      examType: draftExam.examType ?? "",
+                      examTitle: draftExam.examTitle ?? "",
+                      score:
+                        draftExam.score == null ? "" : String(draftExam.score),
+                      maxScore: String(draftExam.maxScore ?? 100),
+                      evaluation: draftExam.evaluation ?? "",
+                    }
+                  : exam
                   ? {
                       id: exam.id ?? "",
                       examType: exam.examType ?? "",
@@ -345,18 +402,24 @@ export function ClassLearningBoard({
                     }
                   : emptyExam(),
               ],
-              assignedHomework: hw?.assignedHomework ?? "",
+              assignedHomework:
+                draft?.assignedHomework ?? hw?.assignedHomework ?? "",
               previousHomework: hw?.previousHomework ?? "",
-              inspectionStatus: hw?.inspectionStatus ?? "",
-              inspectionNote: hw?.inspectionNote ?? "",
+              inspectionStatus:
+                draft?.inspectionStatus ?? hw?.inspectionStatus ?? "",
+              inspectionNote: draft?.inspectionNote ?? hw?.inspectionNote ?? "",
             };
           }),
         );
         setCategories((categoryResponse.data ?? []) as ExamCategory[]);
         setWeek((weekResponse.data ?? []) as CalendarDay[]);
-        setNotice(String(noticeResponse.data ?? ""));
+        setNotice(revisionPayload?.notice ?? String(noticeResponse.data ?? ""));
         if (!lessonResponse.error)
-          setLessonContent(String(lessonResponse.data ?? ""));
+          setLessonContent(
+            revisionPayload?.lessonContent ?? String(lessonResponse.data ?? ""),
+          );
+        setHasRevisionDraft(Boolean(revisionPayload));
+        setRevisionSavedAt(revision?.savedAt ?? null);
         setError("");
         setLoading(false);
       },
@@ -364,7 +427,7 @@ export function ClassLearningBoard({
     return () => {
       active = false;
     };
-  }, [classId, date, students, supabase]);
+  }, [classId, date, reloadKey, students, supabase]);
 
   const activateMakeupDay = async () => {
     if (validDay || makeupEnabled) return;
@@ -546,6 +609,15 @@ export function ClassLearningBoard({
     setSaving(row.id);
     setError("");
     if (row.status === status) {
+      if (lessonState === "completed") {
+        update(row.id, {
+          status: null,
+          lateMinutes: null,
+          absenceReason: null,
+        });
+        setSaving("");
+        return;
+      }
       const { error: clearError } = await supabase.rpc(
         "staff_clear_class_attendance",
         { p_class_id: classId, p_date: date, p_student_id: row.id },
@@ -562,7 +634,7 @@ export function ClassLearningBoard({
       setSaving("");
       return;
     }
-    let late: number | null = null,
+    const late: number | null = null,
       reason: string | null = null;
     if (status === "late") {
       setAttendanceEditor({
@@ -575,6 +647,11 @@ export function ClassLearningBoard({
     }
     if (status === "absent") {
       setAttendanceEditor({ row, status, value: row.absenceReason ?? "" });
+      setSaving("");
+      return;
+    }
+    if (lessonState === "completed") {
+      update(row.id, { status, lateMinutes: late, absenceReason: reason });
       setSaving("");
       return;
     }
@@ -617,6 +694,12 @@ export function ClassLearningBoard({
         return;
       }
     }
+    if (lessonState === "completed") {
+      update(row.id, { status, lateMinutes: late, absenceReason: reason });
+      setAttendanceEditor(null);
+      setError("");
+      return;
+    }
     setSaving(row.id);
     setError("");
     const { error: saveError } = await supabase.rpc(
@@ -640,24 +723,22 @@ export function ClassLearningBoard({
     setSaving("");
   };
 
-  const save = async (complete: boolean) => {
-    if (!validDay && !makeupEnabled) {
-      setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");
-      return;
-    }
-    if (complete) {
+  const validateRows = (requireAttendance: boolean) => {
+    if (requireAttendance) {
       const missing = rows.filter((row) => !row.status).map((row) => row.name);
       if (missing.length) {
         setError(`출결 미입력 학생: ${missing.join(", ")}`);
-        return;
+        return false;
       }
     }
     for (const row of rows) {
       const exam = row.exams[0];
-      const hasExamInput = Boolean(exam.examTitle.trim() || exam.score !== "" || exam.evaluation.trim());
+      const hasExamInput = Boolean(
+        exam.examTitle.trim() || exam.score !== "" || exam.evaluation.trim(),
+      );
       if (hasExamInput && !exam.examType.trim()) {
         setError(`${row.name} 학생의 시험 종류를 선택해 주세요.`);
-        return;
+        return false;
       }
       const max = exam.maxScore.trim() === "" ? 100 : +exam.maxScore;
       if (
@@ -669,9 +750,40 @@ export function ClassLearningBoard({
           +exam.score > max)
       ) {
         setError(`${row.name} 학생의 점수와 만점을 확인해 주세요.`);
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  const revisionPayload = (): RevisionPayload => ({
+    notice,
+    lessonContent,
+    rows: rows.map((row) => ({
+      studentId: row.id,
+      status: row.status,
+      lateMinutes: row.lateMinutes,
+      absenceReason: row.absenceReason,
+      note: row.note,
+      lessonContent: row.lessonContent.trim(),
+      assignedHomework: row.assignedHomework.trim(),
+      inspectionStatus: row.inspectionStatus,
+      inspectionNote: row.inspectionNote.trim(),
+      exam: {
+        ...row.exams[0],
+        examType: row.exams[0].examType.trim(),
+        examTitle: row.exams[0].examTitle.trim(),
+        evaluation: row.exams[0].evaluation.trim(),
+      },
+    })),
+  });
+
+  const save = async (complete: boolean) => {
+    if (!validDay && !makeupEnabled) {
+      setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");
+      return;
+    }
+    if (!validateRows(complete)) return;
     setSaving("all");
     setError("");
     const examPayload = rows.map((row) => ({
@@ -757,6 +869,59 @@ export function ClassLearningBoard({
         studentIds: rows.map((row) => row.id),
       });
     await onReload();
+    setSaving("");
+  };
+
+  const saveRevisionDraft = async () => {
+    if (!validateRows(false)) return;
+    setSaving("all");
+    setError("");
+    const { data, error: saveError } = await supabase.rpc(
+      "staff_save_class_revision_draft",
+      {
+        p_class_id: classId,
+        p_date: date,
+        p_payload: revisionPayload(),
+      },
+    );
+    if (saveError) setError(saveError.message);
+    else {
+      setHasRevisionDraft(true);
+      setRevisionSavedAt(String(data ?? new Date().toISOString()));
+    }
+    setSaving("");
+  };
+
+  const publishRevision = async () => {
+    if (!validateRows(true)) return;
+    if (
+      !(await appConfirm({
+        eyebrow: "수정 내용 반영",
+        title: "수정 내용을 학부모 페이지에 반영할까요?",
+        copy: "현재 공개된 수업 기록이 지금 입력한 내용으로 변경됩니다.",
+        confirmLabel: "수정 내용 반영",
+      }))
+    )
+      return;
+    setSaving("all");
+    setError("");
+    const { error: publishError } = await supabase.rpc(
+      "staff_publish_class_revision",
+      {
+        p_class_id: classId,
+        p_date: date,
+        p_payload: revisionPayload(),
+      },
+    );
+    if (publishError) {
+      setError(publishError.message);
+      setSaving("");
+      return;
+    }
+    setHasRevisionDraft(false);
+    setRevisionSavedAt(null);
+    await onReload();
+    setReloadKey((value) => value + 1);
     setSaving("");
   };
 
@@ -1389,9 +1554,19 @@ export function ClassLearningBoard({
           {rows.length ? (
             <footer>
               <span>
-                <b>{lessonState === "completed" ? "수업 완료" : "기록 중"}</b> ·
-                완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에
-                반영됩니다.
+                <b>
+                  {lessonState === "completed"
+                    ? hasRevisionDraft
+                      ? "수정 임시본 저장됨"
+                      : "수업 완료"
+                    : "기록 중"}
+                </b>{" "}
+                ·{" "}
+                {lessonState === "completed"
+                  ? hasRevisionDraft
+                    ? `학부모 페이지에는 기존 내용이 유지됩니다${revisionSavedAt ? ` · ${new Date(revisionSavedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })} 저장` : ""}`
+                    : "수정 내용은 최종 반영 전까지 학부모 페이지에 공개되지 않습니다."
+                  : "완료 처리된 기록만 학생 누적 수업 횟수와 학부모 리포트에 반영됩니다."}
               </span>
               <span className="learning-completion-actions">
                 {lessonState === "completed" ? (
@@ -1399,6 +1574,7 @@ export function ClassLearningBoard({
                     <button
                       type="button"
                       className="danger-button"
+                      style={{ gridColumn: "1 / -1" }}
                       disabled={saving === "all"}
                       onClick={() => void deleteRecord()}
                     >
@@ -1406,11 +1582,19 @@ export function ClassLearningBoard({
                     </button>
                     <button
                       type="button"
+                      className="secondary-button"
+                      disabled={saving === "all"}
+                      onClick={() => void saveRevisionDraft()}
+                    >
+                      {saving === "all" ? "저장 중…" : "수정 임시저장"}
+                    </button>
+                    <button
+                      type="button"
                       className="primary"
                       disabled={saving === "all"}
-                      onClick={() => void save(true)}
+                      onClick={() => void publishRevision()}
                     >
-                      {saving === "all" ? "저장 중…" : "수정 저장"}
+                      {saving === "all" ? "반영 중…" : "수정 내용 반영"}
                     </button>
                   </>
                 ) : (
