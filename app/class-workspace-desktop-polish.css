@@ -213,6 +213,43 @@
     font-size:7px!important;
   }
 
+  /* Keep every student badge inside its own day card. */
+  .teacher-special-workspace .special-week-session {
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-session-details {
+    min-width:0!important;
+    align-items:flex-start!important;
+    flex-direction:column!important;
+    gap:3px!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-session-subject {
+    max-width:100%!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .teacher-special-workspace .special-session-subject::after {
+    content:none!important;
+  }
+
+  .teacher-special-workspace .special-session-details .special-calendar-students {
+    width:100%!important;
+    max-width:100%!important;
+    flex-wrap:wrap!important;
+    overflow:hidden!important;
+  }
+
+  .teacher-special-workspace .special-session-details .special-calendar-students>em {
+    max-width:100%!important;
+    overflow:hidden!important;
+  }
+
   .teacher-special-workspace .special-day-agenda {
     margin:18px 26px 0!important;
     border:1px solid #e7dce1!important;
