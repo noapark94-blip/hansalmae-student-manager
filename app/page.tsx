@@ -889,7 +889,7 @@ export default function Home() {
           {familyStudentReady && view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {familyStudentReady && view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
-          {view === "communications" && <CommunicationBoard supabase={supabase} />}
+          {view === "communications" && <CommunicationBoard supabase={supabase} role={profile.role} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
           {view === "analytics" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "backup" && <BackupBoard supabase={supabase} />}
