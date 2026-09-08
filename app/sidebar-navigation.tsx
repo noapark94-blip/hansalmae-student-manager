@@ -144,7 +144,7 @@ export function SidebarNavigation({ supabase, role, items, activeView, onSelect,
   }
 
   return <nav aria-label="주요 메뉴" className="folder-navigation">
-    <button type="button" className="menu-customize-button" onClick={beginEditing} title={sidebarCollapsed ? "메뉴 편집" : undefined}><span className="nav-icon"><HansalmaeIcon name="menu" /></span>메뉴 편집</button>
+    {role === "admin" && <button type="button" className="menu-customize-button" onClick={beginEditing} title={sidebarCollapsed ? "메뉴 편집" : undefined}><span className="nav-icon"><HansalmaeIcon name="menu" /></span>메뉴 편집</button>}
     {folders.map((folder) => <section className="nav-folder" key={folder.id}>
       <button type="button" className="nav-folder-title" aria-expanded={!collapsed[folder.id]} onClick={() => setCollapsed((current) => ({ ...current, [folder.id]: !current[folder.id] }))}>
         <span>{folder.name}</span><i>{collapsed[folder.id] ? "＋" : "－"}</i>
