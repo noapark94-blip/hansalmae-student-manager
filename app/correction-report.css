@@ -4,6 +4,7 @@
 .correction-learning-board{width:100%!important;max-width:none!important;margin:18px 0 0!important;box-sizing:border-box!important;overflow:hidden!important;border:1px solid #eadfe4!important;border-radius:18px!important;background:#fff!important;box-shadow:none!important}
 .correction-learning-board>header{align-items:center!important}
 .correction-learning-week-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}
+.correction-live-status{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 11px;border:1px solid #eadfe4;border-radius:999px;background:#faf7f8;color:#8a7b82;font-size:11px;font-weight:800;white-space:nowrap}.correction-live-status i{width:7px;height:7px;border-radius:50%;background:#b9adb3}.correction-live-status.connected{border-color:#cfe8dc;background:#eff9f4;color:#34745a}.correction-live-status.connected i{background:#42a477;box-shadow:0 0 0 4px rgba(66,164,119,.12)}
 .correction-learning-week-actions .secondary-button{white-space:nowrap}
 .correction-learning-board .correction-learning-heading,.correction-learning-board .correction-learning-rows>article{grid-template-columns:minmax(230px,.85fr) minmax(480px,1.7fr) minmax(330px,1.15fr)!important}
 .correction-learning-board .correction-learning-heading{padding:13px 20px!important;border-top:1px solid #eee5e9!important;border-bottom:1px solid #eee5e9!important;background:#fcfafb!important;color:#70646a!important;font-size:12px!important;font-weight:850!important}

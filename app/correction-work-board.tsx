@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback,useEffect,useMemo,useState } from "react";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
@@ -13,13 +13,15 @@ type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"c
 type Board={assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={assignment:Assignment;date:string;startTime:string;endTime:string;kind:"fixed"|"move"|"extra";exception?:Exception};
 type TaskStatus="completed"|"partial"|"incomplete"|null;
-type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;absenceReason?:string;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;correctionTaskStatus?:TaskStatus;correctionTaskFeedback?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null};
+type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;absenceReason?:string;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;correctionTaskStatus?:TaskStatus;correctionTaskFeedback?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null;lastEditedByName?:string|null;updatedAt?:string|null};
 type AttendanceEditor={row:Occurrence;status:"late"|"absent";value:string};
 type CorrectionReadStatus={reportAvailable:boolean;totalStudents:number;confirmedStudents:number;unconfirmedStudents:number;unlinkedStudents:number;students:{studentId:string;studentName:string;school:string|null;grade:string|null;status:"confirmed"|"unconfirmed"|"unlinked";viewedAt:string|null}[]};
 
 const weekdays=["월","화","수","목","금","토","일"];
 const subjects:["국어","영어","수학"]=["국어","영어","수학"];
 const attendance:[["present","출석"],["late","지각"],["absent","결석"]]=[["present","출석"],["late","지각"],["absent","결석"]];
+const editableReportKeys=["attendanceStatus","lateMinutes","absenceReason","teacherInstruction","examTitle","examRange","examScore","examMaxScore","evaluation","homeworkInstruction","homeworkStatus","homeworkNote","correctionContent","correctionTaskStatus","correctionTaskFeedback","assistantFeedback","nextPreparation","published"] as const;
+type EditableReportKey=(typeof editableReportKeys)[number];
 const hasCorrectionDetails=(report:Report)=>report.published===true||report.examScore!=null||Boolean(report.homeworkStatus)||[
   report.teacherInstruction,report.examTitle,report.examRange,report.evaluation,report.homeworkInstruction,
   report.homeworkNote,report.correctionContent,report.correctionTaskStatus,report.correctionTaskFeedback,report.assistantFeedback,report.nextPreparation,
@@ -37,6 +39,8 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[data,setData]=useState<Board|null>(null);
   const[drafts,setDrafts]=useState<Record<string,Report>>({});
   const[savedDrafts,setSavedDrafts]=useState<Record<string,Report>>({});
+  const draftsRef=useRef<Record<string,Report>>({});
+  const savedDraftsRef=useRef<Record<string,Report>>({});
   const[categories,setCategories]=useState<ExamCategory[]>([]);
   const[loading,setLoading]=useState(true);
   const[saving,setSaving]=useState("");
@@ -50,6 +54,8 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[weekRosterDate,setWeekRosterDate]=useState<string|null>(null);
   const[openStudentKey,setOpenStudentKey]=useState<string|null>(null);
   const[incompleteOnly,setIncompleteOnly]=useState(false);
+  const[liveConnected,setLiveConnected]=useState(false);
+  const[liveEditor,setLiveEditor]=useState("");
 
   const weekDates=useMemo(()=>weekOf(date),[date]);
   const load=useCallback(async()=>{
@@ -62,19 +68,48 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     const board=boardResponse.data as Board;
     const dates=weekOf(date);
     const occurrences=dates.flatMap(day=>buildOccurrences(board,day));
-    const reportRows=await Promise.all(occurrences.map(async row=>{
+    const reportResults=await Promise.all(occurrences.map(async row=>{
       const response=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
-      return [reportKey(row),(response.data??{}) as Report] as const;
+      return {row,response};
     }));
+    const failedReport=reportResults.find(item=>item.response.error);
+    if(failedReport){setError(`첨삭 기록을 불러오지 못했습니다. 저장하지 않고 다시 시도해 주세요. ${failedReport.response.error?.message??""}`);setLoading(false);return}
+    const reportRows=reportResults.map(({row,response})=>[reportKey(row),(response.data??{}) as Report] as const);
     setData(board);
     const loadedDrafts=Object.fromEntries(reportRows);
     setDrafts(loadedDrafts);
     setSavedDrafts(loadedDrafts);
+    draftsRef.current=loadedDrafts;
+    savedDraftsRef.current=loadedDrafts;
     if(!categoryResponse.error)setCategories((categoryResponse.data??[]) as ExamCategory[]);
     setLoading(false);
   },[date,supabase]);
 
   useEffect(()=>{void load()},[load]);
+  useEffect(()=>{
+    const channel=supabase.channel(`correction-reports-${date}`).on("postgres_changes",{event:"*",schema:"public",table:"correction_reports",filter:`correction_date=eq.${date}`},payload=>{
+      const changed=(Object.keys(payload.new??{}).length?payload.new:payload.old) as Record<string,unknown>;
+      const assignmentId=String(changed.assignment_id??"");
+      const correctionDate=String(changed.correction_date??"");
+      const startTime=String(changed.start_time??"");
+      if(!assignmentId||!correctionDate||!startTime)return;
+      void supabase.rpc("staff_correction_report",{p_assignment_id:assignmentId,p_date:correctionDate,p_start_time:startTime}).then(({data:next,error:readError})=>{
+        if(readError)return;
+        const key=`${assignmentId}-${correctionDate}-${startTime}`;
+        const remote=(next??{}) as Report;
+        const baseline=savedDraftsRef.current[key]??{};
+        const local=draftsRef.current[key]??{};
+        const merged=mergeRemoteReport(local,baseline,remote);
+        const mergedBaseline=mergeRemoteBaseline(local,baseline,remote);
+        savedDraftsRef.current={...savedDraftsRef.current,[key]:mergedBaseline};
+        draftsRef.current={...draftsRef.current,[key]:merged};
+        setSavedDrafts(savedDraftsRef.current);
+        setDrafts(draftsRef.current);
+        if(remote.lastEditedByName){setLiveEditor(remote.lastEditedByName);window.setTimeout(()=>setLiveEditor(""),3500)}
+      });
+    }).subscribe(status=>setLiveConnected(status==="SUBSCRIBED"));
+    return()=>{setLiveConnected(false);void supabase.removeChannel(channel)};
+  },[date,supabase]);
   const refreshCategories=useCallback(async()=>{
     const{data:next,error:categoryError}=await supabase.rpc("staff_exam_categories");
     if(categoryError)setError(categoryError.message);
@@ -88,30 +123,31 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const readyToCompleteCount=incompleteRows.filter(row=>(drafts[reportKey(row)]?.attendanceStatus??"scheduled")!=="scheduled").length;
   const changedCompletedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true&&reportFingerprint(drafts[reportKey(row)]??{})!==reportFingerprint(savedDrafts[reportKey(row)]??{})).length;
   const visibleRows=incompleteOnly?incompleteRows:rows;
-  const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>({...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}}));
+  const updateDraft=(row:Occurrence,patch:Partial<Report>)=>setDrafts(current=>{const next={...current,[reportKey(row)]:{...(current[reportKey(row)]??{}),...patch}};draftsRef.current=next;return next});
 
   const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
+    const key=reportKey(row),base=savedDraftsRef.current[key]??{};
     const max=next.examMaxScore==null||Number(next.examMaxScore)<=0?100:Number(next.examMaxScore);
     const score=next.examScore==null?null:Number(next.examScore);
     const examType=next.examRange?.startsWith("[종류]")?next.examRange.slice(4).split("\n")[0].trim():"";
     const hasExamInput=Boolean(next.examTitle?.trim()||score!==null||next.evaluation?.trim());
     if(hasExamInput&&!examType)throw new Error(`${row.assignment.studentName} 학생의 시험 종류를 선택해 주세요.`);
     if(score!==null&&(!Number.isFinite(score)||score<0||score>max))throw new Error(`${row.assignment.studentName} 학생의 시험 점수를 확인해 주세요.`);
-    const{error:saveError}=await supabase.rpc("staff_save_correction_report_v2",{
+    const normalized={...next,examScore:score,examMaxScore:max,published:publish};
+    const changes:Record<string,unknown>={};
+    const baseValues:Record<string,unknown>={};
+    for(const field of editableReportKeys){const nextValue=reportValue(normalized,field),baseValue=reportValue(base,field);if(!sameValue(nextValue,baseValue)){changes[field]=nextValue;baseValues[field]=baseValue}}
+    if(!Object.keys(changes).length)return;
+    const{data:savedData,error:saveError}=await supabase.rpc("staff_patch_correction_report_v3",{
       p_assignment_id:row.assignment.id,p_correction_date:row.date,p_start_time:row.startTime,p_end_time:row.endTime,
-      p_attendance_status:next.attendanceStatus??"scheduled",p_late_minutes:next.attendanceStatus==="late"?(next.lateMinutes??null):null,
-      p_absence_reason:next.attendanceStatus==="absent"?(next.absenceReason||null):null,
-      p_teacher_instruction:next.teacherInstruction||null,p_exam_title:next.examTitle||null,p_exam_range:next.examRange||null,
-      p_exam_score:score,p_exam_max_score:max,p_evaluation:next.evaluation||null,p_homework_instruction:next.homeworkInstruction||null,
-      p_homework_status:next.homeworkStatus||null,p_homework_note:next.homeworkNote||null,p_correction_content:next.correctionContent||null,
-      p_correction_task_status:next.correctionTaskStatus||null,p_correction_task_feedback:next.correctionTaskFeedback||null,
-      p_assistant_feedback:next.assistantFeedback||null,p_next_preparation:next.nextPreparation||null,p_published:publish
+      p_changes:changes,p_base:baseValues
     });
     if(saveError)throw saveError;
-    const refreshed=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
-    const saved=refreshed.error?{...next,published:publish,examMaxScore:max}:(refreshed.data??{}) as Report;
-    setDrafts(current=>({...current,[reportKey(row)]:saved}));
-    setSavedDrafts(current=>({...current,[reportKey(row)]:saved}));
+    const saved=(savedData??normalized) as Report;
+    draftsRef.current={...draftsRef.current,[key]:saved};
+    savedDraftsRef.current={...savedDraftsRef.current,[key]:saved};
+    setDrafts(draftsRef.current);
+    setSavedDrafts(savedDraftsRef.current);
   };
 
   const saveAttendance=async(row:Occurrence,status:"present"|"late"|"absent")=>{
@@ -149,7 +185,8 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       confirmLabel:`${ready.length}명 완료`,
     }))return;
     setSaving("all");setError("");
-    try{for(const row of rows){const report=drafts[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
+    const targets=rows.filter(row=>{const key=reportKey(row),report=drafts[key]??{},saved=savedDrafts[key]??{};const changed=reportFingerprint(report)!==reportFingerprint(saved);const needsPublish=complete&&report.published!==true&&(report.attendanceStatus??"scheduled")!=="scheduled";return changed||needsPublish});
+    try{for(const row of targets){const report=drafts[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
     await load();setSaving("");
   };
@@ -180,7 +217,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
         </button>
         <button type="button" className="correction-mobile-history-button" onClick={()=>setHistoryStudent(row.assignment)}>기록</button>
       </div>
-      <div className="learning-person-attendance"><span className={`learning-student ${row.assignment.isDateOverride?"date-override":""}`}><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b>{row.assignment.isDateOverride?<span className="correction-date-override-badge">누락 보정</span>:null}<span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{showRecordedBy?<small>첨삭 담당 · {report.recordedByName}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
+      <div className="learning-person-attendance"><span className={`learning-student ${row.assignment.isDateOverride?"date-override":""}`}><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b>{row.assignment.isDateOverride?<span className="correction-date-override-badge">누락 보정</span>:null}<span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{showRecordedBy?<small>첨삭 담당 · {report.recordedByName}{report.lastEditedByName&&report.lastEditedByName!==report.recordedByName?` · 최근 수정 ${report.lastEditedByName}`:""}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
       <div className={`correction-mobile-student-details ${detailsOpen?"open":""}`}>
         <div className="correction-mobile-detail-label"><span>시험 기록</span><small>선택 입력</small></div>
         <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore===undefined?100:(report.examMaxScore??"")} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
@@ -191,7 +228,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   };
 
   return <section className="class-learning-board correction-learning-board" spellCheck={false}>
-    <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘의 첨삭 과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions">{date<koreaToday()?<button type="button" className="secondary-button" onClick={()=>setMissingStudentOpen(true)}>이 날짜 누락 학생</button>:null}<button type="button" className="secondary-button correction-calendar-button" onClick={()=>setMonthOpen(true)}>전체 첨삭 캘린더</button></div></header>
+    <header><div><h3>이번 주 첨삭 기록</h3><p>출결·시험·오늘의 첨삭 과제를 한 화면에서 기록하고 학생·학부모 학습리포트와 성적 추이에 연결합니다.</p></div><div className="correction-learning-week-actions"><span className={`correction-live-status ${liveConnected?"connected":""}`}><i/>{liveEditor?`${liveEditor} 수정 반영됨`:liveConnected?"실시간 공동 편집":"실시간 연결 중"}</span>{date<koreaToday()?<button type="button" className="secondary-button" onClick={()=>setMissingStudentOpen(true)}>이 날짜 누락 학생</button>:null}<button type="button" className="secondary-button correction-calendar-button" onClick={()=>setMonthOpen(true)}>전체 첨삭 캘린더</button></div></header>
     <div className="class-week-navigation correction-week-navigation"><button type="button" aria-label="이전 주" onClick={()=>selectDate(addDays(date,-7))}>‹</button><div className="class-week-strip correction-week-strip">{weekDates.map((day,index)=>{const dayRows=buildOccurrences(data,day),overflow=dayRows.length-6;return <button key={day} className={`${day===date?"active":""} ${dayRows.length?"scheduled":""}`} aria-current={day===date?"date":undefined} onClick={()=>selectDate(day)}><span>{weekdays[index]}</span><b>{+day.slice(8)}</b><small className="correction-mobile-day-count">{dayRows.length?`${dayRows.length}명`:"없음"}</small><div>{dayRows.slice(0,6).map(row=>{const report=drafts[reportKey(row)]??{};const status=report.attendanceStatus??"scheduled";return <em key={reportKey(row)} className={`subject-${row.assignment.subject} status-${status} ${row.assignment.isDateOverride?"date-override":""}`}>{row.assignment.studentName}{row.assignment.isDateOverride?<span className="correction-date-override-badge compact">보정</span>:null}{row.kind!=="fixed"?<span className={`correction-direct-badge compact ${row.kind}`}>{row.kind==="move"?"변경":"추가"}</span>:null}</em>})}{overflow>0?<span className="correction-week-more" role="button" tabIndex={0} onClick={event=>{event.stopPropagation();setWeekRosterDate(day)}} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();event.stopPropagation();setWeekRosterDate(day)}}}>+{overflow}명</span>:null}{!dayRows.length?<small>첨삭 없음</small>:null}</div></button>})}</div><button type="button" aria-label="다음 주" onClick={()=>selectDate(addDays(date,7))}>›</button></div>
     <CorrectionReportReadStatus key={`${date}-${Object.values(drafts).filter(report=>report.published).length}`} supabase={supabase} date={date}/>
     <div className="learning-board-heading correction-learning-heading"><span>학생·출결</span><span className="learning-exam-heading"><b>시험 기록</b><button type="button" onClick={()=>setCategoryOpen(true)}>시험 카테고리 관리</button></span><span>오늘의 첨삭 과제</span></div>
@@ -240,6 +277,24 @@ function CorrectionScheduleChangeModal({row,supabase,onClose,onReverted}:{row:Oc
 }
 
 function reportKey(row:Occurrence){return `${row.assignment.id}-${row.date}-${row.startTime}`}
+function reportValue(report:Report,field:EditableReportKey):unknown{
+  if(field==="attendanceStatus")return report.attendanceStatus??"scheduled";
+  if(field==="published")return report.published===true;
+  if(field==="examMaxScore")return report.examMaxScore??100;
+  if(field==="lateMinutes"||field==="examScore"||field==="homeworkStatus"||field==="correctionTaskStatus")return report[field]??null;
+  return report[field]??"";
+}
+function sameValue(left:unknown,right:unknown){return JSON.stringify(left)===JSON.stringify(right)}
+function mergeRemoteReport(local:Report,baseline:Report,remote:Report):Report{
+  const merged:Report={...remote};
+  for(const field of editableReportKeys)if(!sameValue(reportValue(local,field),reportValue(baseline,field)))Object.assign(merged,{[field]:local[field]});
+  return merged;
+}
+function mergeRemoteBaseline(local:Report,baseline:Report,remote:Report):Report{
+  const merged:Report={...remote};
+  for(const field of editableReportKeys)if(!sameValue(reportValue(local,field),reportValue(baseline,field)))Object.assign(merged,{[field]:baseline[field]});
+  return merged;
+}
 function buildOccurrences(data:Board|null,date:string):Occurrence[]{if(!data)return[];const weekday=isoWeekday(date);const rows:Occurrence[]=[];for(const a of data.assignments??[]){if(a.weekday===weekday&&isAssignmentValid(a,date)){const x=(data.exceptions??[]).find(e=>e.assignmentId===a.id&&e.originalDate===date&&(e.kind==="move"||e.kind==="cancel"));if(!x)rows.push({assignment:a,date,startTime:a.startTime,endTime:a.endTime,kind:"fixed"})}}for(const x of data.exceptions??[]){if((x.kind==="move"||x.kind==="extra")&&x.targetDate===date&&x.targetStartTime&&x.targetEndTime){const a=(data.assignments??[]).find(v=>v.id===x.assignmentId);if(a)rows.push({assignment:a,date,startTime:x.targetStartTime,endTime:x.targetEndTime,kind:x.kind,exception:x})}}return rows.sort((a,b)=>a.startTime.localeCompare(b.startTime)||a.assignment.subject.localeCompare(b.assignment.subject,"ko")||a.assignment.studentName.localeCompare(b.assignment.studentName,"ko"))}
 function isAssignmentValid(assignment:Assignment,date:string){return assignment.validFrom<=date&&(!assignment.validUntil||assignment.validUntil>=date)}
 function isoWeekday(value:string){const d=new Date(`${value}T12:00:00+09:00`);const day=d.getUTCDay();return day===0?7:day}
