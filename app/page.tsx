@@ -186,6 +186,7 @@ const nav: { id: View; label: string; icon: string }[] = [
 
 const roleLabels: Record<string, string> = {
   admin: "관리자",
+  sub_admin: "부관리자",
   teacher: "교사",
   assistant: "조교",
   manager: "실장님",
@@ -199,6 +200,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  sub_admin: ["dashboard", "alimtalk", "communications", "my-account"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
@@ -696,7 +698,7 @@ export default function Home() {
   };
 
   const familyAccount = profile.role === "student" || profile.role === "guardian";
-  const staffAccount = ["admin","teacher","assistant","manager"].includes(profile.role);
+  const staffAccount = ["admin","sub_admin","teacher","assistant","manager"].includes(profile.role);
   const signedInDisplayName = accountDisplayName(profile);
 
   if (familyAccount && familyDesktopUrl) {
@@ -841,7 +843,7 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
+              {profile.role !== "sub_admin" && <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />}
             </header>
           </>
         )}
@@ -882,7 +884,7 @@ export default function Home() {
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
-          {view === "alimtalk" && profile.role === "admin" && <AlimtalkSendCenter supabase={supabase} students={students} />}
+          {view === "alimtalk" && (profile.role === "admin" || profile.role === "sub_admin") && <AlimtalkSendCenter supabase={supabase} students={students} />}
           {familyStudentReady && view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {familyStudentReady && view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {familyStudentReady && view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
@@ -1174,6 +1176,12 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "analytics" as View, label: "운영 현황", tone: "gray" },
           { id: "alimtalk" as View, label: "알림톡 발송", tone: "wine" },
         ]
+      : role === "sub_admin"
+        ? [
+            { id: "alimtalk" as View, label: "알림톡 발송", tone: "wine" },
+            { id: "communications" as View, label: "공지·문자 발송", tone: "blue" },
+            { id: "my-account" as View, label: "내 계정", tone: "gray" },
+          ]
       : role === "assistant"
         ? [
             { id: "assignments" as View, label: "첨삭 관리", tone: "wine" },
@@ -1212,11 +1220,11 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
         <div>
           <b>{displayName}</b>
           <span>{roleLabels[role]}</span>
-          <small>{role === "assistant" ? "첨삭 업무 전용 계정" : `재원 학생 ${studentsLoading ? "…" : activeStudentCount}명`}</small>
+          <small>{role === "assistant" ? "첨삭 업무 전용 계정" : role === "sub_admin" ? "알림톡·공지·문자 발송 전용 계정" : `재원 학생 ${studentsLoading ? "…" : activeStudentCount}명`}</small>
         </div>
-        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" ? "my-account" : "students")}>
-          <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" ? "user" : "students"} size={19} />
-          <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
+        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" || role === "sub_admin" ? "my-account" : "students")}>
+          <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" || role === "sub_admin" ? "user" : "students"} size={19} />
+          <span>{role === "admin" ? "학생 등록" : role === "assistant" || role === "sub_admin" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
       {role === "assistant" && (
@@ -1338,6 +1346,11 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
           { id: "assignments", label: "첨삭 관리" },
           { id: "corrections", label: "첨삭 시간표" },
           { id: "my-account", label: "내 계정" },
+        ] : role === "sub_admin" ? [
+          { id: "dashboard", label: "홈" },
+          { id: "alimtalk", label: "알림톡" },
+          { id: "communications", label: "공지·문자" },
+          { id: "my-account", label: "내 계정" },
         ] : [
           { id: "dashboard", label: "홈" },
           { id: "class-management", label: "내 수업" },
@@ -1363,6 +1376,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
     admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "alimtalk", "backup", "settings"],
+    sub_admin: ["dashboard", "alimtalk", "communications", "my-account"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
