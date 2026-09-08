@@ -8,6 +8,7 @@ import styles from "./my-account.module.css";
 
 const roleLabels = {
   admin: "관리자",
+  sub_admin: "부관리자",
   teacher: "교사",
   assistant: "조교",
   manager: "실장님",
