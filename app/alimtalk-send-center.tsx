@@ -75,10 +75,10 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
       <main className={styles.workspace}>
         <header className={styles.selection}><div><small>{type==="daily"?"DAILY MESSAGE":"WEEKLY MESSAGE"}</small><h2>{student?.studentName??"예정 학생이 없습니다"}</h2><p>{formatPeriod(period.start,period.end)}</p></div><span className={styles.autoBadge}>작성된 내용 자동 생성</span></header>
         {!student&&!loading?<Empty text="이 기간에 예정된 수업이 있는 학생이 없습니다."/>:student?<>
-          <div className={styles.readiness}><div><i className={student.complete?styles.ok:styles.warning}>!</i><span><b>{student.complete?"예정 기록 완료":"일부 기록 미작성"}</b><small>{student.completedCount}/{student.expectedCount}건 작성됨</small></span></div><div><i className={student.recipient.available?styles.ok:""}>✓</i><span><b>수신 학부모</b><small>{student.recipient.available?`${student.recipient.guardianName} · ${student.recipient.maskedPhone}`:"등록된 학부모 연락처 없음"}</small></span></div><div><i className={student.lessons.length?styles.ok:""}>✓</i><span><b>내용 자동 생성</b><small>{student.lessons.length?"수업·출결·시험·과제 요약 완료":"작성된 기록 없음"}</small></span></div></div>
+          <div className={styles.readiness}><div><i className={student.complete?styles.ok:styles.warning}>!</i><span><b>{student.complete?"예정 기록 완료":"일부 기록 미작성"}</b><small>{student.completedCount}/{student.expectedCount}건 작성됨</small></span></div><div><i className={student.recipient.available?styles.ok:""}>✓</i><span><b>수신 학부모</b><small>{student.recipient.available?`${student.recipient.guardianName} · ${student.recipient.maskedPhone}`:"등록된 학부모 연락처 없음"}</small></span></div><div><i className={student.lessons.length?styles.ok:""}>✓</i><span><b>내용 자동 생성</b><small>{student.lessons.length?"수업·출결·시험·숙제 요약 완료":"작성된 기록 없음"}</small></span></div></div>
           {!student.complete&&<section className={styles.missing}><header><b>아직 작성되지 않은 기록</b><span>{student.missingItems.length}건</span></header><div>{student.missingItems.map((item,index)=><p key={`${item.date}-${item.time}-${item.title}-${index}`}><strong>{formatDay(item.date)} {item.time}</strong><span>{item.kind} · {item.title}</span></p>)}</div><small>현재 발송하면 아래 미리보기에 포함된 작성 완료 기록만 전달됩니다.</small></section>}
           <section className={styles.preview}><div className={styles.kakaoHead}><span>한살매 수업노트</span><small>알림톡 도착 화면 미리보기</small></div><article><pre>{preview.body}</pre><button>학습기록 확인</button></article></section>
-          <section className={styles.variables}><header><b>발송 변수 확인</b><span>내용이 없는 시험·과제·첨삭 과제 항목은 발송문에서 제외됩니다.</span></header><dl><div><dt>수업</dt><dd>{preview.lesson}</dd></div><div><dt>출결</dt><dd>{preview.attendance}</dd></div><div><dt>시험</dt><dd className={styles.multiline}>{preview.exam||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>과제</dt><dd className={styles.multiline}>{preview.homework||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>첨삭 과제</dt><dd className={styles.multiline}>{preview.correctionTask||"기록 없음 · 발송문에서 제외"}</dd></div></dl></section>
+          <section className={styles.variables}><header><b>발송 변수 확인</b><span>내용이 없는 시험·숙제·첨삭 과제 항목은 발송문에서 제외됩니다.</span></header><dl><div><dt>수업</dt><dd className={styles.multiline}>{preview.lesson}</dd></div><div><dt>출결</dt><dd>{preview.attendance}</dd></div><div><dt>시험</dt><dd className={styles.multiline}>{preview.exam||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>숙제</dt><dd className={styles.multiline}>{preview.homework||"기록 없음 · 발송문에서 제외"}</dd></div><div><dt>첨삭 과제</dt><dd className={styles.multiline}>{preview.correctionTask||"기록 없음 · 발송문에서 제외"}</dd></div></dl></section>
           <footer className={styles.actions}><div>{message&&<p className={message.includes("접수")?styles.success:styles.error}>{message}</p>}{sentRecord?.status==="sent"&&<span>이 기간은 이미 발송되었습니다.</span>}</div><button className={styles.primary} onClick={sendCurrent} disabled={sending||!student.recipient.available||!student.lessons.length||sentRecord?.status==="sent"}>{sending?"발송 중…":sentRecord?.status==="sent"?"발송 완료":student.complete?"이 학생만 발송":"작성된 기록만 발송"}</button></footer>
         </>:<Empty text="완료 기록을 확인하고 있습니다…"/>}
       </main>
@@ -91,8 +91,11 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
 }
 
 function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[]):Preview{
-  const counts=new Map<string,number>();for(const row of lessons){const key=row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`;counts.set(key,(counts.get(key)??0)+1)}
-  const lesson=counts.size?Array.from(counts).map(([label,count])=>`${label}${count>1?` ${count}회`:""}`).join(" · "):"완료된 수업 없음";
+  const lessonItems=groupBySubject(lessons.map(row=>({
+    subject:row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`,
+    value:row.source==="correction"?"":cleanMultiline(row.lessonContent),
+  })),"수업 완료");
+  const lesson=limitText(summarize(lessonItems,type==="weekly"?3:4)||"완료된 수업 없음",180);
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
   const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));const content=cleanExamContent(row.examContent);return scored.length?scored:content?[`- ${row.subject}: ${short(content,42)}`]:[]}));
   const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
@@ -114,9 +117,9 @@ function formatExam(subject:string,exam:Lesson["exams"][number]){
   const converted=Number.isFinite(score)&&Number.isFinite(maxScore)&&maxScore>0?` (${Math.round(score*100/maxScore)}점)`:"";
   return `- ${subject}: ${category}${title&&title!==category?`(${title})`:""} ${score}/${maxScore}${wordUnit}${converted}`;
 }
-function groupBySubject(items:{subject:string;value:string}[]){
+function groupBySubject(items:{subject:string;value:string}[],emptyValue=""){
   const grouped=new Map<string,string[]>();
-  for(const item of items){const values=grouped.get(item.subject)??[];if(!values.includes(item.value))values.push(item.value);grouped.set(item.subject,values)}
+  for(const item of items){const value=item.value||emptyValue;if(!value)continue;const values=grouped.get(item.subject)??[];if(!values.includes(value))values.push(value);grouped.set(item.subject,values)}
   return Array.from(grouped,([subject,values])=>values.flatMap(value=>value.split("\n")).map((line,index)=>index===0?`- ${subject}: ${line}`:`　　　 ${line}`).join("\n"));
 }
 function short(value:string,max:number){const clean=value.replace(/\s+/g," ").trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean}
@@ -124,6 +127,7 @@ function cleanMultiline(value:string){return value.split(/\r?\n/).map(line=>line
 function cleanExamContent(value:string){return cleanMultiline(value.replace(/^\[종류\][^\n]*(?:\n|$)/,""))}
 function unique(values:string[]){return Array.from(new Set(values.map(value=>value.trim()).filter(Boolean)))}
 function summarize(values:string[],limit:number){if(!values.length)return"";const shown=values.slice(0,limit);return `${shown.join("\n")}${values.length>limit?`\n외 ${values.length-limit}건`:""}`}
+function limitText(value:string,max:number){return value.length<=max?value:`${value.slice(0,max-1).trimEnd()}…`}
 function formatCorrectionTask(row:Lesson){
   const content=cleanMultiline(row.lessonContent);
   const lines=[`- ${row.subject}: ${content||"내용 미입력"}`];
@@ -131,7 +135,7 @@ function formatCorrectionTask(row:Lesson){
   if(row.correctionTaskFeedback?.trim())lines.push(`  피드백: ${cleanMultiline(row.correctionTaskFeedback)}`);
   return lines.join("\n");
 }
-function buildLearningDetails(exam:string,homework:string,correctionTask:string){return [formatDetailGroup("시험",exam),formatDetailGroup("과제",homework),formatDetailGroup("첨삭 과제",correctionTask)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
+function buildLearningDetails(exam:string,homework:string,correctionTask:string){return [formatDetailGroup("시험",exam),formatDetailGroup("숙제",homework),formatDetailGroup("첨삭 과제",correctionTask)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
 function formatDetailGroup(label:string,value:string){return value?`<${label}>\n${value}`:""}
 function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function periodFor(type:ReportType,anchor:string){if(type==="daily")return{start:anchor,end:anchor};const date=new Date(`${anchor}T12:00:00+09:00`);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);const start=todayFrom(date);date.setDate(date.getDate()+6);return{start,end:todayFrom(date)}}
