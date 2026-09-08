@@ -8,32 +8,37 @@ import { appConfirm } from "./app-dialog";
 
 type Scope = "school" | "academy";
 type View = "all" | Scope;
-type Category =
-  | "exam" | "vacation" | "admission" | "mock" | "school" | "intensive" | "other"
-  | "consultation" | "trial" | "placement" | "academy_event" | "closure";
+type Category = string;
 type Status = "scheduled" | "completed" | "enrolled" | "cancelled" | "no_show";
 type EventRow = {
-  id: string; scope: Scope; school: string | null; grade: string | null; category: Category;
+  id: string; scope: Scope; school: string | null; grade: string | null; category: Category; categoryLabel: string;
   title: string; startsOn: string; endsOn: string; startsAt: string | null; endsAt: string | null;
   classId: string | null; className: string | null; teacherId: string | null; teacherName: string | null;
   note: string | null; contactName: string | null; contactPhone: string | null; location: string | null;
   status: Status; createdBy: string; authorName: string; canEdit: boolean;
 };
 type Named = { id: string; name: string };
+type CalendarCategory = { id: string; scope: Scope; label: string; sortOrder: number; active: boolean };
 type ClassOption = Named & { subject: string; teacherIds: string[] };
-type Board = { events: EventRow[]; schools: string[]; classes: ClassOption[]; teachers: Named[] };
+type Board = { events: EventRow[]; categories: CalendarCategory[]; schools: string[]; classes: ClassOption[]; teachers: Named[] };
 type Holiday = { date: string; localName: string };
 
-const schoolCategories: { id: Category; label: string }[] = [
-  { id: "exam", label: "중간·기말고사" }, { id: "mock", label: "모의고사·수능" },
-  { id: "admission", label: "원서접수·입시" }, { id: "vacation", label: "개학·방학" },
-  { id: "school", label: "학교 행사" }, { id: "intensive", label: "시험 직전 보강" },
-  { id: "other", label: "기타" },
+const defaultSchoolCategories: CalendarCategory[] = [
+  { id: "exam", scope: "school", label: "중간·기말고사", sortOrder: 10, active: true },
+  { id: "mock", scope: "school", label: "모의고사·수능", sortOrder: 20, active: true },
+  { id: "admission", scope: "school", label: "원서접수·입시", sortOrder: 30, active: true },
+  { id: "vacation", scope: "school", label: "개학·방학", sortOrder: 40, active: true },
+  { id: "school", scope: "school", label: "학교 행사", sortOrder: 50, active: true },
+  { id: "intensive", scope: "school", label: "시험 직전 보강", sortOrder: 60, active: true },
+  { id: "other", scope: "school", label: "기타", sortOrder: 70, active: true },
 ];
-const academyCategories: { id: Category; label: string }[] = [
-  { id: "consultation", label: "상담 예약" }, { id: "trial", label: "청강·체험" },
-  { id: "placement", label: "레벨테스트" }, { id: "academy_event", label: "특강·행사" },
-  { id: "closure", label: "휴무·운영 변경" }, { id: "other", label: "기타" },
+const defaultAcademyCategories: CalendarCategory[] = [
+  { id: "consultation", scope: "academy", label: "상담 예약", sortOrder: 10, active: true },
+  { id: "trial", scope: "academy", label: "청강·체험", sortOrder: 20, active: true },
+  { id: "placement", scope: "academy", label: "레벨테스트", sortOrder: 30, active: true },
+  { id: "academy_event", scope: "academy", label: "특강·행사", sortOrder: 40, active: true },
+  { id: "closure", scope: "academy", label: "휴무·운영 변경", sortOrder: 50, active: true },
+  { id: "other_academy", scope: "academy", label: "기타", sortOrder: 60, active: true },
 ];
 const statuses: { id: Status; label: string }[] = [
   { id: "scheduled", label: "예약·예정" }, { id: "completed", label: "완료" },
@@ -41,7 +46,7 @@ const statuses: { id: Status; label: string }[] = [
   { id: "no_show", label: "미방문" },
 ];
 const grades = ["초6", "중1", "중2", "중3", "고1", "고2", "고3", "재수", "검정고시"];
-const empty: Board = { events: [], schools: [], classes: [], teachers: [] };
+const empty: Board = { events: [], categories: [], schools: [], classes: [], teachers: [] };
 
 export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
   const now = new Date();
@@ -57,6 +62,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
   const [mine, setMine] = useState(false);
   const [selected, setSelected] = useState(toDate(now));
   const [editing, setEditing] = useState<EventRow | "new" | null>(null);
+  const [managingCategories, setManagingCategories] = useState(false);
   const [noteEvent, setNoteEvent] = useState<EventRow | null>(null);
   const year = Number(month.slice(0, 4));
 
@@ -78,7 +84,9 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
     return () => { active = false; };
   }, [year]);
 
-  const categoryOptions = view === "school" ? schoolCategories : view === "academy" ? academyCategories : [...schoolCategories, ...academyCategories.filter(x => x.id !== "other")];
+  const categories = data.categories.length ? data.categories : [...defaultSchoolCategories, ...defaultAcademyCategories];
+  const categoryOptions = categories.filter(item => item.active && (view === "all" || item.scope === view));
+  const categoryLabel = (id: string) => categories.find(item => item.id === id)?.label ?? data.events.find(item => item.category === id)?.categoryLabel ?? "기타";
   const filtered = useMemo(() => data.events.filter(event =>
     (view === "all" || event.scope === view) &&
     (!school || event.school === school) &&
@@ -100,7 +108,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
   return <section className="panel academic-panel">
     <header className="academic-header">
       <div><h2>학사·학원 일정</h2><p>학교 시험부터 상담·청강·레벨테스트와 학원 운영 일정까지 함께 확인합니다.</p></div>
-      <button className="primary" onClick={() => setEditing("new")}>＋ 일정 등록</button>
+      <div>{profile.role === "admin" && <button className="secondary-button" onClick={() => setManagingCategories(true)}>카테고리 관리</button>}<button className="primary" onClick={() => setEditing("new")}>＋ 일정 등록</button></div>
     </header>
     <nav className="academic-scope-tabs" aria-label="일정 보기">
       {([["all", "전체 일정"], ["school", "학교 일정"], ["academy", "학원 일정"]] as [View, string][]).map(([id, text]) =>
@@ -133,7 +141,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
         <header><div><small>{selectedHoliday?.localName ?? weekdayName(selected)}</small><h3>{formatDate(selected)}</h3></div><button onClick={() => setEditing("new")} aria-label="이 날짜에 일정 추가">＋</button></header>
         {loading ? <p className="academic-empty">일정을 불러오는 중…</p> : selectedEvents.length ? <div>{selectedEvents.map(event =>
           <article key={event.id} className={`${event.scope} ${event.category}`} role="button" tabIndex={0} aria-label={`${event.title} 메모 보기`} onClick={() => setNoteEvent(event)} onKeyDown={keyEvent => { if (keyEvent.key === "Enter" || keyEvent.key === " ") { keyEvent.preventDefault(); setNoteEvent(event); } }}>
-            <span>{event.scope === "academy" ? "학원 일정" : "학교 일정"} · {label(event.category)}</span>
+            <span>{event.scope === "academy" ? "학원 일정" : "학교 일정"} · {categoryLabel(event.category)}</span>
             <h4>{event.title}</h4>
             {event.scope === "academy" && event.contactName && <p className="academic-contact">{event.contactName}{event.grade ? ` · ${event.grade}` : ""}</p>}
             {event.school && <p>{event.school}{event.scope === "school" && event.grade ? ` · ${event.grade}` : ""}</p>}
@@ -144,7 +152,8 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
           </article>)}</div> : <p className="academic-empty">등록된 일정이 없습니다.<button onClick={() => setEditing("new")}>이 날짜에 일정 추가</button></p>}
       </aside>
     </div>
-    {editing && <AcademicEditor row={editing === "new" ? null : editing} initialDate={selected} initialScope={view === "school" ? "school" : "academy"} data={data} supabase={supabase} profile={profile} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
+    {editing && <AcademicEditor row={editing === "new" ? null : editing} initialDate={selected} initialScope={view === "school" ? "school" : "academy"} data={{...data,categories}} supabase={supabase} profile={profile} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
+    {managingCategories && <AcademicCategoryManager categories={categories} supabase={supabase} onClose={() => setManagingCategories(false)} onChanged={load} />}
     {noteEvent && <div className="modal-backdrop academic-note-backdrop" onMouseDown={mouseEvent => { if (mouseEvent.target === mouseEvent.currentTarget) setNoteEvent(null); }}>
       <section className="academic-note-modal" role="dialog" aria-modal="true" aria-labelledby="academic-note-title">
         <header><div><small>일정 메모</small><h2 id="academic-note-title">메모 내용</h2></div><button type="button" aria-label="메모 닫기" onClick={() => setNoteEvent(null)}>×</button></header>
@@ -156,9 +165,10 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
 }
 
 function AcademicEditor({ row, initialDate, initialScope, data, supabase, profile, onClose, onSaved }: { row: EventRow | null; initialDate: string; initialScope: Scope; data: Board; supabase: SupabaseClient; profile: Profile; onClose: () => void; onSaved: () => Promise<void> }) {
+  const initialCategory = row?.category ?? data.categories.find(item => item.scope === initialScope && item.active)?.id ?? "";
   const [v, setV] = useState({
     scope: row?.scope ?? initialScope, school: row?.school ?? "", grade: row?.grade ?? "",
-    category: row?.category ?? (initialScope === "academy" ? "consultation" : "exam") as Category,
+    category: initialCategory,
     title: row?.title ?? "", startsOn: row?.startsOn ?? initialDate, endsOn: row?.endsOn ?? initialDate,
     hasTime: Boolean(row?.startsAt), startsAt: row?.startsAt?.slice(0, 5) ?? "17:30", endsAt: row?.endsAt?.slice(0, 5) ?? "19:00",
     classId: row?.classId ?? "", teacherId: row?.teacherId ?? profile.id, note: row?.note ?? "",
@@ -168,8 +178,8 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const update = (key: string, value: string | boolean) => setV(current => ({ ...current, [key]: value }));
-  const changeScope = (scope: Scope) => setV(current => ({ ...current, scope, category: scope === "academy" ? "consultation" : "exam" }));
-  const options = v.scope === "academy" ? academyCategories : schoolCategories;
+  const options = data.categories.filter(item => item.scope === v.scope && (item.active || item.id === row?.category));
+  const changeScope = (scope: Scope) => setV(current => ({ ...current, scope, category: data.categories.find(item => item.scope === scope && item.active)?.id ?? "" }));
   const save = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError("");
     const { error: saveError } = await supabase.rpc("staff_save_calendar_event", {
@@ -215,13 +225,51 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
   </form></div>;
 }
 
+function AcademicCategoryManager({ categories, supabase, onClose, onChanged }: { categories: CalendarCategory[]; supabase: SupabaseClient; onClose: () => void; onChanged: () => Promise<void> }) {
+  const [scope, setScope] = useState<Scope>("school");
+  const [newLabel, setNewLabel] = useState("");
+  const [names, setNames] = useState<Record<string, string>>(() => Object.fromEntries(categories.map(item => [item.id, item.label])));
+  const [savingId, setSavingId] = useState("");
+  const [error, setError] = useState("");
+  const rows = categories.filter(item => item.scope === scope);
+  const add = async () => {
+    if (!newLabel.trim()) return;
+    setSavingId("new"); setError("");
+    const { error: saveError } = await supabase.rpc("admin_save_academic_calendar_category", { p_id: null, p_scope: scope, p_label: newLabel.trim() });
+    if (saveError) setError(saveError.message); else { setNewLabel(""); await onChanged(); }
+    setSavingId("");
+  };
+  const rename = async (row: CalendarCategory) => {
+    const next = names[row.id]?.trim();
+    if (!next || next === row.label) return;
+    setSavingId(row.id); setError("");
+    const { error: saveError } = await supabase.rpc("admin_save_academic_calendar_category", { p_id: row.id, p_scope: row.scope, p_label: next });
+    if (saveError) setError(saveError.message); else await onChanged();
+    setSavingId("");
+  };
+  const toggle = async (row: CalendarCategory) => {
+    if (row.active && !await appConfirm({ eyebrow: "카테고리 삭제", title: `‘${row.label}’을 삭제할까요?`, copy: "새 일정의 선택 목록에서 제외됩니다.", notice: "이미 등록된 일정에는 기존 카테고리 이름이 그대로 보존됩니다.", confirmLabel: "카테고리 삭제", tone: "danger" })) return;
+    setSavingId(row.id); setError("");
+    const { error: saveError } = await supabase.rpc("admin_set_academic_calendar_category_active", { p_id: row.id, p_active: !row.active });
+    if (saveError) setError(saveError.message); else await onChanged();
+    setSavingId("");
+  };
+  return <div className="modal-backdrop"><section className="student-modal academic-category-manager" role="dialog" aria-modal="true" aria-labelledby="academic-category-title">
+    <header><div><p className="eyebrow">관리자 설정</p><h2 id="academic-category-title">일정 카테고리 관리</h2><span>학교 일정과 학원 일정의 종류를 각각 관리합니다.</span></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>
+    <nav><button className={scope === "school" ? "active" : ""} onClick={() => setScope("school")}>학교 일정</button><button className={scope === "academy" ? "active" : ""} onClick={() => setScope("academy")}>학원 일정</button></nav>
+    <div className="academic-category-add"><input maxLength={30} value={newLabel} onChange={event => setNewLabel(event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void add(); } }} placeholder="새 카테고리 이름"/><button className="primary" disabled={savingId === "new" || !newLabel.trim()} onClick={() => void add()}>추가</button></div>
+    <div className="academic-category-list">{rows.map(row => <article className={row.active ? "" : "inactive"} key={row.id}><input maxLength={30} value={names[row.id] ?? row.label} disabled={!row.active} onChange={event => setNames(current => ({ ...current, [row.id]: event.target.value }))}/><span>{row.active ? <><button className="secondary-button" disabled={savingId === row.id || (names[row.id]?.trim() ?? "") === row.label} onClick={() => void rename(row)}>이름 저장</button><button className="danger-button" disabled={savingId === row.id} onClick={() => void toggle(row)}>삭제</button></> : <><em>삭제됨</em><button className="secondary-button" disabled={savingId === row.id} onClick={() => void toggle(row)}>복구</button></>}</span></article>)}</div>
+    {error && <p className="form-error">{error}</p>}
+    <footer><span>삭제된 카테고리도 과거 일정에는 그대로 표시됩니다.</span><button className="primary" onClick={onClose}>완료</button></footer>
+  </section></div>;
+}
+
 function calendarEventText(event: EventRow) {
-  if (event.scope === "academy") return event.contactName ? `${label(event.category)} · ${event.contactName}` : event.title;
+  if (event.scope === "academy") return event.contactName ? `${event.categoryLabel} · ${event.contactName}` : event.title;
   return `${event.school ?? "학교"} · ${event.title}`;
 }
 function calendarDays(month: string) { const [y, m] = month.split("-").map(Number), first = new Date(y, m - 1, 1).getDay(), last = new Date(y, m, 0).getDate(); return [...Array(first).fill(null), ...Array.from({ length: last }, (_, i) => i + 1), ...Array(42 - first - last).fill(null)] as (number | null)[]; }
 function toDate(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function label(category: Category) { return [...schoolCategories, ...academyCategories].find(x => x.id === category)?.label ?? "기타"; }
 function statusLabel(status: Status) { return statuses.find(x => x.id === status)?.label ?? "예약·예정"; }
 function formatDate(value: string) { return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(new Date(`${value}T00:00:00`)); }
 function weekdayName(value: string) { return new Intl.DateTimeFormat("ko-KR", { weekday: "long" }).format(new Date(`${value}T00:00:00`)); }
