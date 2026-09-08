@@ -9,6 +9,7 @@ import confirmStyles from "./message-confirm.module.css";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
 import { AccountInviteSmsBoard } from "./account-invite-sms-board";
+import type { UserRole } from "./supabase";
 
 type Named = { id: string; name: string };
 type Announcement = {
@@ -86,7 +87,7 @@ type StaffRead = {
 };
 const audienceLabels = { all: "전체", class: "클래스", student: "개별 학생" };
 
-export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
+export function CommunicationBoard({ supabase, role }: { supabase: SupabaseClient; role: UserRole }) {
   const [data, setData] = useState<BoardData>({
     isStaff: false,
     classes: [],
@@ -431,7 +432,7 @@ export function CommunicationBoard({ supabase }: { supabase: SupabaseClient }) {
         <section className={styles.messageSection}>
           <nav className={styles.messageModes} aria-label="문자 종류 전환">
             <button type="button" className={messageMode === "general" ? styles.selected : ""} onClick={() => setMessageMode("general")}><b>일반 문자</b><span>공지·개별 안내</span></button>
-            <button type="button" className={messageMode === "invite" ? styles.selected : ""} onClick={() => setMessageMode("invite")}><b>초대코드 문자</b><span>발송·가입·재발송</span></button>
+            {role !== "sub_admin" && <button type="button" className={messageMode === "invite" ? styles.selected : ""} onClick={() => setMessageMode("invite")}><b>초대코드 문자</b><span>발송·가입·재발송</span></button>}
           </nav>
           {messageMode === "general" ? <>
             <div className={styles.messageIntro}><div><b>문자 발송 관리</b><span>작성한 문자를 확인하고 승인한 뒤 발송 상태를 관리합니다.</span></div><em>SOLAPI 연결</em></div>
