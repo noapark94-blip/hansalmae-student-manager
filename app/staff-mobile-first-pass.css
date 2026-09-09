@@ -379,15 +379,19 @@
 @media (min-width: 701px) {
   .correction-history-calendar-wrap.calendar-weeks-4
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(4, minmax(72px, 1fr)) !important;
+    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
   }
   .correction-history-calendar-wrap.calendar-weeks-5
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(5, minmax(72px, 1fr)) !important;
+    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
   }
   .correction-history-calendar-wrap.calendar-weeks-6
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(6, minmax(72px, 1fr)) !important;
+    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+  }
+  .correction-history-modal .correction-history-calendar-grid {
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
   .correction-history-modal .correction-history-calendar-grid > button {
     box-sizing: border-box !important;
@@ -434,13 +438,13 @@
 /* Desktop class history: show two separate lesson records in each date cell. */
 @media (min-width: 801px) {
   .student-learning-days.calendar-weeks-4 {
-    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(4, minmax(78px, 1fr)) !important;
   }
   .student-learning-days.calendar-weeks-5 {
-    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(5, minmax(68px, 1fr)) !important;
   }
   .student-learning-days.calendar-weeks-6 {
-    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(6, minmax(60px, 1fr)) !important;
   }
   .student-learning-days > button {
     gap: 3px !important;
@@ -448,10 +452,13 @@
   }
   .student-learning-day-records {
     display: grid !important;
+    grid-template-rows: repeat(2, 16px) !important;
+    flex: 0 0 34px !important;
     width: 100% !important;
+    height: 34px !important;
     min-width: 0 !important;
     gap: 2px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
   .student-learning-day-records > small {
     box-sizing: border-box !important;
@@ -467,10 +474,12 @@
     > small {
     display: flex !important;
     align-items: center !important;
-    min-height: 18px !important;
-    padding: 2px 5px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    padding: 1px 5px !important;
     font-size: 9.5px !important;
-    line-height: 1.25 !important;
+    line-height: 14px !important;
+    flex: 0 0 16px !important;
   }
 }
 
