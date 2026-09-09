@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm } from "./app-dialog";
 import { ExamCategoryModal, type ExamCategory } from "./class-learning-board";
+import "./special-record-mobile.css";
 
 type Status = "present" | "late" | "absent";
 type Exam = { examType: string; examTitle: string; score: string; maxScore: string; evaluation: string };
@@ -24,6 +25,11 @@ const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부
 export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onEdit: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
+  const [openStudentId, setOpenStudentId] = useState<string|null>(null);
+  const [commonOpen, setCommonOpen] = useState<string|null>(null);
+  const [commonLesson, setCommonLesson] = useState("");
+  const [commonHomework, setCommonHomework] = useState("");
+  const [commonExam, setCommonExam] = useState<Exam>({examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""});
   const [categories, setCategories] = useState<ExamCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
@@ -112,12 +118,31 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     else { setLessonState("draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     setSaving("");
   };
+  const applyCommon = async (kind: "lesson"|"homework"|"exam") => {
+    if (kind==="exam" && (!commonExam.examType || !Number.isFinite(Number(commonExam.maxScore)) || Number(commonExam.maxScore)<=0)) {setError("시험 종류와 만점을 확인해 주세요.");return;}
+    if (!await appConfirm({eyebrow:"공통 입력",title:"전체 학생에게 적용할까요?",notice:"선택한 항목의 기존 개별 내용을 바꿉니다. 시험 원점수는 유지됩니다. 적용 후 임시저장 또는 수업 완료를 눌러 주세요.",confirmLabel:"전체 적용"})) return;
+    setRows(current=>current.map(row=>kind==="lesson"?{...row,lessonContent:commonLesson}:kind==="homework"?{...row,assignedHomework:commonHomework}:{...row,exam:{...commonExam,score:row.exam.score}}));
+  };
   return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`} spellCheck={false}>
+    <div className="special-common-cards">
+      {(["lesson","homework","exam","notice"] as const).map(kind=><section key={kind} className="learning-common-card disclosure">
+        <button type="button" className="learning-card-disclosure" aria-expanded={commonOpen===kind} onClick={()=>setCommonOpen(commonOpen===kind?null:kind)}>
+          <span><small>{kind==="exam"?"평가":kind==="notice"?"안내":"공통 입력"}</small><b>{kind==="lesson"?"공통 수업 내용":kind==="homework"?"공통 숙제":kind==="exam"?"공통 시험":"반 전체 공지"}</b></span>
+          <em>{(kind==="lesson"?commonLesson:kind==="homework"?commonHomework:kind==="exam"?commonExam.examTitle||commonExam.examType:notice)||"미입력"}</em><strong>{commonOpen===kind?"접기":"입력"}</strong>
+        </button>
+        {commonOpen===kind?<div className="special-common-editor">
+          {kind==="exam"?<><select aria-label="공통 시험 종류" value={commonExam.examType} onChange={e=>setCommonExam({...commonExam,examType:e.target.value})}><option value="">종류 선택</option>{categories.filter(c=>c.isActive).map(c=><option key={c.id}>{c.name}</option>)}</select><input aria-label="공통 시험명·범위" placeholder="시험명·범위" value={commonExam.examTitle} onChange={e=>setCommonExam({...commonExam,examTitle:e.target.value})}/><input aria-label="공통 시험 만점" inputMode="decimal" value={commonExam.maxScore} onChange={e=>setCommonExam({...commonExam,maxScore:e.target.value})}/><input aria-label="공통 시험 평가" placeholder="평가·피드백" value={commonExam.evaluation} onChange={e=>setCommonExam({...commonExam,evaluation:e.target.value})}/><small>원점수는 학생별로 입력합니다.</small></>:<textarea aria-label={kind==="lesson"?"공통 수업 내용":kind==="homework"?"공통 숙제":"반 전체 공지"} rows={3} value={kind==="lesson"?commonLesson:kind==="homework"?commonHomework:notice} onChange={e=>kind==="lesson"?setCommonLesson(e.target.value):kind==="homework"?setCommonHomework(e.target.value):setNotice(e.target.value)}/>}
+          {kind!=="notice"?<button type="button" className="primary" disabled={loading||!!saving||!rows.length} onClick={()=>void applyCommon(kind)}>전체 적용</button>:null}
+        </div>:<p>{kind==="exam"?"시험이 있을 때만 입력하세요.":kind==="notice"?"공지가 있을 때만 입력하세요.":"여러 학생에게 같은 내용을 적용할 수 있어요."}</p>}
+      </section>)}
+    </div>
     <SpecialFamilyReportReadStatus supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
-      return <article key={row.id}>
+      const detailCount=[row.lessonContent.trim(),row.exam.examType.trim()||row.exam.examTitle.trim(),row.inspectionStatus.trim()||row.assignedHomework.trim()].filter(Boolean).length;
+      return <article key={row.id} className={`${openStudentId===row.id?"mobile-open":""} ${row.status&&detailCount===3?"record-ready":"record-pending"}`}>
+        <div className="mobile-student-record-head"><button type="button" className="mobile-student-record-toggle" aria-expanded={openStudentId===row.id} onClick={()=>setOpenStudentId(current=>current===row.id?null:row.id)}><i>{row.name[0]}</i><span><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><em>{detailCount}/3 입력</em><strong aria-hidden="true">⌄</strong></button><button type="button" className="mobile-student-history" aria-label={`${row.name} 학생 누적 기록 보기`} onClick={()=>setHistoryStudent(row)}>기록</button></div>
         <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="learning-student-history-button" onClick={()=>setHistoryStudent(row)} title={`${row.name} 학생 누적 수업 기록 보기`}><i>{row.name[0]}</i><b>{row.name}</b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></button></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status ? <small>{row.status === "late" ? `${row.lateMinutes}분 지각 · ` : row.status === "absent" && row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}</div></div>
         <div className="learning-individual-content"><textarea value={row.lessonContent} onChange={(event) => update(row.id,{lessonContent:event.target.value})} placeholder="이 학생의 교재·단원·진도" rows={4}/></div>
         <div className="learning-exam individual"><select value={row.exam.examType} onChange={(event) => updateExam(row.id,{examType:event.target.value})}><option value="">종류 선택</option>{categories.filter((item)=>item.isActive).map((item)=><option key={item.id}>{item.name}</option>)}</select><input value={row.exam.examTitle} onChange={(event)=>updateExam(row.id,{examTitle:event.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={row.exam.score} onChange={(event)=>updateExam(row.id,{score:event.target.value})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={row.exam.maxScore} onChange={(event)=>updateExam(row.id,{maxScore:event.target.value})}/></span><input value={row.exam.evaluation} onChange={(event)=>updateExam(row.id,{evaluation:event.target.value})} placeholder="평가·피드백"/>{converted == null ? null : <small>환산 {converted}점</small>}</div>
