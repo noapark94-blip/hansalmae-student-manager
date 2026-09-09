@@ -375,6 +375,140 @@
   }
 }
 
+/* Standalone history dialogs: keep all seven weekdays inside the mobile viewport. */
+@media (max-width: 700px) {
+  .student-learning-history-modal .student-learning-history-grid,
+  .student-learning-history-modal .student-learning-calendar-panel,
+  .student-learning-history-modal .student-learning-calendar-head,
+  .student-learning-history-modal .student-learning-weekdays,
+  .student-learning-history-modal .student-learning-days {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .student-learning-history-modal .student-learning-calendar-panel {
+    overflow-x: hidden !important;
+  }
+  .student-learning-history-modal .student-learning-calendar-head {
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 10px !important;
+    gap: 10px !important;
+  }
+  .student-learning-history-modal .student-learning-calendar-head b {
+    min-width: 112px !important;
+    font-size: 13px !important;
+  }
+  .student-learning-history-modal .student-learning-calendar-head button {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 18px !important;
+  }
+  .student-learning-history-modal .student-learning-weekdays span {
+    padding: 8px 2px !important;
+    font-size: 9px !important;
+  }
+  .student-learning-history-modal .student-learning-days {
+    grid-template-rows: none !important;
+    grid-auto-rows: 50px !important;
+  }
+  .student-learning-history-modal .student-learning-days button,
+  .student-learning-history-modal .student-learning-days .blank {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 50px !important;
+    height: 50px !important;
+    padding: 6px !important;
+    gap: 3px !important;
+    overflow: hidden !important;
+  }
+  .student-learning-history-modal .student-learning-days button.has-record small {
+    width: 7px !important;
+    height: 7px !important;
+    margin-top: 1px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    background: #78ad91 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+
+  .correction-history-backdrop {
+    overscroll-behavior: none !important;
+    touch-action: none;
+  }
+  .correction-history-modal:not(.correction-history-embedded) {
+    overscroll-behavior: contain !important;
+    touch-action: pan-y;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    > .correction-history-calendar-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar,
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-weekdays,
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar {
+    overflow-x: hidden !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid {
+    grid-template-rows: none !important;
+    grid-auto-rows: 50px !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    > button,
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    > .blank {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 50px !important;
+    height: 50px !important;
+    padding: 6px !important;
+    overflow: hidden !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    > button
+    > div {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin-top: 4px !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    em {
+    width: 7px !important;
+    height: 7px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    small {
+    font-size: 7px !important;
+  }
+}
+
 /* Fourth staff-only mobile density pass: calendars, account, directory and profile. */
 @media (max-width: 700px) {
   .correction-month-modal {
