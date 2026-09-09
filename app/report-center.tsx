@@ -16,7 +16,7 @@ const attendanceLabel:Record<string,string>={present:"출석",late:"지각",abse
 const homeworkLabel:Record<string,string>={complete:"완료",partial:"일부 완료",missing:"미제출",not_checked:"미확인",excused:"확인 제외"};
 
 export function ReportCenter({supabase,profile,students,initialReportId}:{supabase:SupabaseClient;profile:Profile;students:StudentRow[];initialReportId?:string|null}){
-  const staff=profile.role==="admin"||profile.role==="teacher";
+  const staff=profile.role==="admin"||profile.role==="sub_admin"||profile.role==="teacher";
   const [type,setType]=useState<ReportType>("daily");
   const [anchor,setAnchor]=useState(today());
   const [studentId,setStudentId]=useState("");

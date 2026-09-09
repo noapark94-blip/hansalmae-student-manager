@@ -19,7 +19,7 @@ const STAFF_DISABLED_PROMPT_STATE_KEY = "staff_push_disabled_prompt_state";
 const STAFF_INTENTIONALLY_DISABLED_KEY = "staff_push_intentionally_disabled";
 const STAFF_PUSH_PROMPT_MEDIA = "(max-width: 767px)";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const PUSH_ROLES = new Set(["guardian", "teacher", "assistant", "admin", "manager"]);
+const PUSH_ROLES = new Set(["guardian", "teacher", "sub_admin", "assistant", "admin", "manager"]);
 
 function decodeKey(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");

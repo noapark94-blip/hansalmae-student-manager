@@ -20,7 +20,7 @@ Deno.serve(async req=>{
       const{data:{user}}=await caller.auth.getUser();
       if(!user)throw new Error("로그인이 필요합니다.");
       const{data:profile}=await admin.from("profiles").select("role").eq("id",user.id).single();
-      if(!["admin","teacher","assistant","manager"].includes(profile?.role))throw new Error("발송 권한이 없습니다.");
+      if(!["admin","sub_admin","teacher","assistant","manager"].includes(profile?.role))throw new Error("발송 권한이 없습니다.");
     }
     const studentIds=[...new Set(body.studentIds||[])].slice(0,100);
     if(!body.sourceKey||!studentIds.length)throw new Error("발송 대상이 없습니다.");

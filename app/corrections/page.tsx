@@ -21,7 +21,7 @@ export default function CorrectionsPage(){
       if(!data.user){setReady(true);return;}
       const{data:role}=await supabase.rpc("current_user_role");
       if(!active)return;
-      setAllowed(role==="admin"||role==="teacher");
+      setAllowed(role==="admin"||role==="sub_admin"||role==="teacher");
       setReady(true);
     });
     return()=>{active=false};
