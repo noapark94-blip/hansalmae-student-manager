@@ -377,31 +377,38 @@
 
 /* Desktop correction history: keep record labels inside each calendar cell. */
 @media (min-width: 701px) {
-  .correction-history-modal:not(.correction-history-embedded)
-    .correction-history-calendar-grid
-    > button {
+  .correction-history-modal .correction-history-calendar-grid > button {
+    box-sizing: border-box !important;
     min-width: 0 !important;
     overflow: hidden !important;
   }
-  .correction-history-modal:not(.correction-history-embedded)
-    .correction-history-calendar-grid
-    > button
-    > div {
-    width: 100% !important;
+  .correction-history-modal .correction-history-calendar-grid > button > div {
+    box-sizing: border-box !important;
+    width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    overflow: hidden !important;
   }
-  .correction-history-modal:not(.correction-history-embedded)
-    .correction-history-calendar-grid
-    em {
+  .correction-history-modal .correction-history-calendar-grid em {
     display: block !important;
-    width: 100% !important;
+    width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+  .correction-history-modal
+    .correction-history-calendar-grid
+    > button.selected::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    box-sizing: border-box;
+    border: 2px solid #a62d68;
+    pointer-events: none;
   }
 }
 
