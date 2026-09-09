@@ -1218,7 +1218,10 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "students" as View, label: "학생", tone: "amber" },
         ];
   return (
-    <section className={`staff-mobile-home ${role === "assistant" ? "assistant-home" : ""}`} aria-label={role === "assistant" ? "조교 업무 홈" : "모바일 업무 홈"}>
+    <section
+      className={`staff-mobile-home ${role === "assistant" || role === "sub_admin" ? "assistant-home" : ""}${role === "sub_admin" ? " sub-admin-home" : ""}`}
+      aria-label={role === "assistant" ? "조교 업무 홈" : role === "sub_admin" ? "부관리자 발송 업무 홈" : "모바일 업무 홈"}
+    >
       <div className="staff-mobile-welcome">
         <p>한살매 수업노트</p>
         <h1>{greeting}</h1>
