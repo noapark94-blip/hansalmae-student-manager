@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const IDLE_RECHECK_MS = 30 * 1000;
 const STARTUP_WINDOW_MS = 2 * 60 * 1000;
+const APPLIED_VERSION_KEY = "hansalmae:app-update-applied";
+const SCROLL_RESET_KEY = "hansalmae:app-update-scroll-reset";
 
 function koreaHour() {
   return Number(new Intl.DateTimeFormat("en-GB", {
@@ -44,10 +46,47 @@ export function AppUpdateManager({ currentVersion }: { currentVersion: string })
   const mountedAt = useRef(0);
   const reloading = useRef(false);
 
+  useLayoutEffect(() => {
+    if (window.sessionStorage.getItem(SCROLL_RESET_KEY) !== currentVersion) return;
+
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    let cancelled = false;
+    const resetScroll = () => {
+      if (!cancelled) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    };
+    const timers = [0, 80, 250, 600, 1200, 2200].map((delay) => window.setTimeout(resetScroll, delay));
+    const finish = () => {
+      if (cancelled) return;
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.sessionStorage.removeItem(SCROLL_RESET_KEY);
+      window.history.scrollRestoration = previousRestoration;
+    };
+    const finishTimer = window.setTimeout(finish, 2400);
+    window.addEventListener("pageshow", resetScroll);
+    window.addEventListener("touchstart", finish, { once: true, passive: true });
+    window.addEventListener("wheel", finish, { once: true, passive: true });
+    resetScroll();
+
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearTimeout(finishTimer);
+      window.removeEventListener("pageshow", resetScroll);
+      window.removeEventListener("touchstart", finish);
+      window.removeEventListener("wheel", finish);
+      window.history.scrollRestoration = previousRestoration;
+    };
+  }, [currentVersion]);
+
   const reloadWithVersion = useCallback(() => {
     if (reloading.current || !availableVersion) return;
     reloading.current = true;
-    window.sessionStorage.setItem("hansalmae:app-update-applied", availableVersion);
+    window.history.scrollRestoration = "manual";
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.sessionStorage.setItem(APPLIED_VERSION_KEY, availableVersion);
+    window.sessionStorage.setItem(SCROLL_RESET_KEY, availableVersion);
     window.location.reload();
   }, [availableVersion]);
 
@@ -67,13 +106,16 @@ export function AppUpdateManager({ currentVersion }: { currentVersion: string })
       const payload = await response.json() as { version?: string };
       const latest = payload.version ?? "";
       if (!latest || latest === "development" || latest === currentVersion) return;
-      if (window.sessionStorage.getItem("hansalmae:app-update-applied") === latest) return;
+      if (window.sessionStorage.getItem(APPLIED_VERSION_KEY) === latest) return;
       setAvailableVersion(latest);
 
       const justOpened = Date.now() - mountedAt.current <= STARTUP_WINDOW_MS;
       if ((justOpened || koreaHour() === 4) && !hasUnsavedWork()) {
         reloading.current = true;
-        window.sessionStorage.setItem("hansalmae:app-update-applied", latest);
+        window.history.scrollRestoration = "manual";
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        window.sessionStorage.setItem(APPLIED_VERSION_KEY, latest);
+        window.sessionStorage.setItem(SCROLL_RESET_KEY, latest);
         window.location.reload();
       }
     } catch {
