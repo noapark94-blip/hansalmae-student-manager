@@ -379,19 +379,22 @@
 @media (min-width: 701px) {
   .correction-history-calendar-wrap.calendar-weeks-4
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(4, 76px) !important;
   }
   .correction-history-calendar-wrap.calendar-weeks-5
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(5, 76px) !important;
   }
   .correction-history-calendar-wrap.calendar-weeks-6
     .correction-history-calendar-grid {
-    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(6, 76px) !important;
   }
   .correction-history-modal .correction-history-calendar-grid {
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-gutter: stable !important;
   }
   .correction-history-modal .correction-history-calendar-grid > button {
     box-sizing: border-box !important;
