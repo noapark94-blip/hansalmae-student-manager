@@ -377,6 +377,18 @@
 
 /* Desktop correction history: keep record labels inside each calendar cell. */
 @media (min-width: 701px) {
+  .correction-history-calendar-wrap.calendar-weeks-4
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(4, minmax(72px, 1fr)) !important;
+  }
+  .correction-history-calendar-wrap.calendar-weeks-5
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(5, minmax(72px, 1fr)) !important;
+  }
+  .correction-history-calendar-wrap.calendar-weeks-6
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(6, minmax(72px, 1fr)) !important;
+  }
   .correction-history-modal .correction-history-calendar-grid > button {
     box-sizing: border-box !important;
     min-width: 0 !important;
@@ -392,13 +404,15 @@
     overflow: hidden !important;
   }
   .correction-history-modal .correction-history-calendar-grid em {
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
     width: auto !important;
+    min-height: 18px !important;
     min-width: 0 !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    padding-top: 1px !important;
-    padding-bottom: 1px !important;
+    padding: 2px 5px !important;
+    font-size: 9px !important;
     line-height: 1.25 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -447,6 +461,17 @@
     padding-bottom: 2px !important;
     line-height: 1.2 !important;
   }
+  .student-learning-days
+    button.has-record
+    .student-learning-day-records
+    > small {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 18px !important;
+    padding: 2px 5px !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
 }
 
 /* Desktop embedded correction history: give calendar rows enough vertical room. */
@@ -460,9 +485,9 @@
   .student-unified-learning
     .correction-history-embedded
     .correction-history-day-panel {
-    height: 468px !important;
-    min-height: 468px !important;
-    max-height: 468px !important;
+    height: 520px !important;
+    min-height: 520px !important;
+    max-height: 520px !important;
   }
   .student-unified-learning
     .correction-history-embedded
