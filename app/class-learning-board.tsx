@@ -41,6 +41,7 @@ type CalendarDay = {
   scheduled: boolean;
   students: { id: string; name: string; status: Status | "excused" }[];
 };
+type AttendanceRosterPopupState = Pick<CalendarDay, "date" | "students">;
 type ExamResult = {
   studentId: string;
   exams?: {
@@ -184,6 +185,8 @@ export function ClassLearningBoard({
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
   const [monthOpen, setMonthOpen] = useState(false);
+  const [attendanceRoster, setAttendanceRoster] =
+    useState<AttendanceRosterPopupState | null>(null);
   const [historyStudent, setHistoryStudent] = useState<Row | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -1106,6 +1109,32 @@ export function ClassLearningBoard({
                     {student.name}
                   </em>
                 ))}
+                {day.students.length > 4 ? (
+                  <small
+                    className="attendance-roster-more"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${formatKoreanRecordDate(day.date)} 전체 ${day.students.length}명 보기`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setAttendanceRoster({
+                        date: day.date,
+                        students: day.students,
+                      });
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setAttendanceRoster({
+                        date: day.date,
+                        students: day.students,
+                      });
+                    }}
+                  >
+                    +{day.students.length - 4}명
+                  </small>
+                ) : null}
                 {!day.students.length ? (
                   <small>{day.scheduled ? "출석 전" : "수업 없음"}</small>
                 ) : null}
@@ -1779,6 +1808,12 @@ export function ClassLearningBoard({
           onClose={() => setMonthOpen(false)}
         />
       ) : null}
+      {attendanceRoster ? (
+        <AttendanceRosterPopup
+          value={attendanceRoster}
+          onClose={() => setAttendanceRoster(null)}
+        />
+      ) : null}
       {categoryOpen ? (
         <ExamCategoryModal
           supabase={supabase}
@@ -2196,6 +2231,8 @@ function Month({
   const [records, setRecords] = useState<Record<string, CalendarDay>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [attendanceRoster, setAttendanceRoster] =
+    useState<AttendanceRosterPopupState | null>(null);
   const calendar = classCalendarDays(month);
   useEffect(() => {
     let active = true;
@@ -2318,7 +2355,28 @@ function Month({
                         </em>
                       ))}
                       {students.length > 4 ? (
-                        <small>+{students.length - 4}명</small>
+                        <small
+                          className="attendance-roster-more"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${formatKoreanRecordDate(date)} 전체 ${students.length}명 보기`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setAttendanceRoster({ date, students });
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key !== "Enter" &&
+                              event.key !== " "
+                            )
+                              return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setAttendanceRoster({ date, students });
+                          }}
+                        >
+                          +{students.length - 4}명
+                        </small>
                       ) : null}
                       {!students.length ? (
                         <small className="empty">
@@ -2333,8 +2391,75 @@ function Month({
           </>
         )}
       </section>
+      {attendanceRoster ? (
+        <AttendanceRosterPopup
+          value={attendanceRoster}
+          onClose={() => setAttendanceRoster(null)}
+        />
+      ) : null}
     </div>
   );
+}
+
+function AttendanceRosterPopup({
+  value,
+  onClose,
+}: {
+  value: AttendanceRosterPopupState;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      className="attendance-roster-layer"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="attendance-roster-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${formatKoreanRecordDate(value.date)} 출결 학생 전체 명단`}
+      >
+        <header>
+          <span>
+            <small>출결 학생 전체 명단</small>
+            <b>{formatKoreanRecordDate(value.date)}</b>
+          </span>
+          <em>{value.students.length}명</em>
+          <button type="button" aria-label="명단 닫기" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <div className="attendance-roster-list">
+          {value.students.map((student) => (
+            <article key={student.id}>
+              <i>{student.name.slice(0, 1)}</i>
+              <b>{student.name}</b>
+              <span className={student.status}>
+                {attendanceStatusLabel(student.status)}
+              </span>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function attendanceStatusLabel(status: Status | "excused") {
+  if (status === "present") return "출석";
+  if (status === "late") return "지각";
+  if (status === "excused") return "인정결석";
+  return "결석";
 }
 
 function daysAgo(value: string) {
