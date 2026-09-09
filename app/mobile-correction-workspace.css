@@ -3,7 +3,9 @@
 .correction-mobile-student-summary,.correction-mobile-detail-label{display:none}
 .correction-mobile-student-actions{display:flex;align-items:center;gap:6px}
 .correction-student-record-delete{width:max-content!important;padding:4px 0!important;border:0!important;background:transparent!important;color:#b2264f!important;font-size:8px!important;font-weight:800!important;white-space:nowrap!important}
-.correction-desktop-record-delete{grid-column:1/-1!important;justify-self:end!important;margin-top:1px!important}
+.correction-learning-board .learning-person-attendance>.learning-student{position:relative}
+.correction-learning-board .learning-student:has(>.correction-desktop-record-delete)>small:last-of-type{box-sizing:border-box!important;padding-right:58px!important}
+.correction-desktop-record-delete{position:absolute!important;right:0!important;bottom:0!important;margin:0!important;padding:0!important;font-size:9px!important;line-height:1.3!important;z-index:1}
 .correction-student-record-delete:disabled{opacity:.5!important}
 .correction-mobile-student-details{display:contents}
 

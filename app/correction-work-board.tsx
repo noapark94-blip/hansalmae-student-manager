@@ -252,11 +252,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
           {originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}
           {changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}
           {showRecordedBy?<small>첨삭 담당 · {report.recordedByName}{report.lastEditedByName&&report.lastEditedByName!==report.recordedByName?` · 최근 수정 ${report.lastEditedByName}`:""}</small>:null}
+          {report.id?<button type="button" className="correction-student-record-delete correction-desktop-record-delete" disabled={saving===`delete-${key}`} onClick={()=>void deleteStudentRecord(row)}>{saving===`delete-${key}`?"삭제 중…":"기록 삭제"}</button>:null}
         </span>
         <div className="learning-attendance">
           {attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key||saving===`delete-${key}`} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}
           {status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}
-          {report.id?<button type="button" className="correction-student-record-delete correction-desktop-record-delete" disabled={saving===`delete-${key}`} onClick={()=>void deleteStudentRecord(row)}>{saving===`delete-${key}`?"삭제 중…":"이 학생 기록 삭제"}</button>:null}
         </div>
       </div>
       <div className={`correction-mobile-student-details ${detailsOpen?"open":""}`}>
