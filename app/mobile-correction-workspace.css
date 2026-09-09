@@ -3,7 +3,7 @@
 .correction-mobile-student-summary,.correction-mobile-detail-label{display:none}
 .correction-mobile-student-actions{display:flex;align-items:center;gap:6px}
 .correction-student-record-delete{width:max-content!important;padding:4px 0!important;border:0!important;background:transparent!important;color:#b2264f!important;font-size:8px!important;font-weight:800!important;white-space:nowrap!important}
-.learning-student>.correction-student-record-delete{grid-column:2;justify-self:start}
+.correction-desktop-record-delete{grid-column:1/-1!important;justify-self:end!important;margin-top:1px!important}
 .correction-student-record-delete:disabled{opacity:.5!important}
 .correction-mobile-student-details{display:contents}
 
@@ -211,6 +211,7 @@
     min-height:30px!important;padding:0 9px!important;border:1px solid #e5b6c5!important;border-radius:9px!important;
     background:#fff!important;font-size:9px!important;
   }
+  .correction-desktop-record-delete{display:none!important}
   .correction-learning-board .learning-person-attendance{padding:0 12px 11px!important}
   .correction-learning-board .learning-person-attendance>.learning-student{display:none!important}
   .correction-learning-board .learning-attendance{margin-top:0!important}
