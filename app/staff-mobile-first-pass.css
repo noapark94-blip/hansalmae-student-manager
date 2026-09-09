@@ -432,6 +432,24 @@
     min-height: 468px !important;
     max-height: 468px !important;
   }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-calendar-wrap.calendar-weeks-4
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-calendar-wrap.calendar-weeks-5
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-calendar-wrap.calendar-weeks-6
+    .correction-history-calendar-grid {
+    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+  }
 }
 
 /* Standalone history dialogs: keep all seven weekdays inside the mobile viewport. */

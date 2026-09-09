@@ -104,7 +104,7 @@ export function CorrectionHistoryModal({supabase,student,onClose,embedded=false}
       </div>
       <nav className="correction-history-filter" aria-label="과목 필터">{subjects.map(value=><button type="button" key={value} className={subject===value?"active":""} onClick={()=>setSubject(value)}>{value}</button>)}</nav>
 
-      {loading?<p className="correction-history-empty">첨삭 기록을 불러오는 중이에요…</p>:error?<p className="correction-history-error">{error}</p>:!visible.length?<p className="correction-history-empty">저장된 첨삭 기록이 없습니다.</p>:<div className="correction-history-calendar-wrap">
+      {loading?<p className="correction-history-empty">첨삭 기록을 불러오는 중이에요…</p>:error?<p className="correction-history-error">{error}</p>:!visible.length?<p className="correction-history-empty">저장된 첨삭 기록이 없습니다.</p>:<div className={`correction-history-calendar-wrap calendar-weeks-${calendarDays.length/7}`}>
         <section className="correction-history-calendar">
           <div className="correction-history-calendar-toolbar">
             <button type="button" onClick={()=>setMonth(shiftMonth(month,-1))}>‹</button>
