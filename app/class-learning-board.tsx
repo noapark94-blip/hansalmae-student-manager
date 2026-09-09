@@ -28,6 +28,7 @@ type ExamDraft = {
 };
 type Row = Omit<Student, "status"> & {
   status: Status | null;
+  recordExists: boolean;
   lessonContent: string;
   exams: ExamDraft[];
   assignedHomework: string;
@@ -369,6 +370,16 @@ export function ClassLearningBoard({
             const draftExam = draft?.exam;
             return {
               ...student,
+              recordExists: Boolean(
+                draft ||
+                  student.status ||
+                  raw?.exams?.length ||
+                  raw?.id ||
+                  hw?.lessonContent ||
+                  hw?.assignedHomework ||
+                  hw?.inspectionStatus ||
+                  hw?.inspectionNote,
+              ),
               status: draft
                 ? draft.status
                 : student.status === "excused"
@@ -720,6 +731,48 @@ export function ClassLearningBoard({
       setAttendanceEditor(null);
       await loadWeek();
     }
+    setSaving("");
+  };
+
+  const deleteStudentRecord = async (row: Row) => {
+    if (
+      !(await appConfirm({
+        eyebrow: "학생별 수업 기록 삭제",
+        title: `${row.name} 학생 기록만 삭제할까요?`,
+        copy: `${date} 수업 기록`,
+        notice:
+          "이 학생의 출결·개별 수업내용·시험·숙제 기록만 삭제되며, 공통 수업내용과 다른 학생 기록은 그대로 유지됩니다.",
+        confirmLabel: "이 학생 기록 삭제",
+        tone: "danger",
+      }))
+    )
+      return;
+    const savingKey = `delete-${row.id}`;
+    setSaving(savingKey);
+    setError("");
+    const { error: deleteError } = await supabase.rpc(
+      "staff_delete_class_student_record",
+      { p_class_id: classId, p_date: date, p_student_id: row.id },
+    );
+    if (deleteError) {
+      setError(deleteError.message);
+      setSaving("");
+      return;
+    }
+    update(row.id, {
+      recordExists: false,
+      status: null,
+      lateMinutes: null,
+      absenceReason: null,
+      note: null,
+      lessonContent: "",
+      exams: [emptyExam()],
+      assignedHomework: "",
+      inspectionStatus: "",
+      inspectionNote: "",
+    });
+    await Promise.all([onReload(), loadWeek()]);
+    setReloadKey((value) => value + 1);
     setSaving("");
   };
 
@@ -1377,14 +1430,26 @@ export function ClassLearningBoard({
                         </em>
                         <strong aria-hidden="true">⌄</strong>
                       </button>
-                      <button
-                        type="button"
-                        className="mobile-student-history"
-                        aria-label={`${row.name} 학생 누적 기록 보기`}
-                        onClick={() => setHistoryStudent(row)}
-                      >
-                        기록
-                      </button>
+                      <div className="class-student-record-actions">
+                        <button
+                          type="button"
+                          className="mobile-student-history"
+                          aria-label={`${row.name} 학생 누적 기록 보기`}
+                          onClick={() => setHistoryStudent(row)}
+                        >
+                          기록
+                        </button>
+                        {row.recordExists ? (
+                          <button
+                            type="button"
+                            className="class-student-record-delete mobile"
+                            disabled={saving === `delete-${row.id}`}
+                            onClick={() => void deleteStudentRecord(row)}
+                          >
+                            {saving === `delete-${row.id}` ? "삭제 중" : "삭제"}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="learning-person-attendance">
                       <span className="learning-student">
@@ -1407,13 +1472,28 @@ export function ClassLearningBoard({
                               .join(" · ")}
                           </small>
                         </button>
+                        {row.recordExists ? (
+                          <button
+                            type="button"
+                            className="class-student-record-delete desktop"
+                            disabled={saving === `delete-${row.id}`}
+                            onClick={() => void deleteStudentRecord(row)}
+                          >
+                            {saving === `delete-${row.id}`
+                              ? "삭제 중…"
+                              : "기록 삭제"}
+                          </button>
+                        ) : null}
                       </span>
                       <div className="learning-attendance">
                         {attendance.map(([status, label]) => (
                           <button
                             key={status}
                             className={`${status} ${row.status === status ? "active" : ""}`}
-                            disabled={saving === row.id}
+                            disabled={
+                              saving === row.id ||
+                              saving === `delete-${row.id}`
+                            }
                             onClick={() => void saveAttendance(row, status)}
                           >
                             {label}

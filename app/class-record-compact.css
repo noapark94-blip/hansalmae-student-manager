@@ -51,6 +51,21 @@
   .correction-learning-board>footer .learning-completion-actions>button{height:40px!important;min-height:40px!important;font-size:12px!important}
 }
 
+.class-day-workspace .class-student-record-actions{display:flex;align-items:center;gap:5px}
+.class-day-workspace .class-student-record-delete{border:0;background:transparent;color:#b2264f;font-family:inherit;font-weight:800;white-space:nowrap;cursor:pointer}
+.class-day-workspace .class-student-record-delete:disabled{opacity:.5;cursor:default}
+
+@media(min-width:701px){
+  .class-day-workspace .learning-student{position:relative!important}
+  .class-day-workspace .learning-student:has(>.class-student-record-delete.desktop) .learning-student-history-button>small{box-sizing:border-box!important;padding-right:58px!important}
+  .class-day-workspace .class-student-record-delete.desktop{position:absolute;right:0;bottom:0;padding:0;font-size:9px;line-height:1.35}
+}
+
+@media(max-width:700px){
+  .class-day-workspace .class-student-record-delete.desktop{display:none!important}
+  .class-day-workspace .class-student-record-delete.mobile{min-width:38px;min-height:34px;padding:0 6px;border:1px solid #e5b6c5;border-radius:9px;background:#fff;font-size:8px}
+}
+
 /* Desktop correction sheet: one connected row, with the original exam form intact. */
 @media(min-width:901px){
   .class-learning-board.correction-learning-board .correction-learning-heading,
