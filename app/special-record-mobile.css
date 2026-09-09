@@ -1,9 +1,25 @@
 /* Reuse the regular-class student record card geometry without affecting desktop. */
 @media(max-width:700px){
+  .special-board-modal .learning-board-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding: 0 0 96px !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .special-board-modal .learning-board-table {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
   .special-board-modal .learning-board-rows {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     padding: 8px !important;
     display: grid !important;
     gap: 8px !important;
+    box-sizing: border-box !important;
   }
   .special-board-modal .learning-board-rows > article {
     margin: 0 !important;
