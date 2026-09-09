@@ -208,9 +208,11 @@
     min-height:34px!important;padding:0 10px!important;border:1px solid #e4d7dd!important;border-radius:9px!important;
     background:#fff!important;color:#94305f!important;font-size:10px!important;font-weight:800!important;
   }
-  .correction-mobile-student-actions{display:grid!important;gap:5px!important}
+  .correction-mobile-student-actions{
+    display:flex!important;align-items:center!important;gap:5px!important;
+  }
   .correction-mobile-student-actions .correction-student-record-delete{
-    min-height:30px!important;padding:0 9px!important;border:1px solid #e5b6c5!important;border-radius:9px!important;
+    min-height:34px!important;padding:0 9px!important;border:1px solid #e5b6c5!important;border-radius:9px!important;
     background:#fff!important;font-size:9px!important;
   }
   .correction-desktop-record-delete{display:none!important}
