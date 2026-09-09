@@ -209,6 +209,39 @@ export function ClassLearningBoard({
   const [reloadKey, setReloadKey] = useState(0);
   const [attendanceEditor, setAttendanceEditor] =
     useState<AttendanceEditor | null>(null);
+  const confirmedRecordDatesRef = useRef(new Set<string>());
+  const dateWarningPromiseRef = useRef<Promise<boolean> | null>(null);
+
+  const confirmRecordDate = useCallback(async () => {
+    const currentDate = koreaToday();
+    const needsConfirmation =
+      date !== currentDate || (!validDay && !makeupEnabled);
+    if (!needsConfirmation || confirmedRecordDatesRef.current.has(date))
+      return true;
+    if (dateWarningPromiseRef.current) return dateWarningPromiseRef.current;
+
+    const selectedLabel = formatKoreanRecordDate(date);
+    const todayLabel = formatKoreanRecordDate(currentDate);
+    const warning = appConfirm({
+      eyebrow: "수업 날짜 확인",
+      title:
+        date !== currentDate
+          ? `오늘은 ${todayLabel}입니다.`
+          : "이 날짜는 정규 수업 요일이 아닙니다.",
+      copy: `현재 ${selectedLabel} 수업 기록을 작성하려고 합니다.`,
+      notice: "선택한 수업 날짜가 맞는지 다시 한번 확인해 주세요.",
+      cancelLabel: date !== currentDate ? "오늘 날짜로 이동" : "돌아가기",
+      confirmLabel: `${selectedLabel} 작성`,
+    }).then((confirmed) => {
+      if (confirmed) confirmedRecordDatesRef.current.add(date);
+      else if (date !== currentDate) onDate(currentDate);
+      return confirmed;
+    }).finally(() => {
+      dateWarningPromiseRef.current = null;
+    });
+    dateWarningPromiseRef.current = warning;
+    return warning;
+  }, [date, makeupEnabled, onDate, validDay]);
 
   const loadWeek = useCallback(async () => {
     const { data } = await supabase.rpc("staff_class_attendance_calendar", {
@@ -1007,7 +1040,19 @@ export function ClassLearningBoard({
   };
 
   return (
-    <section className="class-learning-board" ref={rootRef} spellCheck={false}>
+    <section
+      className="class-learning-board"
+      ref={rootRef}
+      spellCheck={false}
+      onFocusCapture={(event) => {
+        const target = event.target as HTMLElement;
+        if (
+          target.matches("input, textarea, select") &&
+          target.closest(".learning-compact-common, .learning-board-rows")
+        )
+          void confirmRecordDate();
+      }}
+    >
       <header>
         <div>
           <h3>이번 주 수업 기록</h3>
@@ -1494,7 +1539,11 @@ export function ClassLearningBoard({
                               saving === row.id ||
                               saving === `delete-${row.id}`
                             }
-                            onClick={() => void saveAttendance(row, status)}
+                            onClick={() =>
+                              void confirmRecordDate().then((confirmed) => {
+                                if (confirmed) return saveAttendance(row, status);
+                              })
+                            }
                           >
                             {label}
                           </button>
@@ -1664,7 +1713,11 @@ export function ClassLearningBoard({
                       type="button"
                       className="secondary-button"
                       disabled={saving === "all"}
-                      onClick={() => void saveRevisionDraft()}
+                      onClick={() =>
+                        void confirmRecordDate().then((confirmed) => {
+                          if (confirmed) return saveRevisionDraft();
+                        })
+                      }
                     >
                       {saving === "all" ? "저장 중…" : "수정 임시저장"}
                     </button>
@@ -1672,7 +1725,11 @@ export function ClassLearningBoard({
                       type="button"
                       className="primary"
                       disabled={saving === "all"}
-                      onClick={() => void publishRevision()}
+                      onClick={() =>
+                        void confirmRecordDate().then((confirmed) => {
+                          if (confirmed) return publishRevision();
+                        })
+                      }
                     >
                       {saving === "all" ? "반영 중…" : "수정 내용 반영"}
                     </button>
@@ -1683,7 +1740,11 @@ export function ClassLearningBoard({
                       type="button"
                       className="secondary-button"
                       disabled={saving === "all"}
-                      onClick={() => void save(false)}
+                      onClick={() =>
+                        void confirmRecordDate().then((confirmed) => {
+                          if (confirmed) return save(false);
+                        })
+                      }
                     >
                       임시저장
                     </button>
@@ -1691,7 +1752,11 @@ export function ClassLearningBoard({
                       type="button"
                       className="primary"
                       disabled={saving === "all"}
-                      onClick={() => void save(true)}
+                      onClick={() =>
+                        void confirmRecordDate().then((confirmed) => {
+                          if (confirmed) return save(true);
+                        })
+                      }
                     >
                       {saving === "all" ? "저장 중…" : "수업 완료"}
                     </button>
@@ -2315,6 +2380,10 @@ function koreaMonth() {
 function formatMonth(value: string) {
   const [year, month] = value.split("-");
   return `${year}년 ${Number(month)}월`;
+}
+function formatKoreanRecordDate(value: string) {
+  const [, month, day] = value.split("-").map(Number);
+  return `${month}월 ${day}일(${weekdays[isoWeekday(value) - 1]})`;
 }
 function koreaToday() {
   return new Intl.DateTimeFormat("en-CA", {
