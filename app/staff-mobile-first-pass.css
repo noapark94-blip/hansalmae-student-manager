@@ -444,8 +444,12 @@
   }
   .correction-history-modal:not(.correction-history-embedded)
     > .correction-history-calendar-wrap {
+    display: block !important;
     width: 100% !important;
+    height: auto !important;
     min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
@@ -463,10 +467,16 @@
   }
   .correction-history-modal:not(.correction-history-embedded)
     .correction-history-calendar {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow-x: hidden !important;
   }
   .correction-history-modal:not(.correction-history-embedded)
     .correction-history-calendar-grid {
+    height: auto !important;
+    min-height: 0 !important;
     grid-template-rows: none !important;
     grid-auto-rows: 50px !important;
   }
@@ -506,6 +516,14 @@
     .correction-history-calendar-grid
     small {
     font-size: 7px !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-day-panel {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin-top: 12px !important;
   }
 }
 
