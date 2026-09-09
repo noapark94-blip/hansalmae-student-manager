@@ -417,6 +417,38 @@
   }
 }
 
+/* Desktop class history: show two separate lesson records in each date cell. */
+@media (min-width: 801px) {
+  .student-learning-days.calendar-weeks-4 {
+    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .student-learning-days.calendar-weeks-5 {
+    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .student-learning-days.calendar-weeks-6 {
+    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+  }
+  .student-learning-days > button {
+    gap: 3px !important;
+    overflow: hidden !important;
+  }
+  .student-learning-day-records {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+  }
+  .student-learning-day-records > small {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 1.2 !important;
+  }
+}
+
 /* Desktop embedded correction history: give calendar rows enough vertical room. */
 @media (min-width: 901px) {
   .student-unified-learning
@@ -2428,6 +2460,14 @@
     color: transparent !important;
     font-size: 0 !important;
     overflow: hidden !important;
+  }
+  .student-unified-learning
+    .student-learning-day-records
+    > small:nth-child(n + 2),
+  .student-learning-history-modal
+    .student-learning-day-records
+    > small:nth-child(n + 2) {
+    display: none !important;
   }
   .student-unified-learning .student-learning-selected {
     border-top: 0 !important;

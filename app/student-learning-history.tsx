@@ -40,6 +40,7 @@ export function StudentLearningHistory({supabase,studentId,initialSource="all"}:
   const subjects=useMemo(()=>Array.from(new Set(sourceItems.map(item=>item.subject).filter(Boolean))),[sourceItems]);
   const filtered=useMemo(()=>subject==="전체"?sourceItems:sourceItems.filter(item=>item.subject===subject),[sourceItems,subject]);
   const dates=useMemo(()=>new Set(filtered.map(item=>item.lessonDate)),[filtered]);
+  const recordsByDate=useMemo(()=>{const map=new Map<string,Report[]>();for(const item of filtered){const rows=map.get(item.lessonDate)??[];rows.push(item);map.set(item.lessonDate,rows)}return map},[filtered]);
   const selected=useMemo(()=>filtered.filter(item=>item.lessonDate===selectedDate),[filtered,selectedDate]);
   const calendar=useMemo(()=>buildCalendar(month),[month]);
   const examRows=useMemo(()=>filtered.flatMap(item=>item.exams),[filtered]);
@@ -69,7 +70,14 @@ export function StudentLearningHistory({supabase,studentId,initialSource="all"}:
       <section className="student-learning-calendar-panel">
         <header className="student-learning-calendar-head"><button type="button" onClick={()=>moveMonth(-1)} aria-label="이전 달">‹</button><b>{formatMonth(month)}</b><button type="button" onClick={()=>moveMonth(1)} aria-label="다음 달">›</button></header>
         <div className="student-learning-weekdays">{weekdays.map((day,index)=><span className={index===0?"sun":index===6?"sat":""} key={day}>{day}</span>)}</div>
-        <div className="student-learning-days">{calendar.map((day,index)=>day?<button type="button" key={day} className={`${dates.has(day)?"has-record":""} ${selectedDate===day?"selected":""}`} onClick={()=>dates.has(day)&&setSelectedDate(day)} disabled={!dates.has(day)}><span>{Number(day.slice(8))}</span>{dates.has(day)&&<small>{recordDayLabel(filtered,day)}</small>}</button>:<span className="blank" key={`blank-${index}`}/>)}</div>
+        <div className={`student-learning-days calendar-weeks-${calendar.length/7}`}>{calendar.map((day,index)=>{
+          if(!day)return <span className="blank" key={`blank-${index}`}/>;
+          const dayRecords=recordsByDate.get(day)??[];
+          return <button type="button" key={day} className={`${dayRecords.length?"has-record":""} ${selectedDate===day?"selected":""}`} onClick={()=>dayRecords.length&&setSelectedDate(day)} disabled={!dayRecords.length}>
+            <span>{Number(day.slice(8))}</span>
+            {dayRecords.length?<div className="student-learning-day-records">{dayRecords.slice(0,2).map((item,recordIndex)=><small key={item.lessonId}>{recordDayLabel(item)}{recordIndex===1&&dayRecords.length>2?` 외 ${dayRecords.length-2}`:""}</small>)}</div>:null}
+          </button>;
+        })}</div>
       </section>
 
       <section className="student-learning-selected">
@@ -96,7 +104,7 @@ function LearningRecordCard({item}:{item:Report}){
   </article>
 }
 function RecordRow({label,text}:{label:string;text:string}){return <section className="student-learning-row"><b>{label}</b><p>{text}</p></section>}
-function recordDayLabel(items:Report[],day:string){const dayItems=items.filter(item=>item.lessonDate===day);if(!dayItems.length)return"";const first=dayItems[0],status=first.attendance?attendanceLabel[first.attendance.status]??first.attendance.status:"기록";const label=[first.subject,status].filter(Boolean).join(" · ");return dayItems.length>1?`${label} 외 ${dayItems.length-1}`:label}
+function recordDayLabel(item:Report){const status=item.attendance?attendanceLabel[item.attendance.status]??item.attendance.status:"기록";return[item.subject,status].filter(Boolean).join(" · ")}
 function buildCalendar(month:string){const[y,m]=month.split("-").map(Number);const first=new Date(y,m-1,1);const count=new Date(y,m,0).getDate();const values:(string|null)[]=Array(first.getDay()).fill(null);for(let d=1;d<=count;d++)values.push(`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`);while(values.length%7)values.push(null);return values}
 function monthKey(date:Date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`}
 function formatMonth(value:string){const[y,m]=value.split("-").map(Number);return `${y}년 ${m}월`}
