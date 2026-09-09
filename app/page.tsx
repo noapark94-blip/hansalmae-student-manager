@@ -200,7 +200,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
-  sub_admin: ["dashboard", "alimtalk", "communications", "my-account"],
+  sub_admin: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "my-account"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
@@ -356,7 +356,7 @@ export default function Home() {
         setAuthError(ownProfile?.role === "guardian" && !ownProfile.is_active ? "자녀 연결 승인 대기 중입니다. 관리자가 확인한 뒤 로그인할 수 있습니다." : "계정 역할을 확인할 수 없습니다. 관리자에게 문의해 주세요.");
         setProfile(null);
       } else {
-        if (["assistant","student","guardian"].includes(role) || ((role === "admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
+        if (["assistant","student","guardian"].includes(role) || ((role === "admin" || role === "sub_admin" || role === "teacher" || role === "manager") && window.matchMedia("(max-width: 760px)").matches)) setView("dashboard");
         setAuthError("");
         setProfile({
           id: nextUser.id,
@@ -381,7 +381,7 @@ export default function Home() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!supabase || !profile || !["admin","teacher","manager"].includes(profile.role)) {
+    if (!supabase || !profile || !["admin","sub_admin","teacher","manager"].includes(profile.role)) {
       return;
     }
 
@@ -720,7 +720,7 @@ export default function Home() {
   return (
     <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
       <PushDeviceAccountSync key={user.id} supabase={supabase} />
-      {["guardian", "teacher", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
+      {["guardian", "teacher", "sub_admin", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
         <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
           <button className="brand" type="button" onClick={() => selectView("dashboard")} aria-label="홈으로 이동">
@@ -846,12 +846,12 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              {(profile.role === "admin" || profile.role === "teacher" || profile.role === "manager") && (
+              {(profile.role === "admin" || profile.role === "sub_admin" || profile.role === "teacher" || profile.role === "manager") && (
                 <button className="primary small" onClick={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))}>
                   ＋ 학생 등록
                 </button>
               )}
-              {profile.role !== "sub_admin" && <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />}
+              <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
             </header>
           </>
         )}
@@ -872,7 +872,7 @@ export default function Home() {
               {adminHomeMode === "operations" ? <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} /> : <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
             </>
           )}
-          {view === "dashboard" && (profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
+          {view === "dashboard" && (profile.role === "sub_admin" || profile.role === "teacher" || profile.role === "manager") && <TeacherClassWorkspace supabase={supabase} profile={profile} lessonTarget={staffLessonTarget} onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
           {familyStudentReady && view === "dashboard" && (profile.role === "student" || profile.role === "guardian") && <Dashboard supabase={supabase} profile={profile} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} familyStudentId={familyStudentId} onFamilyStudentChange={selectFamilyStudent} />}
           {view === "students" && (
             <div className="student-page-layout">
@@ -885,10 +885,10 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "schedule" && (["admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
+          {view === "schedule" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
-          {view === "attendance" && (["admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
+          {view === "attendance" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
           {view === "makeups" && <MakeupBoard supabase={supabase} />}
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
@@ -1062,7 +1062,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
   const [adminSummary, setAdminSummary] = useState<MobileAdminSummary | null>(null);
   const [assistantSummary, setAssistantSummary] = useState<AssistantCorrectionSummary | null>(null);
   useEffect(() => {
-    if (role !== "teacher" && role !== "admin") return;
+    if (role !== "teacher" && role !== "sub_admin" && role !== "admin") return;
     let active = true;
     void Promise.all([supabase.rpc("staff_dashboard_live"), supabase.rpc("absence_makeup_board")]).then(([dashboardResult, makeupResult]) => {
       if (!active) return;
@@ -1186,9 +1186,16 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
         ]
       : role === "sub_admin"
         ? [
+            { id: "class-management" as View, label: "내 수업", tone: "blue" },
+            { id: "schedule" as View, label: "시간표", tone: "green" },
+            { id: "corrections" as View, label: "첨삭 시간표", tone: "amber" },
+            { id: "consultations" as View, label: "상담", tone: "wine" },
+            { id: "makeups" as View, label: "결석·보강", tone: "gray" },
+            { id: "assignments" as View, label: "첨삭 관리", tone: "blue" },
+            { id: "transport" as View, label: "차량 운행", tone: "violet" },
+            { id: "students" as View, label: "학생", tone: "amber" },
             { id: "alimtalk" as View, label: "알림톡 발송", tone: "wine" },
             { id: "communications" as View, label: "공지·문자 발송", tone: "blue" },
-            { id: "my-account" as View, label: "내 계정", tone: "gray" },
           ]
       : role === "assistant"
         ? [
@@ -1218,10 +1225,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           { id: "students" as View, label: "학생", tone: "amber" },
         ];
   return (
-    <section
-      className={`staff-mobile-home ${role === "assistant" || role === "sub_admin" ? "assistant-home" : ""}${role === "sub_admin" ? " sub-admin-home" : ""}`}
-      aria-label={role === "assistant" ? "조교 업무 홈" : role === "sub_admin" ? "부관리자 발송 업무 홈" : "모바일 업무 홈"}
-    >
+    <section className={`staff-mobile-home ${role === "assistant" ? "assistant-home" : ""}`} aria-label={role === "assistant" ? "조교 업무 홈" : role === "sub_admin" ? "부관리자 업무 홈" : "모바일 업무 홈"}>
       <div className="staff-mobile-welcome">
         <p>한살매 수업노트</p>
         <h1>{greeting}</h1>
@@ -1231,11 +1235,11 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
         <div>
           <b>{displayName}</b>
           <span>{roleLabels[role]}</span>
-          <small>{role === "assistant" ? "첨삭 업무 전용 계정" : role === "sub_admin" ? "알림톡·공지·문자 발송 전용 계정" : `재원 학생 ${studentsLoading ? "…" : activeStudentCount}명`}</small>
+          <small>{role === "assistant" ? "첨삭 업무 전용 계정" : role === "sub_admin" ? `담당 수업 · 발송 관리 · 재원 학생 ${studentsLoading ? "…" : activeStudentCount}명` : `재원 학생 ${studentsLoading ? "…" : activeStudentCount}명`}</small>
         </div>
-        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" || role === "sub_admin" ? "my-account" : "students")}>
-          <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" || role === "sub_admin" ? "user" : "students"} size={19} />
-          <span>{role === "admin" ? "학생 등록" : role === "assistant" || role === "sub_admin" ? "내 계정" : "학생 보기"}</span>
+        <button type="button" onClick={role === "admin" ? onRegister : () => onNavigate(role === "assistant" ? "my-account" : "students")}>
+          <HansalmaeIcon name={role === "admin" ? "plus" : role === "assistant" ? "user" : "students"} size={19} />
+          <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
       {role === "assistant" && (
@@ -1262,7 +1266,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           </button>
         ))}
       </div>
-      {role === "teacher" && (
+      {(role === "teacher" || role === "sub_admin") && (
         <div className="staff-mobile-glance" aria-label="오늘 수업과 결석 보강 요약">
           <button type="button" className="staff-mobile-glance-card schedule" onClick={() => onNavigate("schedule")}>
             <header><span>오늘 수업</span><HansalmaeIcon name={viewIcon.schedule} size={17} /></header>
@@ -1359,9 +1363,9 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
           { id: "my-account", label: "내 계정" },
         ] : role === "sub_admin" ? [
           { id: "dashboard", label: "홈" },
+          { id: "students", label: "학생" },
+          { id: "schedule", label: "시간표" },
           { id: "alimtalk", label: "알림톡" },
-          { id: "communications", label: "공지·문자" },
-          { id: "my-account", label: "내 계정" },
         ] : [
           { id: "dashboard", label: "홈" },
           { id: "class-management", label: "내 수업" },
@@ -1387,7 +1391,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
     admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "alimtalk", "backup", "settings"],
-    sub_admin: ["dashboard", "alimtalk", "communications", "my-account"],
+    sub_admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "alimtalk", "communications", "my-account"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
