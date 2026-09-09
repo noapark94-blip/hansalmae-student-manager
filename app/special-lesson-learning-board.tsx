@@ -26,10 +26,6 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
   const [openStudentId, setOpenStudentId] = useState<string|null>(null);
-  const [commonOpen, setCommonOpen] = useState<string|null>(null);
-  const [commonLesson, setCommonLesson] = useState("");
-  const [commonHomework, setCommonHomework] = useState("");
-  const [commonExam, setCommonExam] = useState<Exam>({examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""});
   const [categories, setCategories] = useState<ExamCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
@@ -118,24 +114,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     else { setLessonState("draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     setSaving("");
   };
-  const applyCommon = async (kind: "lesson"|"homework"|"exam") => {
-    if (kind==="exam" && (!commonExam.examType || !Number.isFinite(Number(commonExam.maxScore)) || Number(commonExam.maxScore)<=0)) {setError("시험 종류와 만점을 확인해 주세요.");return;}
-    if (!await appConfirm({eyebrow:"공통 입력",title:"전체 학생에게 적용할까요?",notice:"선택한 항목의 기존 개별 내용을 바꿉니다. 시험 원점수는 유지됩니다. 적용 후 임시저장 또는 수업 완료를 눌러 주세요.",confirmLabel:"전체 적용"})) return;
-    setRows(current=>current.map(row=>kind==="lesson"?{...row,lessonContent:commonLesson}:kind==="homework"?{...row,assignedHomework:commonHomework}:{...row,exam:{...commonExam,score:row.exam.score}}));
-  };
   return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal`} spellCheck={false}>
-    <div className="special-common-cards">
-      {(["lesson","homework","exam","notice"] as const).map(kind=><section key={kind} className="learning-common-card disclosure">
-        <button type="button" className="learning-card-disclosure" aria-expanded={commonOpen===kind} onClick={()=>setCommonOpen(commonOpen===kind?null:kind)}>
-          <span><small>{kind==="exam"?"평가":kind==="notice"?"안내":"공통 입력"}</small><b>{kind==="lesson"?"공통 수업 내용":kind==="homework"?"공통 숙제":kind==="exam"?"공통 시험":"반 전체 공지"}</b></span>
-          <em>{(kind==="lesson"?commonLesson:kind==="homework"?commonHomework:kind==="exam"?commonExam.examTitle||commonExam.examType:notice)||"미입력"}</em><strong>{commonOpen===kind?"접기":"입력"}</strong>
-        </button>
-        {commonOpen===kind?<div className="special-common-editor">
-          {kind==="exam"?<><select aria-label="공통 시험 종류" value={commonExam.examType} onChange={e=>setCommonExam({...commonExam,examType:e.target.value})}><option value="">종류 선택</option>{categories.filter(c=>c.isActive).map(c=><option key={c.id}>{c.name}</option>)}</select><input aria-label="공통 시험명·범위" placeholder="시험명·범위" value={commonExam.examTitle} onChange={e=>setCommonExam({...commonExam,examTitle:e.target.value})}/><input aria-label="공통 시험 만점" inputMode="decimal" value={commonExam.maxScore} onChange={e=>setCommonExam({...commonExam,maxScore:e.target.value})}/><input aria-label="공통 시험 평가" placeholder="평가·피드백" value={commonExam.evaluation} onChange={e=>setCommonExam({...commonExam,evaluation:e.target.value})}/><small>원점수는 학생별로 입력합니다.</small></>:<textarea aria-label={kind==="lesson"?"공통 수업 내용":kind==="homework"?"공통 숙제":"반 전체 공지"} rows={3} value={kind==="lesson"?commonLesson:kind==="homework"?commonHomework:notice} onChange={e=>kind==="lesson"?setCommonLesson(e.target.value):kind==="homework"?setCommonHomework(e.target.value):setNotice(e.target.value)}/>}
-          {kind!=="notice"?<button type="button" className="primary" disabled={loading||!!saving||!rows.length} onClick={()=>void applyCommon(kind)}>전체 적용</button>:null}
-        </div>:<p>{kind==="exam"?"시험이 있을 때만 입력하세요.":kind==="notice"?"공지가 있을 때만 입력하세요.":"여러 학생에게 같은 내용을 적용할 수 있어요."}</p>}
-      </section>)}
-    </div>
     <SpecialFamilyReportReadStatus supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {

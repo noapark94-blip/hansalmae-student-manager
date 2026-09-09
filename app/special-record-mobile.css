@@ -1,8 +1,4 @@
-/* Reuse the regular-class student card geometry without affecting desktop. */
-.special-common-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px}
-.special-common-editor{display:grid;gap:8px}
-.special-common-editor input,.special-common-editor select,.special-common-editor textarea{width:100%;min-width:0;padding:10px;border:1px solid #e8dfe3;border-radius:9px;font:inherit}
-.special-common-cards .learning-card-disclosure em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Reuse the regular-class student record card geometry without affecting desktop. */
 @media(max-width:700px){
   .special-board-modal .learning-board-rows {
     padding: 8px !important;
@@ -225,8 +221,6 @@
 .special-board-modal .learning-attendance{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .special-board-modal .learning-attendance button{min-height:40px!important;width:100%}
 .special-board-modal .learning-attendance small{grid-column:1/-1}
-.special-board-modal .special-common-cards{grid-template-columns:minmax(0,1fr);padding:10px}
-.special-board-modal .learning-common-card{padding:16px;border-radius:14px}
 .special-board-modal .learning-exam,.special-board-modal .learning-homework.previous{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .special-board-modal .learning-homework.previous>p{grid-column:1/-1}
 .special-board-modal input,.special-board-modal select,.special-board-modal textarea{min-width:0;max-width:100%;font-size:16px!important}
