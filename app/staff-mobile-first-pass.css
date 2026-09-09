@@ -440,6 +440,13 @@
 
 /* Desktop class history: show two separate lesson records in each date cell. */
 @media (min-width: 801px) {
+  .student-learning-history-modal .student-learning-days {
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-gutter: stable !important;
+  }
   .student-learning-days.calendar-weeks-4 {
     grid-template-rows: repeat(4, minmax(78px, 1fr)) !important;
   }
