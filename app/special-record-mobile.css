@@ -1,5 +1,13 @@
 /* Reuse the regular-class student record card geometry without affecting desktop. */
 @media(max-width:700px){
+  .teacher-special-workspace .special-board-modal.special-board-embedded {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .teacher-special-workspace:has(.special-board-embedded) {
+    overflow: visible !important;
+  }
   .special-board-modal .learning-board-scroll {
     width: 100% !important;
     max-width: 100% !important;
