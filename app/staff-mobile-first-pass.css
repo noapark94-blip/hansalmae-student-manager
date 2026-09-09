@@ -440,6 +440,31 @@
 
 /* Desktop class history: show two separate lesson records in each date cell. */
 @media (min-width: 801px) {
+  /* Match desktop correction detail typography to the class detail card exactly. */
+  .correction-history-day-card > header b {
+    font-size: 14px !important;
+  }
+  .correction-history-day-card > header span,
+  .correction-history-meta,
+  .correction-history-meta b {
+    font-size: 10px !important;
+  }
+  .correction-history-day-card > header strong {
+    font-size: 8px !important;
+    padding: 5px 8px !important;
+  }
+  .correction-history-block small {
+    font-size: 9px !important;
+    margin-bottom: 4px !important;
+  }
+  .correction-history-block h3,
+  .correction-history-block p {
+    font-size: 12px !important;
+  }
+  .correction-history-block p {
+    line-height: 1.58 !important;
+  }
+
   .student-learning-history-modal .student-learning-days {
     min-height: 0 !important;
     overflow-x: hidden !important;
