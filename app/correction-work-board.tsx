@@ -8,7 +8,7 @@ import { appConfirm } from "./app-dialog";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
 import { ExamCategoryModal, type ExamCategory } from "./class-learning-board";
 
-type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;validFrom:string;validUntil:string|null;tutorName:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
+type Assignment={id:string;studentId:string;studentName:string;school:string|null;grade:string|null;subject:"국어"|"영어"|"수학";weekday:number;startTime:string;endTime:string;active:boolean;validFrom:string;validUntil:string|null;tutorName:string|null;supervisorName:string|null;note:string|null;isDateOverride?:boolean};
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={assignment:Assignment;date:string;startTime:string;endTime:string;kind:"fixed"|"move"|"extra";exception?:Exception};
@@ -86,6 +86,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   },[date,supabase]);
 
   useEffect(()=>{void load()},[load]);
+  useEffect(()=>{
+    const refresh=()=>{void load()};
+    window.addEventListener("hansalmae-correction-assignments-changed",refresh);
+    return()=>window.removeEventListener("hansalmae-correction-assignments-changed",refresh);
+  },[load]);
   useEffect(()=>{
     const channel=supabase.channel(`correction-reports-${date}`).on("postgres_changes",{event:"*",schema:"public",table:"correction_reports",filter:`correction_date=eq.${date}`},payload=>{
       const changed=(Object.keys(payload.new??{}).length?payload.new:payload.old) as Record<string,unknown>;
@@ -199,6 +204,25 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     setSaving("");
   };
 
+  const deleteStudentRecord=async(row:Occurrence)=>{
+    const key=reportKey(row),report=drafts[key]??{};
+    if(!report.id)return;
+    if(!await appConfirm({
+      eyebrow:"학생별 첨삭 기록 삭제",
+      title:`${row.assignment.studentName} 학생 기록만 삭제할까요?`,
+      copy:`${row.date} ${row.assignment.subject} 첨삭 기록`,
+      notice:"이 학생의 출결·시험·첨삭 내용만 삭제되며, 다른 학생 기록은 그대로 유지됩니다.",
+      confirmLabel:"이 학생 기록 삭제",
+      tone:"danger",
+    }))return;
+    const savingKey=`delete-${key}`;
+    setSaving(savingKey);setError("");
+    const{error:deleteError}=await supabase.rpc("staff_delete_correction_reports",{p_records:[{assignmentId:row.assignment.id,date:row.date,startTime:row.startTime}]});
+    if(deleteError)setError(deleteError.message);
+    else await load();
+    setSaving("");
+  };
+
   const renderRow=(row:Occurrence)=>{
     const key=reportKey(row),report=drafts[key]??{},status=report.attendanceStatus??"scheduled";
     const detailCount=[Boolean(report.examTitle||report.examScore!=null),Boolean(report.correctionContent?.trim())].filter(Boolean).length;
@@ -215,9 +239,12 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
           <em className={report.published?"complete":""}>{report.published?"입력 완료":detailCount?`${detailCount}/2 입력`:"미입력"}</em>
           <strong aria-hidden="true">{detailsOpen?"⌃":"⌄"}</strong>
         </button>
-        <button type="button" className="correction-mobile-history-button" onClick={()=>setHistoryStudent(row.assignment)}>기록</button>
+        <div className="correction-mobile-student-actions">
+          <button type="button" className="correction-mobile-history-button" onClick={()=>setHistoryStudent(row.assignment)}>기록</button>
+          {report.id?<button type="button" className="correction-student-record-delete" disabled={saving===`delete-${key}`} onClick={()=>void deleteStudentRecord(row)}>{saving===`delete-${key}`?"삭제 중":"삭제"}</button>:null}
+        </div>
       </div>
-      <div className="learning-person-attendance"><span className={`learning-student ${row.assignment.isDateOverride?"date-override":""}`}><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b>{row.assignment.isDateOverride?<span className="correction-date-override-badge">누락 보정</span>:null}<span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{showRecordedBy?<small>첨삭 담당 · {report.recordedByName}{report.lastEditedByName&&report.lastEditedByName!==report.recordedByName?` · 최근 수정 ${report.lastEditedByName}`:""}</small>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
+      <div className="learning-person-attendance"><span className={`learning-student ${row.assignment.isDateOverride?"date-override":""}`}><button type="button" className="correction-history-trigger" title="과거 첨삭 기록 보기" onClick={()=>setHistoryStudent(row.assignment)}><i>{row.assignment.studentName[0]}</i><b>{row.assignment.studentName}</b>{row.assignment.isDateOverride?<span className="correction-date-override-badge">누락 보정</span>:null}<span className="correction-fixed-time">{weekdays[row.assignment.weekday-1]} {row.assignment.startTime.slice(0,5)}–{row.assignment.endTime.slice(0,5)}</span></button>{row.kind!=="fixed"?<span className={`correction-direct-badge ${row.kind}`}>{row.kind==="move"?"변경 일정":"추가 첨삭"}</span>:null}<small>{[row.assignment.school,row.assignment.grade,row.assignment.subject].filter(Boolean).join(" · ")}</small>{originalLabel?(row.kind==="move"?<button type="button" className="correction-direct-origin correction-direct-origin-button" title="변경 일정 확인·취소" onClick={()=>setScheduleChangeRow(row)}>{originalLabel}</button>:<small className="correction-direct-origin">{originalLabel}</small>):null}{changeReason?<span className="correction-change-reason"><b>{row.kind==="move"?"변경 사유":"추가 사유"}</b>{changeReason}</span>:null}{showRecordedBy?<small>첨삭 담당 · {report.recordedByName}{report.lastEditedByName&&report.lastEditedByName!==report.recordedByName?` · 최근 수정 ${report.lastEditedByName}`:""}</small>:null}{report.id?<button type="button" className="correction-student-record-delete" disabled={saving===`delete-${key}`} onClick={()=>void deleteStudentRecord(row)}>{saving===`delete-${key}`?"삭제 중…":"이 학생 기록 삭제"}</button>:null}</span><div className="learning-attendance">{attendance.map(([value,label])=><button type="button" key={value} className={`${value} ${status===value?"active":""}`} disabled={saving===key||saving===`delete-${key}`} onClick={()=>void saveAttendance(row,value)}>{label}</button>)}{status==="late"?<small>{report.lateMinutes}분 지각 · 같은 버튼을 다시 누르면 취소</small>:status==="absent"?<small>{report.absenceReason?`${report.absenceReason} · `:""}같은 버튼을 다시 누르면 취소</small>:status!=="scheduled"?<small>같은 버튼을 다시 누르면 취소</small>:null}</div></div>
       <div className={`correction-mobile-student-details ${detailsOpen?"open":""}`}>
         <div className="correction-mobile-detail-label"><span>시험 기록</span><small>선택 입력</small></div>
         <div className="learning-exam-list"><div className="learning-exam-card"><div className="learning-exam individual correction-exam"><select value={report.examRange?.startsWith("[종류]")?report.examRange.slice(4).split("\n")[0]:""} onChange={e=>{const old=(report.examRange??"").replace(/^\[종류\].*\n?/,"");updateDraft(row,{examRange:e.target.value?`[종류]${e.target.value}\n${old}`:old})}}><option value="">종류 선택</option>{categories.map(category=><option key={category.id} value={category.name}>{category.name}</option>)}</select><input value={report.examTitle??""} onChange={e=>updateDraft(row,{examTitle:e.target.value})} placeholder="시험명·범위"/><span><input inputMode="decimal" value={report.examScore??""} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examScore:e.target.value===""?null:Number(e.target.value)})} placeholder="원점수"/><em>/</em><input inputMode="decimal" value={report.examMaxScore===undefined?100:(report.examMaxScore??"")} onFocus={e=>e.currentTarget.select()} onChange={e=>updateDraft(row,{examMaxScore:e.target.value===""?null:Number(e.target.value)})} placeholder="만점"/></span><input value={report.evaluation??""} onChange={e=>updateDraft(row,{evaluation:e.target.value})} placeholder="평가·피드백"/></div><small className="exam-percent">{converted===null?"점수를 입력하면 100점 환산점수가 표시됩니다.":`원점수 ${score}/${max} · 환산 ${converted}점`}</small></div></div>
