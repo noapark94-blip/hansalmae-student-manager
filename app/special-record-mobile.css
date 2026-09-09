@@ -4,7 +4,7 @@
     width: 100% !important;
     max-width: 100% !important;
     margin-left: 0 !important;
-    padding: 0 0 96px !important;
+    padding: 0 !important;
     overflow-x: hidden !important;
     box-sizing: border-box !important;
   }
@@ -211,13 +211,13 @@
     height: 62px !important;
   }
   .special-board-modal > footer {
-    position: sticky !important;
-    bottom: 72px !important;
-    z-index: 8 !important;
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto !important;
     padding: 9px 10px !important;
     border-top: 1px solid #e8dfe3 !important;
-    background: rgba(255, 255, 255, 0.96) !important;
-    backdrop-filter: blur(12px) !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
   }
   .special-board-modal > footer > span:first-child {
     display: none !important;
