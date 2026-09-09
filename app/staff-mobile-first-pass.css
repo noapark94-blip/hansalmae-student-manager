@@ -375,6 +375,36 @@
   }
 }
 
+/* Desktop correction history: keep record labels inside each calendar cell. */
+@media (min-width: 701px) {
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    > button {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    > button
+    > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .correction-history-modal:not(.correction-history-embedded)
+    .correction-history-calendar-grid
+    em {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
 /* Standalone history dialogs: keep all seven weekdays inside the mobile viewport. */
 @media (max-width: 700px) {
   .student-learning-history-modal .student-learning-history-grid,
