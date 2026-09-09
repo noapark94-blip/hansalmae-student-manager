@@ -58,7 +58,7 @@
 @media(min-width:701px){
   .class-day-workspace .learning-student{position:relative!important}
   .class-day-workspace .learning-student:has(>.class-student-record-delete.desktop) .learning-student-history-button>b{box-sizing:border-box!important;padding-right:58px!important}
-  .class-day-workspace .class-student-record-delete.desktop{position:absolute;right:0;top:0;padding:0;font-size:8px;line-height:1.35}
+  .class-day-workspace .class-student-record-delete.desktop{position:absolute;right:0;top:0;padding:0;font-size:10px!important;font-weight:400;line-height:1.35}
 }
 
 @media(max-width:700px){
