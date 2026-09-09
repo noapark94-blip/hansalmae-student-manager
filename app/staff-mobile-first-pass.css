@@ -387,6 +387,7 @@
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    margin-top: 2px !important;
     overflow: hidden !important;
   }
   .correction-history-modal .correction-history-calendar-grid em {
@@ -395,6 +396,9 @@
     min-width: 0 !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 1.25 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -409,6 +413,23 @@
     box-sizing: border-box;
     border: 2px solid #a62d68;
     pointer-events: none;
+  }
+}
+
+/* Desktop embedded correction history: give calendar rows enough vertical room. */
+@media (min-width: 901px) {
+  .student-unified-learning
+    .correction-history-embedded
+    > .correction-history-calendar-wrap,
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-calendar,
+  .student-unified-learning
+    .correction-history-embedded
+    .correction-history-day-panel {
+    height: 424px !important;
+    min-height: 424px !important;
+    max-height: 424px !important;
   }
 }
 
