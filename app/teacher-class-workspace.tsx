@@ -143,6 +143,13 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   const [agenda, setAgenda] = useState<AgendaEntry[]>([]);
   const [agendaError, setAgendaError] = useState("");
   const [agendaLoading, setAgendaLoading] = useState(true);
+  const [showAgendaLoading, setShowAgendaLoading] = useState(false);
+  useEffect(() => {
+    setShowAgendaLoading(false);
+    if (!agendaLoading || agenda.length > 0) return;
+    const timer = window.setTimeout(() => setShowAgendaLoading(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, [agendaLoading, agenda.length]);
   const [activeAgendaKey, setActiveAgendaKey] = useState("");
   const [clock, setClock] = useState(() => new Date());
   const todayDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(clock);
@@ -298,7 +305,8 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         {todayOnly && <span>{todayDate} · {visibleAgenda.length}개 수업</span>}
       </nav>
       {todayOnly && <section className="teacher-class-cards">
-        {agendaLoading ? <p>오늘 수업을 불러오는 중이에요…</p> : agendaError ? <p>{agendaError} <button onClick={() => void loadAgenda()}>다시 시도</button></p> : visibleAgenda.map(entry => {
+        {showAgendaLoading && agendaLoading && !agenda.length && <p>오늘 수업을 불러오는 중이에요…</p>}
+        {agendaError ? <p>{agendaError} <button onClick={() => void loadAgenda()}>다시 시도</button></p> : visibleAgenda.map(entry => {
           const item = data?.classes.find(item => item.id === entry.classId);
           return <button type="button" key={entry.key} className={activeAgendaKey === entry.key ? "active" : ""} onClick={() => openAgenda(entry)} style={{ "--class-color": item?.color ?? entry.color } as CSSProperties}>
             <i />
