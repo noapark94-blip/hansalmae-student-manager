@@ -41,6 +41,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[savedDrafts,setSavedDrafts]=useState<Record<string,Report>>({});
   const draftsRef=useRef<Record<string,Report>>({});
   const savedDraftsRef=useRef<Record<string,Report>>({});
+  const loadedDateRef=useRef(date);
   const[categories,setCategories]=useState<ExamCategory[]>([]);
   const[loading,setLoading]=useState(true);
   const[saving,setSaving]=useState("");
@@ -76,11 +77,14 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     if(failedReport){setError(`첨삭 기록을 불러오지 못했습니다. 저장하지 않고 다시 시도해 주세요. ${failedReport.response.error?.message??""}`);setLoading(false);return}
     const reportRows=reportResults.map(({row,response})=>[reportKey(row),(response.data??{}) as Report] as const);
     setData(board);
-    const loadedDrafts=Object.fromEntries(reportRows);
-    setDrafts(loadedDrafts);
-    setSavedDrafts(loadedDrafts);
-    draftsRef.current=loadedDrafts;
-    savedDraftsRef.current=loadedDrafts;
+    const preserveEdits=loadedDateRef.current===date;
+    const nextDrafts=Object.fromEntries(reportRows.map(([key,remote])=>[key,preserveEdits?mergeRemoteReport(draftsRef.current[key]??{},savedDraftsRef.current[key]??{},remote):remote]));
+    const nextSavedDrafts=Object.fromEntries(reportRows.map(([key,remote])=>[key,preserveEdits?mergeRemoteBaseline(draftsRef.current[key]??{},savedDraftsRef.current[key]??{},remote):remote]));
+    loadedDateRef.current=date;
+    draftsRef.current=nextDrafts;
+    savedDraftsRef.current=nextSavedDrafts;
+    setDrafts(nextDrafts);
+    setSavedDrafts(nextSavedDrafts);
     if(!categoryResponse.error)setCategories((categoryResponse.data??[]) as ExamCategory[]);
     setLoading(false);
   },[date,supabase]);
@@ -143,13 +147,15 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     const baseValues:Record<string,unknown>={};
     for(const field of editableReportKeys){const nextValue=reportValue(normalized,field),baseValue=reportValue(base,field);if(!sameValue(nextValue,baseValue)){changes[field]=nextValue;baseValues[field]=baseValue}}
     if(!Object.keys(changes).length)return;
+    const localAtSubmit=draftsRef.current[key]??{};
     const{data:savedData,error:saveError}=await supabase.rpc("staff_patch_correction_report_v3",{
       p_assignment_id:row.assignment.id,p_correction_date:row.date,p_start_time:row.startTime,p_end_time:row.endTime,
       p_changes:changes,p_base:baseValues
     });
     if(saveError)throw saveError;
     const saved=(savedData??normalized) as Report;
-    draftsRef.current={...draftsRef.current,[key]:saved};
+    const latest=draftsRef.current[key]??next;
+    draftsRef.current={...draftsRef.current,[key]:mergeRemoteReport(latest,localAtSubmit,saved)};
     savedDraftsRef.current={...savedDraftsRef.current,[key]:saved};
     setDrafts(draftsRef.current);
     setSavedDrafts(savedDraftsRef.current);
@@ -192,8 +198,9 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     setSaving("all");setError("");
     const targets=rows.filter(row=>{const key=reportKey(row),report=drafts[key]??{},saved=savedDrafts[key]??{};const changed=reportFingerprint(report)!==reportFingerprint(saved);const needsPublish=complete&&report.published!==true&&(report.attendanceStatus??"scheduled")!=="scheduled";return changed||needsPublish});
     try{for(const row of targets){const report=drafts[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
-    catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");setSaving("");return}
-    await load();setSaving("");
+    catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");return}
+    finally{setSaving("")}
+    try{await load()}catch{setError("저장은 완료됐지만 최신 명단을 불러오지 못했습니다. 다시 확인해 주세요.")}
   };
 
   const deleteRecords=async()=>{
