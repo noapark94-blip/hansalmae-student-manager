@@ -304,7 +304,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         <button type="button" aria-pressed={todayOnly} onClick={() => { setTodayOnly(true); setActiveAgendaKey(""); void loadAgenda(); }}>오늘 수업</button>
         <button type="button" aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>{profile.role === "admin" ? "전체 일정" : "전체 담당 클래스"}</button>
         </div>
-        {todayOnly && <span>{todayDate} · {visibleAgenda.length}개 수업</span>}
+        {todayOnly && <span className="class-agenda-summary"><span className="class-agenda-desktop-summary">{todayDate} · {visibleAgenda.length}개 수업</span><span className="class-agenda-mobile-summary"><span>{new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", weekday: "short" }).format(clock)}</span><strong>오늘 수업 <b>{visibleAgenda.length}</b>개</strong></span></span>}
       </nav>
       {todayOnly && <section className="teacher-class-cards">
         {showAgendaLoading && agendaLoading && !agenda.length && <p>오늘 수업을 불러오는 중이에요…</p>}
