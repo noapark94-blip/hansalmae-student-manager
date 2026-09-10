@@ -297,12 +297,20 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         <button type="button" aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>{profile.role === "admin" ? "전체 일정" : "전체 담당 클래스"}</button>
         {todayOnly && <span>{todayDate} · {visibleAgenda.length}개 수업</span>}
       </nav>
-      {todayOnly && <section className="teacher-class-cards today-agenda-cards">
+      {todayOnly && <section className="teacher-class-cards">
         {agendaLoading ? <p>오늘 수업을 불러오는 중이에요…</p> : agendaError ? <p>{agendaError} <button onClick={() => void loadAgenda()}>다시 시도</button></p> : visibleAgenda.map(entry => {
-          const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(clock);
-          const state = entry.completed ? "기록 완료" : time >= entry.startTime && time < entry.endTime ? "수업 중" : time >= entry.endTime ? "수업 종료" : "수업 예정";
-          return <button type="button" key={entry.key} className={activeAgendaKey === entry.key ? "active" : ""} onClick={() => openAgenda(entry)} style={{ "--class-color": entry.color } as CSSProperties}>
-            <i /><span><small>{entry.subject} · {entry.kind}</small><time>{entry.startTime}–{entry.endTime}</time><b>{entry.name}</b><em>{state}{entry.room ? ` · ${entry.room}` : ""}</em></span><strong>{entry.studentCount}명</strong>
+          const item = data?.classes.find(item => item.id === entry.classId);
+          return <button type="button" key={entry.key} className={activeAgendaKey === entry.key ? "active" : ""} onClick={() => openAgenda(entry)} style={{ "--class-color": item?.color ?? entry.color } as CSSProperties}>
+            <i />
+            <span>
+              <small>{item?.subject ?? entry.subject}</small>
+              <b>{item?.name ?? entry.name}</b>
+              <em>
+                {item ? scheduleText(item.schedules) : `${entry.startTime}–${entry.endTime}`}
+                {(item ? item.room : entry.room) ? ` · ${item ? item.room : entry.room}` : ""}
+              </em>
+            </span>
+            <strong>{item ? item.students.length : entry.studentCount}명</strong>
           </button>;
         })}
         {!agendaLoading && !agendaError && !visibleAgenda.length && <p>오늘 예정된 수업이 없습니다. <button type="button" onClick={() => setTodayOnly(false)}>전체 클래스 보기</button></p>}
