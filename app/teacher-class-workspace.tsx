@@ -300,8 +300,10 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         </nav>
       )}
       <nav className="class-agenda-toggle" aria-label="수업 날짜 보기">
+        <div className="class-agenda-segments">
         <button type="button" aria-pressed={todayOnly} onClick={() => { setTodayOnly(true); setActiveAgendaKey(""); void loadAgenda(); }}>오늘 수업</button>
         <button type="button" aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>{profile.role === "admin" ? "전체 일정" : "전체 담당 클래스"}</button>
+        </div>
         {todayOnly && <span>{todayDate} · {visibleAgenda.length}개 수업</span>}
       </nav>
       {todayOnly && <section className="teacher-class-cards">

@@ -1,5 +1,9 @@
-.class-agenda-toggle { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:16px 0; }
-.class-agenda-toggle button { border:1px solid #e3d3dc; border-radius:12px; padding:10px 16px; background:white; color:#743452; font:inherit; cursor:pointer; }
-.class-agenda-toggle button[aria-pressed="true"] { background:#942b65; color:white; border-color:#942b65; }
-.class-agenda-toggle > span { margin-left:auto; color:#796c74; font-size:14px; }
-@media(max-width:600px) { .class-agenda-toggle > span { flex-basis:100%; margin:0; } }
+.class-agenda-toggle { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:16px 0; }
+.class-agenda-segments { display:inline-flex; align-items:center; gap:4px; padding:4px; border:1px solid #ece3e8; border-radius:15px; background:#f4f0f3; max-width:100%; }
+.class-agenda-segments > button { min-height:40px; padding:9px 19px; border:1px solid transparent; border-radius:11px; background:transparent; color:#7c6d76; font:inherit; font-size:14px; font-weight:600; line-height:1.4; white-space:nowrap; cursor:pointer; transition:background-color .15s,color .15s,box-shadow .15s; }
+.class-agenda-segments > button:hover { background:#eae1e7; color:#743452; }
+.class-agenda-segments > button[aria-pressed="true"] { background:#942b65; color:#fff; box-shadow:0 2px 5px #67234620; }
+.class-agenda-segments > button:focus-visible { outline:2px solid #942b65; outline-offset:3px; }
+.class-agenda-toggle > span { margin-left:auto; color:#8b7e86; font-size:12px; }
+@media(max-width:600px) { .class-agenda-toggle > span { flex-basis:100%; margin:0; } .class-agenda-segments > button { padding-inline:16px; } }
+@media(prefers-reduced-motion:reduce) { .class-agenda-segments > button { transition:none; } }
