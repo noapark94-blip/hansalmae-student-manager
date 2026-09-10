@@ -7,6 +7,8 @@ import type { Profile } from "./supabase";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
+import { SpecialLessonLearningBoard } from "./special-lesson-learning-board";
+import "./class-today-agenda.css";
 import { TeacherSpecialLessons } from "./teacher-special-lessons";
 import { appConfirm } from "./app-dialog";
 import type { StaffLessonTarget } from "./notification-center";
@@ -57,6 +59,7 @@ type ManagedClass = {
   lessonCount: number;
   assignmentCount: number;
 };
+type AgendaEntry = { key: string; classId: string | null; sessionId: string | null; name: string; subject: string; color: string; room: string | null; startTime: string; endTime: string; kind: string; completed: boolean; studentCount: number; teacherIds: string[] };
 type Workspace = { subjects: Subject[]; classes: ClassRoom[] };
 type AdminClassFilter = "all" | "mine" | "subject" | "teacher";
 type AttendanceStatus = "present" | "late" | "absent";
@@ -136,6 +139,22 @@ const classColors = ["#a92d68", "#4c86a8", "#c85c7d", "#df8658", "#c8952a", "#5f
 const specialLessonsId = "__teacher_special_lessons__";
 
 export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, lessonTarget=null, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; lessonTarget?:StaffLessonTarget|null; onClassesChanged?: () => void | Promise<void> }) {
+  const [todayOnly, setTodayOnly] = useState(profile.role !== "admin");
+  const [agenda, setAgenda] = useState<AgendaEntry[]>([]);
+  const [agendaError, setAgendaError] = useState("");
+  const [agendaLoading, setAgendaLoading] = useState(true);
+  const [activeAgendaKey, setActiveAgendaKey] = useState("");
+  const [clock, setClock] = useState(() => new Date());
+  const todayDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(clock);
+  useEffect(() => { const timer = setInterval(() => setClock(new Date()), 60000); return () => clearInterval(timer); }, []);
+  const loadAgenda = useCallback(async () => {
+    setAgendaLoading(true);
+    const { data: entries, error: failure } = await supabase.rpc("staff_class_agenda", { p_date: todayDate });
+    setAgendaError(failure ? "오늘 수업을 불러오지 못했습니다. 다시 시도해 주세요." : "");
+    if (!failure) setAgenda((entries ?? []) as AgendaEntry[]);
+    setAgendaLoading(false);
+  }, [supabase, todayDate]);
+  useEffect(() => { void loadAgenda(); }, [loadAgenda]);
   const [data, setData] = useState<Workspace | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [date, setDate] = useState(today());
@@ -191,7 +210,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
+  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setTodayOnly(false);setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const teacherOptions = useMemo(() => {
     const teachers = new Map<string, Named>();
@@ -209,6 +228,18 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
     if (adminFilter === "subject") return classes.filter((item) => mainSubjectOf(item, data?.subjects ?? []) === subjectFilter);
     return classes.filter((item) => item.teachers.some((teacher) => teacher.id === teacherFilter));
   }, [adminFilter, data, profile.id, profile.role, subjectFilter, teacherFilter]);
+  const visibleAgenda = useMemo(() => agenda.filter(item => {
+    if (profile.role !== "admin" || adminFilter === "all") return true;
+    if (adminFilter === "mine") return item.teacherIds.includes(profile.id);
+    if (adminFilter === "teacher") return item.teacherIds.includes(teacherFilter);
+    return item.classId ? filteredClasses.some(c => c.id === item.classId) : item.subject === subjectFilter;
+  }), [agenda, profile.role, profile.id, adminFilter, teacherFilter, subjectFilter, filteredClasses]);
+  const activeAgenda = visibleAgenda.find(item => item.key === activeAgendaKey);
+  const openAgenda = (entry: AgendaEntry) => {
+    setActiveAgendaKey(entry.key);
+    setSelectedId(entry.classId ?? "");
+    setDate(todayDate);
+  };
   const selectFilteredClass = (classes: ClassRoom[]) => {
     setSelectedId((current) => classes.some((item) => item.id === current) ? current : (classes[0]?.id ?? ""));
   };
@@ -261,6 +292,22 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
           <strong>{filteredClasses.length}<small> / {data?.classes.length ?? 0}개</small></strong>
         </nav>
       )}
+      <nav className="class-agenda-toggle" aria-label="수업 날짜 보기">
+        <button type="button" aria-pressed={todayOnly} onClick={() => { setTodayOnly(true); setActiveAgendaKey(""); void loadAgenda(); }}>오늘 수업</button>
+        <button type="button" aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>{profile.role === "admin" ? "전체 일정" : "전체 담당 클래스"}</button>
+        {todayOnly && <span>{todayDate} · {visibleAgenda.length}개 수업</span>}
+      </nav>
+      {todayOnly && <section className="teacher-class-cards today-agenda-cards">
+        {agendaLoading ? <p>오늘 수업을 불러오는 중이에요…</p> : agendaError ? <p>{agendaError} <button onClick={() => void loadAgenda()}>다시 시도</button></p> : visibleAgenda.map(entry => {
+          const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(clock);
+          const state = entry.completed ? "기록 완료" : time >= entry.startTime && time < entry.endTime ? "수업 중" : time >= entry.endTime ? "수업 종료" : "수업 예정";
+          return <button type="button" key={entry.key} className={activeAgendaKey === entry.key ? "active" : ""} onClick={() => openAgenda(entry)} style={{ "--class-color": entry.color } as CSSProperties}>
+            <i /><span><small>{entry.subject} · {entry.kind}</small><time>{entry.startTime}–{entry.endTime}</time><b>{entry.name}</b><em>{state}{entry.room ? ` · ${entry.room}` : ""}</em></span><strong>{entry.studentCount}명</strong>
+          </button>;
+        })}
+        {!agendaLoading && !agendaError && !visibleAgenda.length && <p>오늘 예정된 수업이 없습니다. <button type="button" onClick={() => setTodayOnly(false)}>전체 클래스 보기</button></p>}
+      </section>}
+      {!todayOnly && <>
       <section className={`teacher-class-cards ${classSortable.draggingId ? "reorder-mode" : ""}`.trim()}>
         {filteredClasses.map((item) => (
             <button key={item.id} {...(adminFilter === "all" ? classSortable.itemProps(item.id) : {})} data-drag-handle={adminFilter === "all" ? true : undefined} className={`${selectedId === item.id ? "active" : ""} ${classSortable.draggingId === item.id ? "dragging" : ""}`.trim()} onClick={() => setSelectedId(item.id)} style={{ "--class-color": item.color } as CSSProperties} aria-label={adminFilter === "all" ? `${item.name}. 길게 눌러 순서 이동` : item.name}>
@@ -283,8 +330,10 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         </button>}
         {filteredClasses.length === 0 && <p className="admin-class-filter-empty">조건에 맞는 클래스가 없습니다.</p>}
       </section>
-      {selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={loadDay} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
-      {selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
+      </>}
+      {(!todayOnly || activeAgenda?.classId === selectedId) && selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={async () => { await Promise.all([loadDay(), loadAgenda()]); }} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
+      {todayOnly && activeAgenda?.sessionId && <SpecialLessonLearningBoard key={activeAgenda.sessionId} embedded supabase={supabase} sessionId={activeAgenda.sessionId} lessonKind={activeAgenda.kind === "개별 보강" ? "makeup" : "additional"} onClose={() => setActiveAgendaKey("")} onEdit={() => { setTodayOnly(false); setSelectedId(specialLessonsId); }} onAttendanceChange={loadAgenda} />}
+      {!todayOnly && selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
       {subjectOpen && (
         <SubjectEditor
           supabase={supabase}
