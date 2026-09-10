@@ -45,6 +45,12 @@ Deno.serve(async request=>{
   const finish=async(status:"sent"|"failed",messageId:string|null,groupId:string|null,reason:string|null)=>resend
     ?admin.rpc("internal_log_learning_alimtalk_resend",{p_delivery_id:deliveryId,p_status:status,p_provider_message_id:messageId,p_provider_group_id:groupId,p_error_message:reason,p_created_by:userData.user.id})
     :admin.rpc("internal_finish_learning_alimtalk",{p_delivery_id:deliveryId,p_status:status,p_provider_message_id:messageId,p_provider_group_id:groupId,p_error_message:reason});
+  const messageLength=Array.from(fallback).length;
+  if(messageLength>1000){
+    const reason=`알림톡 전체 내용이 ${messageLength}자로 발송 한도 1,000자를 ${messageLength-1000}자 초과했습니다. 수업·시험·숙제 요약을 줄여 주세요.`;
+    await finish("failed",null,null,reason);
+    return json({error:reason,messageLength,maxLength:1000},400);
+  }
   try{
     const response=await fetch("https://api.solapi.com/messages/v4/send",{method:"POST",headers:{Authorization:await authorization(apiKey,apiSecret),"Content-Type":"application/json"},body:JSON.stringify({message:{to:phone(resultRow.recipient_phone),from:sender,text:fallback,autoTypeDetect:true,kakaoOptions:{pfId,templateId,variables:kakaoVariables}}})});
     const result=await response.json().catch(()=>({})) as{messageId?:string;groupId?:string;errorCode?:string;errorMessage?:string;message?:string};
