@@ -177,13 +177,16 @@
 
 /* Fixed-size desktop agenda cards: split identity, time and place so details stay readable. */
 @media(min-width:901px){
- .academic-panel .academic-agenda-meta{min-width:0;margin-top:1px}
- .academic-panel .academic-agenda-meta-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0;line-height:1.3}
+ .academic-panel .academic-agenda article{padding:7px 12px}
+ .academic-panel .academic-agenda article>span{line-height:1.15}
+ .academic-panel .academic-agenda h4{margin:2px 0;line-height:1.2}
+ .academic-panel .academic-agenda-meta{min-width:0;margin-top:0}
+ .academic-panel .academic-agenda-meta-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0;line-height:1.2}
  .academic-panel .academic-agenda-meta-main strong{min-width:0;color:#43373d;font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .academic-panel .academic-agenda-meta-main time{color:#735f68;font-size:9px;font-weight:700;white-space:nowrap}
- .academic-panel .academic-agenda-meta-sub{margin-top:1px;color:#88747d;font-size:9px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .academic-panel .academic-agenda-card-footer{display:flex;align-items:center;gap:5px;min-width:0;margin-top:2px}
- .academic-panel .academic-agenda-card-footer .academic-status{flex:0 0 auto;margin:0;padding:2px 6px}
+ .academic-panel .academic-agenda-meta-sub{margin-top:0;color:#88747d;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .academic-panel .academic-agenda-card-footer{display:flex;align-items:center;gap:5px;min-width:0;margin-top:1px}
+ .academic-panel .academic-agenda-card-footer .academic-status{flex:0 0 auto;margin:0;padding:1px 6px;line-height:1.2}
  .academic-panel .academic-agenda-card-footer .academic-byline{min-width:0;margin:0!important;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .academic-panel .academic-agenda-card-footer .academic-status+.academic-byline{margin-left:auto!important}
 }
