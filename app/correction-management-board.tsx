@@ -92,6 +92,17 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     });
     return()=>cancelAnimationFrame(frame);
   },[selectedStudentId,subjectFilter]);
+  useEffect(()=>{
+    if(!normalizedStudentSearch)return;
+    const clearStudentSearch=(event:KeyboardEvent)=>{
+      if(event.key!=="Escape")return;
+      setStudentSearch("");
+      setSelectedStudentId(null);
+      setStudentSearchOpen(false);
+    };
+    window.addEventListener("keydown",clearStudentSearch);
+    return()=>window.removeEventListener("keydown",clearStudentSearch);
+  },[normalizedStudentSearch]);
   const changeWeek=(delta:number)=>setAnchor(current=>addDays(current,delta));
 
   return <>
