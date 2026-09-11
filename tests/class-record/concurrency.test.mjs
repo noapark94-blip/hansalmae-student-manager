@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {editChanges,preservePendingEdits} from '../../app/class-record-concurrency.ts';
+const base=()=>({notice:'',lessonContent:'',students:{a:{exam_id:'',exam_score:'',assignedHomework:''},b:{exam_id:'',exam_score:'',assignedHomework:''}}});
+test('only edited student fields are transmitted',()=>{const b=base(),n=base();n.students.a.assignedHomework='p10';assert.deepEqual(editChanges(b,n),[{path:['students','a','assignedHomework'],before:'',value:'p10'}]);});
+test('server response preserves typing while saving and adopts remote edits',()=>{const b=base(),sent=base(),latest=base(),remote=base();sent.students.a.assignedHomework='p10';latest.students.a.assignedHomework='p10–12';remote.students.a.assignedHomework='p10';remote.students.b.assignedHomework='p20';const n=preservePendingEdits(latest,sent,remote);assert.equal(n.students.a.assignedHomework,'p10–12');assert.equal(n.students.b.assignedHomework,'p20');});
+test('new exam identity survives response when score was edited again',()=>{const sent=base(),latest=base(),remote=base();sent.students.a.exam_score='80';latest.students.a.exam_score='90';remote.students.a.exam_id='created-id';remote.students.a.exam_score='80';const n=preservePendingEdits(latest,sent,remote);assert.equal(n.students.a.exam_id,'created-id');assert.equal(n.students.a.exam_score,'90');});
+test('100 students with one change still sends one field',()=>{const b=base();for(let i=0;i<100;i++)b.students[String(i)]={assignedHomework:''};const n=structuredClone(b);n.students['99'].assignedHomework='p1';assert.equal(editChanges(b,n).length,1);});
