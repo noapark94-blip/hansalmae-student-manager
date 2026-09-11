@@ -69,13 +69,11 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     const board=boardResponse.data as Board;
     const dates=weekOf(date);
     const occurrences=dates.flatMap(day=>buildOccurrences(board,day));
-    const reportResults=await Promise.all(occurrences.map(async row=>{
-      const response=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
-      return {row,response};
-    }));
-    const failedReport=reportResults.find(item=>item.response.error);
-    if(failedReport){setError(`첨삭 기록을 불러오지 못했습니다. 저장하지 않고 다시 시도해 주세요. ${failedReport.response.error?.message??""}`);setLoading(false);return}
-    const reportRows=reportResults.map(({row,response})=>[reportKey(row),(response.data??{}) as Report] as const);
+    const reportResponse=await supabase.rpc("staff_correction_reports",{p_records:occurrences.map(row=>({assignmentId:row.assignment.id,date:row.date,startTime:row.startTime}))});
+    if(reportResponse.error){setError(`첨삭 기록을 불러오지 못했습니다. 저장하지 않고 다시 시도해 주세요. ${reportResponse.error.message??""}`);setLoading(false);return}
+    const batchReports=(reportResponse.data??[]) as Report[];
+    if(batchReports.length!==occurrences.length){setError("첨삭 기록 일부를 불러오지 못했습니다. 저장하지 않고 다시 시도해 주세요.");setLoading(false);return}
+    const reportRows=occurrences.map((row,index)=>[reportKey(row),batchReports[index]??{}] as const);
     setData(board);
     const preserveEdits=loadedDateRef.current===date;
     const nextDrafts=Object.fromEntries(reportRows.map(([key,remote])=>[key,preserveEdits?mergeRemoteReport(draftsRef.current[key]??{},savedDraftsRef.current[key]??{},remote):remote]));
