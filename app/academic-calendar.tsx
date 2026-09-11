@@ -143,11 +143,22 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
           <article key={event.id} className={`${event.scope} ${event.category}`} role="button" tabIndex={0} aria-label={`${event.title} 메모 보기`} onClick={() => setNoteEvent(event)} onKeyDown={keyEvent => { if (keyEvent.key === "Enter" || keyEvent.key === " ") { keyEvent.preventDefault(); setNoteEvent(event); } }}>
             <span>{event.scope === "academy" ? "학원 일정" : "학교 일정"} · {categoryLabel(event.category)}</span>
             <h4>{event.title}</h4>
-            {event.scope === "academy" && event.contactName && <p className="academic-contact">{event.contactName}{event.grade ? ` · ${event.grade}` : ""}</p>}
-            {event.school && <p>{event.school}{event.scope === "school" && event.grade ? ` · ${event.grade}` : ""}</p>}
-            {event.startsAt && <p>{event.startsAt.slice(0, 5)}–{event.endsAt?.slice(0, 5)}{event.location ? ` · ${event.location}` : ""}</p>}
-            {event.scope === "academy" && <small className={`academic-status ${event.status}`}>{statusLabel(event.status)}</small>}
-            <small className="academic-byline">{event.teacherName ? `${event.teacherName} 담당 · ` : ""}{event.authorName} 작성</small>
+            <div className="academic-agenda-meta">
+              <div className="academic-agenda-meta-main">
+                <strong>{event.scope === "academy"
+                  ? (event.contactName ? [event.contactName, event.grade].filter(Boolean).join(" · ") : [event.school, event.grade].filter(Boolean).join(" · "))
+                  : [event.school, event.grade].filter(Boolean).join(" · ")}</strong>
+                {event.startsAt && <time>{event.startsAt.slice(0, 5)}–{event.endsAt?.slice(0, 5)}</time>}
+              </div>
+              {((event.scope === "academy" && event.contactName && event.school) || event.location) &&
+                <div className="academic-agenda-meta-sub">
+                  {[event.scope === "academy" && event.contactName ? event.school : null, event.location].filter(Boolean).join(" · ")}
+                </div>}
+            </div>
+            <div className="academic-agenda-card-footer">
+              {event.scope === "academy" && <small className={`academic-status ${event.status}`}>{statusLabel(event.status)}</small>}
+              <small className="academic-byline">{event.teacherName ? `${event.teacherName} 담당 · ` : ""}{event.authorName} 작성</small>
+            </div>
             {event.canEdit && <button onClick={clickEvent => { clickEvent.stopPropagation(); setEditing(event); }}>수정</button>}
           </article>)}</div> : <p className="academic-empty">등록된 일정이 없습니다.<button onClick={() => setEditing("new")}>이 날짜에 일정 추가</button></p>}
       </aside>
