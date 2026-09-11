@@ -26,6 +26,7 @@ import { BulkAccountBoard } from "./bulk-account-board";
 import { SidebarNavigation } from "./sidebar-navigation";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { BulkRegistrationGuide } from "./bulk-registration-guide";
+import { MobileConsultationSearch } from "./mobile-consultation-search";
 import { ConsultationClassSearch } from "./consultation-class-search";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
@@ -1243,6 +1244,7 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
           <span>{role === "admin" ? "학생 등록" : role === "assistant" ? "내 계정" : "학생 보기"}</span>
         </button>
       </div>
+      {role === "admin" && <MobileConsultationSearch supabase={supabase} />}
       {role === "assistant" && (
         <div className="assistant-desktop-summary" aria-label="오늘 첨삭 현황">
           <div>
