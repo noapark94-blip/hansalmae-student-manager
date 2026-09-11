@@ -35,6 +35,9 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
   const[action,setAction]=useState<{assignment:Assignment;date:string}|null>(null);
   const[selectedDay,setSelectedDay]=useState(1);
   const[subjectFilter,setSubjectFilter]=useState<SubjectFilter>("전체");
+  const[studentSearch,setStudentSearch]=useState("");
+  const[studentSearchOpen,setStudentSearchOpen]=useState(false);
+  const[selectedStudentId,setSelectedStudentId]=useState<string|null>(null);
   const[slotRoster,setSlotRoster]=useState<SlotRosterState>(null);
   const[assistantData,setAssistantData]=useState<AssistantBoard|null>(null);
   const[assistantEditorOpen,setAssistantEditorOpen]=useState(false);
@@ -60,12 +63,35 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     return()=>window.removeEventListener("hansalmae-correction-assignments-changed",refresh);
   },[load]);
   const occurrences=useMemo(()=>buildOccurrences(data),[data]);
+  const normalizedStudentSearch=studentSearch.trim().replace(/\s+/g,"").toLocaleLowerCase("ko-KR");
+  const studentSearchResults=useMemo(()=>{
+    if(!normalizedStudentSearch)return [];
+    const grouped=new Map<string,{id:string;name:string;schedules:Set<string>}>();
+    for(const occurrence of occurrences){
+      if(subjectFilter!=="전체"&&occurrence.assignment.subject!==subjectFilter)continue;
+      const normalizedName=occurrence.assignment.studentName.replace(/\s+/g,"").toLocaleLowerCase("ko-KR");
+      if(!normalizedName.includes(normalizedStudentSearch))continue;
+      const current=grouped.get(occurrence.assignment.studentId)??{id:occurrence.assignment.studentId,name:occurrence.assignment.studentName,schedules:new Set<string>()};
+      current.schedules.add(`${days[occurrence.assignment.weekday-1]} ${occurrence.startTime.slice(0,5)} · ${occurrence.assignment.subject}`);
+      grouped.set(current.id,current);
+    }
+    return Array.from(grouped.values()).map(item=>({...item,schedules:Array.from(item.schedules)})).sort((a,b)=>a.name.localeCompare(b.name,"ko"));
+  },[normalizedStudentSearch,occurrences,subjectFilter]);
+  const highlightedStudentIds=useMemo(()=>new Set(selectedStudentId?[selectedStudentId]:studentSearchResults.map(item=>item.id)),[selectedStudentId,studentSearchResults]);
+  const hasStudentSearchMatches=Boolean(normalizedStudentSearch&&highlightedStudentIds.size);
   const movedFrom=useMemo(()=>new Map<string,Exception>(),[]);
   const assistantsBySlot=useMemo(()=>{
     const result=new Map<string,SlotAssistant[]>();
     for(const item of assistantData?.assignments??[]){const key=`${item.weekday}-${item.startTime.slice(0,5)}`;result.set(key,[...(result.get(key)??[]),item]);}
     return result;
   },[assistantData]);
+  useEffect(()=>{
+    if(!selectedStudentId)return;
+    const frame=requestAnimationFrame(()=>{
+      document.querySelector<HTMLElement>(`[data-correction-student-id="${selectedStudentId}"]`)?.closest<HTMLElement>(".correction-slot")?.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[selectedStudentId,subjectFilter]);
   const changeWeek=(delta:number)=>setAnchor(current=>addDays(current,delta));
 
   return <>
@@ -77,8 +103,15 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     {error&&<p className="attendance-error">{error}</p>}
     {assistantData?.canManage?<div className="correction-assistant-actions"><button type="button" onClick={()=>setAssistantEditorOpen(true)}><span>담당 조교 설정</span><small>요일·시간대별 배정</small></button></div>:null}
     <nav className="correction-mobile-days">{days.map((day,index)=><button key={day} className={selectedDay===index+1?"active":""} onClick={()=>setSelectedDay(index+1)}>{day}</button>)}</nav>
-    <nav className="correction-timetable-subject-filter" aria-label="첨삭 과목 필터">{(["전체","국어","영어","수학"] as SubjectFilter[]).map(subject=>{const count=subject==="전체"?occurrences.length:occurrences.filter(item=>item.assignment.subject===subject).length;return <button type="button" key={subject} className={subjectFilter===subject?"active":""} onClick={()=>setSubjectFilter(subject)}><span>{subject}</span><em>{count}명</em></button>})}</nav>
-    {loading?<section className="panel correction-empty">첨삭 시간표를 불러오는 중이에요…</section>:!data?<section className="panel correction-empty">첨삭 시간표를 표시할 수 없습니다.</section>:<section className="correction-week-board">{days.map((day,index)=>{
+    <div className="correction-timetable-filterbar">
+      <nav className="correction-timetable-subject-filter" aria-label="첨삭 과목 필터">{(["전체","국어","영어","수학"] as SubjectFilter[]).map(subject=>{const count=subject==="전체"?occurrences.length:occurrences.filter(item=>item.assignment.subject===subject).length;return <button type="button" key={subject} className={subjectFilter===subject?"active":""} onClick={()=>{setSubjectFilter(subject);setSelectedStudentId(null);}}><span>{subject}</span><em>{count}명</em></button>})}</nav>
+      <div className="correction-student-search" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))setStudentSearchOpen(false);}}>
+        <label><span aria-hidden="true">⌕</span><input value={studentSearch} onChange={event=>{setStudentSearch(event.target.value);setSelectedStudentId(null);setStudentSearchOpen(true);}} onFocus={()=>setStudentSearchOpen(true)} placeholder="학생 이름 검색" aria-label="첨삭 시간표 학생 이름 검색" aria-expanded={studentSearchOpen&&Boolean(normalizedStudentSearch)} /></label>
+        {normalizedStudentSearch?<><em>{studentSearchResults.length}명</em><button type="button" className="correction-student-search-clear" aria-label="학생 검색 지우기" onClick={()=>{setStudentSearch("");setSelectedStudentId(null);setStudentSearchOpen(false);}}>×</button></>:null}
+        {studentSearchOpen&&normalizedStudentSearch?<div className="correction-student-search-results" role="listbox">{studentSearchResults.length?studentSearchResults.slice(0,10).map(result=><button type="button" role="option" aria-selected={selectedStudentId===result.id} key={result.id} onMouseDown={event=>{event.preventDefault();setStudentSearch(result.name);setSelectedStudentId(result.id);setStudentSearchOpen(false);}}><b>{result.name}</b><span>{result.schedules.join(" · ")}</span></button>):<p>일치하는 학생이 없습니다.</p>}</div>:null}
+      </div>
+    </div>
+    {loading?<section className="panel correction-empty">첨삭 시간표를 불러오는 중이에요…</section>:!data?<section className="panel correction-empty">첨삭 시간표를 표시할 수 없습니다.</section>:<section className={`correction-week-board${hasStudentSearchMatches?" is-student-searching":""}`}>{days.map((day,index)=>{
       const weekday=index+1;
       const date=addDays(data.weekStart,index);
       const slots=weekday<=5?weekdaySlots:weekendSlots;
@@ -91,14 +124,15 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
           const visibleFixedMoved=fixedMoved.filter(row=>subjectFilter==="전체"||row.item.subject===subjectFilter);
           const visibleEntries=[...visibleInSlot.map(row=>({key:row.key,assignment:row.assignment,state:row.state as Occurrence["state"]|"ghost"})),...visibleFixedMoved.map(row=>({key:`ghost-${row.item.id}`,assignment:row.item,state:"ghost" as const}))];
           const displayLimit=visibleEntries.length>8?7:8;
-          const displayEntries=visibleEntries.slice(0,displayLimit);
+          const orderedEntries=hasStudentSearchMatches?[...visibleEntries].sort((a,b)=>Number(highlightedStudentIds.has(b.assignment.studentId))-Number(highlightedStudentIds.has(a.assignment.studentId))):visibleEntries;
+          const displayEntries=orderedEntries.slice(0,displayLimit);
           const hiddenCount=visibleEntries.length-displayEntries.length;
           const hasAny=visibleEntries.length>0;
           const slotAssistants=assistantsBySlot.get(`${weekday}-${start}`)??[];
           return <article className="correction-slot correction-slot-clickable" key={start} role="button" tabIndex={0} aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();setEditor({weekday,slot:start});}}}>
             <div className="correction-slot-time"><b>{start}</b><span>– {end}</span>{slotAssistants.length?<div className="correction-slot-assistants" aria-label={`담당 조교 ${slotAssistants.map(item=>item.assistantName).join(", ")}`}>{slotAssistants.map(item=><small className="correction-slot-assistant-name" key={item.assistantId} title={item.assistantName}>{assistantShortName(item.assistantName)}</small>)}</div>:null}</div>
             <div className="correction-slot-content">
-              {hasAny?<div className="correction-slot-roster"><header className="correction-slot-summary" onClick={event=>event.stopPropagation()}><span><b>{visibleEntries.length}명</b>{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const count=visibleEntries.filter(entry=>entry.assignment.subject===subject).length;return count?<small className={`subject-${subject}`} key={subject}>{subject} {count}</small>:null})}</span><button type="button" aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})}>＋</button></header><div className="correction-slot-students" onClick={event=>event.stopPropagation()}>{displayEntries.map(entry=><button key={entry.key} data-subject={entry.assignment.subject} className={`correction-student subject-${entry.assignment.subject} ${entry.state}`} onClick={event=>{event.stopPropagation();setAction({assignment:entry.assignment,date});}}><span><b>{entry.assignment.studentName}</b><small>{entry.assignment.grade||"-"}</small></span></button>)}{hiddenCount>0?<button type="button" className="correction-slot-more" onClick={()=>setSlotRoster({day,date,start,end,entries:visibleEntries})}>+{hiddenCount}명</button>:null}</div></div>:<p className={`correction-slot-empty ${subjectFilter==="전체"?"add-prompt":"filtered-empty"}`}>{subjectFilter==="전체"?"학생 추가":`${subjectFilter} 학생 없음`}</p>}
+              {hasAny?<div className="correction-slot-roster"><header className="correction-slot-summary" onClick={event=>event.stopPropagation()}><span><b>{visibleEntries.length}명</b>{(["국어","영어","수학"] as Assignment["subject"][]).map(subject=>{const count=visibleEntries.filter(entry=>entry.assignment.subject===subject).length;return count?<small className={`subject-${subject}`} key={subject}>{subject} {count}</small>:null})}</span><button type="button" aria-label={`${day}요일 ${start} 학생 추가`} onClick={()=>setEditor({weekday,slot:start})}>＋</button></header><div className="correction-slot-students" onClick={event=>event.stopPropagation()}>{displayEntries.map(entry=><button key={entry.key} data-subject={entry.assignment.subject} data-correction-student-id={entry.assignment.studentId} className={`correction-student subject-${entry.assignment.subject} ${entry.state}${highlightedStudentIds.has(entry.assignment.studentId)?" search-match":""}`} onClick={event=>{event.stopPropagation();setAction({assignment:entry.assignment,date});}}><span><b>{entry.assignment.studentName}</b><small>{entry.assignment.grade||"-"}</small></span></button>)}{hiddenCount>0?<button type="button" className="correction-slot-more" onClick={()=>setSlotRoster({day,date,start,end,entries:visibleEntries})}>+{hiddenCount}명</button>:null}</div></div>:<p className={`correction-slot-empty ${subjectFilter==="전체"?"add-prompt":"filtered-empty"}`}>{subjectFilter==="전체"?"학생 추가":`${subjectFilter} 학생 없음`}</p>}
             </div>
           </article>;
         })}</div>
