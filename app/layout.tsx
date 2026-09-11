@@ -70,6 +70,7 @@ import "./class-workspace-desktop-polish.css";
 import "./class-student-schedule-assignment.css";
 import "./staff-mobile-first-pass.css";
 import "./app-update-manager.css";
+import "./academic-mobile-fit.css";
 import { EscapeModalCloser } from "./escape-modal-closer";
 import { ClassEditorPermanentDelete } from "./class-editor-permanent-delete";
 import { AppDialogHost } from "./app-dialog";

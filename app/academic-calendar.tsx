@@ -133,7 +133,8 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
           return <button key={date} className={`${selected === date ? "selected" : ""}${date === toDate(now) ? " today" : ""}`} onClick={() => setSelected(date)}>
             <strong className={holiday || index % 7 === 0 ? "holiday" : index % 7 === 6 ? "saturday" : ""}>{day}</strong>
             {holiday && <small className="holiday-name">{holiday.localName}</small>}
-            <span>{events.slice(0, 3).map(event => <em className={`${event.scope} ${event.category}`} key={event.id}>{calendarEventText(event)}</em>)}{events.length > 3 && <small>+{events.length - 3}개</small>}</span>
+            <span className="academic-day-events">{events.slice(0, 3).map(event => <em className={`${event.scope} ${event.category}`} key={event.id}>{calendarEventText(event)}</em>)}{events.length > 3 && <small>+{events.length - 3}개</small>}</span>
+            {events.length > 1 && <small className="academic-mobile-more">+{events.length - 1}개 · …</small>}
           </button>;
         })}</div>
       </div>

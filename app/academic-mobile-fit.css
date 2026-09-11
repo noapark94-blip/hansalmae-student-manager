@@ -1,0 +1,36 @@
+.academic-mobile-more{display:none}
+
+/* Calendar-only phone overrides. Desktop geometry and persistence are unchanged. */
+@media(max-width:760px){
+ .academic-panel .academic-days>button{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:4px!important}
+ .academic-panel .academic-days>button>strong{flex:none;align-self:flex-start;line-height:18px}
+ .academic-panel .academic-days>button.today>strong{height:18px;width:18px}
+ .academic-panel .academic-days .holiday-name{flex:none;max-width:100%;margin:0;font-size:6px;line-height:9px}
+ .academic-panel .academic-days .academic-day-events{display:block;min-width:0;margin-top:2px}
+ .academic-panel .academic-day-events>em:first-child{display:block;max-width:100%;padding:1px 2px;font-size:7px;line-height:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .academic-panel .academic-day-events>em:not(:first-child),.academic-panel .academic-day-events>small{display:none}
+ .academic-panel .academic-mobile-more{display:block;flex:none;margin:1px 0 0;color:#972d61;font-size:7px;line-height:10px;white-space:nowrap}
+ .academic-panel .academic-agenda article{min-width:0}
+ .academic-panel .academic-agenda h4,.academic-panel .academic-agenda-meta-sub,.academic-panel .academic-agenda-meta-main strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .academic-panel .academic-agenda-meta-main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}
+ .academic-panel .academic-agenda-meta-main time{flex:none;font-size:13px}
+ .academic-panel .academic-agenda-meta-sub{margin-top:5px;font-size:11px;color:#88747d}
+
+ .modal-backdrop:has(>form.academic-editor),.modal-backdrop.academic-note-backdrop{box-sizing:border-box;align-items:flex-end!important;padding:12px 8px max(8px,env(safe-area-inset-bottom))!important}
+ .modal-backdrop>form.academic-editor{display:flex;flex-direction:column;width:100%!important;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;border-radius:20px!important;overflow:hidden!important}
+ .modal-backdrop>form.academic-editor>header,.modal-backdrop>form.academic-editor>.academic-editor-scope,.modal-backdrop>form.academic-editor>.form-error,.modal-backdrop>form.academic-editor>footer{flex:none;position:static}
+ .modal-backdrop>form.academic-editor .academic-form{flex:1 1 auto;min-height:0;min-width:0;grid-template-columns:minmax(0,1fr);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-bottom:20px!important}
+ .modal-backdrop>form.academic-editor .academic-form label{min-width:0;max-width:100%}
+ .modal-backdrop>form.academic-editor .academic-form input:not([type=checkbox]),.modal-backdrop>form.academic-editor .academic-form select,.modal-backdrop>form.academic-editor .academic-form textarea{box-sizing:border-box;display:block;width:100%!important;min-width:0!important;max-width:100%!important;font-size:16px}
+ .modal-backdrop>form.academic-editor input[type=date],.modal-backdrop>form.academic-editor input[type=time]{appearance:none;-webkit-appearance:none;min-inline-size:0!important}
+ .modal-backdrop>form.academic-editor input::-webkit-date-and-time-value{text-align:left;min-width:0}
+ .modal-backdrop>form.academic-editor>footer{display:grid!important;grid-template-columns:1fr 1.2fr!important;padding:12px!important;gap:8px}
+ .modal-backdrop>form.academic-editor>footer:has(.danger-link){grid-template-columns:.8fr 1fr 1.2fr!important}
+ .modal-backdrop>form.academic-editor>footer>span{display:none}
+ .modal-backdrop>form.academic-editor>footer button{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%!important;min-width:0!important;height:44px!important;min-height:44px!important;padding:0 6px!important;margin:0!important;white-space:nowrap}
+ .modal-backdrop>form.academic-editor>footer .danger-link{grid-column:auto!important;border:1px solid #ebcbd6;border-radius:10px;background:#fff8fa;color:#b43a59}
+ .academic-note-backdrop>.academic-note-modal{display:flex;flex-direction:column;box-sizing:border-box;width:100%;max-width:430px;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:0}
+ .academic-note-modal>header,.academic-note-modal>footer{flex:none}
+ .academic-note-modal>.academic-note-content{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere}
+ .academic-note-modal>.academic-note-content.empty{min-height:100px}
+}
