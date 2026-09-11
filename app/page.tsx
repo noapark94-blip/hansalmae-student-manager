@@ -26,6 +26,7 @@ import { BulkAccountBoard } from "./bulk-account-board";
 import { SidebarNavigation } from "./sidebar-navigation";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
 import { BulkRegistrationGuide } from "./bulk-registration-guide";
+import { ConsultationClassSearch } from "./consultation-class-search";
 import { TeacherClassWorkspace } from "./teacher-class-workspace";
 import type { WeeklyTimetableRow } from "./weekly-timetable";
 import { AlimtalkSendCenter } from "./alimtalk-send-center";
@@ -1503,6 +1504,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
         <Stat label="확인할 과제" value={assignmentCount ? String(assignmentCount.total) : "…"} unit="건" detail={assignmentCount ? `미제출 ${assignmentCount.unsubmitted} · 첨삭 대기 ${assignmentCount.reviewPending}` : "과제 현황 확인 중"} icon="✎" tone="wine" />
         <Stat label="상담 필요" value={consultationCount ? String(consultationCount.overdue) : "…"} unit="명" detail={consultationCount ? `30일 경과 · 예정 ${consultationCount.upcoming}건` : "상담 현황 확인 중"} icon="☏" tone="amber" />
       </section>
+      {profile.role === "admin" && <ConsultationClassSearch supabase={supabase} />}
       {pauseReturns && pauseReturns.overdue + pauseReturns.upcoming > 0 && (
         <button className={`pause-return-banner${pauseReturns.overdue ? " overdue" : ""}`} onClick={() => onNavigate("students")}>
           <span>↗</span>
