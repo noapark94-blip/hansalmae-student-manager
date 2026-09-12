@@ -1,0 +1,53 @@
+.card {
+  grid-column: 1 / -1;
+  flex: 1 0 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid #eadfe5;
+  border-radius: 20px;
+  background: linear-gradient(110deg, #fff 25%, #fcf7fa);
+}
+.icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 54px;
+  height: 54px;
+  border-radius: 17px;
+  color: #922d61;
+  background: #f5e9f0;
+}
+.icon svg { width: 27px; height: 27px; }
+.copy { flex: 1; min-width: 0; }
+.copy h3 { margin: 0; color: #392b33; font-size: 17px; line-height: 1.5; font-weight: 700; word-break: keep-all; }
+.copy p { margin: 5px 0 0; color: #897c83; font-size: 13px; line-height: 1.6; word-break: keep-all; }
+.card .action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #e6cfdb;
+  border-radius: 12px;
+  color: #922d61;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.action:hover { background: #f8edf3; }
+.action:focus-visible { outline: 3px solid #d89cb9; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .card { flex-direction: column; padding: 26px 18px; gap: 13px; text-align: center; border-radius: 17px; }
+  .icon { flex-basis: 50px; width: 50px; height: 50px; }
+  .copy h3 { font-size: 16px; }
+  .copy p { font-size: 12px; }
+  .card .action { margin-top: 3px; width: 100%; max-width: 260px; }
+}

@@ -12,6 +12,7 @@ import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { ClassLearningBoard } from "./class-learning-board";
 import { SpecialLessonLearningBoard } from "./special-lesson-learning-board";
 import "./class-today-agenda.css";
+import emptyAgendaStyles from "./class-agenda-empty.module.css";
 import { TeacherSpecialLessons } from "./teacher-special-lessons";
 import { appConfirm } from "./app-dialog";
 import type { StaffLessonTarget } from "./notification-center";
@@ -332,7 +333,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
             <strong>{item ? item.students.length : entry.studentCount}명</strong>
           </button>;
         })}
-        {!agendaLoading && !agendaError && !visibleAgenda.length && <p>오늘 예정된 수업이 없습니다. <button type="button" onClick={() => setTodayOnly(false)}>전체 클래스 보기</button></p>}
+        {!agendaLoading && !agendaError && !visibleAgenda.length && <div className={emptyAgendaStyles.card} role="status"><span className={emptyAgendaStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="5" width="16" height="16" rx="4"/><path d="M8 3v4m8-4v4M4 10h16m-11 5h6"/></svg></span><div className={emptyAgendaStyles.copy}><h3>오늘 예정된 수업이 없습니다</h3><p>선택한 조건의 다른 일정도 확인해 보세요.</p></div><button type="button" className={emptyAgendaStyles.action} onClick={() => setTodayOnly(false)}>전체 일정 보기<span aria-hidden="true">→</span></button></div>}
       </section>}
       {!todayOnly && <>
       <section className={`teacher-class-cards ${classSortable.draggingId ? "reorder-mode" : ""}`.trim()}>
