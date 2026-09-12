@@ -1,0 +1,4 @@
+revoke execute on function public.account_recovery_match(text,text),public.account_recovery_create_challenge(uuid,text,text),public.account_recovery_reset_password(uuid,text,text) from public,anon,authenticated;
+grant execute on function public.account_recovery_match(text,text),public.account_recovery_create_challenge(uuid,text,text),public.account_recovery_reset_password(uuid,text,text) to service_role;
+-- Discard outstanding challenges created before the server-only boundary.
+update public.account_recovery_challenges set expires_at=least(expires_at,now()) where consumed_at is null and expires_at>now();

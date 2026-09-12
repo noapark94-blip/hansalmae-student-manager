@@ -12,10 +12,10 @@ function code(){return String(crypto.getRandomValues(new Uint32Array(1))[0]%1_00
 Deno.serve(async request=>{
   if(request.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
   if(request.method!=="POST")return json({error:"지원하지 않는 요청입니다."},405);
-  const url=credential(Deno.env.get("SUPABASE_URL")),anon=credential(Deno.env.get("SUPABASE_ANON_KEY")),pepper=anon;
+  const url=credential(Deno.env.get("SUPABASE_URL")),anon=credential(Deno.env.get("SUPABASE_ANON_KEY")),service=credential(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),pepper=anon;
   const apiKey=credential(Deno.env.get("SOLAPI_API_KEY")),apiSecret=credential(Deno.env.get("SOLAPI_API_SECRET")),sender=digits(Deno.env.get("SOLAPI_SENDER_NUMBER")??"");
-  if(!url||!anon||!pepper||!apiKey||!apiSecret||!sender)return json({error:"문자 인증 서버 설정을 확인해 주세요."},500);
-  const admin=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+  if(!url||!anon||!service||!pepper||!apiKey||!apiSecret||!sender)return json({error:"문자 인증 서버 설정을 확인해 주세요."},500);
+  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   const matchingProfiles=async(name:string,phone:string)=>{
     const{data,error}=await admin.rpc("account_recovery_match",{p_name:name,p_phone:phone});
     if(error)throw error;
