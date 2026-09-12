@@ -350,7 +350,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
               <strong>{item.students.length}명</strong>
             </button>
           ))}
-        {adminFilter === "all" && <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
+        {(adminFilter === "all" || adminFilter === "mine") && <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
           <i />
           <span><small>{profile.role === "admin" ? "전체 선생님 통합" : "선생님 전용"}</small><b>개별 보강·추가수업</b><em>날짜·요일·시간 제한 없이 별도 일정 관리</em></span>
           <strong>전용</strong>
