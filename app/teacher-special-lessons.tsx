@@ -6,12 +6,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { SpecialLessonLearningBoard } from "./special-lesson-learning-board";
+import { ReminderCheckbox } from "./schedule-reminders";
 import confirmStyles from "./message-confirm.module.css";
 
 type AttendanceStatus = "present" | "late" | "absent" | null;
 type Student = { id: string; name: string; school: string | null; grade: string | null; attendanceStatus: AttendanceStatus };
 type Subject = { id: string; name: string; mainSubject: string; parentId: string | null };
 type Session = {
+  reminderEnabled?: boolean;
   id: string;
   date: string;
   startTime: string;
@@ -26,8 +28,8 @@ type Session = {
   teacherId: string;
   students: Student[];
 };
-type Draft = { id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
-const blank = (): Draft => ({ id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
+type Draft = { reminderEnabled: boolean; id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
+const blank = (): Draft => ({ reminderEnabled: false, id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
 
 export function TeacherSpecialLessons({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -83,7 +85,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     return grouped;
   }, [sessions]);
   const selectedDaySessions = sessionsByDate.get(anchorDate) ?? [];
-  const edit = (session: Session) => setDraft({ id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
+  const edit = (session: Session) => setDraft({ reminderEnabled:session.reminderEnabled??false, id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!draft) return;
@@ -91,7 +93,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     if (!draft.subjectId) return setError("수업 과목을 선택해 주세요.");
     if (!draft.studentIds.length) return setError("수업에 참여할 학생을 한 명 이상 선택해 주세요.");
     setSaving(true);
-    const { error: saveError } = await supabase.rpc("staff_save_teacher_special_lesson", {
+    const { error: saveError } = await supabase.rpc("staff_save_special_with_reminder", {p_reminder_enabled:draft.reminderEnabled,p_values: {
       p_id: draft.id || null,
       p_teacher_id: profile.id,
       p_date: draft.date,
@@ -102,7 +104,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       p_room: draft.room.trim() || null,
       p_note: draft.note.trim() || null,
       p_student_ids: draft.studentIds,
-    });
+    }});
     if (saveError) setError(saveError.message);
     else {
       setDraft(null);
@@ -158,7 +160,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
         <form onSubmit={(event) => void save(event)}>
           <section className="special-lesson-form-card special-lesson-basics"><header><span>01</span><div><b>일정 정보</b><small>수업 종류와 진행 시간을 설정합니다.</small></div></header><div className="special-lesson-primary-fields"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>과목 *<select required value={draft.subjectId} onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })}><option value="">과목 선택</option>{subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.parentId ? `${subject.mainSubject} · ${subject.name}` : subject.name}</option>)}</select></label></div><div className="special-lesson-date-time"><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label><MilitaryTimeInput label="시작 시간 (24시간제 4자리)" value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} /><MilitaryTimeInput label="종료 시간 (24시간제 4자리)" value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} /></div><div className="special-lesson-primary-fields"><label>강의실 (선택)<input value={draft.room ?? ""} onChange={(event) => setDraft({ ...draft, room: event.target.value })} placeholder="예: 6강의실" /></label><label>메모 (선택)<input value={draft.note ?? ""} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="수업 내용·준비물" /></label></div></section>
           <section className="special-lesson-form-card special-lesson-students"><header><span>02</span><div><b>학생 선택</b><small>참여 학생을 한 명 이상 선택합니다.</small></div><em>{draft.studentIds.length}명 선택</em></header><label className="special-student-search"><span>학생 검색</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·학교·학년으로 검색" /></label><div className="special-student-options">{visibleStudents.map((student) => { const active = draft.studentIds.includes(student.id); return <button type="button" className={active ? "active" : ""} key={student.id} onClick={() => setDraft({ ...draft, studentIds: active ? draft.studentIds.filter((id) => id !== student.id) : [...draft.studentIds, student.id] })}><i>{student.name[0]}</i><span><b>{student.name}</b><small>{[student.school, student.grade].filter(Boolean).join(" · ")}</small></span><em>{active ? "✓ 선택됨" : "선택"}</em></button>; })}{!visibleStudents.length ? <p className="settings-empty">담당 클래스의 재원생이 없습니다.</p> : null}</div></section>
-          {error ? <p className="form-error">{error}</p> : null}<footer><button type="button" className="secondary-button" onClick={() => setDraft(null)}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
+          {error ? <p className="form-error">{error}</p> : null}<footer><ReminderCheckbox checked={draft.reminderEnabled} onChange={checked=>setDraft({...draft,reminderEnabled:checked})} disabled={saving}/><button type="button" className="secondary-button" onClick={() => setDraft(null)}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
         </form>
       </section></div> : null}
     </section>

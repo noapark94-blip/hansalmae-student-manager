@@ -1,4 +1,5 @@
 "use client";
+import { ScheduleReminderProvider } from "./schedule-reminders";
 
 import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -720,7 +721,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
+    <ScheduleReminderProvider supabase={supabase} profile={profile}><main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
       <PushDeviceAccountSync key={user.id} supabase={supabase} />
       {["guardian", "teacher", "sub_admin", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
@@ -980,7 +981,7 @@ export default function Home() {
           {toast}
         </div>
       )}
-    </main>
+    </main></ScheduleReminderProvider>
   );
 }
 

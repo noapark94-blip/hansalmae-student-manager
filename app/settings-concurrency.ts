@@ -14,8 +14,8 @@ export function classSettingsValues(row:{name:string;subjectId:string|null;room:
     teacherIds:[...new Set(row.teachers.map(x=>x.id))].sort(),
     schedules:row.schedules.map(x=>({weekday:x.weekday,startTime:x.startTime.slice(0,5),endTime:x.endTime.slice(0,5)})).sort((a,b)=>a.weekday-b.weekday||a.startTime.localeCompare(b.startTime)||a.endTime.localeCompare(b.endTime))};
 }
-export function calendarValues(v:{scope:string;category:string;startsOn:string;endsOn:string;startsAt:string|null;endsAt:string|null;school:string|null;grade:string|null;title:string;classId:string|null;teacherId:string|null;note:string|null;contactName:string|null;contactPhone:string|null;location:string|null;status:string}) {
-  return {kind:{scope:v.scope,category:v.category},timing:{startsOn:v.startsOn,endsOn:v.endsOn,startsAt:v.startsAt?.slice(0,5)??"",endsAt:v.endsAt?.slice(0,5)??""},
+export function calendarValues(v:{reminderEnabled?:boolean;scope:string;category:string;startsOn:string;endsOn:string;startsAt:string|null;endsAt:string|null;school:string|null;grade:string|null;title:string;classId:string|null;teacherId:string|null;note:string|null;contactName:string|null;contactPhone:string|null;location:string|null;status:string}) {
+  return {reminderEnabled:v.reminderEnabled??false,kind:{scope:v.scope,category:v.category},timing:{startsOn:v.startsOn,endsOn:v.endsOn,startsAt:v.startsAt?.slice(0,5)??"",endsAt:v.endsAt?.slice(0,5)??""},
     school:v.school?.trim()??"",grade:v.grade??"",title:v.title.trim(),classId:v.classId??"",teacherId:v.teacherId??"",
     note:v.note?.trim()??"",contactName:v.contactName?.trim()??"",contactPhone:v.contactPhone?.trim()??"",location:v.location?.trim()??"",status:v.status};
 }
