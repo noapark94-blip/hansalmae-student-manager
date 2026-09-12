@@ -1,9 +1,11 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
+import { compareEdits } from "./edit-conflict-dialog";
+import { calendarValues, settingsChanges, mergeSettingsChoices } from "./settings-concurrency";
 import { appConfirm } from "./app-dialog";
 
 type Scope = "school" | "academy";
@@ -187,13 +189,30 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
     contactName: row?.contactName ?? "", contactPhone: row?.contactPhone ?? "", location: row?.location ?? "",
     status: row?.status ?? "scheduled" as Status,
   });
+  const [baseline,setBaseline]=useState(()=>row?calendarValues(row):null);
+  const busy=useRef(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const update = (key: string, value: string | boolean) => setV(current => ({ ...current, [key]: value }));
   const options = data.categories.filter(item => item.scope === v.scope && (item.active || item.id === row?.category));
   const changeScope = (scope: Scope) => setV(current => ({ ...current, scope, category: data.categories.find(item => item.scope === scope && item.active)?.id ?? "" }));
   const save = async (event: FormEvent) => {
-    event.preventDefault(); setSaving(true); setError("");
+    event.preventDefault(); if(busy.current)return; busy.current=true;setSaving(true); setError("");
+    try {
+    if(row&&baseline){
+      const mine=calendarValues({...v,startsAt:v.hasTime?v.startsAt:null,endsAt:v.hasTime?v.endsAt:null,status:v.scope==="academy"?v.status:"scheduled"});
+      const {data:result,error:failure}=await supabase.rpc("staff_patch_calendar_event",{p_id:row.id,p_base:baseline,p_changes:settingsChanges(baseline,mine)});
+      if(failure)throw failure;
+      if(result.conflicts?.length){
+        const latest=result.values as typeof mine;
+        const labels:Record<string,string>={kind:"일정 구분·종류",timing:"날짜·시간",school:"학교",grade:"학년",title:"일정명",classId:"연결 클래스",teacherId:"담당 선생님",note:"메모",contactName:"학생·상담자",contactPhone:"연락처",location:"장소",status:"진행 상태"};
+        const format=(key:string,value:unknown)=>{if(key==="kind"){const x=value as typeof mine.kind;return `${x.scope==="school"?"학교":"학원"} · ${data.categories.find(c=>c.id===x.category)?.label??x.category}`;}if(key==="timing"){const x=value as typeof mine.timing;return `${x.startsOn} ~ ${x.endsOn} · ${x.startsAt?`${x.startsAt}–${x.endsAt}`:"종일"}`;}if(key==="classId")return data.classes.find(x=>x.id===value)?.name??"연결 안 함";if(key==="teacherId")return data.teachers.find(x=>x.id===value)?.name??"담당 없음";if(key==="status")return statusLabel(String(value) as Status);return String(value||"미입력");};
+        const choices=await compareEdits(result.conflicts.map((key:keyof typeof mine)=>({id:key,student:row.title,field:labels[key]??key,mine:format(key,mine[key]),latest:format(key,latest[key])})));
+        if(choices){const merged=mergeSettingsChoices(baseline,mine,latest,choices);setBaseline(latest);setV({...v,...merged,...merged.kind,...merged.timing,scope:merged.kind.scope as Scope,status:merged.status as Status,hasTime:Boolean(merged.timing.startsAt)});setError("선택한 내용을 적용했습니다. 확인 후 다시 저장해 주세요.");}
+        return;
+      }
+      await onSaved();return;
+    }
     const { error: saveError } = await supabase.rpc("staff_save_calendar_event", {
       p_id: row?.id ?? null, p_scope: v.scope, p_school: v.school || null, p_grade: v.grade || null,
       p_category: v.category, p_title: v.title, p_starts_on: v.startsOn, p_ends_on: v.endsOn,
@@ -202,16 +221,20 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
       p_contact_name: v.contactName || null, p_contact_phone: v.contactPhone || null,
       p_location: v.location || null, p_status: v.scope === "academy" ? v.status : "scheduled",
     });
-    if (saveError) { setError(saveError.message); setSaving(false); } else await onSaved();
+    if (saveError) throw saveError; else await onSaved();
+    } catch(e){setError((e as {message?:string}).message??"일정 저장에 실패했습니다.");} finally {busy.current=false;setSaving(false);}
   };
   const remove = async () => {
-    if (!row || !await appConfirm({ eyebrow: "일정 삭제", title: `‘${row.title}’ 일정을 삭제할까요?`, copy: `${row.startsOn}${row.endsOn !== row.startsOn ? ` ~ ${row.endsOn}` : ""}`, notice: "삭제한 일정은 캘린더에서 즉시 사라집니다.", confirmLabel: "일정 삭제", tone: "danger" })) return;
-    setSaving(true);
-    const { error: removeError } = await supabase.rpc("staff_delete_academic_calendar_event", { p_id: row.id });
-    if (removeError) { setError(removeError.message); setSaving(false); } else await onSaved();
+    if (busy.current || !row || !await appConfirm({ eyebrow: "일정 삭제", title: `‘${row.title}’ 일정을 삭제할까요?`, copy: `${row.startsOn}${row.endsOn !== row.startsOn ? ` ~ ${row.endsOn}` : ""}`, notice: "삭제한 일정은 캘린더에서 즉시 사라집니다.", confirmLabel: "일정 삭제", tone: "danger" })) return;
+    if(busy.current)return;busy.current=true;setSaving(true);
+    try{const {data:result,error:removeError}=await supabase.rpc("staff_patch_calendar_event",{p_id:row.id,p_base:baseline,p_changes:{},p_delete:true});
+      if(removeError)throw removeError;
+      if(result.conflicts?.length){setError("다른 선생님이 수정한 일정입니다. 창을 다시 열어 최신 내용을 확인한 뒤 삭제해 주세요.");return;}
+      await onSaved();
+    }catch(e){setError((e as {message?:string}).message??"삭제에 실패했습니다.");}finally{busy.current=false;setSaving(false);}
   };
 
-  return <div className="modal-backdrop"><form className="student-modal academic-editor" onSubmit={save}>
+  return <div className="modal-backdrop"><form className="student-modal academic-editor" onSubmit={save} inert={saving}>
     <header><div><p className="eyebrow">한살매 통합 일정</p><h2>{row ? "일정 수정" : "새 일정 등록"}</h2><span>학교 학사일정과 학원 운영 일정을 한곳에 기록합니다.</span></div><button type="button" onClick={onClose}>×</button></header>
     <div className="academic-editor-scope">
       <button type="button" className={v.scope === "school" ? "active" : ""} onClick={() => changeScope("school")}>학교 일정</button>
