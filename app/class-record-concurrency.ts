@@ -11,21 +11,27 @@ export function editChanges(base:EditValues,next:EditValues):EditChange[]{
  }
  return changes;
 }
+// Refreshes may encounter retained input for a student no longer in the baseline.
+// Keep it visible for explicit review; strict save diffing still rejects it.
+function knownStudentValues(local:EditValues,base:EditValues):EditValues {
+ return {...local,students:Object.fromEntries(Object.entries(local.students).filter(([id])=>Boolean(base.students[id])))};
+}
 // Preserve only input changed after the request began; adopt the server's other values.
 export function preservePendingEdits(local:EditValues,submitted:EditValues,remote:EditValues):EditValues{
  const result:EditValues=structuredClone(remote);
- for(const c of editChanges(submitted,local)){
+ for(const c of editChanges(submitted,knownStudentValues(local,submitted))){
   if(c.path[2]==='exam_id')continue;
   if(c.path.length===1)result[c.path[0] as 'notice'|'lessonContent']=String(c.value??'');
   else {result.students[c.path[1]]??=structuredClone(local.students[c.path[1]]);result.students[c.path[1]][c.path[2]]=c.value;}
  }
+ for(const [id,row] of Object.entries(local.students))if(!submitted.students[id])result.students[id]=structuredClone(row);
  return result;
 }
 // Dirty fields retain their original baseline so a later save still detects conflicts.
 export function mergeLiveEditValues(base:EditValues,local:EditValues,remote:EditValues) {
  const values=preservePendingEdits(local,base,remote);
  const baseline=structuredClone(remote);
- for(const change of editChanges(base,local)){
+ for(const change of editChanges(base,knownStudentValues(local,base))){
   if(change.path.length===1)baseline[change.path[0] as 'notice'|'lessonContent']=String(change.before??'');
   else {const id=change.path[1];baseline.students[id]??=structuredClone(base.students[id]);baseline.students[id][change.path[2]]=change.before;}
  }

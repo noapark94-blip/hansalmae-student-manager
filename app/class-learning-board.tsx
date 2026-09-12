@@ -201,6 +201,7 @@ export function ClassLearningBoard({
   const [categories, setCategories] = useState<ExamCategory[]>([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewing, setReviewing] = useState(false);
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
   const [monthOpen, setMonthOpen] = useState(false);
@@ -284,27 +285,31 @@ export function ClassLearningBoard({
   };
   const reviewLatestEdits=async()=>{
     if(editBusyRef.current)return;
-    const scope=`${classId}:${date}`;const base=editBaselineRef.current;if(!base)return;
-    editBusyRef.current=true;
+    const scope=`${classId}:${date}`;const base=editBaselineRef.current;if(!base){setReloadKey(key=>key+1);return;}
+    editBusyRef.current=true;setReviewing(true);
     try{
       const {data,error:readError}=await supabase.rpc("staff_class_edit_snapshot",{p_class_id:classId,p_date:date});
       if(readError)throw new Error(readError.message);
       if(editScopeRef.current!==scope)return;
       const remote=data as EditSnapshot;const local=structuredClone(latestEditRef.current);
-      const changes=editChanges(base.values,local);
-      const removed=changes.some(c=>c.path.length===3&&!remote.values.students[c.path[1]]);
-      if(removed)throw new Error("수업 명단에서 빠진 학생의 입력이 있습니다. 해당 내용을 복사해 보관한 뒤 화면을 다시 열어 주세요.");
-      const conflicts=changes.filter(c=>{const value=c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]];return value!==c.before&&value!==c.value&&c.path[2]!=="exam_id";});
       const labels: Record<string,string>={notice:"안내",lessonContent:"수업 내용",status:"출결",lateMinutes:"지각 시간",absenceReason:"결석 사유",note:"출결 메모",assignedHomework:"숙제",inspectionStatus:"검사 상태",inspectionNote:"검사 피드백",exam_examType:"시험 종류",exam_examTitle:"시험명·범위",exam_score:"시험 점수",exam_maxScore:"만점",exam_evaluation:"시험 피드백"};
       const display=(value:unknown)=>({present:"출석",late:"지각",absent:"결석",completed:"완료"}[String(value)]??String(value??""));
+      const removedIds=Object.keys(local.students).filter(id=>!remote.values.students[id]||!base.values.students[id]);
+      if(removedIds.length){
+        const confirmed=await appConfirm({eyebrow:"수업 명단 확인",title:"변경된 수업 명단을 반영할까요?",copy:removedIds.map(id=>`${rows.find(row=>row.id===id)?.name??"명단에서 빠진 학생"}: ${Object.entries(local.students[id]).filter(([key,value])=>key!=="exam_id"&&value!==""&&value!==null).map(([key,value])=>`${labels[key]??key}: ${display(value)}`).join(" / ")}`).join("\n"),notice:"위 입력은 최신 명단과 연결할 수 없습니다. 필요한 내용을 복사한 뒤 반영해 주세요. 다른 학생의 입력은 유지됩니다.",confirmLabel:"최신 명단 반영",cancelLabel:"입력 유지"});
+        if(!confirmed||editScopeRef.current!==scope)return;
+        for(const id of removedIds)delete local.students[id];
+      }
+      const changes=editChanges(base.values,local);
+      const conflicts=changes.filter(c=>{const value=c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]];return value!==c.before&&value!==c.value&&c.path[2]!=="exam_id";});
       const choices=conflicts.length?await compareEdits(conflicts.map(c=>({id:c.path.join("/"),student:rows.find(r=>r.id===c.path[1])?.name??"반 공통",field:labels[c.path.at(-1)!]??"수업 기록",mine:display(c.value),latest:display(c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]])}))):{};
       if(choices===null||editScopeRef.current!==scope)return;
-      const merged=preservePendingEdits(latestEditRef.current,base.values,remote.values);
+      const merged=preservePendingEdits(local,base.values,remote.values);
       for(const c of conflicts){if(choices[c.path.join("/")]!=="latest")continue;if(c.path.length===1)merged[c.path[0] as "notice"|"lessonContent"]=remote.values[c.path[0] as "notice"|"lessonContent"];else merged.students[c.path[1]][c.path[2]]=remote.values.students[c.path[1]][c.path[2]];}
       editBaselineRef.current=remote;latestEditRef.current=merged;
-      setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);setLessonState(remote.state);
-      setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);setError("");
-    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{editBusyRef.current=false;void refreshLive();}
+      setRows(current=>applyEditValues(current.filter(row=>Boolean(merged.students[row.id])),merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);setLessonState(remote.state);
+      setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);setError("");setReloadKey(key=>key+1);
+    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{editBusyRef.current=false;setReviewing(false);void refreshLive();}
   };
   const confirmedRecordDatesRef = useRef(new Set<string>());
   const dateWarningPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -458,7 +463,7 @@ export function ClassLearningBoard({
         const revisionByStudent = new Map(
           (revisionPayload?.rows ?? []).map((item) => [item.studentId, item]),
         );
-        const loadedRows = students.map((student) => {
+        const loadedRows = (snapshot?.day.students ?? []).map((student) => {
             const raw = examsByStudent.get(student.id);
             const exam =
               raw?.exams?.[0] ??
@@ -530,13 +535,11 @@ export function ClassLearningBoard({
           });
         if(!snapshot){setError("기록을 불러오지 못했습니다.");setLoading(false);return;}
         const oldBase=editBaselineRef.current;
-        const dirty=oldBase?editChanges(oldBase.values,latestEditRef.current):[];
-        const visibleValues=oldBase?preservePendingEdits(latestEditRef.current,oldBase.values,snapshot.values):snapshot.values;
-        // Keep the original baseline for locally edited fields so refresh cannot hide a conflict.
-        const nextBaseline=structuredClone(snapshot);
-        for(const c of dirty){if(c.path.length===1)nextBaseline.values[c.path[0] as "notice"|"lessonContent"]=String(c.before??"");
-          else {nextBaseline.values.students[c.path[1]]??=structuredClone(oldBase!.values.students[c.path[1]]);nextBaseline.values.students[c.path[1]][c.path[2]]=c.before;}}
-        editBaselineRef.current=nextBaseline;latestEditRef.current=visibleValues;
+        const merge=oldBase?mergeLiveEditValues(oldBase.values,latestEditRef.current,snapshot.values):{values:snapshot.values,baseline:snapshot.values};
+        const visibleValues=merge.values;
+        editBaselineRef.current={...snapshot,values:merge.baseline};latestEditRef.current=visibleValues;
+        // Retain unsaved input from removed students until the user reviews it.
+        loadedRows.push(...rows.filter(row=>!loadedRows.some(next=>next.id===row.id)&&Boolean(visibleValues.students[row.id])));
         setRows(applyEditValues(loadedRows,visibleValues));
         setLessonState(snapshot.state);
         setCategories((categoryResponse.data ?? []) as ExamCategory[]);
@@ -552,7 +555,7 @@ export function ClassLearningBoard({
         setLoading(false);
         void refreshLive();
       },
-    );
+    ).catch(failure=>{if(active)setError(failure instanceof Error?failure.message:"수업 기록을 불러오지 못했습니다.");}).finally(()=>{if(active)setLoading(false);});
     return () => {
       active = false;
     };
@@ -1114,7 +1117,7 @@ export function ClassLearningBoard({
             있습니다.
           </p>
           {error ? (
-            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" onClick={()=>void reviewLatestEdits()}>최신 내용 비교</button>}</div>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
           ) : null}
         </section>
       ) : (
@@ -1638,7 +1641,7 @@ export function ClassLearningBoard({
             </div>
           )}
           {error ? (
-            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" onClick={()=>void reviewLatestEdits()}>최신 내용 비교</button>}</div>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
           ) : null}
           {rows.length ? (
             <footer>
