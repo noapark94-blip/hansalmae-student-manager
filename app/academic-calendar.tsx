@@ -1,11 +1,12 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { compareEdits } from "./edit-conflict-dialog";
 import { calendarValues, settingsChanges, mergeSettingsChoices } from "./settings-concurrency";
+import { useStaffLiveUpdates } from "./use-staff-live-updates";
 import { appConfirm } from "./app-dialog";
 
 type Scope = "school" | "academy";
@@ -68,15 +69,16 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
   const [noteEvent, setNoteEvent] = useState<EventRow | null>(null);
   const year = Number(month.slice(0, 4));
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: result, error: loadError } = await supabase.rpc("staff_academic_calendar_board", { p_year: year });
-    if (loadError) setError("일정을 불러오지 못했습니다.");
-    else { setData(result as Board); setError(""); }
-    setLoading(false);
-  }, [supabase, year]);
+  const load=useStaffLiveUpdates(supabase,`calendar-${year}`,"topic=eq.calendar",async(batch,active)=>{
+    const {data:result,error:failure}=await supabase.rpc(batch.full?"staff_academic_calendar_board":"staff_academic_calendar_updates",batch.full?{p_year:year}:{p_year:year,p_ids:batch.ids});
+    if(!active())return;
+    if(failure)throw failure;
+    if(batch.full)setData(result as Board);
+    else {const ids=new Set(batch.ids);setData(current=>({...current,events:[...current.events.filter(e=>!ids.has(e.id)),...(result as Board).events].sort((a,b)=>a.startsOn.localeCompare(b.startsOn)||(a.startsAt??"99").localeCompare(b.startsAt??"99")||a.title.localeCompare(b.title,"ko"))}));}
+    setLoading(false);setError("");
+    setNoteEvent(current=>current&&(batch.full||batch.ids.includes(current.id))?((result as Board).events.find(e=>e.id===current.id)??null):current);
+  },failure=>{setLoading(false);setError((failure as {message?:string}).message??"일정을 갱신하지 못했습니다.");},true);
 
-  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     let active = true;
     void fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/KR`)

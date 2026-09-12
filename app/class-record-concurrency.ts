@@ -21,3 +21,13 @@ export function preservePendingEdits(local:EditValues,submitted:EditValues,remot
  }
  return result;
 }
+// Dirty fields retain their original baseline so a later save still detects conflicts.
+export function mergeLiveEditValues(base:EditValues,local:EditValues,remote:EditValues) {
+ const values=preservePendingEdits(local,base,remote);
+ const baseline=structuredClone(remote);
+ for(const change of editChanges(base,local)){
+  if(change.path.length===1)baseline[change.path[0] as 'notice'|'lessonContent']=String(change.before??'');
+  else {const id=change.path[1];baseline.students[id]??=structuredClone(base.students[id]);baseline.students[id][change.path[2]]=change.before;}
+ }
+ return {values,baseline};
+}

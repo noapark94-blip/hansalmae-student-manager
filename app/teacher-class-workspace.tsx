@@ -4,6 +4,7 @@ import type { CSSProperties, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
+import { useStaffLiveUpdates } from "./use-staff-live-updates";
 import { compareEdits } from "./edit-conflict-dialog";
 import { classSettingsValues, settingsChanges, mergeSettingsChoices } from "./settings-concurrency";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
@@ -186,14 +187,18 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
       return { ...current, classes };
     }),
   );
-  const load = useCallback(async () => {
-    setLoading(true);
+  const workspaceRequest=useRef(0);
+  const invalidateWorkspace=useCallback(()=>{workspaceRequest.current++;},[]);
+  const load = useCallback(async (background=false) => {
+    const request=++workspaceRequest.current;
+    if(!background)setLoading(true);
     setError("");
     const [{ data: next, error: loadError }, { data: preferences }, managedResult] = await Promise.all([
       supabase.rpc("teacher_class_workspace"),
       supabase.rpc("user_list_preferences"),
       profile.role === "admin" ? supabase.rpc("staff_manage_classes") : Promise.resolve({ data: null, error: null }),
     ]);
+    if(request!==workspaceRequest.current)return;
     if (loadError || !next) {
       setError("담당 클래스 정보를 불러오지 못했습니다. DB 최신 적용 여부를 확인해 주세요.");
       setLoading(false);
@@ -218,7 +223,9 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   }, [profile.role, supabase]);
   useEffect(() => {
     void load();
-  }, [load]);
+    return invalidateWorkspace;
+  }, [load,invalidateWorkspace]);
+  useStaffLiveUpdates(supabase,`class-list-${profile.id}`,"topic=eq.classes",async()=>{await Promise.all([load(true),loadAgenda()]);},failure=>setError((failure as {message?:string}).message??"클래스 정보를 갱신하지 못했습니다."));
   useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setTodayOnly(false);setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const teacherOptions = useMemo(() => {
@@ -665,8 +672,10 @@ function ClassManager({ supabase, profile, subjects, onClose, onSaved }: { supab
   const [editing,setEditing]=useState<ManagedClass|null>(null);
   const [subjectFilter,setSubjectFilter]=useState<MainSubjectFilter>("전체");
   const [error,setError]=useState("");
-  const load=useCallback(async()=>{setLoading(true);setError("");const{data:rows,error:loadError}=await supabase.rpc("staff_manage_classes");if(loadError)setError(loadError.message);else setClasses((rows as ManagedClass[])??[]);setLoading(false)},[supabase]);
-  useEffect(()=>{void load()},[load]);
+  const load=useStaffLiveUpdates(supabase,`class-manager-${profile.id}`,"topic=eq.classes",async(_batch,active)=>{
+    const{data:rows,error:failure}=await supabase.rpc("staff_manage_classes");if(!active())return;if(failure)throw failure;
+    setClasses((rows as ManagedClass[])??[]);setLoading(false);setError("");
+  },failure=>{setLoading(false);setError((failure as {message?:string}).message??"클래스 목록을 갱신하지 못했습니다.");},true);
   const subjectById=useMemo(()=>new Map(subjects.map((item)=>[item.id,item.mainSubject])),[subjects]);
   const classMainSubject=(item:ManagedClass)=>subjectById.get(item.subjectId??"")??(["국어","영어","수학"].includes(item.subject)?item.subject:"");
   const subjectFilters:MainSubjectFilter[]=["전체","국어","영어","수학"];
