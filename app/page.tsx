@@ -2264,6 +2264,17 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
   const assigned = new Set(student.enrollments.filter((item) => item.status === "active").map((item) => item.class_id));
   const [classIds, setClassIds] = useState([...assigned]);
   const [assignmentBase, setAssignmentBase] = useState<unknown>(null);
+  const weekdayDraft = useRef(new Map<string, boolean>());
+  useEffect(() => {
+    let active=true;
+    void supabase.rpc("staff_student_assignment_plan", {p_student_id:student.id,p_class_ids:[]}).then(({data,error:failure})=>{
+      if(!active)return;
+      if(failure){setError(failure.message);return;}
+      setAssignmentBase(data.base);
+      setClassIds(data.base.classes);
+    });
+    return()=>{active=false;};
+  },[supabase,student.id]);
   const [scheduleChoices, setScheduleChoices] = useState<StudentScheduleChoice[]>([]);
   const [scheduleIds, setScheduleIds] = useState<string[]>([]);
   const [step, setStep] = useState<"classes" | "schedules">("classes");
@@ -2274,9 +2285,10 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
     const { data, error: loadError } = await supabase.rpc("staff_student_assignment_plan", { p_student_id: student.id, p_class_ids: classIds });
     if (loadError) throw loadError;
     const rows = (data?.choices ?? []) as StudentScheduleChoice[];
-    setAssignmentBase(data?.base ?? null);
+    if(JSON.stringify(data?.base)!==JSON.stringify(assignmentBase))throw new Error("수강 배정이 변경됐습니다. 창을 닫고 다시 열어 최신 배정을 확인해 주세요.");
     setScheduleChoices(rows);
-    setScheduleIds(rows.filter((item) => item.assigned).map((item) => item.scheduleId));
+    for(const row of rows)if(!weekdayDraft.current.has(row.scheduleId))weekdayDraft.current.set(row.scheduleId,row.assigned);
+    setScheduleIds(rows.filter(item=>weekdayDraft.current.get(item.scheduleId)).map(item=>item.scheduleId));
     setStep("schedules");
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -2297,7 +2309,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
     }
   };
   const toggle = (id: string) => setClassIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-  const toggleSchedule = (id: string) => setScheduleIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  const toggleSchedule = (id: string) => {weekdayDraft.current.set(id,!weekdayDraft.current.get(id));setScheduleIds(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id]);};
   const subjectById = useMemo(() => new Map(subjects.map((item) => [item.id, item.main_subject])), [subjects]);
   const classMainSubject = (item: AcademyClass) => subjectById.get(item.subject_id ?? "") ?? (["국어", "영어", "수학"].includes(item.subject) ? item.subject : "");
   const subjectFilters: MainSubjectFilter[] = ["전체", "국어", "영어", "수학"];
@@ -2305,7 +2317,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
   const subjectCount = (subject: MainSubjectFilter) => subject === "전체" ? classes.length : classes.filter((item) => classMainSubject(item) === subject).length;
   return (
     <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description={step === "classes" ? "한 학생에게 여러 과목·세부 반을 동시에 배정합니다." : "실제로 참석하는 요일별 반을 선택하세요. 반마다 실제 참석하는 요일을 한 개 이상 선택한 뒤 함께 저장합니다."} onClose={() => { if (!submitting) onClose(); }}>
-      <form className={step === "schedules" ? "schedule-assignment-form" : undefined} onSubmit={submit}>
+      <form inert={!assignmentBase || submitting} className={step === "schedules" ? "schedule-assignment-form" : undefined} onSubmit={submit}>
         {step === "classes" ? (
           classes.length ? (
             <>
