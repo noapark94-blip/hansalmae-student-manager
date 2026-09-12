@@ -360,7 +360,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
       </section>
       </>}
       {(!todayOnly || activeAgenda?.classId === selectedId) && selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={async () => { await Promise.all([loadDay(), loadAgenda()]); }} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
-      {todayOnly && activeAgenda?.sessionId && <SpecialLessonLearningBoard key={activeAgenda.sessionId} embedded supabase={supabase} sessionId={activeAgenda.sessionId} lessonKind={activeAgenda.kind === "개별 보강" ? "makeup" : "additional"} onClose={() => setActiveAgendaKey("")} onEdit={() => { setTodayOnly(false); setSelectedId(specialLessonsId); }} onAttendanceChange={loadAgenda} />}
+      {todayOnly && activeAgenda?.sessionId && <SpecialLessonLearningBoard key={activeAgenda.sessionId} embedded supabase={supabase} profile={profile} sessionId={activeAgenda.sessionId} lessonKind={activeAgenda.kind === "개별 보강" ? "makeup" : "additional"} onClose={() => setActiveAgendaKey("")} onAttendanceChange={loadAgenda} />}
       {!todayOnly && selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
       {subjectOpen && (
         <SubjectEditor

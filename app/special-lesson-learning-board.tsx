@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import type { Profile } from "./supabase";
+import { TeacherSpecialLessons } from "./teacher-special-lessons";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm } from "./app-dialog";
@@ -22,7 +25,8 @@ type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStud
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onEdit: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
+export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; profile: Profile; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
+  const [editingSchedule,setEditingSchedule]=useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
   const [openStudentId, setOpenStudentId] = useState<string|null>(null);
@@ -34,7 +38,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   const [lessonState, setLessonState] = useState<"draft" | "completed">("draft");
   const [historyStudent,setHistoryStudent]=useState<Row|null>(null);
   const [attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
-  const load = useCallback(async () => {
+  const load = useCallback(async (preserveInput=false) => {
     setLoading(true);
     const [boardResponse, categoryResponse] = await Promise.all([
       supabase.rpc("staff_special_lesson_board", { p_session_id: sessionId }),
@@ -45,11 +49,11 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
       const board = boardResponse.data as Board;
       setNotice(board?.notice ?? "");
       setLessonState(board?.state === "completed" ? "completed" : "draft");
-      setRows((board?.students ?? []).map((row) => ({ ...row, exam: {
+      setRows(current=>(board?.students ?? []).map((row) => ({ ...row, exam: {
         examType: String(row.exam?.examType ?? ""), examTitle: String(row.exam?.examTitle ?? ""),
         score: row.exam?.score == null ? "" : String(row.exam.score), maxScore: row.exam?.maxScore == null ? "100" : String(row.exam.maxScore),
         evaluation: String(row.exam?.evaluation ?? ""),
-      }})));
+      }, ...(preserveInput?(()=>{const previous=current.find(x=>x.id===row.id);return previous?{lessonContent:previous.lessonContent,assignedHomework:previous.assignedHomework,inspectionStatus:previous.inspectionStatus,inspectionNote:previous.inspectionNote,exam:previous.exam}:{};})():{}) })));
       setCategories((categoryResponse.data ?? []) as ExamCategory[]);
       setError("");
     }
@@ -59,13 +63,14 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
   useEffect(() => {
     const closeTopLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (editingSchedule) {setEditingSchedule(false);return;}
       if (attendanceEditor) setAttendanceEditor(null);
       else if (categoryManager) setCategoryManager(false);
       else onClose();
     };
     document.addEventListener("keydown", closeTopLayer);
     return () => document.removeEventListener("keydown", closeTopLayer);
-  }, [attendanceEditor, categoryManager, onClose]);
+  }, [attendanceEditor, categoryManager, onClose, editingSchedule]);
   const refreshCategories = async () => {
     const { data, error: categoryError } = await supabase.rpc("staff_exam_categories");
     if (categoryError) setError(categoryError.message);
@@ -114,7 +119,7 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
     else { setLessonState("draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     setSaving("");
   };
-  return <section className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal special-record-viewport`} spellCheck={false}>
+  return <section inert={editingSchedule} className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal special-record-viewport`} spellCheck={false}>
     <SpecialFamilyReportReadStatus supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
@@ -130,7 +135,8 @@ export function SpecialLessonLearningBoard({ supabase, sessionId, lessonKind, on
       </article>;
     })}{!rows.length ? <p className="settings-empty">배정된 학생이 없습니다. 학생·시간 수정에서 학생을 추가해 주세요.</p> : null}</div>}</div></div>
     {error ? <p className="form-error learning-board-error">{error}</p> : null}
-    <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학부모 학습리포트에 반영됩니다.</span><span className="learning-completion-actions">{lessonState==="completed"?<><button type="button" className="danger-button" disabled={saving==="all"||!rows.length} onClick={()=>void deleteRecord()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></>}</span></footer>
+    <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학부모 학습리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={Boolean(saving)||loading} onClick={()=>setEditingSchedule(true)}>일정 수정</button>{lessonState==="completed"?<><button type="button" className="danger-button" disabled={saving==="all"||!rows.length} onClick={()=>void deleteRecord()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></>}</span></footer>
+    {editingSchedule&&typeof document!=="undefined"&&createPortal(<TeacherSpecialLessons supabase={supabase} profile={profile} editorSessionId={sessionId} onEditorClose={()=>setEditingSchedule(false)} onEditorSaved={async()=>{setEditingSchedule(false);await load(true);await onAttendanceChange?.();}}/>,document.body)}
     {attendanceEditor?<div className="modal-backdrop nested attendance-editor-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setAttendanceEditor(null)}}><form className="attendance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="special-attendance-editor-title" onSubmit={event=>{event.preventDefault();void saveAttendanceDetail()}}><header><span className={`attendance-editor-icon ${attendanceEditor.status}`}>{attendanceEditor.status==="late"?"분":"!"}</span><div><small>{attendanceEditor.status==="late"?"지각 시간 기록":"결석 사유 기록"}</small><h2 id="special-attendance-editor-title">{attendanceEditor.row.name} 학생</h2></div><button type="button" aria-label="닫기" onClick={()=>setAttendanceEditor(null)}>×</button></header><label><b>{attendanceEditor.status==="late"?"몇 분 지각했나요?":"결석 사유를 입력해 주세요"}</b>{attendanceEditor.status==="late"?<div className="attendance-minute-input"><input autoFocus type="number" min="1" inputMode="numeric" value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)}/><span>분</span></div>:<textarea autoFocus rows={3} value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)} placeholder="예: 병원 진료, 개인 사정"/>}</label><footer><button type="button" className="secondary-button" onClick={()=>setAttendanceEditor(null)}>취소</button><button type="submit" className="primary" disabled={saving===attendanceEditor.row.id}>{saving===attendanceEditor.row.id?"저장 중…":"기록하기"}</button></footer></form></div>:null}
     {categoryManager ? <ExamCategoryModal supabase={supabase} categories={categories} onClose={() => setCategoryManager(false)} onChanged={refreshCategories} /> : null}
     {historyStudent?<div className="modal-backdrop nested" onMouseDown={event=>{if(event.target===event.currentTarget)setHistoryStudent(null)}}><section className="student-modal student-learning-history-modal" role="dialog" aria-modal="true"><header><div><p className="eyebrow">교직원 전용 · 누적 수업 기록</p><h2>{historyStudent.name}<small className="history-type-label">{lessonKind==="makeup"?"보강수업 기록":"추가수업 기록"}</small></h2><span>{[historyStudent.school,historyStudent.grade].filter(Boolean).join(" · ")||"학생 기록"}</span></div><button type="button" aria-label="닫기" onClick={()=>setHistoryStudent(null)}>×</button></header><StudentLearningHistory supabase={supabase} studentId={historyStudent.id} initialSource={lessonKind}/></section></div>:null}

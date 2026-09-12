@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
@@ -29,10 +29,13 @@ type Session = {
   teacherId: string;
   students: Student[];
 };
-type Draft = { reminderRecipientIds: string[] | null; reminderEnabled: boolean; id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
+type Draft = { teacherId?:string; reminderRecipientIds: string[] | null; reminderEnabled: boolean; id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
 const blank = (): Draft => ({ reminderRecipientIds: null, reminderEnabled: false, id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
 
-export function TeacherSpecialLessons({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+const draftFromSession = (session: Session): Draft => ({ teacherId:session.teacherId, reminderRecipientIds:session.reminderRecipientIds??[session.teacherId], reminderEnabled:session.reminderEnabled??false, id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
+
+export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEditorClose, onEditorSaved }: { supabase: SupabaseClient; profile: Profile; editorSessionId?:string; onEditorClose?:()=>void; onEditorSaved?:()=>void|Promise<void> }) {
+  const openedEditor=useRef(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -48,33 +51,37 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const closeDraft=useCallback(()=>{setDraft(null);onEditorClose?.();},[onEditorClose]);
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }, { data: subjectData, error: subjectError }] = await Promise.all([
       supabase.rpc("staff_teacher_special_lessons", { p_teacher_id: profile.role === "admin" ? null : profile.id }),
-      supabase.rpc("staff_special_lesson_student_options", { p_teacher_id: profile.id }),
+      editorSessionId ? Promise.resolve({data:null,error:null}) : supabase.rpc("staff_special_lesson_student_options", { p_teacher_id: profile.id }),
       supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active", true).order("main_subject").order("name"),
     ]);
-    if (sessionError || studentError || subjectError) setError(sessionError?.message ?? studentError?.message ?? subjectError?.message ?? "일정을 불러오지 못했습니다.");
+    const sessionOwner=(sessionData as Session[]|null)?.find(item=>item.id===editorSessionId)?.teacherId;
+    const options=editorSessionId&&sessionOwner?await supabase.rpc("staff_special_lesson_student_options",{p_teacher_id:sessionOwner}):{data:studentData,error:studentError};
+    if (sessionError || options.error || subjectError) setError(sessionError?.message ?? options.error?.message ?? subjectError?.message ?? "일정을 불러오지 못했습니다.");
     else {
       setSessions((sessionData ?? []) as Session[]);
-      setStudents((studentData ?? []) as Student[]);
+      setStudents((options.data ?? []) as Student[]);
       setSubjects((subjectData ?? []).map((item) => ({ id: item.id, name: item.name, mainSubject: item.main_subject, parentId: item.parent_id })) as Subject[]);
       setError("");
+      const target=(sessionData as Session[]|null)?.find(item=>item.id===editorSessionId);
+      if(target&&!openedEditor.current){openedEditor.current=true;setDraft(draftFromSession(target));}
     }
     setLoading(false);
-  }, [profile.id, supabase]);
+  }, [profile.id, profile.role, supabase, editorSessionId]);
   useEffect(() => void load(), [load]);
   useEffect(() => {
     const closeTopLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (deleteTarget && !deleting) setDeleteTarget(null);
-      else if (draft) setDraft(null);
-      else if (activeSession) setActiveSession(null);
+      else if (draft || editorSessionId) closeDraft();
     };
     document.addEventListener("keydown", closeTopLayer);
     return () => document.removeEventListener("keydown", closeTopLayer);
-  }, [activeSession, deleteTarget, deleting, draft]);
+  }, [closeDraft, editorSessionId, deleteTarget, deleting, draft]);
   const visibleStudents = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase("ko");
     return keyword ? students.filter((item) => [item.name, item.school, item.grade].some((value) => value?.toLocaleLowerCase("ko").includes(keyword))) : students;
@@ -86,7 +93,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     return grouped;
   }, [sessions]);
   const selectedDaySessions = sessionsByDate.get(anchorDate) ?? [];
-  const edit = (session: Session) => setDraft({ reminderRecipientIds:session.reminderRecipientIds??[session.teacherId], reminderEnabled:session.reminderEnabled??false, id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
+  const edit = (session: Session) => setDraft(draftFromSession(session));
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!draft) return;
@@ -97,7 +104,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     setSaving(true);
     const { error: saveError } = await supabase.rpc("staff_save_special_with_reminder", {p_reminder_enabled:draft.reminderEnabled,p_values: {p_reminder_recipient_ids:draft.reminderRecipientIds??[profile.id],
       p_id: draft.id || null,
-      p_teacher_id: profile.id,
+      p_teacher_id: draft.teacherId ?? profile.id,
       p_date: draft.date,
       p_start_time: draft.startTime,
       p_end_time: draft.endTime,
@@ -111,7 +118,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     else {
       setDraft(null);
       setQuery("");
-      await load();
+      if(editorSessionId)await onEditorSaved?.();else await load();
     }
     setSaving(false);
   };
@@ -127,6 +134,15 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
     }
     setDeleting(false);
   };
+  const editor = draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>수업 구분과 과목, 날짜·시간, 학생을 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={closeDraft}>×</button></header>
+        <form onSubmit={(event) => void save(event)}>
+          <section className="special-lesson-form-card special-lesson-basics"><header><span>01</span><div><b>일정 정보</b><small>수업 종류와 진행 시간을 설정합니다.</small></div></header><div className="special-lesson-primary-fields"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>과목 *<select required value={draft.subjectId} onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })}><option value="">과목 선택</option>{subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.parentId ? `${subject.mainSubject} · ${subject.name}` : subject.name}</option>)}</select></label></div><div className="special-lesson-date-time"><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label><MilitaryTimeInput label="시작 시간 (24시간제 4자리)" value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} /><MilitaryTimeInput label="종료 시간 (24시간제 4자리)" value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} /></div><div className="special-lesson-primary-fields"><label>강의실 (선택)<input value={draft.room ?? ""} onChange={(event) => setDraft({ ...draft, room: event.target.value })} placeholder="예: 6강의실" /></label><label>메모 (선택)<input value={draft.note ?? ""} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="수업 내용·준비물" /></label></div></section>
+          <section className="special-lesson-form-card special-lesson-students"><header><span>02</span><div><b>학생 선택</b><small>참여 학생을 한 명 이상 선택합니다.</small></div><em>{draft.studentIds.length}명 선택</em></header><label className="special-student-search"><span>학생 검색</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·학교·학년으로 검색" /></label><div className="special-student-options">{visibleStudents.map((student) => { const active = draft.studentIds.includes(student.id); return <button type="button" className={active ? "active" : ""} key={student.id} onClick={() => setDraft({ ...draft, studentIds: active ? draft.studentIds.filter((id) => id !== student.id) : [...draft.studentIds, student.id] })}><i>{student.name[0]}</i><span><b>{student.name}</b><small>{[student.school, student.grade].filter(Boolean).join(" · ")}</small></span><em>{active ? "✓ 선택됨" : "선택"}</em></button>; })}{!visibleStudents.length ? <p className="settings-empty">담당 클래스의 재원생이 없습니다.</p> : null}</div></section>
+          {draft.reminderEnabled&&<ReminderRecipients value={draft.reminderRecipientIds??[profile.id]} onChange={ids=>setDraft({...draft,reminderRecipientIds:ids})} disabled={saving}/>}
+          {error ? <p className="form-error">{error}</p> : null}<footer><ReminderCheckbox checked={draft.reminderEnabled} onChange={checked=>setDraft({...draft,reminderEnabled:checked})} disabled={saving}/><button type="button" className="secondary-button" onClick={closeDraft}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
+        </form>
+      </section></div> : null;
+  if(editorSessionId)return editor??<div className="modal-backdrop nested"><section className="student-modal" role="dialog" aria-modal="true" aria-label="일정 수정"><header><h2>일정 수정</h2><button type="button" onClick={onEditorClose}>×</button></header><p className="settings-empty">{error||(loading?"일정을 불러오는 중이에요…":"일정을 찾을 수 없거나 수정 권한이 없습니다.")}</p></section></div>;
   return (
     <section className="panel teacher-special-workspace">
       <header>
@@ -147,7 +163,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
         })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
       {loading && !activeSession ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
-        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} sessionId={activeSession.id} lessonKind={activeSession.kind} onClose={() => setActiveSession(null)} onEdit={() => { setActiveSession(null); edit(activeSession); }} onAttendanceChange={load} /> : <section className="special-day-agenda">
+        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} profile={profile} sessionId={activeSession.id} lessonKind={activeSession.kind} onClose={() => setActiveSession(null)} onAttendanceChange={load} /> : <section className="special-day-agenda">
           <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div></header>
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />
@@ -158,14 +174,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       )}
       {calendarOpen ? <div className="modal-backdrop nested" onMouseDown={(event) => { if (event.target === event.currentTarget) setCalendarOpen(false); }}><section className="student-modal class-month-modal correction-month-modal special-month-modal" role="dialog" aria-modal="true" aria-label="보강·추가수업 전체 캘린더"><header><div><p className="eyebrow">전체 일정·출결</p><h2>전체 캘린더</h2><span>월간 보강·추가수업 일정과 학생별 출결을 한눈에 확인합니다.</span></div><button type="button" aria-label="닫기" onClick={() => setCalendarOpen(false)}>×</button></header><nav className="correction-month-toolbar" aria-label="월 이동"><button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button><strong>{formatMonth(calendarMonth)}</strong><button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button><button type="button" onClick={() => setCalendarMonth(today().slice(0, 7))}>이번 달</button></nav><div className="correction-month-weekdays">{weekdays.map((day) => <b key={day}>{day}</b>)}</div><div className="correction-month-grid">{monthDates(calendarMonth).map((date) => { const daySessions = sessionsByDate.get(date) ?? []; const inMonth = date.slice(0, 7) === calendarMonth; return <button type="button" key={date} className={`${inMonth ? "" : "outside"} ${date === anchorDate ? "selected" : ""} ${date === today() ? "today" : ""} ${daySessions.length ? "scheduled" : ""}`} onClick={() => { setAnchorDate(date); setActiveSession(null); setCalendarOpen(false); }}><span>{+date.slice(8)}</span><div>{daySessions.slice(0, 3).map((session) => <em className={session.kind} key={session.id}><b>{session.startTime.slice(0, 5)} · {session.kind === "makeup" ? "보강" : "추가"}</b><small>{session.students.length ? session.students.map((student) => `${student.name} ${attendanceLabel(student.attendanceStatus)}`).join(" · ") : "학생 미배정"}</small></em>)}{daySessions.length > 3 ? <small>+{daySessions.length - 3}개</small> : null}{!daySessions.length ? <small className="empty">일정 없음</small> : null}</div></button>; })}</div></section></div> : null}
       {deleteTarget ? <div className={confirmStyles.backdrop} onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setDeleteTarget(null); }}><section className={`${confirmStyles.dialog} ${confirmStyles.danger}`} role="alertdialog" aria-modal="true" aria-labelledby="special-lesson-delete-title"><button type="button" className={confirmStyles.close} aria-label="일정 삭제 확인창 닫기" disabled={deleting} onClick={() => setDeleteTarget(null)}>×</button><div className={confirmStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg></div><p className={confirmStyles.eyebrow}>{deleteTarget.kind === "makeup" ? "보강 일정 삭제" : "추가수업 일정 삭제"}</p><h3 id="special-lesson-delete-title">{formatDate(deleteTarget.date)} 일정을 삭제할까요?</h3><p className={confirmStyles.copy}>{deleteTarget.startTime.slice(0,5)}–{deleteTarget.endTime.slice(0,5)} · {deleteTarget.subject ?? "과목 미지정"}<br/>{deleteTarget.students.map((student) => student.name).join(" · ") || "학생 미배정"}</p><div className={confirmStyles.stats}><span><small>수업</small><b>일정·출결</b></span><span><small>학습</small><b>기록·시험·과제</b></span><span><small>공유</small><b>학부모 리포트</b></span></div><div className={confirmStyles.notice}><i aria-hidden="true">!</i><span>{deleteError || "연결된 수업 기록이 함께 삭제되며 되돌릴 수 없습니다."}</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={deleting} onClick={() => setDeleteTarget(null)}>돌아가기</button><button type="button" className={confirmStyles.primary} disabled={deleting} onClick={() => void remove(deleteTarget)}>{deleting ? "삭제 중…" : "일정 삭제"}</button></footer></section></div> : null}
-      {draft ? <div className="modal-backdrop nested"><section role="dialog" aria-modal="true" aria-label={draft.id ? "보강 일정 수정" : "보강 일정 등록"} className="student-modal special-lesson-modal"><header><div><p className="eyebrow">개별 보강·추가수업</p><h2>{draft.id ? "일정 수정" : "새 일정"}</h2><span>수업 구분과 과목, 날짜·시간, 학생을 선택해 주세요.</span></div><button type="button" aria-label="닫기" onClick={() => setDraft(null)}>×</button></header>
-        <form onSubmit={(event) => void save(event)}>
-          <section className="special-lesson-form-card special-lesson-basics"><header><span>01</span><div><b>일정 정보</b><small>수업 종류와 진행 시간을 설정합니다.</small></div></header><div className="special-lesson-primary-fields"><label>수업 구분<select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as Draft["kind"] })}><option value="makeup">보강</option><option value="additional">추가수업</option></select></label><label>과목 *<select required value={draft.subjectId} onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })}><option value="">과목 선택</option>{subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.parentId ? `${subject.mainSubject} · ${subject.name}` : subject.name}</option>)}</select></label></div><div className="special-lesson-date-time"><label>날짜<input type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label><MilitaryTimeInput label="시작 시간 (24시간제 4자리)" value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} /><MilitaryTimeInput label="종료 시간 (24시간제 4자리)" value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} /></div><div className="special-lesson-primary-fields"><label>강의실 (선택)<input value={draft.room ?? ""} onChange={(event) => setDraft({ ...draft, room: event.target.value })} placeholder="예: 6강의실" /></label><label>메모 (선택)<input value={draft.note ?? ""} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="수업 내용·준비물" /></label></div></section>
-          <section className="special-lesson-form-card special-lesson-students"><header><span>02</span><div><b>학생 선택</b><small>참여 학생을 한 명 이상 선택합니다.</small></div><em>{draft.studentIds.length}명 선택</em></header><label className="special-student-search"><span>학생 검색</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름·학교·학년으로 검색" /></label><div className="special-student-options">{visibleStudents.map((student) => { const active = draft.studentIds.includes(student.id); return <button type="button" className={active ? "active" : ""} key={student.id} onClick={() => setDraft({ ...draft, studentIds: active ? draft.studentIds.filter((id) => id !== student.id) : [...draft.studentIds, student.id] })}><i>{student.name[0]}</i><span><b>{student.name}</b><small>{[student.school, student.grade].filter(Boolean).join(" · ")}</small></span><em>{active ? "✓ 선택됨" : "선택"}</em></button>; })}{!visibleStudents.length ? <p className="settings-empty">담당 클래스의 재원생이 없습니다.</p> : null}</div></section>
-          {draft.reminderEnabled&&<ReminderRecipients value={draft.reminderRecipientIds??[profile.id]} onChange={ids=>setDraft({...draft,reminderRecipientIds:ids})} disabled={saving}/>}
-          {error ? <p className="form-error">{error}</p> : null}<footer><ReminderCheckbox checked={draft.reminderEnabled} onChange={checked=>setDraft({...draft,reminderEnabled:checked})} disabled={saving}/><button type="button" className="secondary-button" onClick={() => setDraft(null)}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
-        </form>
-      </section></div> : null}
+      {editor}
     </section>
   );
 }
