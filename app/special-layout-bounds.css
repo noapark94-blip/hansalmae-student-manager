@@ -1,0 +1,68 @@
+/* Only the individual makeup/additional lesson workspace. */
+.teacher-special-workspace .special-week-strip > article {
+  height: 324px;
+  min-height: 0;
+  box-sizing: border-box;
+}
+.teacher-special-workspace .special-week-session {
+  height: 62px;
+  min-height: 62px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+.teacher-special-workspace .special-session-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.teacher-special-workspace .special-session-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teacher-special-workspace .special-calendar-count { flex-shrink: 0; }
+.teacher-special-workspace .special-week-more {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  background: #f6eef2;
+  color: var(--wine);
+  font-size: 11px;
+  font-weight: 700;
+}
+.special-board-modal.special-record-viewport {
+  display: flex;
+  flex-direction: column;
+  height: auto !important;
+  max-height: calc(100dvh - 160px) !important;
+  overflow: hidden !important;
+}
+.special-board-modal.special-record-viewport > .learning-board-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto !important;
+  padding-bottom: 16px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.special-board-modal.special-record-viewport > .family-read-status,
+.special-board-modal.special-record-viewport > .form-error,
+.special-board-modal.special-record-viewport > footer { flex: 0 0 auto; }
+.special-board-modal.special-record-viewport > footer {
+  position: relative !important;
+  margin: 0 !important;
+  background: #fff !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 -4px 14px rgb(76 35 56 / 5%);
+}
+@media (max-width: 760px) {
+  .special-board-modal.special-record-viewport {
+    max-height: calc(100dvh - 190px - env(safe-area-inset-bottom)) !important;
+  }
+  .special-board-modal.special-record-viewport > footer {
+    padding: 10px !important;
+  }
+}

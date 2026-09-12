@@ -77,6 +77,7 @@ import { AppDialogHost } from "./app-dialog";
 import { CorrectionSubjectTabs } from "./correction-subject-tabs";
 import { CorrectionHubUnified } from "./correction-hub-unified";
 import { AppUpdateManager } from "./app-update-manager";
+import "./special-layout-bounds.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hansalmae-student-manager.vercel.app"),
