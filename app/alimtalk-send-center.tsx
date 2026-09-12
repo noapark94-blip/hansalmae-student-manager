@@ -93,7 +93,7 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
 function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[]):Preview{
   const lessonItems=groupBySubject(lessons.map(row=>({
     subject:row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`,
-    value:row.source==="correction"?"":cleanMultiline(row.lessonContent),
+    value:row.attendance?.status==="absent"?"결석":row.attendance?.status==="excused"?"인정결석":row.source==="correction"?"":cleanMultiline(row.lessonContent),
   })),"수업 완료");
   const lesson=limitText(summarize(lessonItems,type==="weekly"?3:4)||"완료된 수업 없음",180);
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
