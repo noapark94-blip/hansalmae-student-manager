@@ -20,3 +20,9 @@ The SQL contract tests run the actual new migration against an isolated PostgreS
 5. On a conflict, “최신 내용 비교” retains pending edits and lets the user choose current or local values before another guarded save. No automatic overwrite retry.
 
 No production data or database definitions have been changed for these tests.
+
+Live updates: run `node --experimental-strip-types --test tests/class-record/live-merge.test.mjs tests/correction-schedule/live-refresh.test.mjs`. Nine tests verify dirty-field baseline preservation, added/deleted roster handling, serialized/coalesced reads, hidden-tab deferral and retry behavior. Run live-database-rollback.sql inside BEGIN/ROLLBACK after the live migration; production assertions passed for signals, delta equivalence, deletion and nonstaff RLS denial.
+
+Mounted class records subscribe only to their class/date and their class roster signal. Snapshot+week reads are batched (two RPCs), not per-student calls. Local dirty input and its original conflict baseline survive live updates; removed dirty rows remain recoverable. Class list/settings changes reconcile workspace/agenda metadata in fixed parallel requests, while the open record editor remains mounted. The class manager list also refreshes without resetting its editor.
+
+Calendar events use one ID-batch delta RPC; focus/reconnect refreshes the year and metadata. Editor baselines remain frozen for conflict detection; note previews refresh. Identifiers/dates only are published; staff RLS restricts record signals to assigned teachers/admin. No polling interval added. Category/student/profile naming changes reconcile on focus rather than dedicated signals. Other routes such as the separate timetable hub are outside the live subscriptions. Actual two-device/mobile visual verification and end-to-end latency benchmarking remain unperformed in this environment.

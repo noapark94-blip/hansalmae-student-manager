@@ -4,8 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm, appPrompt } from "./app-dialog";
+import { useStaffLiveUpdates } from "./use-staff-live-updates";
 import { compareEdits } from "./edit-conflict-dialog";
-import { editChanges, preservePendingEdits, type EditValues } from "./class-record-concurrency";
+import { editChanges, preservePendingEdits, mergeLiveEditValues, type EditValues } from "./class-record-concurrency";
 import { sendLearningFeedPush } from "./learning-feed-push";
 
 type Status = "present" | "late" | "absent";
@@ -235,6 +236,33 @@ export function ClassLearningBoard({
   const editBusyRef=useRef(false);
   const latestEditRef=useRef<EditValues>({notice:"",lessonContent:"",students:{}});
   useLayoutEffect(()=>{latestEditRef.current=rowEditValues(rows,notice,lessonContent);},[rows,notice,lessonContent]);
+  const refreshLive=useStaffLiveUpdates(supabase,`class-record-${classId}-${date}`,`key=eq.record:${classId}:${date}`,async(_batch,active)=>{
+    const base=editBaselineRef.current;
+    if(!base||editBusyRef.current||editScopeRef.current!==`${classId}:${date}`)return;
+    const [result,calendar]=await Promise.all([
+      supabase.rpc("staff_class_edit_snapshot",{p_class_id:classId,p_date:date}),
+      supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"})
+    ]);
+    if(!active()||editBusyRef.current||editBaselineRef.current!==base)return;
+    if(result.error)throw result.error;
+    const remote=result.data as EditSnapshot;
+    const merged=mergeLiveEditValues(base.values,latestEditRef.current,remote.values);
+    editBaselineRef.current={...remote,values:merged.baseline};latestEditRef.current=merged.values;
+    setRows(current=>{
+      const ids=new Set(remote.day.students.map(s=>s.id));
+      const next:Row[]=remote.day.students.map(student=>{
+        const hw=remote.homework.find(h=>h.studentId===student.id);
+        const exam=remote.exams.find(e=>e.studentId===student.id);
+        return {...student,status:student.status==="excused"?"absent":student.status,recordExists:Boolean(student.status||exam?.exams?.length||hw?.lessonContent||hw?.assignedHomework||hw?.inspectionStatus||remote.revision?.payload.rows.some(r=>r.studentId===student.id)),lessonContent:"",exams:[emptyExam()],assignedHomework:"",previousHomework:hw?.previousHomework??"",inspectionStatus:"",inspectionNote:""};
+      });
+      // Keep unsaved input even when somebody removes that student from the roster.
+      next.push(...current.filter(row=>!ids.has(row.id)&&merged.values.students[row.id]));
+      return applyEditValues(next,merged.values);
+    });setNotice(merged.values.notice);setLessonContent(merged.values.lessonContent);
+    setLessonState(remote.state);setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);
+    if(!calendar.error)setWeek((calendar.data??[]) as CalendarDay[]);
+  },failure=>setError((failure as {message?:string}).message??"수업 기록을 갱신하지 못했습니다."));
+  useStaffLiveUpdates(supabase,`class-roster-${classId}-${date}`,`key=eq.classes:${classId}`,async()=>{await refreshLive();},failure=>setError((failure as {message?:string}).message??"명단을 갱신하지 못했습니다."));
   const acceptSavedSnapshot=(snapshot:EditSnapshot,submitted:EditValues)=>{
     const merged=preservePendingEdits(latestEditRef.current,submitted,snapshot.values);
     editBaselineRef.current=snapshot;
@@ -252,7 +280,7 @@ export function ClassLearningBoard({
       const {data,error:saveError}=await supabase.rpc("staff_patch_class_record",{p_class_id:classId,p_date:date,p_changes:changes,p_expected_state:base.state,p_mode:mode});
       if(saveError)throw new Error(saveError.message);
       if(editScopeRef.current===`${classId}:${date}`)acceptSavedSnapshot(data as EditSnapshot,values);
-    }finally{editBusyRef.current=false;}
+    }finally{editBusyRef.current=false;void refreshLive();}
   };
   const reviewLatestEdits=async()=>{
     if(editBusyRef.current)return;
@@ -276,7 +304,7 @@ export function ClassLearningBoard({
       editBaselineRef.current=remote;latestEditRef.current=merged;
       setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);setLessonState(remote.state);
       setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);setError("");
-    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{editBusyRef.current=false;}
+    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{editBusyRef.current=false;void refreshLive();}
   };
   const confirmedRecordDatesRef = useRef(new Set<string>());
   const dateWarningPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -522,12 +550,13 @@ export function ClassLearningBoard({
         setRevisionSavedAt(revision?.savedAt ?? null);
         setError("");
         setLoading(false);
+        void refreshLive();
       },
     );
     return () => {
       active = false;
     };
-  }, [classId, date, reloadKey, students, supabase]);
+  }, [classId, date, reloadKey, students, supabase, refreshLive]);
 
   const activateMakeupDay = async () => {
     if (validDay || makeupEnabled) return;
@@ -719,7 +748,7 @@ export function ClassLearningBoard({
     // Attendance is a button action: don't treat its previous displayed value as a pending reversal.
     if(local.students[row.id])for(const key of ["status","lateMinutes","absenceReason","note"])if(local.students[row.id][key]===prior.students[row.id][key])local.students[row.id][key]=submitted.students[row.id][key];
     acceptSavedSnapshot(data as EditSnapshot,base.values);
-    }finally{editBusyRef.current=false;}
+    }finally{editBusyRef.current=false;void refreshLive();}
   };
   const saveAttendance = async (row: Row, status: Status) => {
     if (!validDay && !makeupEnabled) {
