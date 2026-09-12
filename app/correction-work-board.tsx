@@ -6,6 +6,7 @@ import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { appConfirm } from "./app-dialog";
 import { exceptionValues } from "./correction-schedule-concurrency";
+import { createCorrectionReportRefresh, correctionRequestKey } from "./correction-report-refresh";
 import { compareEdits } from "./edit-conflict-dialog";
 import { editableReportKeys, reportValue, sameValue, mergeRemoteReport, mergeRemoteBaseline, conflictingReportFields, resolveReportChoices, type Report, type TaskStatus, type EditableReportKey } from "./correction-record-concurrency";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
@@ -97,28 +98,35 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     return()=>window.removeEventListener("hansalmae-correction-assignments-changed",refresh);
   },[load]);
   useEffect(()=>{
+    let active=true;
+    let editorTimer:ReturnType<typeof setTimeout>|undefined;
+    const refresh=createCorrectionReportRefresh<Report>(async records=>{
+      const {data:next,error:failure}=await supabase.rpc("staff_correction_reports",{p_records:records});
+      if(failure)throw failure;
+      return (next??[]) as Report[];
+    },(records,reports)=>{
+      if(!active||activeDateRef.current!==date)return;
+      const saved={...savedDraftsRef.current},drafts={...draftsRef.current};
+      let editor="";
+      records.forEach((record,index)=>{
+        const key=correctionRequestKey(record),remote=reports[index];
+        const baseline=saved[key]??{},local=drafts[key]??{};
+        saved[key]=mergeRemoteBaseline(local,baseline,remote);
+        drafts[key]=mergeRemoteReport(local,baseline,remote);
+        if(remote.lastEditedByName)editor=remote.lastEditedByName;
+      });
+      savedDraftsRef.current=saved;draftsRef.current=drafts;
+      setSavedDrafts(saved);setDrafts(drafts);
+      if(editor){setLiveEditor(editor);if(editorTimer)clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(active)setLiveEditor("")},3500);}
+    },failure=>{if(active)setError((failure as {message?:string}).message??"첨삭 변경 내용을 불러오지 못했습니다.");},{visible:()=>document.visibilityState!=="hidden"});
     const channel=supabase.channel(`correction-reports-${date}`).on("postgres_changes",{event:"*",schema:"public",table:"correction_reports",filter:`correction_date=eq.${date}`},payload=>{
       const changed=(Object.keys(payload.new??{}).length?payload.new:payload.old) as Record<string,unknown>;
-      const assignmentId=String(changed.assignment_id??"");
-      const correctionDate=String(changed.correction_date??"");
-      const startTime=String(changed.start_time??"");
-      if(!assignmentId||!correctionDate||!startTime)return;
-      void supabase.rpc("staff_correction_report",{p_assignment_id:assignmentId,p_date:correctionDate,p_start_time:startTime}).then(({data:next,error:readError})=>{
-        if(readError)return;
-        const key=`${assignmentId}-${correctionDate}-${startTime}`;
-        const remote=(next??{}) as Report;
-        const baseline=savedDraftsRef.current[key]??{};
-        const local=draftsRef.current[key]??{};
-        const merged=mergeRemoteReport(local,baseline,remote);
-        const mergedBaseline=mergeRemoteBaseline(local,baseline,remote);
-        savedDraftsRef.current={...savedDraftsRef.current,[key]:mergedBaseline};
-        draftsRef.current={...draftsRef.current,[key]:merged};
-        setSavedDrafts(savedDraftsRef.current);
-        setDrafts(draftsRef.current);
-        if(remote.lastEditedByName){setLiveEditor(remote.lastEditedByName);window.setTimeout(()=>setLiveEditor(""),3500)}
-      });
-    }).subscribe(status=>setLiveConnected(status==="SUBSCRIBED"));
-    return()=>{setLiveConnected(false);void supabase.removeChannel(channel)};
+      const assignmentId=String(changed.assignment_id??""),correctionDate=String(changed.correction_date??""),startTime=String(changed.start_time??"");
+      if(assignmentId&&correctionDate===date&&startTime)refresh.changed({assignmentId,date:correctionDate,startTime});
+    }).subscribe(status=>{if(active)setLiveConnected(status==="SUBSCRIBED");if(status==="SUBSCRIBED")refresh.resume();});
+    const resume=()=>{if(document.visibilityState!=="hidden")refresh.resume();};
+    document.addEventListener("visibilitychange",resume);window.addEventListener("online",resume);
+    return()=>{active=false;refresh.dispose();if(editorTimer)clearTimeout(editorTimer);document.removeEventListener("visibilitychange",resume);window.removeEventListener("online",resume);setLiveConnected(false);void supabase.removeChannel(channel)};
   },[date,supabase]);
   const refreshCategories=useCallback(async()=>{
     const{data:next,error:categoryError}=await supabase.rpc("staff_exam_categories");

@@ -775,7 +775,6 @@ export function ClassLearningBoard({
           lateMinutes: null,
           absenceReason: null,
         });
-        await loadWeek();
       }
       setSaving("");
       return;
@@ -805,7 +804,6 @@ export function ClassLearningBoard({
     if (saveError) setError(saveError.message);
     else {
       update(row.id, { status, lateMinutes: late, absenceReason: reason });
-      await loadWeek();
     }
     setSaving("");
   };
@@ -842,7 +840,6 @@ export function ClassLearningBoard({
     else {
       update(row.id, { status, lateMinutes: late, absenceReason: reason });
       setAttendanceEditor(null);
-      await loadWeek();
     }
     setSaving("");
   };
@@ -933,7 +930,6 @@ export function ClassLearningBoard({
     try {
       await persistEdits(complete?"complete":"draft");
       if(complete&&lessonState!=="completed")await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.map(row=>row.id)});
-      await loadWeek();
     }catch(e){setError(e instanceof Error?e.message:"저장하지 못했습니다. 입력 내용은 유지됩니다.");}
     finally{setSaving("");}
   };
@@ -946,7 +942,7 @@ export function ClassLearningBoard({
     if(!validateRows(true))return;
     if(!await appConfirm({eyebrow:"수정 내용 반영",title:"수정 내용을 학부모 페이지에 반영할까요?",copy:"다른 선생님의 변경을 보존하고 수정한 내용을 반영합니다.",confirmLabel:"수정 내용 반영"}))return;
     setSaving("all");setError("");
-    try{await persistEdits("publish");await loadWeek();}catch(e){setError(e instanceof Error?e.message:"수정 내용을 반영하지 못했습니다.");}finally{setSaving("");}
+    try{await persistEdits("publish");}catch(e){setError(e instanceof Error?e.message:"수정 내용을 반영하지 못했습니다.");}finally{setSaving("");}
   };
 
   const deleteRecord = async () => {
