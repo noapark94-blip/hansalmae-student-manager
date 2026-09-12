@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createCorrectionRefreshQueue, replaceChangedAssignments } from "./correction-live-refresh";
 import { compareEdits } from "./edit-conflict-dialog";
 import { assignmentValues, scheduleChanges, mergeScheduleChoices, slotMembershipChanges, type ScheduleValues } from "./correction-schedule-concurrency";
 import confirmStyles from "./message-confirm.module.css";
@@ -44,26 +45,66 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
   const[assistantData,setAssistantData]=useState<AssistantBoard|null>(null);
   const[assistantEditorOpen,setAssistantEditorOpen]=useState(false);
 
-  const load=useCallback(async()=>{
-    setLoading(true);
-    setError("");
-    const[boardResult,assistantResult]=await Promise.all([
-      supabase.rpc("correction_management_board_v2",{p_anchor:anchor}),
-      supabase.rpc("correction_slot_assistant_board")
-    ]);
-    if(boardResult.error){setError(`첨삭 시간표를 불러오지 못했습니다. ${boardResult.error.message}`);setData(null);}
-    else setData(boardResult.data as Board);
-    if(assistantResult.error){setError(current=>current||`담당 조교 정보를 불러오지 못했습니다. ${assistantResult.error.message}`);setAssistantData(null);}
-    else setAssistantData(assistantResult.data as AssistantBoard);
-    setLoading(false);
-  },[anchor,supabase]);
-
-  useEffect(()=>{void load();},[load]);
+  const refreshRef=useRef<ReturnType<typeof createCorrectionRefreshQueue>|null>(null);
+  const load=useCallback(async()=>{refreshRef.current?.request({full:true});},[]);
   useEffect(()=>{
-    const refresh=()=>void load();
+    let disposed=false;
+    const queue=createCorrectionRefreshQueue(async batch=>{
+      if(batch.full){
+        const [board,assistants]=await Promise.all([
+          supabase.rpc("correction_management_board_v2",{p_anchor:anchor}),
+          supabase.rpc("correction_slot_assistant_board")
+        ]);
+        if(disposed)return;
+        if(board.error)throw board.error;
+        if(assistants.error)throw assistants.error;
+        setData(board.data as Board);
+        setAssistantData(assistants.data as AssistantBoard);
+      }else{
+        const [board,assistants]=await Promise.all([
+          batch.ids.length?supabase.rpc("correction_timetable_updates",{p_anchor:anchor,p_ids:batch.ids}):Promise.resolve(null),
+          batch.assistants?supabase.rpc("correction_slot_assistant_board"):Promise.resolve(null)
+        ]);
+        if(disposed)return;
+        if(board?.error)throw board.error;
+        if(assistants?.error)throw assistants.error;
+        if(board)setData(current=>current?{...current,...replaceChangedAssignments(current,board.data as Board,batch.ids)}:current);
+        if(assistants)setAssistantData(assistants.data as AssistantBoard);
+      }
+      setError("");setLoading(false);
+    },error=>{
+      if(disposed)return;
+      setLoading(false);
+      setError(`첨삭 시간표 갱신에 실패했습니다. 화면으로 돌아오면 다시 확인합니다. ${error instanceof Error?error.message:(error as {message?:string})?.message??""}`);
+    },{visible:()=>document.visibilityState!=="hidden"});
+    refreshRef.current=queue;
+    queue.request({full:true},true);
+    const channel=supabase.channel(`correction-timetable-${anchor}`)
+      .on("postgres_changes",{event:"*",schema:"public",table:"correction_timetable_signals"},payload=>{
+        const signal=payload.new as {key?:string;assignment_id?:string};
+        if(signal.key==="assistants")queue.request({assistants:true});
+        else if(signal.assignment_id)queue.request({id:signal.assignment_id});
+      }).subscribe(status=>{
+        // Also closes the initial snapshot/subscription gap and catches reconnect losses.
+        if(status==="SUBSCRIBED")queue.request({full:true});
+        else if(!disposed&&(status==="CHANNEL_ERROR"||status==="TIMED_OUT"))setError("자동 반영 연결이 끊겼습니다. 화면으로 돌아오면 최신 내용을 다시 확인합니다.");
+      });
+    const refresh=()=>queue.request({full:true});
+    const resume=()=>{if(document.visibilityState!=="hidden")refresh();};
     window.addEventListener("hansalmae-correction-assignments-changed",refresh);
-    return()=>window.removeEventListener("hansalmae-correction-assignments-changed",refresh);
-  },[load]);
+    window.addEventListener("focus",resume);
+    window.addEventListener("online",resume);
+    document.addEventListener("visibilitychange",resume);
+    return()=>{
+      disposed=true;queue.dispose();
+      if(refreshRef.current===queue)refreshRef.current=null;
+      void supabase.removeChannel(channel);
+      window.removeEventListener("hansalmae-correction-assignments-changed",refresh);
+      window.removeEventListener("focus",resume);
+      window.removeEventListener("online",resume);
+      document.removeEventListener("visibilitychange",resume);
+    };
+  },[anchor,supabase]);
   const occurrences=useMemo(()=>buildOccurrences(data),[data]);
   const normalizedStudentSearch=studentSearch.trim().replace(/\s+/g,"").toLocaleLowerCase("ko-KR");
   const studentSearchResults=useMemo(()=>{
@@ -105,14 +146,14 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     window.addEventListener("keydown",clearStudentSearch);
     return()=>window.removeEventListener("keydown",clearStudentSearch);
   },[normalizedStudentSearch]);
-  const changeWeek=(delta:number)=>setAnchor(current=>addDays(current,delta));
+  const changeWeek=(delta:number)=>{setLoading(true);setAnchor(current=>addDays(current,delta));};
 
   return <>
     <div className="page-heading correction-heading">
       <div><p className="eyebrow">한살매 첨삭 운영</p><h1>첨삭 관리</h1><p>고정 첨삭일은 유지하고, 이번 주 변경·취소·추가만 예외 일정으로 관리합니다.</p></div>
       <button className="primary" onClick={()=>setEditor({})}>＋ 학생 추가</button>
     </div>
-    <div className="correction-week-toolbar"><button onClick={()=>changeWeek(-7)}>‹ 이전 주</button><strong>{data?formatWeek(data.weekStart):"주간 시간표"}</strong><button onClick={()=>changeWeek(7)}>다음 주 ›</button><button className="today" onClick={()=>setAnchor(koreaToday())}>이번 주</button></div>
+    <div className="correction-week-toolbar"><button onClick={()=>changeWeek(-7)}>‹ 이전 주</button><strong>{data?formatWeek(data.weekStart):"주간 시간표"}</strong><button onClick={()=>changeWeek(7)}>다음 주 ›</button><button className="today" onClick={()=>{const today=koreaToday();if(today!==anchor){setLoading(true);setAnchor(today);}}}>이번 주</button></div>
     {error&&<p className="attendance-error">{error}</p>}
     {assistantData?.canManage?<div className="correction-assistant-actions"><button type="button" onClick={()=>setAssistantEditorOpen(true)}><span>담당 조교 설정</span><small>요일·시간대별 배정</small></button></div>:null}
     <nav className="correction-mobile-days">{days.map((day,index)=><button key={day} className={selectedDay===index+1?"active":""} onClick={()=>setSelectedDay(index+1)}>{day}</button>)}</nav>
@@ -153,7 +194,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
     })}</section>}
     {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} overrideDate={editor.overrideDate} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);}}/>:null}
     {action&&data?<ScheduleActionModal assignment={action.assignment} originalDate={action.date} supabase={supabase} onEdit={()=>{setEditor({row:action.assignment});setAction(null);}} onClose={()=>setAction(null)} onSaved={async()=>{setAction(null);await load();}}/>:null}
-    {slotRoster?<SlotRosterModal value={slotRoster} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
+    {slotRoster?<SlotRosterModal value={{...slotRoster,entries:occurrences.filter(row=>row.date===slotRoster.date&&row.startTime.slice(0,5)===slotRoster.start&&(subjectFilter==="전체"||row.assignment.subject===subjectFilter)).map(row=>({key:row.key,assignment:row.assignment,state:row.state}))}} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
     {assistantEditorOpen&&assistantData?<AssistantScheduleEditor value={assistantData} supabase={supabase} onClose={()=>setAssistantEditorOpen(false)} onSaved={async()=>{setAssistantEditorOpen(false);await load();}}/>:null}
   </>;
 }
