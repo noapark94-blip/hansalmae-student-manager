@@ -66,3 +66,27 @@
     padding: 10px !important;
   }
 }
+
+/* Embedded records grow with the roster, just like regular class records. */
+.special-board-modal.special-record-viewport.special-board-embedded {
+  max-height: none !important;
+}
+.special-board-modal.special-record-viewport.special-board-embedded > .learning-board-scroll {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+  overflow: visible !important;
+  padding-bottom: 0;
+  overscroll-behavior: auto;
+  scrollbar-gutter: auto;
+}
+/* The outer card supplies the rounded outline; the summary only needs a divider. */
+.special-board-modal.special-record-viewport > .family-read-status {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #eee5e9;
+  border-radius: 0;
+}
+.special-board-modal.special-record-viewport.special-board-embedded > footer {
+  box-shadow: none;
+}
