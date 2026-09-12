@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { compareEdits } from "./edit-conflict-dialog";
+import { assignmentValues, scheduleChanges, mergeScheduleChoices, slotMembershipChanges, type ScheduleValues } from "./correction-schedule-concurrency";
 import confirmStyles from "./message-confirm.module.css";
 
 type Student={id:string;name:string;school:string|null;grade:string|null};
@@ -149,7 +151,7 @@ export function CorrectionManagementBoard({supabase}:{supabase:SupabaseClient}){
         })}</div>
       </section>;
     })}</section>}
-    {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} overrideDate={editor.overrideDate} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await load();}}/>:null}
+    {editor&&data?<AssignmentEditor row={editor.row} initialWeekday={editor.weekday} initialSlot={editor.slot} overrideDate={editor.overrideDate} data={data} supabase={supabase} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);}}/>:null}
     {action&&data?<ScheduleActionModal assignment={action.assignment} originalDate={action.date} supabase={supabase} onEdit={()=>{setEditor({row:action.assignment});setAction(null);}} onClose={()=>setAction(null)} onSaved={async()=>{setAction(null);await load();}}/>:null}
     {slotRoster?<SlotRosterModal value={slotRoster} onClose={()=>setSlotRoster(null)} onSelect={assignment=>{setSlotRoster(null);setAction({assignment,date:slotRoster.date})}}/>:null}
     {assistantEditorOpen&&assistantData?<AssistantScheduleEditor value={assistantData} supabase={supabase} onClose={()=>setAssistantEditorOpen(false)} onSaved={async()=>{setAssistantEditorOpen(false);await load();}}/>:null}
@@ -170,7 +172,7 @@ function SlotRosterModal({value,onClose,onSelect}:{value:NonNullable<SlotRosterS
 }
 
 function AssistantScheduleEditor({value,supabase,onClose,onSaved}:{value:AssistantBoard;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
-  const initial=useMemo(()=>new Set(value.assignments.map(item=>`${item.weekday}-${item.startTime.slice(0,5)}-${item.assistantId}`)),[value.assignments]);
+  const [initial]=useState(()=>new Set(value.assignments.map(item=>`${item.weekday}-${item.startTime.slice(0,5)}-${item.assistantId}`)));
   const[selected,setSelected]=useState(initial);
   const[mobileDay,setMobileDay]=useState(1);
   const[saving,setSaving]=useState(false);
@@ -178,16 +180,16 @@ function AssistantScheduleEditor({value,supabase,onClose,onSaved}:{value:Assista
   const toggle=(weekday:number,start:string,assistantId:string)=>setSelected(current=>{const next=new Set(current);const key=`${weekday}-${start}-${assistantId}`;if(next.has(key))next.delete(key);else next.add(key);return next;});
   const submit=async()=>{
     setSaving(true);setError("");
-    const assignments:Array<{weekday:number;startTime:string;assistantId:string}>=[];
-    for(let weekday=1;weekday<=7;weekday++){const slots=weekday<=5?weekdaySlots:weekendSlots;for(const[start]of slots){for(const assistant of value.assistants){if(selected.has(`${weekday}-${start}-${assistant.id}`))assignments.push({weekday,startTime:start,assistantId:assistant.id});}}}
-    const{error:saveError}=await supabase.rpc("staff_save_correction_slot_assistants",{p_assignments:assignments});
+    const{error:saveError}=await supabase.rpc("staff_patch_correction_slot_assistants",{p_changes:slotMembershipChanges(initial,selected)});
     if(saveError){setError(saveError.message);setSaving(false);return;}
     await onSaved();
   };
-  return <div className="modal-backdrop correction-assistant-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)onClose();}}><section className="student-modal correction-assistant-editor"><header><div><p className="eyebrow">매주 반복 담당표</p><h2>시간대별 담당 조교</h2><span>각 시간대에 근무하는 조교를 모두 선택해 주세요. 관리자·선생님·조교가 수정할 수 있습니다.</span></div><button type="button" onClick={onClose} disabled={saving}>×</button></header>{value.assistants.length?<><nav className="correction-assistant-mobile-days">{days.map((day,index)=><button type="button" key={day} className={mobileDay===index+1?"active":""} onClick={()=>setMobileDay(index+1)}>{day}</button>)}</nav><div className="correction-assistant-grid">{days.map((day,index)=>{const weekday=index+1;const slots=weekday<=5?weekdaySlots:weekendSlots;return <section key={day} className={mobileDay===weekday?"mobile-active":""}><h3>{day}요일</h3>{slots.map(([start,end])=><div className="correction-assistant-row" key={start}><time>{start}–{end}</time><div>{value.assistants.map(assistant=>{const active=selected.has(`${weekday}-${start}-${assistant.id}`);return <button type="button" key={assistant.id} className={active?"active":""} aria-pressed={active} onClick={()=>toggle(weekday,start,assistant.id)}>{active?<i>✓</i>:null}{assistant.name}</button>})}</div></div>)}</section>})}</div></>:<p className="correction-assistant-empty">활성 상태인 조교 계정이 없습니다. 먼저 계정 관리에서 조교 계정을 등록해 주세요.</p>}{error?<p className="form-error">{error}</p>:null}<footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button type="button" className="primary" disabled={saving||!value.assistants.length} onClick={()=>void submit()}>{saving?"저장 중…":"담당표 저장"}</button></footer></section></div>;
+  return <div className="modal-backdrop correction-assistant-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)onClose();}}><section className="student-modal correction-assistant-editor"><header><div><p className="eyebrow">매주 반복 담당표</p><h2>시간대별 담당 조교</h2><span>각 시간대에 근무하는 조교를 모두 선택해 주세요. 관리자·선생님·조교가 수정할 수 있습니다.</span></div><button type="button" onClick={onClose} disabled={saving}>×</button></header>{value.assistants.length?<><nav className="correction-assistant-mobile-days">{days.map((day,index)=><button type="button" key={day} className={mobileDay===index+1?"active":""} onClick={()=>setMobileDay(index+1)}>{day}</button>)}</nav><div className="correction-assistant-grid">{days.map((day,index)=>{const weekday=index+1;const slots=weekday<=5?weekdaySlots:weekendSlots;return <section key={day} className={mobileDay===weekday?"mobile-active":""}><h3>{day}요일</h3>{slots.map(([start,end])=><div className="correction-assistant-row" key={start}><time>{start}–{end}</time><div>{value.assistants.map(assistant=>{const active=selected.has(`${weekday}-${start}-${assistant.id}`);return <button type="button" key={assistant.id} className={active?"active":""} aria-pressed={active} disabled={saving} onClick={()=>toggle(weekday,start,assistant.id)}>{active?<i>✓</i>:null}{assistant.name}</button>})}</div></div>)}</section>})}</div></>:<p className="correction-assistant-empty">활성 상태인 조교 계정이 없습니다. 먼저 계정 관리에서 조교 계정을 등록해 주세요.</p>}{error?<p className="form-error">{error}</p>:null}<footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button type="button" className="primary" disabled={saving||!value.assistants.length} onClick={()=>void submit()}>{saving?"저장 중…":"담당표 저장"}</button></footer></section></div>;
 }
 
 function AssignmentEditor({row,initialWeekday,initialSlot,overrideDate,data,supabase,onClose,onSaved}:{row?:Assignment;initialWeekday?:number;initialSlot?:string;overrideDate?:string;data:Board;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
+  const [baseline,setBaseline]=useState(()=>row?assignmentValues(row):null);
+  const busy=useRef(false);
   const initialStudentId=row?.studentId??"";
   const[studentId,setStudentId]=useState(initialStudentId);
   const[studentQuery,setStudentQuery]=useState(()=>{
@@ -219,28 +221,51 @@ function AssignmentEditor({row,initialWeekday,initialSlot,overrideDate,data,supa
 
   useEffect(()=>{if(!slots.some(item=>item[0]===slot))setSlot(slots[0][0]);},[slot,slots]);
 
+  const applyValues=(values:ScheduleValues)=>{
+    setStudentId(values.studentId);const student=data.students.find(s=>s.id===values.studentId);
+    setStudentQuery(student?`${student.name} · ${[student.school,student.grade].filter(Boolean).join(" ")}`:row?.studentName??"");
+    setSubject(values.subject as Assignment["subject"]);setWeekday(values.schedule.weekday);setSlot(values.schedule.startTime);
+    setTutorId(values.tutorId);setSupervisorId(values.supervisorId);setNote(values.note);
+  };
   const submit=async(event:FormEvent)=>{
-    event.preventDefault();setSaving(true);setError("");
-    const picked=slots.find(item=>item[0]===slot)??slots[0];
-    const{error:saveError}=overrideDate
-      ?await supabase.rpc("staff_add_correction_date_assignment",{p_date:overrideDate,p_student_id:studentId,p_subject:subject,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null})
-      :await supabase.rpc("staff_save_correction_assignment",{p_id:row?.id??null,p_student_id:studentId,p_subject:subject,p_weekday:weekday,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null});
-    if(saveError){setError(saveError.message.includes("duplicate")?"이미 같은 학생의 같은 과목 첨삭이 이 시간에 배정되어 있습니다.":saveError.message);setSaving(false);}else{
-      window.dispatchEvent(new Event("hansalmae-correction-assignments-changed"));
-      await onSaved();
-    }
+    event.preventDefault();if(busy.current)return;busy.current=true;setSaving(true);setError("");
+    try{
+      const picked=slots.find(item=>item[0]===slot)??slots[0];
+      const local:ScheduleValues={studentId,subject,schedule:{weekday,startTime:picked[0],endTime:picked[1]},tutorId,supervisorId,note};
+      const result=row&&baseline&&!overrideDate
+        ?await supabase.rpc("staff_patch_correction_assignment",{p_id:row.id,p_base:baseline,p_changes:scheduleChanges(baseline,local),p_delete:false})
+        :overrideDate
+        ?await supabase.rpc("staff_add_correction_date_assignment",{p_date:overrideDate,p_student_id:studentId,p_subject:subject,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null})
+        :await supabase.rpc("staff_save_correction_assignment",{p_id:null,p_student_id:studentId,p_subject:subject,p_weekday:weekday,p_start_time:picked[0],p_end_time:picked[1],p_tutor_profile_id:tutorId||null,p_supervisor_profile_id:supervisorId||null,p_note:note||null});
+      if(result.error)throw new Error(result.error.message.includes("duplicate")?"이미 같은 학생의 같은 과목 첨삭이 이 시간에 배정되어 있습니다.":result.error.message);
+      if(row&&baseline&&!overrideDate){
+        const response=result.data as {deleted?:boolean;saved?:boolean;conflicts?:string[];values:ScheduleValues};
+        if(response.deleted)throw new Error("다른 담당자가 배정을 삭제하거나 종료했습니다. 입력 내용은 유지됩니다. 시간표에서 최신 배정을 확인해 주세요.");
+        if(response.conflicts?.length){
+          const labels:Record<string,string>={studentId:"학생",subject:"과목",schedule:"요일·시간",tutorId:"첨삭 담당",supervisorId:"감독 선생님",note:"특이사항"};
+          const display=(key:string,values:ScheduleValues)=>key==="schedule"?`${days[values.schedule.weekday-1]}요일 ${values.schedule.startTime}–${values.schedule.endTime}`:key==="studentId"?(data.students.find(s=>s.id===values.studentId)?.name??"학생 정보 변경"):key==="tutorId"||key==="supervisorId"?(data.staff.find(s=>s.id===values[key])?.name??"미정"):String(values[key as keyof ScheduleValues]??"");
+          const choices=await compareEdits(response.conflicts.map(key=>({id:key,student:row.studentName,field:labels[key]??key,mine:display(key,local),latest:display(key,response.values)})));
+          if(choices===null)return;
+          applyValues(mergeScheduleChoices(baseline,local,response.values,choices));setBaseline(response.values);
+          setError("선택한 내용을 적용했습니다. 확인 후 다시 저장해 주세요.");return;
+        }
+      }
+      window.dispatchEvent(new Event("hansalmae-correction-assignments-changed"));await onSaved();
+    }catch(e){setError(e instanceof Error?e.message:"배정을 저장하지 못했습니다. 다시 시도해 주세요.");}
+    finally{busy.current=false;setSaving(false);}
   };
   const remove=async()=>{
-    if(!row)return;
-    setSaving(true);
-    const{error:removeError}=await supabase.rpc("staff_delete_correction_assignment",{p_id:row.id});
-    if(removeError){setError(removeError.message);setSaving(false);setDeleteConfirmOpen(false);}else{
-      window.dispatchEvent(new Event("hansalmae-correction-assignments-changed"));
-      await onSaved();
-    }
+    if(!row||!baseline||busy.current)return;busy.current=true;setSaving(true);setError("");
+    try{
+      const{data:response,error:removeError}=await supabase.rpc("staff_patch_correction_assignment",{p_id:row.id,p_base:baseline,p_changes:{},p_delete:true});
+      if(removeError)throw new Error(removeError.message);
+      if(response?.conflicts?.length)throw new Error("다른 담당자가 배정을 수정해 삭제하지 않았습니다. 창을 닫고 최신 배정을 확인한 뒤 다시 삭제해 주세요.");
+      window.dispatchEvent(new Event("hansalmae-correction-assignments-changed"));await onSaved();
+    }catch(e){setError(e instanceof Error?e.message:"배정을 삭제하지 못했습니다.");setDeleteConfirmOpen(false);}
+    finally{busy.current=false;setSaving(false);}
   };
 
-  return <><div className="modal-backdrop"><section className="student-modal correction-editor"><header><div><p className="eyebrow">고정 첨삭 일정</p><h2>{row?"첨삭 배정 수정":"학생 첨삭 배정"}</h2><span>{row?"기본 일정은 매주 반복됩니다. 특정 주 변경은 별도 예외 일정으로 처리합니다.":`${days[weekday-1]}요일 ${slot} 시간에 학생을 추가합니다.`}</span></div><button onClick={onClose}>×</button></header><form onSubmit={submit}><div className="form-grid"><label className="correction-student-search-field">학생<div className="correction-student-picker"><input required value={studentQuery} autoComplete="off" placeholder="학생 이름·학교·학년 검색" onFocus={e=>{e.currentTarget.select();setStudentPickerOpen(true)}} onBlur={()=>window.setTimeout(()=>setStudentPickerOpen(false),120)} onChange={e=>{setStudentQuery(e.target.value);setStudentId("");setStudentPickerOpen(true)}} />{studentPickerOpen?<div className="correction-student-search-results">{visibleStudents.length?visibleStudents.map(item=><button type="button" key={item.id} className={studentId===item.id?"selected":""} onMouseDown={e=>e.preventDefault()} onClick={()=>chooseStudent(item)}><b>{item.name}</b><small>{[item.school,item.grade].filter(Boolean).join(" · ")||"학교·학년 미등록"}</small></button>):<p>검색 결과가 없습니다.</p>}</div>:null}</div></label><label>첨삭 과목<select value={subject} onChange={e=>setSubject(e.target.value as "국어"|"영어"|"수학")}><option>국어</option><option>영어</option><option>수학</option></select></label><label>요일<select value={weekday} onChange={e=>setWeekday(Number(e.target.value))}>{days.map((day,index)=><option key={day} value={index+1}>{day}요일</option>)}</select></label><label>시간<select value={slot} onChange={e=>setSlot(e.target.value)}>{slots.map(([start,end])=><option value={start} key={start}>{start}–{end}</option>)}</select></label><label>첨삭 담당<select value={tutorId} onChange={e=>setTutorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>감독 선생님<select value={supervisorId} onChange={e=>setSupervisorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="full">특이사항<input value={note} onChange={e=>setNote(e.target.value)} placeholder="예: 주간 테스트 · 내신 과제 확인"/></label></div>{error&&<p className="form-error">{error}</p>}<footer>{row?<button type="button" className="danger-link" disabled={saving} onClick={()=>setDeleteConfirmOpen(true)}>고정 배정 삭제</button>:<span/>}<span><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button className="primary" disabled={saving||!studentId}>{saving?"저장 중…":"저장"}</button></span></footer></form></section></div>{row&&deleteConfirmOpen?<div className={confirmStyles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)setDeleteConfirmOpen(false)}}><section className={`${confirmStyles.dialog} ${confirmStyles.danger}`} role="alertdialog" aria-modal="true" aria-labelledby="correction-delete-confirm-title"><button type="button" className={confirmStyles.close} aria-label="삭제 확인창 닫기" disabled={saving} onClick={()=>setDeleteConfirmOpen(false)}>×</button><div className={confirmStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg></div><p className={confirmStyles.eyebrow}>고정 첨삭 배정 삭제</p><h3 id="correction-delete-confirm-title">{row.studentName} 학생 배정을 삭제할까요?</h3><p className={confirmStyles.copy}>{row.subject} · {days[row.weekday-1]}요일 {row.startTime.slice(0,5)}–{row.endTime.slice(0,5)} 고정 일정을 삭제합니다.</p><div className={confirmStyles.notice}><i aria-hidden="true">i</i><span>매주 반복되는 고정 배정에서 제외됩니다.</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={saving} onClick={()=>setDeleteConfirmOpen(false)}>돌아가기</button><button type="button" className={confirmStyles.primary} disabled={saving} onClick={()=>void remove()}>{saving?"삭제 중…":"배정 삭제"}</button></footer></section></div>:null}</>;
+  return <><div className="modal-backdrop"><section className="student-modal correction-editor"><header><div><p className="eyebrow">고정 첨삭 일정</p><h2>{row?"첨삭 배정 수정":"학생 첨삭 배정"}</h2><span>{row?"기본 일정은 매주 반복됩니다. 특정 주 변경은 별도 예외 일정으로 처리합니다.":`${days[weekday-1]}요일 ${slot} 시간에 학생을 추가합니다.`}</span></div><button onClick={onClose} disabled={saving}>×</button></header><form onSubmit={submit}><fieldset className="form-grid" disabled={saving} style={{border:0,padding:0,margin:0,minWidth:0}}><label className="correction-student-search-field">학생<div className="correction-student-picker"><input required value={studentQuery} autoComplete="off" placeholder="학생 이름·학교·학년 검색" onFocus={e=>{e.currentTarget.select();setStudentPickerOpen(true)}} onBlur={()=>window.setTimeout(()=>setStudentPickerOpen(false),120)} onChange={e=>{setStudentQuery(e.target.value);setStudentId("");setStudentPickerOpen(true)}} />{studentPickerOpen?<div className="correction-student-search-results">{visibleStudents.length?visibleStudents.map(item=><button type="button" key={item.id} className={studentId===item.id?"selected":""} onMouseDown={e=>e.preventDefault()} onClick={()=>chooseStudent(item)}><b>{item.name}</b><small>{[item.school,item.grade].filter(Boolean).join(" · ")||"학교·학년 미등록"}</small></button>):<p>검색 결과가 없습니다.</p>}</div>:null}</div></label><label>첨삭 과목<select value={subject} onChange={e=>setSubject(e.target.value as "국어"|"영어"|"수학")}><option>국어</option><option>영어</option><option>수학</option></select></label><label>요일<select value={weekday} onChange={e=>setWeekday(Number(e.target.value))}>{days.map((day,index)=><option key={day} value={index+1}>{day}요일</option>)}</select></label><label>시간<select value={slot} onChange={e=>setSlot(e.target.value)}>{slots.map(([start,end])=><option value={start} key={start}>{start}–{end}</option>)}</select></label><label>첨삭 담당<select value={tutorId} onChange={e=>setTutorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>감독 선생님<select value={supervisorId} onChange={e=>setSupervisorId(e.target.value)}><option value="">미정</option>{data.staff.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="full">특이사항<input value={note} onChange={e=>setNote(e.target.value)} placeholder="예: 주간 테스트 · 내신 과제 확인"/></label></fieldset>{error&&<p className="form-error">{error}</p>}<footer>{row?<button type="button" className="danger-link" disabled={saving} onClick={()=>setDeleteConfirmOpen(true)}>고정 배정 삭제</button>:<span/>}<span><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button className="primary" disabled={saving||!studentId}>{saving?"저장 중…":"저장"}</button></span></footer></form></section></div>{row&&deleteConfirmOpen?<div className={confirmStyles.backdrop} onMouseDown={event=>{if(event.target===event.currentTarget&&!saving)setDeleteConfirmOpen(false)}}><section className={`${confirmStyles.dialog} ${confirmStyles.danger}`} role="alertdialog" aria-modal="true" aria-labelledby="correction-delete-confirm-title"><button type="button" className={confirmStyles.close} aria-label="삭제 확인창 닫기" disabled={saving} onClick={()=>setDeleteConfirmOpen(false)}>×</button><div className={confirmStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7m-8 0 1 13h8l1-13M10 10.5v6M14 10.5v6"/></svg></div><p className={confirmStyles.eyebrow}>고정 첨삭 배정 삭제</p><h3 id="correction-delete-confirm-title">{row.studentName} 학생 배정을 삭제할까요?</h3><p className={confirmStyles.copy}>{row.subject} · {days[row.weekday-1]}요일 {row.startTime.slice(0,5)}–{row.endTime.slice(0,5)} 고정 일정을 삭제합니다.</p><div className={confirmStyles.notice}><i aria-hidden="true">i</i><span>매주 반복되는 고정 배정에서 제외됩니다.</span></div><footer><button type="button" className={confirmStyles.cancel} disabled={saving} onClick={()=>setDeleteConfirmOpen(false)}>돌아가기</button><button type="button" className={confirmStyles.primary} disabled={saving} onClick={()=>void remove()}>{saving?"삭제 중…":"배정 삭제"}</button></footer></section></div>:null}</>;
 }
 
 function ScheduleActionModal({assignment,originalDate,supabase,onEdit,onClose,onSaved}:{assignment:Assignment;originalDate:string;supabase:SupabaseClient;onEdit:()=>void;onClose:()=>void;onSaved:()=>Promise<void>}){
@@ -254,7 +279,7 @@ function ScheduleActionModal({assignment,originalDate,supabase,onEdit,onClose,on
   const slots=weekday<=5?weekdaySlots:weekendSlots;
   const picked=slots.find(item=>item[0]===targetStart)??slots[0];
   useEffect(()=>{if(!slots.some(item=>item[0]===targetStart))setTargetStart(slots[0][0]);},[slots,targetStart]);
-  const submit=async()=>{setSaving(true);setError("");const{error:saveError}=await supabase.rpc("staff_save_correction_exception",{p_id:null,p_assignment_id:assignment.id,p_original_date:originalDate,p_kind:mode,p_target_date:mode==="cancel"?null:targetDate,p_target_start_time:mode==="cancel"?null:picked[0],p_target_end_time:mode==="cancel"?null:picked[1],p_note:note||null});if(saveError){setError(saveError.message.includes("duplicate")?"이 학생은 이번 주에 이미 변경 또는 취소 처리가 되어 있습니다.":saveError.message);setSaving(false);}else await onSaved();};
+  const submit=async()=>{setSaving(true);setError("");const{error:saveError}=await supabase.rpc("staff_add_guarded_correction_exception",{p_assignment_id:assignment.id,p_base:assignmentValues(assignment),p_original_date:originalDate,p_kind:mode,p_target_date:mode==="cancel"?null:targetDate,p_target_start_time:mode==="cancel"?null:picked[0],p_target_end_time:mode==="cancel"?null:picked[1],p_note:note||null});if(saveError){setError(saveError.message.includes("duplicate")?"이 학생은 이번 주에 이미 변경 또는 취소 처리가 되어 있습니다.":saveError.message);setSaving(false);}else await onSaved();};
   return <div className="modal-backdrop"><section className="student-modal correction-action"><header><div><p className="eyebrow">이번 주만 변경</p><h2>{assignment.studentName} · {assignment.subject} 첨삭</h2><span>고정 일정 {days[assignment.weekday-1]} {assignment.startTime.slice(0,5)}–{assignment.endTime.slice(0,5)}은 그대로 유지됩니다.</span></div><button onClick={onClose}>×</button></header><div className="correction-action-types"><button className={mode==="move"?"active":""} onClick={()=>setMode("move")}>이번 주 시간 변경</button><button className={mode==="cancel"?"active":""} onClick={()=>setMode("cancel")}>이번 주 취소</button><button className={mode==="extra"?"active":""} onClick={()=>setMode("extra")}>추가 첨삭</button></div>{mode!=="cancel"&&<div className="form-grid correction-action-fields"><label>{mode==="move"?"변경 날짜":"추가 날짜"}<input type="date" value={targetDate} onChange={e=>setTargetDate(e.target.value)}/></label><label>시간<select value={targetStart} onChange={e=>setTargetStart(e.target.value)}>{slots.map(([start,end])=><option key={start} value={start}>{start}–{end}</option>)}</select></label></div>}<label className="correction-action-note">사유·메모<input value={note} onChange={e=>setNote(e.target.value)} placeholder="예: 병원 일정으로 수요일로 변경"/></label>{error&&<p className="form-error">{error}</p>}<footer><button className="secondary-button" onClick={onEdit}>고정 일정 수정</button><span><button className="secondary-button" onClick={onClose}>닫기</button><button className="primary" disabled={saving} onClick={()=>void submit()}>{saving?"저장 중…":"저장"}</button></span></footer></section></div>;
 }
 
