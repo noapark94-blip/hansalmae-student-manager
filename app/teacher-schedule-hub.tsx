@@ -2019,16 +2019,20 @@ function ClassEditor({
   const [teacherIds, setTeacherIds] = useState(
     row?.teachers.map((item) => item.id) ?? [],
   );
+  const [scheduleBase]=useState(()=>row?{weekday:row.weekday,startTime:row.startTime.slice(0,5),endTime:row.endTime.slice(0,5),teacherIds:row.teachers.map(x=>x.id).sort()}:null);
+  const [newBase,setNewBase]=useState<{classId:string;teacherIds:string[]}|null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  useEffect(() => {
-    if (!row)
-      setTeacherIds(
-        data.classSchedules
-          .find((item) => item.classId === classId)
-          ?.teachers.map((item) => item.id) ?? [],
-      );
-  }, [classId, data.classSchedules, row]);
+  useEffect(()=>{
+    if(row)return;
+    let cancelled=false;
+    void supabase.rpc("staff_class_schedule_create_base",{p_class_id:classId}).then(({data:base,error:failure})=>{
+      if(cancelled)return;
+      if(failure){setError(failure.message);return;}
+      setNewBase({classId,teacherIds:base.teacherIds});setTeacherIds(base.teacherIds);
+    });
+    return()=>{cancelled=true;};
+  },[classId,row,supabase]);
   const selectedRoom =
     row?.classId === classId
       ? row.room
@@ -2059,6 +2063,8 @@ function ClassEditor({
   );
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if(saving)return;
+    if(!row&&newBase?.classId!==classId)return setError("담당 선생님 정보를 확인 중입니다. 잠시 후 저장해 주세요.");
     if (!classId || teacherIds.length === 0)
       return setError("클래스와 담당 선생님을 한 명 이상 선택해 주세요.");
     if (
@@ -2069,17 +2075,7 @@ function ClassEditor({
       return setError("시간을 24시간제 네 자리로 입력해 주세요. 예: 1730");
     if (conflicts.length) return setError("겹치는 수업을 먼저 확인해 주세요.");
     setSaving(true);
-    const { error: saveError } = await supabase.rpc(
-      "staff_save_class_schedule",
-      {
-        p_schedule_id: row?.id ?? null,
-        p_class_id: classId,
-        p_weekday: weekday,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_teacher_ids: teacherIds,
-      },
-    );
+    const {error:saveError}=await supabase.rpc("staff_guard_class_schedule",{p_id:row?.id??null,p_class_id:classId,p_base:row?scheduleBase:{teacherIds:newBase?.teacherIds??[]},p_values:{weekday,startTime,endTime,teacherIds}});
     if (saveError) {
       setError(
         saveErrorMessage(saveError.message, "수업 배정을 저장하지 못했습니다."),
@@ -2103,12 +2099,9 @@ function ClassEditor({
     )
       return;
     setSaving(true);
-    const { error: deleteError } = await supabase
-      .from("class_schedules")
-      .delete()
-      .eq("id", row.id);
+    const {error:deleteError}=await supabase.rpc("staff_guard_class_schedule",{p_id:row.id,p_class_id:row.classId,p_base:scheduleBase,p_values:{},p_delete:true});
     if (deleteError) {
-      setError("수업 배정을 삭제하지 못했습니다.");
+      setError(deleteError.message||"수업 배정을 삭제하지 못했습니다.");
       setSaving(false);
     } else await onSaved();
   };
@@ -2118,7 +2111,7 @@ function ClassEditor({
       description="공동담당 선생님은 모두 개인 시간표에 자동 표시됩니다."
       onClose={onClose}
     >
-      <form className="class-editor-form" onSubmit={submit}>
+      <form className="class-editor-form" onSubmit={submit} inert={saving}>
         <FormSelect
           label="클래스"
           value={classId}
