@@ -638,10 +638,12 @@ export default function Home() {
     showToast(`${data.name} 클래스를 등록했습니다.`);
   };
 
-  const saveClassAssignments = async (student: StudentRow, classIds: string[]) => {
-    const { error } = await supabase.rpc("staff_sync_student_enrollments", {
+  const saveClassAssignments = async (student: StudentRow, classIds: string[], scheduleIds: string[], base: unknown) => {
+    const { error } = await supabase.rpc("staff_save_student_assignment_plan", {
       p_student_id: student.id,
       p_class_ids: classIds,
+      p_schedule_ids: scheduleIds,
+      p_base: base,
     });
     if (error) throw error;
     const nextEnrollments = classIds.map((classId) => {
@@ -940,7 +942,7 @@ export default function Home() {
       {staffAccount && staffMoreOpen && <StaffMoreSheet items={allowedNav} activeView={view} displayName={signedInDisplayName} role={profile.role} onSelect={selectView} onClose={() => setStaffMoreOpen(false)} onSignOut={() => { setStaffMoreOpen(false); setView("dashboard"); void supabase.auth.signOut(); }} />}
       {registrationOpen && <StudentRegistrationModal classes={academyClasses} schools={academySchools} onAddSchool={addRegistrationSchool} onRenameSchool={renameRegistrationSchool} onDeleteSchool={deleteRegistrationSchool} onReorderSchools={reorderRegistrationSchools} onClose={() => setRegistrationOpen(false)} onSubmit={registerStudent} />}
       {classRegistrationOpen && <ClassRegistrationModal subjects={academySubjects} onClose={() => setClassRegistrationOpen(false)} onSubmit={registerClass} />}
-      {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds) => saveClassAssignments(enrollmentStudent, classIds)} />}
+      {enrollmentStudent && <EnrollmentModal supabase={supabase} student={enrollmentStudent} classes={academyClasses} subjects={academySubjects} onClose={() => setEnrollmentStudent(null)} onSubmit={(classIds, scheduleIds, base) => saveClassAssignments(enrollmentStudent, classIds, scheduleIds, base)} />}
       {studentDetails && (
         <StudentDetailHub
           supabase={supabase}
@@ -2258,9 +2260,10 @@ type StudentScheduleChoice = {
   endTime: string;
   assigned: boolean;
 };
-function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubmit }: { supabase: SupabaseClient; student: StudentRow; classes: AcademyClass[]; subjects: SubjectOption[]; onClose: () => void; onSubmit: (classIds: string[]) => Promise<void> }) {
+function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubmit }: { supabase: SupabaseClient; student: StudentRow; classes: AcademyClass[]; subjects: SubjectOption[]; onClose: () => void; onSubmit: (classIds: string[], scheduleIds: string[], base: unknown) => Promise<void> }) {
   const assigned = new Set(student.enrollments.filter((item) => item.status === "active").map((item) => item.class_id));
   const [classIds, setClassIds] = useState([...assigned]);
+  const [assignmentBase, setAssignmentBase] = useState<unknown>(null);
   const [scheduleChoices, setScheduleChoices] = useState<StudentScheduleChoice[]>([]);
   const [scheduleIds, setScheduleIds] = useState<string[]>([]);
   const [step, setStep] = useState<"classes" | "schedules">("classes");
@@ -2268,9 +2271,10 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const loadSchedules = async () => {
-    const { data, error: loadError } = await supabase.rpc("staff_student_schedule_choices", { p_student_id: student.id });
+    const { data, error: loadError } = await supabase.rpc("staff_student_assignment_plan", { p_student_id: student.id, p_class_ids: classIds });
     if (loadError) throw loadError;
-    const rows = (data ?? []) as StudentScheduleChoice[];
+    const rows = (data?.choices ?? []) as StudentScheduleChoice[];
+    setAssignmentBase(data?.base ?? null);
     setScheduleChoices(rows);
     setScheduleIds(rows.filter((item) => item.assigned).map((item) => item.scheduleId));
     setStep("schedules");
@@ -2281,11 +2285,9 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
     setError("");
     try {
       if (step === "classes") {
-        await onSubmit(classIds);
         await loadSchedules();
       } else {
-        const { error: saveError } = await supabase.rpc("staff_save_student_schedule_assignments", { p_student_id: student.id, p_schedule_ids: scheduleIds });
-        if (saveError) throw saveError;
+        await onSubmit(classIds, scheduleIds, assignmentBase);
         onClose();
       }
     } catch (next) {
@@ -2302,7 +2304,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
   const visibleClasses = subjectFilter === "전체" ? classes : classes.filter((item) => classMainSubject(item) === subjectFilter);
   const subjectCount = (subject: MainSubjectFilter) => subject === "전체" ? classes.length : classes.filter((item) => classMainSubject(item) === subject).length;
   return (
-    <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description={step === "classes" ? "한 학생에게 여러 과목·세부 반을 동시에 배정합니다." : "실제로 참석하는 요일별 반을 선택하세요. 선택하지 않으면 기존처럼 모든 수강 반에 표시됩니다."} onClose={onClose}>
+    <ModalShell eyebrow="학생 수강 관리" title={`${student.name} · 과목과 반 수정`} description={step === "classes" ? "한 학생에게 여러 과목·세부 반을 동시에 배정합니다." : "실제로 참석하는 요일별 반을 선택하세요. 반마다 실제 참석하는 요일을 한 개 이상 선택한 뒤 함께 저장합니다."} onClose={() => { if (!submitting) onClose(); }}>
       <form className={step === "schedules" ? "schedule-assignment-form" : undefined} onSubmit={submit}>
         {step === "classes" ? (
           classes.length ? (
@@ -2358,7 +2360,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
         {error && <p className="form-error">{error}</p>}
         <footer>
           {step === "schedules" ? (
-            <button type="button" className="secondary-button" onClick={() => setStep("classes")}>
+            <button type="button" className="secondary-button" disabled={submitting} onClick={() => setStep("classes")}>
               이전
             </button>
           ) : (
@@ -2367,7 +2369,7 @@ function EnrollmentModal({ supabase, student, classes, subjects, onClose, onSubm
             </button>
           )}
           <button className="primary" disabled={submitting}>
-            {submitting ? "저장 중…" : step === "classes" ? "반 저장 후 요일 배정" : "교차수강 배정 저장"}
+            {submitting ? "저장 중…" : step === "classes" ? "다음 · 요일 선택" : "반·요일 함께 저장"}
           </button>
         </footer>
       </form>
