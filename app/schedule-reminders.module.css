@@ -4,6 +4,19 @@
 .checkbox span{font-size:13px!important;color:inherit!important;}
 .checkbox small{display:block;font-size:10px;color:#907584;margin-top:2px;}
 .checkbox svg{width:18px;height:18px;}
+.recipients{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;margin:8px 0 4px;padding:16px;border:1px solid #eadce4;border-radius:16px;background:#fcf9fb;}
+.recipients legend{padding:0 6px;color:#743153;font-size:14px;font-weight:700;}
+.recipients legend small{margin-left:6px;font-size:12px;color:#a34e7a;}
+.recipients>p{font-size:12px;line-height:1.6;color:#8a7581;margin:0 0 12px;}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.tags>button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:36px;padding:6px 10px;border:1px solid #e4c5d6;border-radius:10px;background:#f5e6ef;color:#86305b;font-size:13px;cursor:pointer;}
+.tags>button span{font-size:18px;line-height:1;}.tags>small{color:#a64a66;font-size:12px;}
+.recipients>input{box-sizing:border-box;width:100%;min-width:0;min-height:42px!important;font-size:14px!important;margin:0 0 10px;}
+.people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:174px;overflow-y:auto;overscroll-behavior:contain;padding:2px;}
+.people>button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;min-height:48px;padding:8px 12px;border:1px solid #eee4e9;border-radius:10px;background:white;color:#67545f;text-align:left;cursor:pointer;}
+.people>button[aria-pressed=true]{border-color:#c884a7;background:#fff5fb;color:#86305b;}
+.people>button b{display:block;font-size:13px;overflow-wrap:anywhere;}.people>button small{font-size:10px;color:#95818d;}.people>button i{font-size:17px;font-style:normal;flex-shrink:0;}.people>p{grid-column:1/-1;font-size:12px;color:#8a7581;}
+.recipients button:focus-visible,.recipients input:focus-visible{outline:2px solid #922d61;outline-offset:2px;}
 .toast{position:fixed;bottom:26px;right:26px;z-index:180;width:350px;max-width:calc(100vw - 32px);box-sizing:border-box;padding:23px;border:1px solid #e8d6e1;border-radius:20px;background:#fffafd;box-shadow:0 12px 42px #4b183528;color:#342831;}
 .toast>small,.detail header>small{color:#922d61;font-size:12px;font-weight:700;}
 .toast h3{font-size:18px;margin:8px 24px 10px 0;word-break:keep-all;}
