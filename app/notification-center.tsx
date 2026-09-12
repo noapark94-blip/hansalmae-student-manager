@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
+import { useScheduleReminders, ScheduleReminderList } from "./schedule-reminders";
+import reminderStyles from "./schedule-reminders.module.css";
 import { DevicePushToggle } from "./guardian-push-toggle";
 import {
   CommentReactionBar,
@@ -45,6 +47,9 @@ export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
 export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: (studentId?:string) => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
   const [open, setOpen] = useState(false);
+  const reminders=useScheduleReminders();
+  const [tab,setTab]=useState<"comments"|"schedule">("comments");
+  const reminderCount=reminders?.items.filter(item=>!item.read).length??0;
   const [mode, setMode] = useState<"staff" | "family" | "general" | null>(null);
   const [inbox, setInbox] = useState<Inbox>({ unreadCount: 0, items: [] });
   const [selected, setSelected] = useState<InboxItem | null>(null);
@@ -234,12 +239,12 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
       <button
         type="button"
         className="icon-button notification-button"
-        aria-label={`알림${inbox.unreadCount ? ` ${inbox.unreadCount}개` : ""}`}
+        aria-label={`알림${inbox.unreadCount+reminderCount ? ` ${inbox.unreadCount+reminderCount}개` : ""}`}
         onClick={openInbox}
       >
         <HansalmaeIcon name="bell" size={21} />
-        {inbox.unreadCount > 0 && (
-          <i>{inbox.unreadCount > 99 ? "99+" : inbox.unreadCount}</i>
+        {inbox.unreadCount+reminderCount > 0 && (
+          <i>{inbox.unreadCount+reminderCount > 99 ? "99+" : inbox.unreadCount+reminderCount}</i>
         )}
       </button>
       {typeof document!=="undefined"&&open&&createPortal(
@@ -255,12 +260,14 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
                 <small>
                   {mode === "staff" ? "학부모 소통" : "한살매 수업노트"}
                 </small>
-                <h2>{mode === "staff" ? "댓글 알림" : "알림"}</h2>
+                <h2>{reminders ? "알림함" : mode === "staff" ? "댓글 알림" : "알림"}</h2>
               </div>
               <button type="button" aria-label="알림 닫기" onClick={() => setOpen(false)}>
                 ×
               </button>
             </header>
+            {reminders&&<div className={reminderStyles.tabs} role="tablist" aria-label="알림 종류"><button role="tab" aria-selected={tab==="comments"} onClick={()=>setTab("comments")}>댓글<small>{inbox.unreadCount}</small></button><button role="tab" aria-selected={tab==="schedule"} onClick={()=>setTab("schedule")}>일정<small>{reminderCount}</small></button></div>}
+            {reminders&&tab==="schedule"?<ScheduleReminderList/>:<>
             <div className="notification-toolbar">
               <span>
                 {mode === "staff"
@@ -324,7 +331,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
                   </article>
                 ))
               )}
-            </div>
+            </div></>}
           </section>
         </div>,document.body
       )}
