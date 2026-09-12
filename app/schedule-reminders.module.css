@@ -54,6 +54,18 @@
 .deleteReminder:hover{background:#fff5f8;color:#aa3558;border-color:#dfb7c8;}
 .deleteReminder:focus-visible{outline:2px solid #922d61;outline-offset:2px;}
 .deleteReminder:disabled{opacity:.5;cursor:default;}
+/* Keep native button fonts from differing from the shared comment inbox. */
+.toast,.detail,.item,.toast button,.detail button,.deleteReminder{font-family:inherit;letter-spacing:-.02em;}
+.item{text-rendering:inherit;line-height:1.55;}
+.item b{font-size:12px;line-height:1.35;font-weight:700;color:#332b2f;}
+.item small{font-size:9px;line-height:1.45;color:#8d8187;}
+.item p{font-size:10px;line-height:1.55;color:#5e5459;}
+.toast p,.body p,.body dl{font-size:13px;line-height:1.65;}
+@media(max-width:600px){
+ .item b{font-size:15px;line-height:1.4;}
+ .item small{font-size:11.5px;line-height:1.55;}
+ .item p{font-size:13px;line-height:1.65;}
+}
 @media(max-width:760px){
  .checkbox{grid-column:1/-1;order:-1;margin-right:auto;}
  .toast{bottom:calc(88px + env(safe-area-inset-bottom));right:16px;left:16px;width:auto;padding:18px;border-radius:18px;}
