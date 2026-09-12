@@ -52,6 +52,17 @@ export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEd
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const closeDraft=useCallback(()=>{setDraft(null);onEditorClose?.();},[onEditorClose]);
+  const refreshSessionAttendance=async(change?:{studentId:string;status:"present"|"late"|"absent"|null})=>{
+    if(change&&activeSession){
+      const patch=(session:Session)=>session.id===activeSession.id?{...session,students:session.students.map(student=>student.id===change.studentId?{...student,attendanceStatus:change.status}:student)}:session;
+      setSessions(current=>current.map(patch));setActiveSession(current=>current?patch(current):null);
+    }else if(activeSession){
+      const {data,error:readError}=await supabase.rpc("staff_special_lesson_board",{p_session_id:activeSession.id});
+      if(readError){setError(readError.message);return;}
+      const statuses=new Map((data.students as Array<{id:string;status:AttendanceStatus}>).map(row=>[row.id,row.status]));
+      setSessions(current=>current.map(session=>session.id===activeSession.id?{...session,students:session.students.map(student=>({...student,attendanceStatus:statuses.get(student.id)??null}))}:session));
+    }
+  };
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }, { data: subjectData, error: subjectError }] = await Promise.all([
@@ -168,7 +179,7 @@ export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEd
         })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
       {loading && !activeSession ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
-        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} profile={profile} sessionId={activeSession.id} lessonKind={activeSession.kind} onClose={() => setActiveSession(null)} onAttendanceChange={load} /> : <section className="special-day-agenda">
+        activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} profile={profile} sessionId={activeSession.id} lessonKind={activeSession.kind} onClose={() => setActiveSession(null)} onAttendanceChange={refreshSessionAttendance} /> : <section className="special-day-agenda">
           <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div></header>
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>
             <i />

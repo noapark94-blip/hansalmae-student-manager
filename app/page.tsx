@@ -1,44 +1,48 @@
 "use client";
 import { ScheduleReminderProvider } from "./schedule-reminders";
 
+import dynamic from "next/dynamic";
 import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient, type AcademyClass, type Profile, type StudentRow, type UserRole } from "./supabase";
-import { TeacherScheduleHub } from "./teacher-schedule-hub";
-import { AttendanceBoard } from "./attendance-board";
-import { MakeupBoard } from "./makeup-board";
-import { AssignmentBoard } from "./assignment-board";
-import { ConsultationBoard } from "./consultation-board";
-import { CommunicationBoard } from "./communication-board";
-import { SettingsBoard } from "./settings-board";
+const TeacherScheduleHub=dynamic(()=>import("./teacher-schedule-hub").then(module=>module.TeacherScheduleHub),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const AttendanceBoard=dynamic(()=>import("./attendance-board").then(module=>module.AttendanceBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const MakeupBoard=dynamic(()=>import("./makeup-board").then(module=>module.MakeupBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const AssignmentBoard=dynamic(()=>import("./assignment-board").then(module=>module.AssignmentBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const ConsultationBoard=dynamic(()=>import("./consultation-board").then(module=>module.ConsultationBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const CommunicationBoard=dynamic(()=>import("./communication-board").then(module=>module.CommunicationBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const SettingsBoard=dynamic(()=>import("./settings-board").then(module=>module.SettingsBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
-import { StudentDetailHub } from "./student-detail-hub";
-import { FamilyCalendarView, FamilyLiveDashboard, FamilyScheduleView, FamilySummaryReportView } from "./family-dashboard";
-import { FamilyGradesView } from "./family-grades-view";
+const StudentDetailHub=dynamic(()=>import("./student-detail-hub").then(module=>module.StudentDetailHub),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilyCalendarView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyCalendarView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilyLiveDashboard=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyLiveDashboard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilyScheduleView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyScheduleView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilySummaryReportView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilySummaryReportView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilyGradesView=dynamic(()=>import("./family-grades-view").then(module=>module.FamilyGradesView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
-import { TuitionBoard } from "./tuition-board";
-import { OperationsAnalytics } from "./operations-analytics";
-import { BackupBoard } from "./backup-board";
-import { BulkImportBoard } from "./bulk-import-board";
-import { BulkAccountBoard } from "./bulk-account-board";
+const TuitionBoard=dynamic(()=>import("./tuition-board").then(module=>module.TuitionBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const OperationsAnalytics=dynamic(()=>import("./operations-analytics").then(module=>module.OperationsAnalytics),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const BackupBoard=dynamic(()=>import("./backup-board").then(module=>module.BackupBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const BulkImportBoard=dynamic(()=>import("./bulk-import-board").then(module=>module.BulkImportBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const BulkAccountBoard=dynamic(()=>import("./bulk-account-board").then(module=>module.BulkAccountBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import { SidebarNavigation } from "./sidebar-navigation";
 import { reorderById, useSortableOrder } from "./use-sortable-order";
-import { BulkRegistrationGuide } from "./bulk-registration-guide";
+const BulkRegistrationGuide=dynamic(()=>import("./bulk-registration-guide").then(module=>module.BulkRegistrationGuide),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import { MobileConsultationSearch } from "./mobile-consultation-search";
 import { ConsultationClassSearch } from "./consultation-class-search";
-import { TeacherClassWorkspace } from "./teacher-class-workspace";
+const TeacherClassWorkspace=dynamic(()=>import("./teacher-class-workspace").then(module=>module.TeacherClassWorkspace),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import type { WeeklyTimetableRow } from "./weekly-timetable";
-import { AlimtalkSendCenter } from "./alimtalk-send-center";
+const AlimtalkSendCenter=dynamic(()=>import("./alimtalk-send-center").then(module=>module.AlimtalkSendCenter),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import { HansalmaeIcon, viewIcon } from "./hansalmae-icons";
 import { useMobileGreeting } from "./mobile-greeting";
 import { AccountRecovery, ForcedPasswordChange } from "./account-recovery";
 import { AppInstallPrompt, KakaoInstallButtonRecovery } from "./app-install-prompt";
 import { GuardianPushPrompt, PushDeviceAccountSync } from "./guardian-push-toggle";
-import { GradeProgressionBoard } from "./grade-progression-board";
-import { VocabularyTestGenerator } from "./vocabulary-test-generator";
+const GradeProgressionBoard=dynamic(()=>import("./grade-progression-board").then(module=>module.GradeProgressionBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const VocabularyTestGenerator=dynamic(()=>import("./vocabulary-test-generator").then(module=>module.VocabularyTestGenerator),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
 import confirmStyles from "./message-confirm.module.css";
 
 export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
@@ -761,7 +765,7 @@ export default function Home() {
             </button>
             <div>
               {profile.role === "guardian" && <AppInstallPrompt placement="topbar" />}
-              <NotificationCenter key={user.id} supabase={supabase} onOpenFamilyReport={(studentId)=>{if(studentId)selectFamilyStudent(studentId);selectView("dashboard")}} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
+              <NotificationCenter key={user.id} supabase={supabase} role={profile.role} onOpenFamilyReport={(studentId)=>{if(studentId)selectFamilyStudent(studentId);selectView("dashboard")}} onOpenAnnouncement={(announcementId)=>{sessionStorage.setItem("hansalmae:announcement-target",announcementId);selectView("communications");}} />
             </div>
           </header>
         ) : (
@@ -771,7 +775,7 @@ export default function Home() {
                 <b>한살매 수업노트</b>
               </button>
               <div>
-                <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
+                <NotificationCenter key={user.id} supabase={supabase} role={profile.role} onOpenStaffLesson={openStaffLessonTarget} />
                 <button type="button" className="staff-account-button" onClick={() => selectView("my-account")} aria-label="내 계정">
                   <span>{profile.display_name.slice(0, 1)}</span>
                 </button>
@@ -854,7 +858,7 @@ export default function Home() {
                   ＋ 학생 등록
                 </button>
               )}
-              <NotificationCenter key={user.id} supabase={supabase} onOpenStaffLesson={openStaffLessonTarget} />
+              <NotificationCenter key={user.id} supabase={supabase} role={profile.role} onOpenStaffLesson={openStaffLessonTarget} />
             </header>
           </>
         )}

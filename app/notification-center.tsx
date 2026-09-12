@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {UserRole} from "./supabase";
+import {notificationSources,singleFlight} from "./notification-refresh";
 import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { HansalmaeIcon } from "./hansalmae-icons";
@@ -45,7 +47,8 @@ type ThreadComment = {
 };
 export type StaffLessonTarget={classId:string;date:string;requestId:number};
 
-export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; onOpenFamilyReport?: (studentId?:string) => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
+export function NotificationCenter({ supabase, role, onOpenFamilyReport, onOpenAnnouncement, onOpenStaffLesson }: { supabase: SupabaseClient; role:UserRole; onOpenFamilyReport?: (studentId?:string) => void; onOpenAnnouncement?: (announcementId:string) => void; onOpenStaffLesson?: (target:StaffLessonTarget) => void }) {
+  const triggerRef=useRef<HTMLButtonElement|null>(null);
   const [open, setOpen] = useState(false);
   const reminders=useScheduleReminders();
   const [tab,setTab]=useState<"comments"|"schedule">("comments");
@@ -63,11 +66,14 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
   const [threadError, setThreadError] = useState("");
   const { reactions, reacting, load: loadReactions, toggle } =
     useReportCommentReactions(supabase);
-  const load = useCallback(async () => {
+  const loadOnce = useCallback(async () => {
+    if(document.visibilityState!=="visible"||!triggerRef.current?.getClientRects().length)return true;
+    const sources=notificationSources(role);
+    const skipped=Promise.resolve({data:null,error:{message:"not applicable"}});
     const [staff, family, general] = await Promise.all([
-      supabase.rpc("staff_report_comment_inbox"),
-      supabase.rpc("family_report_reply_inbox"),
-      supabase.rpc("family_notification_center"),
+      sources.staff?supabase.rpc("staff_report_comment_inbox"):skipped,
+      sources.family?supabase.rpc("family_report_reply_inbox"):skipped,
+      sources.general?supabase.rpc("family_notification_center"):skipped,
     ]);
     if (!staff.error) {
       setMode("staff");
@@ -92,7 +98,8 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
     setMode(null);
     setInbox({ unreadCount: 0, items: [] });
     return false;
-  }, [supabase]);
+  }, [supabase,role]);
+  const load=useMemo(()=>singleFlight(loadOnce),[loadOnce]);
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
@@ -105,16 +112,18 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
     };
     const intervalId = window.setInterval(refresh, 5000);
     window.addEventListener("focus", refresh);
+    window.addEventListener("resize", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("resize", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [load]);
   useEffect(() => {
     if (!selected?.studentId || !selected.lessonId) return;
-    const refreshThread = async () => {
+    const refreshThread = singleFlight(async () => {
       if (document.visibilityState !== "visible") return;
       const { data } = await supabase.rpc("staff_report_comments", {
         p_student_id: selected.studentId,
@@ -127,7 +136,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
           nextThread.filter((item) => !item.isDeleted).map((item) => item.id),
         );
       }
-    };
+    });
     const intervalId = window.setInterval(() => void refreshThread(), 5000);
     return () => window.clearInterval(intervalId);
   }, [loadReactions, selected?.lessonId, selected?.studentId, supabase]);
@@ -237,6 +246,7 @@ export function NotificationCenter({ supabase, onOpenFamilyReport, onOpenAnnounc
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         className="icon-button notification-button"
         aria-label={`알림${inbox.unreadCount+reminderCount ? ` ${inbox.unreadCount+reminderCount}개` : ""}`}

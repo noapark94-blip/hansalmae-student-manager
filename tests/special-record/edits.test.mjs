@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {specialInputValues,applySpecialValues} from '../../app/special-record-edits.ts';
+import {editChanges,preservePendingEdits} from '../../app/class-record-concurrency.ts';
+import {singleFlight,notificationSources} from '../../app/notification-refresh.ts';
+const base=()=>({notice:'',lessonContent:'',students:{a:{status:'present',lateMinutes:null,absenceReason:'',lessonContent:'',assignedHomework:'',inspectionStatus:'',inspectionNote:'',exam_id:'',exam_examType:'',exam_examTitle:'',exam_score:'',exam_maxScore:'100',exam_evaluation:''}}});
+const rows=()=>[{id:'a',lessonContent:'',assignedHomework:'',inspectionStatus:'',inspectionNote:'',exam:{examType:'',examTitle:'',score:'',maxScore:'100',evaluation:''}}];
+test('learning edit does not overwrite attendance or untouched fields',()=>{const b=base(),r=rows();r[0].lessonContent='A';assert.deepEqual(editChanges(b,specialInputValues(b,r,'')),[{path:['students','a','lessonContent'],before:'',value:'A'}]);});
+test('typing during save survives canonical response',()=>{const b=base(),r=rows();r[0].lessonContent='A';const sent=specialInputValues(b,r,'');r[0].lessonContent='B';const pending=specialInputValues(sent,r,'');const merged=preservePendingEdits(pending,sent,sent);assert.equal(applySpecialValues(r,merged)[0].lessonContent,'B');});
+test('teacher requests only staff inbox, guardian two family sources',()=>{assert.deepEqual(notificationSources('teacher'),{staff:true,family:false,general:false});assert.deepEqual(notificationSources('guardian'),{staff:false,family:true,general:true});assert.deepEqual(notificationSources('student'),{staff:false,family:false,general:true});});
+test('overlapping refreshes share one pending call and can refresh again',async()=>{let resolve,calls=0;const read=singleFlight(()=>{calls++;return new Promise(r=>resolve=r)});const a=read(),b=read();assert.equal(calls,1);resolve(1);assert.deepEqual(await Promise.all([a,b]),[1,1]);const c=read();assert.equal(calls,2);resolve(2);assert.equal(await c,2);});
+test('failed refresh releases the pending request',async()=>{let calls=0;const read=singleFlight(async()=>{if(++calls===1)throw Error('offline');return 2;});await assert.rejects(read());assert.equal(await read(),2);});

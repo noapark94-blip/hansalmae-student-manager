@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Profile } from "./supabase";
 import { TeacherSpecialLessons } from "./teacher-special-lessons";
@@ -9,6 +9,9 @@ import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm } from "./app-dialog";
 import { ExamCategoryModal, type ExamCategory } from "./class-learning-board";
 import "./special-record-mobile.css";
+import {editChanges,preservePendingEdits,mergeLiveEditValues,type EditValues} from "./class-record-concurrency";
+import {specialInputValues,applySpecialValues} from "./special-record-edits";
+import {compareEdits} from "./edit-conflict-dialog";
 
 type Status = "present" | "late" | "absent";
 type Exam = { examType: string; examTitle: string; score: string; maxScore: string; evaluation: string };
@@ -19,13 +22,14 @@ type Row = {
 };
 type AttendanceEditor = { row: Row; status: "late" | "absent"; value: string };
 type Board = { notice: string; state: "draft" | "completed"; students: Array<Omit<Row, "exam"> & { exam?: Partial<Record<keyof Exam, string | number | null>> }> };
+type Snapshot = {board:Board;values:EditValues;state:"draft"|"completed"};
 type FamilyReadStudent = { studentId:string; studentName:string; school:string|null; grade:string|null; guardianCount:number; readCount:number; status:"confirmed"|"unconfirmed"|"unlinked"; viewedAt:string|null };
 type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStudents:number; confirmedStudents:number; unconfirmedStudents:number; unlinkedStudents:number; students:FamilyReadStudent[] };
 
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; profile: Profile; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onAttendanceChange?: () => void | Promise<void>; embedded?: boolean }) {
+export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; profile: Profile; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onAttendanceChange?: (change?:{studentId:string;status:Status|null}) => void | Promise<void>; embedded?: boolean }) {
   const [editingSchedule,setEditingSchedule]=useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
@@ -38,28 +42,41 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
   const [lessonState, setLessonState] = useState<"draft" | "completed">("draft");
   const [historyStudent,setHistoryStudent]=useState<Row|null>(null);
   const [attendanceEditor,setAttendanceEditor]=useState<AttendanceEditor|null>(null);
+  const baseline=useRef<Snapshot|null>(null);
+  const busy=useRef(false);
+  const latest=useRef({rows,notice});
+  const scope=useRef(sessionId);
+  const loadEpoch=useRef(0);
+  useLayoutEffect(()=>{latest.current={rows,notice};scope.current=sessionId;},[rows,notice,sessionId]);
+  const [reviewing,setReviewing]=useState(false);
+  const [readRevision,setReadRevision]=useState(0);
   const load = useCallback(async (preserveInput=false) => {
+    const epoch=++loadEpoch.current;
     setLoading(true);
+    try {
     const [boardResponse, categoryResponse] = await Promise.all([
-      supabase.rpc("staff_special_lesson_board", { p_session_id: sessionId }),
+      supabase.rpc("staff_special_edit_snapshot", { p_session_id: sessionId }),
       supabase.rpc("staff_exam_categories"),
     ]);
+    if(epoch!==loadEpoch.current||scope.current!==sessionId)return;
     if (boardResponse.error || categoryResponse.error) setError(boardResponse.error?.message ?? categoryResponse.error?.message ?? "수업 기록을 불러오지 못했습니다.");
     else {
-      const board = boardResponse.data as Board;
+      const snapshot=boardResponse.data as Snapshot;
+      const board = snapshot.board;
+      const old=baseline.current;
+      const merge=preserveInput&&old?mergeLiveEditValues(old.values,specialInputValues(old.values,latest.current.rows,latest.current.notice),snapshot.values):{values:snapshot.values,baseline:snapshot.values};
+      baseline.current={...snapshot,values:merge.baseline};
       setNotice(board?.notice ?? "");
       setLessonState(board?.state === "completed" ? "completed" : "draft");
-      setRows(current=>(board?.students ?? []).map((row) => ({ ...row, exam: {
-        examType: String(row.exam?.examType ?? ""), examTitle: String(row.exam?.examTitle ?? ""),
-        score: row.exam?.score == null ? "" : String(row.exam.score), maxScore: row.exam?.maxScore == null ? "100" : String(row.exam.maxScore),
-        evaluation: String(row.exam?.evaluation ?? ""),
-      }, ...(preserveInput?(()=>{const previous=current.find(x=>x.id===row.id);return previous?{lessonContent:previous.lessonContent,assignedHomework:previous.assignedHomework,inspectionStatus:previous.inspectionStatus,inspectionNote:previous.inspectionNote,exam:previous.exam}:{};})():{}) })));
+      const nextRows=applySpecialValues(board.students.map(row=>({...row,exam:{examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""}})),merge.values);
+      nextRows.push(...latest.current.rows.filter(row=>!nextRows.some(next=>next.id===row.id)&&Boolean(merge.values.students[row.id])));
+      latest.current={rows:nextRows,notice:merge.values.notice};setRows(nextRows);setNotice(merge.values.notice);
       setCategories((categoryResponse.data ?? []) as ExamCategory[]);
       setError("");
     }
-    setLoading(false);
+    }catch(e){setError(e instanceof Error?e.message:"수업을 불러오지 못했습니다.");}finally{if(epoch===loadEpoch.current)setLoading(false);}
   }, [sessionId, supabase]);
-  useEffect(() => void load(), [load]);
+  useEffect(() => {baseline.current=null;void load();return()=>{loadEpoch.current++;};}, [load]);
   useEffect(() => {
     const closeTopLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -78,12 +95,44 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
   };
   const update = (id: string, patch: Partial<Row>) => setRows((current) => current.map((row) => row.id === id ? { ...row, ...patch } : row));
   const updateExam = (id: string, patch: Partial<Exam>) => setRows((current) => current.map((row) => row.id === id ? { ...row, exam: { ...row.exam, ...patch } } : row));
+  const acceptSnapshot=(snapshot:Snapshot,submitted:EditValues)=>{
+    const current=specialInputValues(submitted,latest.current.rows,latest.current.notice);
+    const values=preservePendingEdits(current,submitted,snapshot.values);
+    baseline.current=snapshot;
+    const nextRows=applySpecialValues(snapshot.board.students.map(row=>({...row,exam:{examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""}})),values);
+    latest.current={rows:nextRows,notice:values.notice};setRows(nextRows);setNotice(values.notice);setLessonState(snapshot.state);setReadRevision(n=>n+1);
+  };
   const persistAttendance = async (row: Row, status: Status | null, late: number | null, reason: string | null) => {
-    setSaving(row.id); setError("");
-    const { error: saveError } = await supabase.rpc("staff_save_special_lesson_attendance", { p_session_id: sessionId, p_student_id: row.id, p_status: status, p_late_minutes: late, p_absence_reason: reason });
-    if (saveError) setError(saveError.message); else { update(row.id, { status, lateMinutes: late, absenceReason: reason }); await onAttendanceChange?.(); }
-    setSaving("");
-    return !saveError;
+    const base=baseline.current;if(!base||busy.current)return false;
+    busy.current=true;setSaving(row.id);setError("");
+    try{
+      const values=structuredClone(base.values),v=values.students[row.id];if(!v)throw new Error("명단이 변경됐습니다. 최신 내용을 비교해 주세요.");
+      v.status=status;v.lateMinutes=late;v.absenceReason=reason??"";
+      const {data,error:saveError}=await supabase.rpc("staff_patch_special_record",{p_session_id:sessionId,p_changes:editChanges(base.values,values),p_expected_state:base.state,p_mode:"attendance"});
+      if(saveError)throw new Error(saveError.message);
+      if(scope.current!==sessionId)return false;
+      acceptSnapshot(data as Snapshot,values);await onAttendanceChange?.({studentId:row.id,status});return true;
+    }catch(e){setError(e instanceof Error?e.message:"출결을 저장하지 못했습니다.");return false;}finally{busy.current=false;setSaving("");}
+  };
+  const reviewLatest=async()=>{
+    const base=baseline.current;if(!base||busy.current)return;
+    busy.current=true;setReviewing(true);
+    try{
+      const {data,error:readError}=await supabase.rpc("staff_special_edit_snapshot",{p_session_id:sessionId});if(readError)throw new Error(readError.message);
+      if(scope.current!==sessionId)return;
+      const remote=data as Snapshot,local=specialInputValues(base.values,latest.current.rows,latest.current.notice);
+      const changes=editChanges(base.values,local);
+      if(changes.some(c=>c.path.length===3&&!remote.values.students[c.path[1]])){setError("명단에서 빠진 학생의 입력이 있습니다. 내용을 복사한 뒤 수업을 다시 열어 주세요.");return;}
+      const label:Record<string,string>={notice:"안내",lessonContent:"수업 내용",assignedHomework:"숙제",inspectionStatus:"검사 상태",inspectionNote:"검사 메모",exam_examType:"시험 종류",exam_examTitle:"시험명",exam_score:"점수",exam_maxScore:"만점",exam_evaluation:"평가"};
+      const value=(v:EditValues,path:string[])=>path.length===1?v.notice:v.students[path[1]][path[2]];
+      const conflicts=changes.filter(c=>c.path[2]!=="exam_id"&&value(remote.values,c.path)!==c.before&&value(remote.values,c.path)!==c.value);
+      const choices=conflicts.length?await compareEdits(conflicts.map(c=>({id:c.path.join('/'),student:rows.find(r=>r.id===c.path[1])?.name??"공통",field:label[c.path.at(-1)!]??"수업 기록",mine:String(c.value??""),latest:String(value(remote.values,c.path)??"")}))):{};
+      if(choices===null||scope.current!==sessionId)return;
+      const merged=preservePendingEdits(local,base.values,remote.values);
+      for(const c of conflicts)if(choices[c.path.join('/')]==='latest'){if(c.path.length===1)merged.notice=remote.values.notice;else merged.students[c.path[1]][c.path[2]]=value(remote.values,c.path);}
+      const nextRows=applySpecialValues(remote.board.students.map(row=>({...row,exam:{examType:"",examTitle:"",score:"",maxScore:"100",evaluation:""}})),merged);
+      baseline.current=remote;latest.current={rows:nextRows,notice:merged.notice};setRows(nextRows);setNotice(merged.notice);setLessonState(remote.state);setError("");
+    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{busy.current=false;setReviewing(false);}
   };
   const saveAttendance = async (row: Row, status: Status) => {
     const next = row.status === status ? null : status;
@@ -103,13 +152,14 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
   const save = async (complete: boolean) => {
     if (complete) { const missing = rows.filter((row) => !row.status).map((row) => row.name); if (missing.length) return setError(`출결 미입력 학생: ${missing.join(", ")}`); }
     for (const row of rows) { const hasExamInput=Boolean(row.exam.examTitle.trim()||row.exam.score!==""||row.exam.evaluation.trim()); if(hasExamInput&&!row.exam.examType.trim())return setError(`${row.name} 학생의 시험 종류를 선택해 주세요.`); const score = Number(row.exam.score), max = Number(row.exam.maxScore); if (row.exam.score !== "" && (!Number.isFinite(score) || !Number.isFinite(max) || max <= 0 || score < 0 || score > max)) return setError(`${row.name} 학생의 점수를 확인해 주세요.`); }
-    setSaving("all"); setError("");
-    const { error: saveError } = await supabase.rpc("staff_save_special_lesson_learning", { p_session_id: sessionId, p_notice: notice, p_rows: rows.map((row) => ({ studentId: row.id, lessonContent: row.lessonContent, assignedHomework: row.assignedHomework, inspectionStatus: row.inspectionStatus, inspectionNote: row.inspectionNote, exam: { ...row.exam, score: row.exam.score === "" ? null : +row.exam.score, maxScore: +row.exam.maxScore } })) });
-    if (saveError) setError(saveError.message); else {
-      const { data: stateData, error: stateError } = await supabase.rpc("staff_set_special_lesson_state", { p_session_id: sessionId, p_state: complete ? "completed" : "draft" });
-      if (stateError) setError(stateError.message); else { setLessonState(stateData === "completed" ? "completed" : "draft"); await Promise.all([load(), onAttendanceChange?.()]); }
-    }
-    setSaving("");
+    const base=baseline.current;if(!base||busy.current)return;
+    busy.current=true;setSaving("all");setError("");
+    try{
+      const submitted=specialInputValues(base.values,rows,notice);
+      const {data,error:saveError}=await supabase.rpc("staff_patch_special_record",{p_session_id:sessionId,p_changes:editChanges(base.values,submitted),p_expected_state:base.state,p_mode:complete?"completed":"draft"});
+      if(saveError)throw new Error(saveError.message);
+      if(scope.current===sessionId)acceptSnapshot(data as Snapshot,submitted);
+    }catch(e){setError(e instanceof Error?e.message:"저장하지 못했습니다.");}finally{busy.current=false;setSaving("");}
   };
   const deleteRecord = async () => {
     if (!await appConfirm({eyebrow:"수업 기록 삭제",title:"이 보강·추가수업 기록을 삭제할까요?",notice:"출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다.",confirmLabel:"기록 삭제",tone:"danger"})) return;
@@ -119,8 +169,8 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
     else { setLessonState("draft"); await Promise.all([load(), onAttendanceChange?.()]); }
     setSaving("");
   };
-  return <section inert={editingSchedule} className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal special-record-viewport`} spellCheck={false}>
-    <SpecialFamilyReportReadStatus supabase={supabase} sessionId={sessionId} />
+  return <section inert={editingSchedule||reviewing} className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal special-record-viewport`} spellCheck={false}>
+    <SpecialFamilyReportReadStatus key={readRevision} supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
     {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
@@ -134,7 +184,7 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
         <div className="learning-homework assigned"><textarea value={row.assignedHomework} onChange={(event)=>update(row.id,{assignedHomework:event.target.value})} placeholder="교재·페이지·문제 번호·제출일" rows={4}/></div>
       </article>;
     })}{!rows.length ? <p className="settings-empty">배정된 학생이 없습니다. 학생·시간 수정에서 학생을 추가해 주세요.</p> : null}</div>}</div></div>
-    {error ? <p className="form-error learning-board-error">{error}</p> : null}
+    {error ? <div className="form-error learning-board-error">{error}{/수정|완료 상태|명단/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatest()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div> : null}
     <footer><span><b>{lessonState==="completed"?"수업 완료":"기록 중"}</b> · 완료 처리된 기록만 학부모 학습리포트에 반영됩니다.</span><span className="learning-completion-actions"><button type="button" className="secondary-button" disabled={Boolean(saving)||loading} onClick={()=>setEditingSchedule(true)}>일정 수정</button>{lessonState==="completed"?<><button type="button" className="danger-button" disabled={saving==="all"||!rows.length} onClick={()=>void deleteRecord()}>기록 삭제</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수정 저장"}</button></>:<><button type="button" className="secondary-button" disabled={saving==="all"||!rows.length} onClick={()=>void save(false)}>임시저장</button><button type="button" className="primary" disabled={saving==="all"||!rows.length} onClick={()=>void save(true)}>{saving==="all"?"저장 중…":"수업 완료"}</button></>}</span></footer>
     {editingSchedule&&typeof document!=="undefined"&&createPortal(<TeacherSpecialLessons supabase={supabase} profile={profile} editorSessionId={sessionId} onEditorClose={()=>setEditingSchedule(false)} onEditorDeleted={async()=>{setEditingSchedule(false);onClose();await onAttendanceChange?.();}} onEditorSaved={async()=>{setEditingSchedule(false);await load(true);await onAttendanceChange?.();}}/>,document.body)}
     {attendanceEditor?<div className="modal-backdrop nested attendance-editor-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setAttendanceEditor(null)}}><form className="attendance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="special-attendance-editor-title" onSubmit={event=>{event.preventDefault();void saveAttendanceDetail()}}><header><span className={`attendance-editor-icon ${attendanceEditor.status}`}>{attendanceEditor.status==="late"?"분":"!"}</span><div><small>{attendanceEditor.status==="late"?"지각 시간 기록":"결석 사유 기록"}</small><h2 id="special-attendance-editor-title">{attendanceEditor.row.name} 학생</h2></div><button type="button" aria-label="닫기" onClick={()=>setAttendanceEditor(null)}>×</button></header><label><b>{attendanceEditor.status==="late"?"몇 분 지각했나요?":"결석 사유를 입력해 주세요"}</b>{attendanceEditor.status==="late"?<div className="attendance-minute-input"><input autoFocus type="number" min="1" inputMode="numeric" value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)}/><span>분</span></div>:<textarea autoFocus rows={3} value={attendanceEditor.value} onChange={event=>setAttendanceEditor(current=>current?{...current,value:event.target.value}:current)} placeholder="예: 병원 진료, 개인 사정"/>}</label><footer><button type="button" className="secondary-button" onClick={()=>setAttendanceEditor(null)}>취소</button><button type="submit" className="primary" disabled={saving===attendanceEditor.row.id}>{saving===attendanceEditor.row.id?"저장 중…":"기록하기"}</button></footer></form></div>:null}
