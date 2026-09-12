@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { appConfirm } from "./app-dialog";
+import { exceptionValues } from "./correction-schedule-concurrency";
 import { compareEdits } from "./edit-conflict-dialog";
 import { editableReportKeys, reportValue, sameValue, mergeRemoteReport, mergeRemoteBaseline, conflictingReportFields, resolveReportChoices, type Report, type TaskStatus, type EditableReportKey } from "./correction-record-concurrency";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
@@ -343,7 +344,7 @@ function CorrectionScheduleChangeModal({row,supabase,onClose,onReverted}:{row:Oc
   const revert=async()=>{
     if(!await appConfirm({eyebrow:"일정 변경 취소",title:`${row.assignment.studentName} 학생 일정을 정규 시간으로 되돌릴까요?`,copy:`정규 일정 · ${original}`,notice:"이번 주에만 적용한 변경 일정이 취소됩니다.",confirmLabel:"정규 일정으로 복원",tone:"danger"}))return;
     setSaving(true);setError("");
-    const{error:removeError}=await supabase.rpc("staff_delete_correction_exception",{p_id:exception.id});
+    const{error:removeError}=await supabase.rpc("staff_delete_guarded_correction_exception",{p_id:exception.id,p_base:exceptionValues({assignmentId:exception.assignmentId,originalDate:exception.originalDate,kind:exception.kind,targetDate:exception.targetDate,targetStartTime:exception.targetStartTime,targetEndTime:exception.targetEndTime,note:exception.note})});
     if(removeError){setError(removeError.message);setSaving(false);return}
     await onReverted();
   };
