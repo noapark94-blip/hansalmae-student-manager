@@ -24,6 +24,10 @@
  .modal-backdrop>form.academic-editor .academic-form input:not([type=checkbox]),.modal-backdrop>form.academic-editor .academic-form select,.modal-backdrop>form.academic-editor .academic-form textarea{box-sizing:border-box;display:block;width:100%!important;min-width:0!important;max-width:100%!important;font-size:16px}
  .modal-backdrop>form.academic-editor input[type=date],.modal-backdrop>form.academic-editor input[type=time]{appearance:none;-webkit-appearance:none;min-inline-size:0!important}
  .modal-backdrop>form.academic-editor input::-webkit-date-and-time-value{text-align:left;min-width:0}
+ /* iOS date controls otherwise place their native value at the top of the input. */
+ .modal-backdrop>form.academic-editor input[type=date]{padding-block:0!important;line-height:normal}
+ .modal-backdrop>form.academic-editor input[type=date]::-webkit-date-and-time-value{display:flex;align-items:center;height:100%;margin:0;padding:0;text-align:left}
+ .modal-backdrop>form.academic-editor input[type=date]::-webkit-datetime-edit{display:inline-flex;align-items:center;height:100%;padding:0}
  .modal-backdrop>form.academic-editor>footer{display:grid!important;grid-template-columns:1fr 1.2fr!important;padding:12px!important;gap:8px}
  .modal-backdrop>form.academic-editor>footer:has(.danger-link){grid-template-columns:.8fr 1fr 1.2fr!important}
  .modal-backdrop>form.academic-editor>footer>span{display:none}
