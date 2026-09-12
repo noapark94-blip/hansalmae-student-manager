@@ -251,3 +251,9 @@
 .special-board-modal .learning-completion-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .special-board-modal .learning-completion-actions>button{width:100%!important;min-width:0!important}
 }
+
+.special-lesson-modal form>footer.special-editor-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.special-lesson-modal .special-editor-actions>.special-editor-delete{min-height:42px;white-space:nowrap;}
+@media(max-width:760px){
+  .special-lesson-modal form>footer.special-editor-actions>button{flex:1 1 0;min-width:0;padding:12px 8px;font-size:13px;white-space:nowrap;}
+}
