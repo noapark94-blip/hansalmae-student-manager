@@ -47,6 +47,13 @@
 .tabs button{flex:1;border:0;border-radius:10px;min-height:42px;background:transparent;color:#897580;font-weight:700;}
 .tabs button[aria-selected=true]{background:#922d61;color:white;box-shadow:0 3px 9px #922d6122;}
 .tabs small{margin-left:7px;font:inherit;font-size:11px;}
+.entry{position:relative;margin-bottom:10px;}
+.entry .item{margin-bottom:0;}
+.entry .read{padding-bottom:58px;}
+.deleteReminder{position:absolute;right:12px;bottom:9px;min-height:40px;padding:8px 12px;border:1px solid #eadce4;border-radius:10px;background:#fff;color:#946078;font-size:12px;cursor:pointer;}
+.deleteReminder:hover{background:#fff5f8;color:#aa3558;border-color:#dfb7c8;}
+.deleteReminder:focus-visible{outline:2px solid #922d61;outline-offset:2px;}
+.deleteReminder:disabled{opacity:.5;cursor:default;}
 @media(max-width:760px){
  .checkbox{grid-column:1/-1;order:-1;margin-right:auto;}
  .toast{bottom:calc(88px + env(safe-area-inset-bottom));right:16px;left:16px;width:auto;padding:18px;border-radius:18px;}
