@@ -135,7 +135,7 @@ function formatCorrectionTask(row:Lesson){
   if(row.correctionTaskFeedback?.trim())lines.push(`  피드백: ${cleanMultiline(row.correctionTaskFeedback)}`);
   return lines.join("\n");
 }
-function buildLearningDetails(exam:string,homework:string,correctionTask:string){return [formatDetailGroup("시험",exam),formatDetailGroup("숙제",homework),formatDetailGroup("첨삭 과제",correctionTask)].filter(Boolean).join("\n\n")||"수업 기록 완료"}
+function buildLearningDetails(exam:string,homework:string,correctionTask:string){return [formatDetailGroup("시험",exam),formatDetailGroup("숙제",homework),formatDetailGroup("첨삭 과제",correctionTask)].filter(Boolean).join("\n\n")||"등록된 학습 상세가 없습니다."}
 function formatDetailGroup(label:string,value:string){return value?`<${label}>\n${value}`:""}
 function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function periodFor(type:ReportType,anchor:string){if(type==="daily")return{start:anchor,end:anchor};const date=new Date(`${anchor}T12:00:00+09:00`);const day=(date.getDay()+6)%7;date.setDate(date.getDate()-day);const start=todayFrom(date);date.setDate(date.getDate()+6);return{start,end:todayFrom(date)}}
@@ -143,5 +143,5 @@ function todayFrom(date:Date){return new Intl.DateTimeFormat("en-CA",{timeZone:"
 function formatDay(value:string){const[,month,day]=value.split("-").map(Number);return `${month}월 ${day}일`}
 function formatPeriod(start:string,end:string){return start===end?formatDay(start):`${formatDay(start)}~${formatDay(end)}`}
 function formatSentAt(value:string|null){if(!value)return"발송 시각 확인 중";return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
-function buildHistoryBody(item:History){const variables=item.templateVariables;const start=variables.periodStart||item.periodStart;const end=variables.periodEnd||start;const period=item.reportType==="daily"?formatDay(start):formatPeriod(start,end);const details=[`■ 수업\n${variables.lessonSummary}`,`■ 출결\n${variables.attendanceSummary}`,`■ 학습 상세\n${variables.learningSummary||"수업 기록 완료"}`].join("\n\n");return `[한살매 수업노트]\n\n${variables.studentName||item.studentName} 학생의 ${period} ${item.reportType==="weekly"?"주간 학습요약":"학습기록"}입니다.\n\n${details}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`}
+function buildHistoryBody(item:History){const variables=item.templateVariables;const start=variables.periodStart||item.periodStart;const end=variables.periodEnd||start;const period=item.reportType==="daily"?formatDay(start):formatPeriod(start,end);const details=[`■ 수업\n${variables.lessonSummary}`,`■ 출결\n${variables.attendanceSummary}`,`■ 학습 상세\n${variables.learningSummary||"등록된 학습 상세가 없습니다."}`].join("\n\n");return `[한살매 수업노트]\n\n${variables.studentName||item.studentName} 학생의 ${period} ${item.reportType==="weekly"?"주간 학습요약":"학습기록"}입니다.\n\n${details}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`}
 function Empty({text}:{text:string}){return <div className={styles.empty}><HansalmaeIcon name="chat" size={25}/><b>{text}</b><span>완료된 정규·보강·추가·첨삭 기록만 반영됩니다.</span></div>}

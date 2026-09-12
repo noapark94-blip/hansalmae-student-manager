@@ -38,7 +38,7 @@ Deno.serve(async request=>{
   const{data:userData}=await authClient.auth.getUser();
   if(!userData.user)return json({error:"로그인 정보를 확인할 수 없습니다."},401);
   const start=String(variables.periodStart),end=String(variables.periodEnd),period=reportType==="daily"?formatDate(start):`${formatDate(start)}~${formatDate(end)}`;
-  const learningDetails=String(variables.learningSummary??"").trim()||"수업 기록 완료";
+  const learningDetails=String(variables.learningSummary??"").trim()||"등록된 학습 상세가 없습니다.";
   const kakaoVariables={"#{학생명}":variables.studentName,[reportType==="weekly"?"#{기간}":"#{기록일}"]:period,"#{수업요약}":variables.lessonSummary,"#{출결요약}":variables.attendanceSummary,"#{학습상세요약}":learningDetails};
   const details=[`■ 수업\n${variables.lessonSummary}`,`■ 출결\n${variables.attendanceSummary}`,`■ 학습 상세\n${learningDetails}`].join("\n\n");
   const fallback=`[한살매 수업노트]\n\n${variables.studentName} 학생의 ${period} ${reportType==="weekly"?"주간 학습요약":"학습기록"}입니다.\n\n${details}\n\n자세한 수업 내용과 선생님 피드백은\n아래 '학습기록 확인' 버튼에서 확인해 주세요.`;
