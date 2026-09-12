@@ -17,3 +17,10 @@ test('reminder preference is an independent calendar conflict field',()=>{
  const event={scope:'academy',category:'consultation',startsOn:'2026-09-12',endsOn:'2026-09-12',startsAt:null,endsAt:null,school:null,grade:null,title:'Test',classId:null,teacherId:'teacher',note:null,contactName:null,contactPhone:null,location:null,status:'scheduled'};
  assert.deepEqual(settingsChanges(calendarValues(event),calendarValues({...event,reminderEnabled:true})),{reminderEnabled:true});
 });
+test('recipient order and duplicates do not cause false conflicts; empty selection remains explicit',()=>{
+ const event={scope:'academy',category:'consultation',startsOn:'2026-09-12',endsOn:'2026-09-12',startsAt:null,endsAt:null,school:null,grade:null,title:'Test',classId:null,teacherId:'a',note:null,contactName:null,contactPhone:null,location:null,status:'scheduled'};
+ assert.deepEqual(settingsChanges(calendarValues({...event,reminderRecipientIds:['b','a','b']}),calendarValues({...event,reminderRecipientIds:['a','b']})),{});
+ assert.deepEqual(calendarValues(event).reminderRecipientIds,['a']);
+ assert.deepEqual(calendarValues({...event,reminderRecipientIds:[]}).reminderRecipientIds,[]);
+ assert.deepEqual(settingsChanges(calendarValues(event),calendarValues({...event,reminderRecipientIds:['a','b']})),{reminderRecipientIds:['a','b']});
+});

@@ -7,7 +7,7 @@ import type { Profile } from "./supabase";
 import { compareEdits } from "./edit-conflict-dialog";
 import { calendarValues, settingsChanges, mergeSettingsChoices } from "./settings-concurrency";
 import { useStaffLiveUpdates } from "./use-staff-live-updates";
-import { ReminderCheckbox } from "./schedule-reminders";
+import { ReminderCheckbox, ReminderRecipients, useScheduleReminders } from "./schedule-reminders";
 import { appConfirm } from "./app-dialog";
 
 type Scope = "school" | "academy";
@@ -16,6 +16,7 @@ type Category = string;
 type Status = "scheduled" | "completed" | "enrolled" | "cancelled" | "no_show";
 type EventRow = {
   reminderEnabled?: boolean;
+  reminderRecipientIds?: string[] | null;
   id: string; scope: Scope; school: string | null; grade: string | null; category: Category; categoryLabel: string;
   title: string; startsOn: string; endsOn: string; startsAt: string | null; endsAt: string | null;
   classId: string | null; className: string | null; teacherId: string | null; teacherName: string | null;
@@ -183,6 +184,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
 }
 
 function AcademicEditor({ row, initialDate, initialScope, data, supabase, profile, onClose, onSaved }: { row: EventRow | null; initialDate: string; initialScope: Scope; data: Board; supabase: SupabaseClient; profile: Profile; onClose: () => void; onSaved: () => Promise<void> }) {
+  const reminderState=useScheduleReminders();
   const initialCategory = row?.category ?? data.categories.find(item => item.scope === initialScope && item.active)?.id ?? "";
   const [v, setV] = useState({
     scope: row?.scope ?? initialScope, school: row?.school ?? "", grade: row?.grade ?? "",
@@ -192,32 +194,34 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
     classId: row?.classId ?? "", teacherId: row?.teacherId ?? profile.id, note: row?.note ?? "",
     contactName: row?.contactName ?? "", contactPhone: row?.contactPhone ?? "", location: row?.location ?? "",
     status: row?.status ?? "scheduled" as Status, reminderEnabled: row?.reminderEnabled ?? false,
+    reminderRecipientIds: row?.reminderRecipientIds ?? [row?.teacherId ?? profile.id],
   });
   const [baseline,setBaseline]=useState(()=>row?calendarValues(row):null);
   const busy=useRef(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const update = (key: string, value: string | boolean) => setV(current => ({ ...current, [key]: value }));
+  const update = (key: string, value: string | boolean | string[]) => setV(current => ({ ...current, [key]: value, ...(key==="teacherId"&&current.reminderRecipientIds.length===1&&current.reminderRecipientIds[0]===current.teacherId?{reminderRecipientIds:[String(value)]}:{}) }));
   const options = data.categories.filter(item => item.scope === v.scope && (item.active || item.id === row?.category));
   const changeScope = (scope: Scope) => setV(current => ({ ...current, scope, category: data.categories.find(item => item.scope === scope && item.active)?.id ?? "" }));
   const save = async (event: FormEvent) => {
     event.preventDefault(); if(busy.current)return; busy.current=true;setSaving(true); setError("");
     try {
+    if(v.reminderEnabled&&!v.reminderRecipientIds.length)throw new Error("알림 받을 선생님을 한 명 이상 선택해 주세요.");
     if(row&&baseline){
       const mine=calendarValues({...v,startsAt:v.hasTime?v.startsAt:null,endsAt:v.hasTime?v.endsAt:null,status:v.scope==="academy"?v.status:"scheduled"});
       const {data:result,error:failure}=await supabase.rpc("staff_patch_calendar_event",{p_id:row.id,p_base:baseline,p_changes:settingsChanges(baseline,mine)});
       if(failure)throw failure;
       if(result.conflicts?.length){
         const latest=result.values as typeof mine;
-        const labels:Record<string,string>={kind:"일정 구분·종류",timing:"날짜·시간",school:"학교",grade:"학년",title:"일정명",classId:"연결 클래스",teacherId:"담당 선생님",note:"메모",contactName:"학생·상담자",contactPhone:"연락처",location:"장소",status:"진행 상태",reminderEnabled:"당일 알림"};
-        const format=(key:string,value:unknown)=>{if(key==="reminderEnabled")return value?"알림 켜짐":"알림 꺼짐";if(key==="kind"){const x=value as typeof mine.kind;return `${x.scope==="school"?"학교":"학원"} · ${data.categories.find(c=>c.id===x.category)?.label??x.category}`;}if(key==="timing"){const x=value as typeof mine.timing;return `${x.startsOn} ~ ${x.endsOn} · ${x.startsAt?`${x.startsAt}–${x.endsAt}`:"종일"}`;}if(key==="classId")return data.classes.find(x=>x.id===value)?.name??"연결 안 함";if(key==="teacherId")return data.teachers.find(x=>x.id===value)?.name??"담당 없음";if(key==="status")return statusLabel(String(value) as Status);return String(value||"미입력");};
+        const labels:Record<string,string>={kind:"일정 구분·종류",timing:"날짜·시간",school:"학교",grade:"학년",title:"일정명",classId:"연결 클래스",teacherId:"담당 선생님",note:"메모",contactName:"학생·상담자",contactPhone:"연락처",location:"장소",status:"진행 상태",reminderEnabled:"당일 알림",reminderRecipientIds:"알림 받을 선생님"};
+        const format=(key:string,value:unknown)=>{if(key==="reminderRecipientIds")return (value as string[]).map(id=>reminderState?.people.find(p=>p.id===id)?.name??"교직원").join(" · ")||"선택 없음";if(key==="reminderEnabled")return value?"알림 켜짐":"알림 꺼짐";if(key==="kind"){const x=value as typeof mine.kind;return `${x.scope==="school"?"학교":"학원"} · ${data.categories.find(c=>c.id===x.category)?.label??x.category}`;}if(key==="timing"){const x=value as typeof mine.timing;return `${x.startsOn} ~ ${x.endsOn} · ${x.startsAt?`${x.startsAt}–${x.endsAt}`:"종일"}`;}if(key==="classId")return data.classes.find(x=>x.id===value)?.name??"연결 안 함";if(key==="teacherId")return data.teachers.find(x=>x.id===value)?.name??"담당 없음";if(key==="status")return statusLabel(String(value) as Status);return String(value||"미입력");};
         const choices=await compareEdits(result.conflicts.map((key:keyof typeof mine)=>({id:key,student:row.title,field:labels[key]??key,mine:format(key,mine[key]),latest:format(key,latest[key])})));
         if(choices){const merged=mergeSettingsChoices(baseline,mine,latest,choices);setBaseline(latest);setV({...v,...merged,...merged.kind,...merged.timing,scope:merged.kind.scope as Scope,status:merged.status as Status,hasTime:Boolean(merged.timing.startsAt)});setError("선택한 내용을 적용했습니다. 확인 후 다시 저장해 주세요.");}
         return;
       }
       await onSaved();return;
     }
-    const { error: saveError } = await supabase.rpc("staff_save_calendar_with_reminder", {p_reminder_enabled:v.reminderEnabled,p_values: {
+    const { error: saveError } = await supabase.rpc("staff_save_calendar_with_reminder", {p_reminder_enabled:v.reminderEnabled,p_values: {p_reminder_recipient_ids:v.reminderRecipientIds,
       p_id: row?.id ?? null, p_scope: v.scope, p_school: v.school || null, p_grade: v.grade || null,
       p_category: v.category, p_title: v.title, p_starts_on: v.startsOn, p_ends_on: v.endsOn,
       p_starts_at: v.hasTime ? v.startsAt : null, p_ends_at: v.hasTime ? v.endsAt : null,
@@ -258,6 +262,7 @@ function AcademicEditor({ row, initialDate, initialScope, data, supabase, profil
       <label>연결 클래스<select value={v.classId} onChange={event => update("classId", event.target.value)}><option value="">연결 안 함</option>{data.classes.map(x => <option value={x.id} key={x.id}>{x.name} · {x.subject}</option>)}</select></label>
       <label>담당 선생님<select value={v.teacherId} onChange={event => update("teacherId", event.target.value)}>{data.teachers.map(x => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label>
       <label className="academic-note">메모<textarea value={v.note} onChange={event => update("note", event.target.value)} placeholder={v.scope === "academy" ? "상담 내용, 청강 과목, 준비사항 등을 적어주세요." : "시험 범위, 준비물, 보강 대상 등을 적어주세요."} /></label>
+      {v.reminderEnabled&&<ReminderRecipients value={v.reminderRecipientIds} onChange={ids=>update("reminderRecipientIds",ids)} disabled={saving}/>}
     </div>
     {error && <p className="form-error">{error}</p>}
     <footer>{row && <button type="button" className="danger-link" onClick={() => void remove()}>삭제</button>}<ReminderCheckbox checked={v.reminderEnabled} onChange={checked=>update("reminderEnabled",checked)} disabled={saving}/><span /><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving ? "저장 중…" : "일정 저장"}</button></footer>
