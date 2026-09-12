@@ -16,7 +16,7 @@ type Preview={lesson:string;attendance:string;exam:string;homework:string;correc
 type MissingItem={kind:string;title:string;date:string;time:string};
 type ReadyStudent={studentId:string;studentName:string;school:string;grade:string;expectedCount:number;completedCount:number;complete:boolean;missingItems:MissingItem[];lessons:Lesson[];recipient:Recipient};
 
-const kindLabel={regular:"정규",makeup:"보강",extra:"추가",correction:"첨삭"};
+const kindLabel={regular:"정규",makeup:"보강",extra:"추가수업",correction:"첨삭"};
 const attendanceLabel:Record<string,string>={present:"출석",late:"지각",absent:"결석",excused:"인정결석",scheduled:"예정"};
 
 export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:StudentRow[]}){
