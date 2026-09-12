@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm, appPrompt } from "./app-dialog";
+import { compareEdits } from "./edit-conflict-dialog";
+import { editChanges, preservePendingEdits, type EditValues } from "./class-record-concurrency";
 import { sendLearningFeedPush } from "./learning-feed-push";
 
 type Status = "present" | "late" | "absent";
@@ -36,6 +38,22 @@ type Row = Omit<Student, "status"> & {
   inspectionStatus: string;
   inspectionNote: string;
 };
+type EditSnapshot = {values:EditValues;state:"draft"|"completed";revision:RevisionDraftResult|null;exams:ExamResult[];homework:HomeworkResult[];day:{students:Student[]};notice:string;lessonContent:string};
+function rowEditValues(rows:Row[],notice:string,lessonContent:string):EditValues {
+ return {notice,lessonContent,students:Object.fromEntries(rows.map(row=>[row.id,{
+  status:row.status,lateMinutes:row.lateMinutes,absenceReason:row.absenceReason??"",note:row.note??"",
+  lessonContent:row.lessonContent,assignedHomework:row.assignedHomework,inspectionStatus:row.inspectionStatus,inspectionNote:row.inspectionNote,
+  exam_id:row.exams[0].id,exam_examType:row.exams[0].examType,exam_examTitle:row.exams[0].examTitle,
+  exam_score:row.exams[0].score===""?"":String(Number(row.exams[0].score)),exam_maxScore:String(Number(row.exams[0].maxScore||100)),exam_evaluation:row.exams[0].evaluation
+ }]))};
+}
+function applyEditValues(rows:Row[],values:EditValues):Row[]{
+ return rows.map(row=>{const v=values.students[row.id];if(!v)return row;return {...row,
+  status:v.status as Status|null,lateMinutes:v.lateMinutes as number|null,absenceReason:String(v.absenceReason??""),note:String(v.note??""),
+  lessonContent:String(v.lessonContent??""),assignedHomework:String(v.assignedHomework??""),inspectionStatus:String(v.inspectionStatus??""),inspectionNote:String(v.inspectionNote??""),
+  exams:[{id:String(v.exam_id??""),examType:String(v.exam_examType??""),examTitle:String(v.exam_examTitle??""),score:String(v.exam_score??""),maxScore:String(v.exam_maxScore??100),evaluation:String(v.exam_evaluation??"")}]
+ };});
+}
 type CalendarDay = {
   date: string;
   scheduled: boolean;
@@ -212,6 +230,54 @@ export function ClassLearningBoard({
   const [reloadKey, setReloadKey] = useState(0);
   const [attendanceEditor, setAttendanceEditor] =
     useState<AttendanceEditor | null>(null);
+  const editBaselineRef=useRef<EditSnapshot|null>(null);
+  const editScopeRef=useRef("");
+  const editBusyRef=useRef(false);
+  const latestEditRef=useRef<EditValues>({notice:"",lessonContent:"",students:{}});
+  useLayoutEffect(()=>{latestEditRef.current=rowEditValues(rows,notice,lessonContent);},[rows,notice,lessonContent]);
+  const acceptSavedSnapshot=(snapshot:EditSnapshot,submitted:EditValues)=>{
+    const merged=preservePendingEdits(latestEditRef.current,submitted,snapshot.values);
+    editBaselineRef.current=snapshot;
+    latestEditRef.current=merged;
+    setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);
+    setLessonState(snapshot.state);setHasRevisionDraft(Boolean(snapshot.revision?.payload));setRevisionSavedAt(snapshot.revision?.savedAt??null);
+  };
+  const persistEdits=async(mode:"draft"|"complete"|"revision"|"publish"|"attendance",values=latestEditRef.current)=>{
+    const base=editBaselineRef.current;
+    if(!base||editScopeRef.current!==`${classId}:${date}`)throw new Error("기록을 모두 불러온 뒤 저장해 주세요.");
+    if(editBusyRef.current)throw new Error("앞선 저장이 끝난 뒤 다시 저장해 주세요.");
+    editBusyRef.current=true;
+    try{
+      const changes=editChanges(base.values,values);
+      const {data,error:saveError}=await supabase.rpc("staff_patch_class_record",{p_class_id:classId,p_date:date,p_changes:changes,p_expected_state:base.state,p_mode:mode});
+      if(saveError)throw new Error(saveError.message);
+      if(editScopeRef.current===`${classId}:${date}`)acceptSavedSnapshot(data as EditSnapshot,values);
+    }finally{editBusyRef.current=false;}
+  };
+  const reviewLatestEdits=async()=>{
+    if(editBusyRef.current)return;
+    const scope=`${classId}:${date}`;const base=editBaselineRef.current;if(!base)return;
+    editBusyRef.current=true;
+    try{
+      const {data,error:readError}=await supabase.rpc("staff_class_edit_snapshot",{p_class_id:classId,p_date:date});
+      if(readError)throw new Error(readError.message);
+      if(editScopeRef.current!==scope)return;
+      const remote=data as EditSnapshot;const local=structuredClone(latestEditRef.current);
+      const changes=editChanges(base.values,local);
+      const removed=changes.some(c=>c.path.length===3&&!remote.values.students[c.path[1]]);
+      if(removed)throw new Error("수업 명단에서 빠진 학생의 입력이 있습니다. 해당 내용을 복사해 보관한 뒤 화면을 다시 열어 주세요.");
+      const conflicts=changes.filter(c=>{const value=c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]];return value!==c.before&&value!==c.value&&c.path[2]!=="exam_id";});
+      const labels: Record<string,string>={notice:"안내",lessonContent:"수업 내용",status:"출결",lateMinutes:"지각 시간",absenceReason:"결석 사유",note:"출결 메모",assignedHomework:"숙제",inspectionStatus:"검사 상태",inspectionNote:"검사 피드백",exam_examType:"시험 종류",exam_examTitle:"시험명·범위",exam_score:"시험 점수",exam_maxScore:"만점",exam_evaluation:"시험 피드백"};
+      const display=(value:unknown)=>({present:"출석",late:"지각",absent:"결석",completed:"완료"}[String(value)]??String(value??""));
+      const choices=conflicts.length?await compareEdits(conflicts.map(c=>({id:c.path.join("/"),student:rows.find(r=>r.id===c.path[1])?.name??"반 공통",field:labels[c.path.at(-1)!]??"수업 기록",mine:display(c.value),latest:display(c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]])}))):{};
+      if(choices===null||editScopeRef.current!==scope)return;
+      const merged=preservePendingEdits(latestEditRef.current,base.values,remote.values);
+      for(const c of conflicts){if(choices[c.path.join("/")]!=="latest")continue;if(c.path.length===1)merged[c.path[0] as "notice"|"lessonContent"]=remote.values[c.path[0] as "notice"|"lessonContent"];else merged.students[c.path[1]][c.path[2]]=remote.values.students[c.path[1]][c.path[2]];}
+      editBaselineRef.current=remote;latestEditRef.current=merged;
+      setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);setLessonState(remote.state);
+      setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);setError("");
+    }catch(e){setError(e instanceof Error?e.message:"최신 내용을 확인하지 못했습니다.");}finally{editBusyRef.current=false;}
+  };
   const confirmedRecordDatesRef = useRef(new Set<string>());
   const dateWarningPromiseRef = useRef<Promise<boolean> | null>(null);
 
@@ -319,43 +385,21 @@ export function ClassLearningBoard({
   useEffect(() => {
     let active = true;
     setLoading(true);
+    const scope=`${classId}:${date}`;
+    const previousScope=editScopeRef.current;
+    editScopeRef.current=scope;
+    if(previousScope!==scope)editBaselineRef.current=null;
     void Promise.all([
-      supabase.rpc("staff_class_exam_results", {
-        p_class_id: classId,
-        p_date: date,
-      }),
-      supabase.rpc("staff_class_homework_results", {
-        p_class_id: classId,
-        p_date: date,
-      }),
-      supabase.rpc("staff_class_attendance_calendar", {
-        p_class_id: classId,
-        p_anchor_date: date,
-        p_view: "week",
-      }),
-      supabase.rpc("staff_class_daily_notice", {
-        p_class_id: classId,
-        p_date: date,
-      }),
+      supabase.rpc("staff_class_edit_snapshot",{p_class_id:classId,p_date:date}),
+      supabase.rpc("staff_class_attendance_calendar",{p_class_id:classId,p_anchor_date:date,p_view:"week"}),
       supabase.rpc("staff_exam_categories"),
-      supabase.rpc("staff_class_lesson_content", {
-        p_class_id: classId,
-        p_date: date,
-      }),
-      supabase.rpc("staff_class_revision_draft", {
-        p_class_id: classId,
-        p_date: date,
-      }),
-    ]).then(
-      ([
-        examResponse,
-        homeworkResponse,
-        weekResponse,
-        noticeResponse,
-        categoryResponse,
-        lessonResponse,
-        revisionResponse,
-      ]) => {
+    ]).then(([snapshotResponse,weekResponse,categoryResponse])=>{
+        const snapshot=snapshotResponse.data as EditSnapshot|null;
+        const examResponse={data:snapshot?.exams,error:snapshotResponse.error};
+        const homeworkResponse={data:snapshot?.homework,error:snapshotResponse.error};
+        const noticeResponse={data:snapshot?.notice,error:snapshotResponse.error};
+        const lessonResponse={data:snapshot?.lessonContent,error:snapshotResponse.error};
+        const revisionResponse={data:snapshot?.revision,error:snapshotResponse.error};
         if (!active) return;
         if (
           examResponse.error ||
@@ -386,8 +430,7 @@ export function ClassLearningBoard({
         const revisionByStudent = new Map(
           (revisionPayload?.rows ?? []).map((item) => [item.studentId, item]),
         );
-        setRows(
-          students.map((student) => {
+        const loadedRows = students.map((student) => {
             const raw = examsByStudent.get(student.id);
             const exam =
               raw?.exams?.[0] ??
@@ -456,14 +499,24 @@ export function ClassLearningBoard({
                 draft?.inspectionStatus ?? hw?.inspectionStatus ?? "",
               inspectionNote: draft?.inspectionNote ?? hw?.inspectionNote ?? "",
             };
-          }),
-        );
+          });
+        if(!snapshot){setError("기록을 불러오지 못했습니다.");setLoading(false);return;}
+        const oldBase=editBaselineRef.current;
+        const dirty=oldBase?editChanges(oldBase.values,latestEditRef.current):[];
+        const visibleValues=oldBase?preservePendingEdits(latestEditRef.current,oldBase.values,snapshot.values):snapshot.values;
+        // Keep the original baseline for locally edited fields so refresh cannot hide a conflict.
+        const nextBaseline=structuredClone(snapshot);
+        for(const c of dirty){if(c.path.length===1)nextBaseline.values[c.path[0] as "notice"|"lessonContent"]=String(c.before??"");
+          else {nextBaseline.values.students[c.path[1]]??=structuredClone(oldBase!.values.students[c.path[1]]);nextBaseline.values.students[c.path[1]][c.path[2]]=c.before;}}
+        editBaselineRef.current=nextBaseline;latestEditRef.current=visibleValues;
+        setRows(applyEditValues(loadedRows,visibleValues));
+        setLessonState(snapshot.state);
         setCategories((categoryResponse.data ?? []) as ExamCategory[]);
         setWeek((weekResponse.data ?? []) as CalendarDay[]);
-        setNotice(revisionPayload?.notice ?? String(noticeResponse.data ?? ""));
+        setNotice(visibleValues.notice);
         if (!lessonResponse.error)
           setLessonContent(
-            revisionPayload?.lessonContent ?? String(lessonResponse.data ?? ""),
+            visibleValues.lessonContent,
           );
         setHasRevisionDraft(Boolean(revisionPayload));
         setRevisionSavedAt(revision?.savedAt ?? null);
@@ -648,6 +701,26 @@ export function ClassLearningBoard({
     setTemplateLoading(false);
   };
 
+  const persistAttendance=async(row:Row,status:Status|null,late:number|null,reason:string|null)=>{
+    const base=editBaselineRef.current;if(!base)throw new Error("기록을 불러온 뒤 저장해 주세요.");
+    const values=structuredClone(base.values);const target=values.students[row.id];
+    if(!target)throw new Error("수업 명단을 다시 확인해 주세요.");
+    Object.assign(target,{status,lateMinutes:late,absenceReason:reason??"",note:row.note??""});
+    // Update only attendance in the submitted view, retaining unrelated unsaved input after the response.
+    if(editBusyRef.current)throw new Error("앞선 저장이 끝난 뒤 다시 저장해 주세요.");
+    editBusyRef.current=true;
+    try{
+    const prior=structuredClone(latestEditRef.current);
+    const {data,error:saveError}=await supabase.rpc("staff_patch_class_record",{p_class_id:classId,p_date:date,p_changes:editChanges(base.values,values),p_expected_state:base.state,p_mode:"attendance"});
+    if(saveError)throw new Error(saveError.message);
+    if(editScopeRef.current!==`${classId}:${date}`)throw new Error("이전 날짜의 저장이 완료됐습니다.");
+    const submitted=structuredClone(prior);Object.assign(submitted.students[row.id],{status,lateMinutes:late,absenceReason:reason??"",note:row.note??""});
+    const local=latestEditRef.current;
+    // Attendance is a button action: don't treat its previous displayed value as a pending reversal.
+    if(local.students[row.id])for(const key of ["status","lateMinutes","absenceReason","note"])if(local.students[row.id][key]===prior.students[row.id][key])local.students[row.id][key]=submitted.students[row.id][key];
+    acceptSavedSnapshot(data as EditSnapshot,base.values);
+    }finally{editBusyRef.current=false;}
+  };
   const saveAttendance = async (row: Row, status: Status) => {
     if (!validDay && !makeupEnabled) {
       setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");
@@ -665,10 +738,7 @@ export function ClassLearningBoard({
         setSaving("");
         return;
       }
-      const { error: clearError } = await supabase.rpc(
-        "staff_clear_class_attendance",
-        { p_class_id: classId, p_date: date, p_student_id: row.id },
-      );
+      const clearError=await persistAttendance(row,null,null,null).then(()=>null).catch(e=>e as Error);
       if (clearError) setError(clearError.message);
       else {
         update(row.id, {
@@ -702,18 +772,7 @@ export function ClassLearningBoard({
       setSaving("");
       return;
     }
-    const { error: saveError } = await supabase.rpc(
-      "staff_save_class_attendance",
-      {
-        p_class_id: classId,
-        p_date: date,
-        p_student_id: row.id,
-        p_status: status,
-        p_late_minutes: late,
-        p_absence_reason: reason,
-        p_note: row.note,
-      },
-    );
+    const saveError=await persistAttendance(row,status,late,reason).then(()=>null).catch(e=>e as Error);
     if (saveError) setError(saveError.message);
     else {
       update(row.id, { status, lateMinutes: late, absenceReason: reason });
@@ -749,18 +808,7 @@ export function ClassLearningBoard({
     }
     setSaving(row.id);
     setError("");
-    const { error: saveError } = await supabase.rpc(
-      "staff_save_class_attendance",
-      {
-        p_class_id: classId,
-        p_date: date,
-        p_student_id: row.id,
-        p_status: status,
-        p_late_minutes: late,
-        p_absence_reason: reason,
-        p_note: row.note,
-      },
-    );
+    const saveError=await persistAttendance(row,status,late,reason).then(()=>null).catch(e=>e as Error);
     if (saveError) setError(saveError.message);
     else {
       update(row.id, { status, lateMinutes: late, absenceReason: reason });
@@ -845,28 +893,6 @@ export function ClassLearningBoard({
     return true;
   };
 
-  const revisionPayload = (): RevisionPayload => ({
-    notice,
-    lessonContent,
-    rows: rows.map((row) => ({
-      studentId: row.id,
-      status: row.status,
-      lateMinutes: row.lateMinutes,
-      absenceReason: row.absenceReason,
-      note: row.note,
-      lessonContent: row.lessonContent.trim(),
-      assignedHomework: row.assignedHomework.trim(),
-      inspectionStatus: row.inspectionStatus,
-      inspectionNote: row.inspectionNote.trim(),
-      exam: {
-        ...row.exams[0],
-        examType: row.exams[0].examType.trim(),
-        examTitle: row.exams[0].examTitle.trim(),
-        evaluation: row.exams[0].evaluation.trim(),
-      },
-    })),
-  });
-
   const save = async (complete: boolean) => {
     if (!validDay && !makeupEnabled) {
       setError("먼저 이 날짜를 보강 수업일로 등록해 주세요.");
@@ -875,143 +901,23 @@ export function ClassLearningBoard({
     if (!validateRows(complete)) return;
     setSaving("all");
     setError("");
-    const examPayload = rows.map((row) => ({
-      studentId: row.id,
-      exams: [
-        {
-          ...row.exams[0],
-          id: row.exams[0].id || null,
-          examType: row.exams[0].examType || null,
-          examTitle: row.exams[0].examTitle.trim() || null,
-          score: row.exams[0].score === "" ? null : +row.exams[0].score,
-          maxScore:
-            row.exams[0].maxScore.trim() === "" ? null : +row.exams[0].maxScore,
-          evaluation: row.exams[0].evaluation.trim() || null,
-        },
-      ],
-    }));
-    const homeworkPayload = rows.map((row) => ({
-      studentId: row.id,
-      lessonContent: row.lessonContent.trim() || null,
-      assignedHomework: row.assignedHomework.trim() || null,
-      inspectionStatus: row.inspectionStatus || null,
-      inspectionNote: row.inspectionNote.trim() || null,
-    }));
-    const [examResponse, homeworkResponse, noticeResponse, lessonResponse] =
-      await Promise.all([
-        supabase.rpc("staff_save_class_exam_results", {
-          p_class_id: classId,
-          p_date: date,
-          p_results: examPayload,
-        }),
-        supabase.rpc("staff_save_class_homework_results", {
-          p_class_id: classId,
-          p_date: date,
-          p_results: homeworkPayload,
-        }),
-        supabase.rpc("staff_save_class_daily_notice", {
-          p_class_id: classId,
-          p_date: date,
-          p_content: notice,
-        }),
-        supabase.rpc("staff_save_class_lesson_content", {
-          p_class_id: classId,
-          p_date: date,
-          p_content: lessonContent,
-        }),
-      ]);
-    if (
-      examResponse.error ||
-      homeworkResponse.error ||
-      noticeResponse.error ||
-      lessonResponse.error
-    ) {
-      setError(
-        examResponse.error?.message ??
-          homeworkResponse.error?.message ??
-          noticeResponse.error?.message ??
-          lessonResponse.error?.message ??
-          "저장하지 못했습니다.",
-      );
-      setSaving("");
-      return;
-    }
-    const { data: stateData, error: stateError } = await supabase.rpc(
-      "staff_set_class_lesson_state",
-      {
-        p_class_id: classId,
-        p_date: date,
-        p_state: complete ? "completed" : "draft",
-      },
-    );
-    if (stateError) {
-      setError(stateError.message);
-      setSaving("");
-      return;
-    }
-    setLessonState(stateData === "completed" ? "completed" : "draft");
-    if (complete && lessonState !== "completed")
-      await sendLearningFeedPush(supabase, {
-        sourceType: "class_lesson",
-        classId,
-        date,
-        studentIds: rows.map((row) => row.id),
-      });
-    await onReload();
-    setSaving("");
+    try {
+      await persistEdits(complete?"complete":"draft");
+      if(complete&&lessonState!=="completed")await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.map(row=>row.id)});
+      await loadWeek();
+    }catch(e){setError(e instanceof Error?e.message:"저장하지 못했습니다. 입력 내용은 유지됩니다.");}
+    finally{setSaving("");}
   };
 
-  const saveRevisionDraft = async () => {
-    if (!validateRows(false)) return;
-    setSaving("all");
-    setError("");
-    const { data, error: saveError } = await supabase.rpc(
-      "staff_save_class_revision_draft",
-      {
-        p_class_id: classId,
-        p_date: date,
-        p_payload: revisionPayload(),
-      },
-    );
-    if (saveError) setError(saveError.message);
-    else {
-      setHasRevisionDraft(true);
-      setRevisionSavedAt(String(data ?? new Date().toISOString()));
-    }
-    setSaving("");
+  const saveRevisionDraft=async()=>{
+    if(!validateRows(false))return;setSaving("all");setError("");
+    try{await persistEdits("revision");}catch(e){setError(e instanceof Error?e.message:"수정 내용을 저장하지 못했습니다.");}finally{setSaving("");}
   };
-
-  const publishRevision = async () => {
-    if (!validateRows(true)) return;
-    if (
-      !(await appConfirm({
-        eyebrow: "수정 내용 반영",
-        title: "수정 내용을 학부모 페이지에 반영할까요?",
-        copy: "현재 공개된 수업 기록이 지금 입력한 내용으로 변경됩니다.",
-        confirmLabel: "수정 내용 반영",
-      }))
-    )
-      return;
-    setSaving("all");
-    setError("");
-    const { error: publishError } = await supabase.rpc(
-      "staff_publish_class_revision",
-      {
-        p_class_id: classId,
-        p_date: date,
-        p_payload: revisionPayload(),
-      },
-    );
-    if (publishError) {
-      setError(publishError.message);
-      setSaving("");
-      return;
-    }
-    setHasRevisionDraft(false);
-    setRevisionSavedAt(null);
-    await onReload();
-    setReloadKey((value) => value + 1);
-    setSaving("");
+  const publishRevision=async()=>{
+    if(!validateRows(true))return;
+    if(!await appConfirm({eyebrow:"수정 내용 반영",title:"수정 내용을 학부모 페이지에 반영할까요?",copy:"다른 선생님의 변경을 보존하고 수정한 내용을 반영합니다.",confirmLabel:"수정 내용 반영"}))return;
+    setSaving("all");setError("");
+    try{await persistEdits("publish");await loadWeek();}catch(e){setError(e instanceof Error?e.message:"수정 내용을 반영하지 못했습니다.");}finally{setSaving("");}
   };
 
   const deleteRecord = async () => {
@@ -1183,7 +1089,7 @@ export function ClassLearningBoard({
             있습니다.
           </p>
           {error ? (
-            <p className="form-error learning-board-error">{error}</p>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" onClick={()=>void reviewLatestEdits()}>최신 내용 비교</button>}</div>
           ) : null}
         </section>
       ) : (
@@ -1707,7 +1613,7 @@ export function ClassLearningBoard({
             </div>
           )}
           {error ? (
-            <p className="form-error learning-board-error">{error}</p>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" onClick={()=>void reviewLatestEdits()}>최신 내용 비교</button>}</div>
           ) : null}
           {rows.length ? (
             <footer>

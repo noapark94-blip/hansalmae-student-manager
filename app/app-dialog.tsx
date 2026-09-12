@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styles from "./message-confirm.module.css";
+import { EditConflictDialogHost } from "./edit-conflict-dialog";
 
 type DialogStat = { label: string; value: string };
 type DialogTone = "default" | "danger";
@@ -45,6 +46,10 @@ export function appPrompt(options: PromptOptions) {
 }
 
 export function AppDialogHost() {
+  return <><BasicDialogHost /><EditConflictDialogHost /></>;
+}
+
+function BasicDialogHost() {
   const [request, setRequest] = useState<DialogRequest | null>(null);
   const [value, setValue] = useState("");
 
