@@ -8,7 +8,7 @@ import styles from "./alimtalk-send-center.module.css";
 
 type ReportType="daily"|"weekly";
 type ListMode="ready"|"sent";
-type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;correctionTaskStatus?:"completed"|"partial"|"incomplete"|null;correctionTaskFeedback?:string;attendance:{status:string;lateMinutes:number|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
+type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;correctionTaskStatus?:"completed"|"partial"|"incomplete"|null;correctionTaskFeedback?:string;attendance:{status:string;lateMinutes:number|null;absenceReason?:string|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
 type Recipient={guardianName:string;maskedPhone:string;available:boolean};
 type TemplateVariables={studentName:string;periodStart:string;periodEnd:string;lessonSummary:string;attendanceSummary:string;learningSummary:string};
 type History={id:string;studentId:string;studentName:string;reportType:ReportType;periodStart:string;status:string;sentAt:string|null;errorMessage:string|null;templateVariables:TemplateVariables;maskedPhone:string;sendCount:number};
@@ -93,7 +93,7 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
 function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[]):Preview{
   const lessonItems=groupBySubject(lessons.map(row=>({
     subject:row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`,
-    value:row.attendance?.status==="absent"?"결석":row.attendance?.status==="excused"?"인정결석":row.source==="correction"?"":cleanMultiline(row.lessonContent),
+    value:row.attendance?.status==="absent"||row.attendance?.status==="excused"?`결석${row.attendance.absenceReason?.trim()?`(${cleanMultiline(row.attendance.absenceReason)})`:""}`:row.source==="correction"?"":cleanMultiline(row.lessonContent),
   })),"수업 완료");
   const lesson=limitText(summarize(lessonItems,type==="weekly"?3:4)||"완료된 수업 없음",180);
   const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
