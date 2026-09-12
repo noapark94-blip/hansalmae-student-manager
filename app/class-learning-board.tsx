@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { StudentLearningHistory } from "./student-learning-history";
 import { appConfirm, appPrompt } from "./app-dialog";
+import { compareEdits } from "./edit-conflict-dialog";
 import { editChanges, preservePendingEdits, type EditValues } from "./class-record-concurrency";
 import { sendLearningFeedPush } from "./learning-feed-push";
 
@@ -266,10 +267,12 @@ export function ClassLearningBoard({
       const removed=changes.some(c=>c.path.length===3&&!remote.values.students[c.path[1]]);
       if(removed)throw new Error("수업 명단에서 빠진 학생의 입력이 있습니다. 해당 내용을 복사해 보관한 뒤 화면을 다시 열어 주세요.");
       const conflicts=changes.filter(c=>{const value=c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]];return value!==c.before&&value!==c.value&&c.path[2]!=="exam_id";});
-      const keepMine=!conflicts.length||await appConfirm({eyebrow:"동시 수정 확인",title:"겹친 항목에 내 입력을 유지할까요?",copy:conflicts.map(c=>{const v=c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]];const name=rows.find(r=>r.id===c.path[1])?.name??"공통 내용";return `${name}: 내 입력 [${c.value??"빈 값"}] / 최근 저장 [${v??"빈 값"}]`;}).join("\n"),notice:"내 입력을 유지해도 바로 저장되지는 않습니다. 내용을 확인한 뒤 저장해 주세요.",confirmLabel:"내 입력 유지",cancelLabel:"최근 저장 값 적용"});
-      if(editScopeRef.current!==scope)return;
+      const labels: Record<string,string>={notice:"안내",lessonContent:"수업 내용",status:"출결",lateMinutes:"지각 시간",absenceReason:"결석 사유",note:"출결 메모",assignedHomework:"숙제",inspectionStatus:"검사 상태",inspectionNote:"검사 피드백",exam_examType:"시험 종류",exam_examTitle:"시험명·범위",exam_score:"시험 점수",exam_maxScore:"만점",exam_evaluation:"시험 피드백"};
+      const display=(value:unknown)=>({present:"출석",late:"지각",absent:"결석",completed:"완료"}[String(value)]??String(value??""));
+      const choices=conflicts.length?await compareEdits(conflicts.map(c=>({id:c.path.join("/"),student:rows.find(r=>r.id===c.path[1])?.name??"반 공통",field:labels[c.path.at(-1)!]??"수업 기록",mine:display(c.value),latest:display(c.path.length===1?remote.values[c.path[0] as "notice"|"lessonContent"]:remote.values.students[c.path[1]][c.path[2]])}))):{};
+      if(choices===null||editScopeRef.current!==scope)return;
       const merged=preservePendingEdits(latestEditRef.current,base.values,remote.values);
-      if(!keepMine)for(const c of conflicts){if(c.path.length===1)merged[c.path[0] as "notice"|"lessonContent"]=remote.values[c.path[0] as "notice"|"lessonContent"];else merged.students[c.path[1]][c.path[2]]=remote.values.students[c.path[1]][c.path[2]];}
+      for(const c of conflicts){if(choices[c.path.join("/")]!=="latest")continue;if(c.path.length===1)merged[c.path[0] as "notice"|"lessonContent"]=remote.values[c.path[0] as "notice"|"lessonContent"];else merged.students[c.path[1]][c.path[2]]=remote.values.students[c.path[1]][c.path[2]];}
       editBaselineRef.current=remote;latestEditRef.current=merged;
       setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);setLessonState(remote.state);
       setHasRevisionDraft(Boolean(remote.revision?.payload));setRevisionSavedAt(remote.revision?.savedAt??null);setError("");
