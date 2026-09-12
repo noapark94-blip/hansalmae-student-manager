@@ -860,33 +860,45 @@ export function ClassLearningBoard({
       }))
     )
       return;
-    const savingKey = `delete-${row.id}`;
-    setSaving(savingKey);
+    if(editBusyRef.current){setError("앞선 저장이 끝난 뒤 다시 삭제해 주세요.");return;}
+    const scope=`${classId}:${date}`;
+    editBusyRef.current=true;
+    setSaving(`delete-${row.id}`);
     setError("");
-    const { error: deleteError } = await supabase.rpc(
-      "staff_delete_class_student_record",
-      { p_class_id: classId, p_date: date, p_student_id: row.id },
-    );
-    if (deleteError) {
-      setError(deleteError.message);
-      setSaving("");
-      return;
-    }
-    update(row.id, {
-      recordExists: false,
-      status: null,
-      lateMinutes: null,
-      absenceReason: null,
-      note: null,
-      lessonContent: "",
-      exams: [emptyExam()],
-      assignedHomework: "",
-      inspectionStatus: "",
-      inspectionNote: "",
-    });
-    await Promise.all([onReload(), loadWeek()]);
-    setReloadKey((value) => value + 1);
-    setSaving("");
+    let deleted=false;
+    try{
+      const {error:deleteError}=await supabase.rpc("staff_delete_class_student_record",{p_class_id:classId,p_date:date,p_student_id:row.id});
+      if(deleteError)throw new Error(deleteError.message);
+      deleted=true;
+      const {data,error:readError}=await supabase.rpc("staff_class_edit_snapshot",{p_class_id:classId,p_date:date});
+      if(readError)throw new Error(readError.message);
+      if(editScopeRef.current!==scope)return;
+      const snapshot=data as EditSnapshot;
+      const base=editBaselineRef.current;
+      // Deletion is our own committed change. Acknowledge only this student's
+      // canonical values; preserve other students' edits and conflict baselines.
+      const local=structuredClone(latestEditRef.current);
+      const baseline=structuredClone(base?.values??snapshot.values);
+      if(snapshot.values.students[row.id]){
+        local.students[row.id]=structuredClone(snapshot.values.students[row.id]);
+        baseline.students[row.id]=structuredClone(snapshot.values.students[row.id]);
+      }else{
+        delete local.students[row.id];delete baseline.students[row.id];
+      }
+      editBaselineRef.current={...snapshot,values:baseline};
+      latestEditRef.current=local;
+      setRows(current=>applyEditValues(current.map(item=>item.id===row.id?{...item,recordExists:false}:item),local));
+      setLessonState(snapshot.state);
+      setHasRevisionDraft(Boolean(snapshot.revision?.payload));
+      setRevisionSavedAt(snapshot.revision?.savedAt??null);
+      await Promise.all([onReload(),loadWeek()]);
+      setReloadKey(value=>value+1);
+    }catch(e){
+      if(editScopeRef.current===scope){
+        if(deleted)editBaselineRef.current=null;
+        setError(e instanceof Error?e.message:"학생 기록을 삭제하지 못했습니다.");
+      }
+    }finally{editBusyRef.current=false;setSaving("");void refreshLive();}
   };
 
   const validateRows = (requireAttendance: boolean) => {
