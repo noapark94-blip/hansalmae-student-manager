@@ -5,6 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { CorrectionMonthCalendar } from "./correction-month-calendar";
 import { CorrectionHistoryModal } from "./correction-history-modal";
 import { appConfirm } from "./app-dialog";
+import { compareEdits } from "./edit-conflict-dialog";
+import { editableReportKeys, reportValue, sameValue, mergeRemoteReport, mergeRemoteBaseline, conflictingReportFields, resolveReportChoices, type Report, type TaskStatus, type EditableReportKey } from "./correction-record-concurrency";
 import { CorrectionDateAssignmentEditor } from "./correction-management-board";
 import { ExamCategoryModal, type ExamCategory } from "./class-learning-board";
 
@@ -12,16 +14,14 @@ type Assignment={id:string;studentId:string;studentName:string;school:string|nul
 type Exception={id:string;assignmentId:string;originalDate:string;kind:"move"|"cancel"|"extra";targetDate:string|null;targetStartTime:string|null;targetEndTime:string|null;note:string|null};
 type Board={assignments:Assignment[];exceptions:Exception[]};
 type Occurrence={assignment:Assignment;date:string;startTime:string;endTime:string;kind:"fixed"|"move"|"extra";exception?:Exception};
-type TaskStatus="completed"|"partial"|"incomplete"|null;
-type Report={id?:string;attendanceStatus?:string;lateMinutes?:number|null;absenceReason?:string;teacherInstruction?:string;examTitle?:string;examRange?:string;examScore?:number|null;examMaxScore?:number|null;evaluation?:string;homeworkInstruction?:string;homeworkStatus?:string|null;homeworkNote?:string;correctionContent?:string;correctionTaskStatus?:TaskStatus;correctionTaskFeedback?:string;assistantFeedback?:string;nextPreparation?:string;published?:boolean;recordedByName?:string|null;lastEditedByName?:string|null;updatedAt?:string|null};
+
+
 type AttendanceEditor={row:Occurrence;status:"late"|"absent";value:string};
 type CorrectionReadStatus={reportAvailable:boolean;totalStudents:number;confirmedStudents:number;unconfirmedStudents:number;unlinkedStudents:number;students:{studentId:string;studentName:string;school:string|null;grade:string|null;status:"confirmed"|"unconfirmed"|"unlinked";viewedAt:string|null}[]};
 
 const weekdays=["월","화","수","목","금","토","일"];
 const subjects:["국어","영어","수학"]=["국어","영어","수학"];
 const attendance:[["present","출석"],["late","지각"],["absent","결석"]]=[["present","출석"],["late","지각"],["absent","결석"]];
-const editableReportKeys=["attendanceStatus","lateMinutes","absenceReason","teacherInstruction","examTitle","examRange","examScore","examMaxScore","evaluation","homeworkInstruction","homeworkStatus","homeworkNote","correctionContent","correctionTaskStatus","correctionTaskFeedback","assistantFeedback","nextPreparation","published"] as const;
-type EditableReportKey=(typeof editableReportKeys)[number];
 const hasCorrectionDetails=(report:Report)=>report.published===true||report.examScore!=null||Boolean(report.homeworkStatus)||[
   report.teacherInstruction,report.examTitle,report.examRange,report.evaluation,report.homeworkInstruction,
   report.homeworkNote,report.correctionContent,report.correctionTaskStatus,report.correctionTaskFeedback,report.assistantFeedback,report.nextPreparation,
@@ -36,6 +36,8 @@ const reportFingerprint=(report:Report)=>JSON.stringify({
 
 export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const[date,setDate]=useState(koreaToday());
+  const activeDateRef=useRef(date);
+  const pendingSaves=useRef(new Set<string>());
   const[data,setData]=useState<Board|null>(null);
   const[drafts,setDrafts]=useState<Record<string,Report>>({});
   const[savedDrafts,setSavedDrafts]=useState<Record<string,Report>>({});
@@ -122,7 +124,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     if(categoryError)setError(categoryError.message);
     else setCategories((next??[]) as ExamCategory[]);
   },[supabase]);
-  const selectDate=(nextDate:string)=>{setIncompleteOnly(false);setDate(nextDate)};
+  const selectDate=(nextDate:string)=>{activeDateRef.current=nextDate;setIncompleteOnly(false);setDate(nextDate)};
   const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
   const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
   const completedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true).length;
@@ -134,6 +136,9 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
 
   const persist=async(row:Occurrence,next:Report,publish:boolean)=>{
     const key=reportKey(row),base=savedDraftsRef.current[key]??{};
+    if(pendingSaves.current.has(key))throw new Error("앞선 저장이 끝난 뒤 다시 저장해 주세요.");
+    pendingSaves.current.add(key);
+    try {
     const max=next.examMaxScore==null||Number(next.examMaxScore)<=0?100:Number(next.examMaxScore);
     const score=next.examScore==null?null:Number(next.examScore);
     const examType=next.examRange?.startsWith("[종류]")?next.examRange.slice(4).split("\n")[0].trim():"";
@@ -150,13 +155,36 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
       p_assignment_id:row.assignment.id,p_correction_date:row.date,p_start_time:row.startTime,p_end_time:row.endTime,
       p_changes:changes,p_base:baseValues
     });
-    if(saveError)throw saveError;
+    if(activeDateRef.current!==row.date)return;
+    if(saveError){
+      if(!saveError.message.includes("다른 담당자가 먼저 같은 항목"))throw new Error(saveError.message);
+      // Retain the attempted attendance/publication values as well as typing during the request.
+      const attempted=mergeRemoteReport(draftsRef.current[key]??next,localAtSubmit,{...normalized,published:localAtSubmit.published});
+      draftsRef.current={...draftsRef.current,[key]:attempted};setDrafts(draftsRef.current);
+      const {data:remoteData,error:readError}=await supabase.rpc("staff_correction_report",{p_assignment_id:row.assignment.id,p_date:row.date,p_start_time:row.startTime});
+      if(activeDateRef.current!==row.date)return;
+      if(readError)throw new Error("최신 기록을 확인하지 못했습니다. 입력 내용은 유지됩니다. 다시 저장해 주세요.");
+      const remote=(remoteData??{}) as Report;
+      if(base.id&&!remote.id)throw new Error("다른 담당자가 기록을 삭제했습니다. 입력 내용을 보관한 뒤 최신 기록을 확인해 주세요.");
+      const compared={...(draftsRef.current[key]??attempted)};
+      const fields=conflictingReportFields(base,compared,remote);
+      const labels:Record<EditableReportKey,string>={attendanceStatus:"출결",lateMinutes:"지각 시간",absenceReason:"결석 사유",teacherInstruction:"선생님 전달 사항",examTitle:"시험명",examRange:"시험 종류·범위",examScore:"시험 점수",examMaxScore:"만점",evaluation:"시험 피드백",homeworkInstruction:"숙제",homeworkStatus:"숙제 상태",homeworkNote:"숙제 메모",correctionContent:"첨삭 과제",correctionTaskStatus:"수행 상태",correctionTaskFeedback:"검사 피드백",assistantFeedback:"첨삭 피드백",nextPreparation:"다음 준비",published:"완료 상태"};
+      const display=(field:EditableReportKey,value:unknown)=>field==="published"?(value?"완료":"기록 중"):({scheduled:"미입력",present:"출석",late:"지각",absent:"결석",completed:"완료",partial:"일부 완료",incomplete:"미완료"}[String(value)]??String(value??""));
+      const choices=fields.length?await compareEdits(fields.map(field=>({id:field,student:`${row.assignment.studentName} · ${row.assignment.subject} 첨삭`,field:labels[field],mine:display(field,reportValue(compared,field)),latest:display(field,reportValue(remote,field))}))):{};
+      if(activeDateRef.current!==row.date)return;
+      if(choices===null)throw new Error("비교를 닫았습니다. 작성한 내용은 유지됩니다.");
+      const resolved=resolveReportChoices(base,compared,draftsRef.current[key]??compared,remote,choices);
+      draftsRef.current={...draftsRef.current,[key]:resolved};savedDraftsRef.current={...savedDraftsRef.current,[key]:remote};
+      setDrafts(draftsRef.current);setSavedDrafts(savedDraftsRef.current);
+      throw new Error(fields.length?"선택한 내용을 적용했습니다. 확인 후 다시 저장해 주세요.":"최신 기록을 반영했습니다. 작성한 내용을 확인 후 다시 저장해 주세요.");
+    }
     const saved=(savedData??normalized) as Report;
     const latest=draftsRef.current[key]??next;
     draftsRef.current={...draftsRef.current,[key]:mergeRemoteReport(latest,localAtSubmit,saved)};
     savedDraftsRef.current={...savedDraftsRef.current,[key]:saved};
     setDrafts(draftsRef.current);
     setSavedDrafts(savedDraftsRef.current);
+    } finally { pendingSaves.current.delete(key); }
   };
 
   const saveAttendance=async(row:Occurrence,status:"present"|"late"|"absent")=>{
@@ -195,7 +223,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     }))return;
     setSaving("all");setError("");
     const targets=rows.filter(row=>{const key=reportKey(row),report=drafts[key]??{},saved=savedDrafts[key]??{};const changed=reportFingerprint(report)!==reportFingerprint(saved);const needsPublish=complete&&report.published!==true&&(report.attendanceStatus??"scheduled")!=="scheduled";return changed||needsPublish});
-    try{for(const row of targets){const report=drafts[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
+    try{for(const row of targets){if(activeDateRef.current!==row.date)return;const report=draftsRef.current[reportKey(row)]??{};await persist(row,report,complete?report.published===true||(report.attendanceStatus??"scheduled")!=="scheduled":report.published===true)}}
     catch(e){setError(e instanceof Error?e.message:"첨삭 기록을 저장하지 못했습니다.");return}
     finally{setSaving("")}
     try{await load()}catch{setError("저장은 완료됐지만 최신 명단을 불러오지 못했습니다. 다시 확인해 주세요.")}
@@ -323,24 +351,6 @@ function CorrectionScheduleChangeModal({row,supabase,onClose,onReverted}:{row:Oc
 }
 
 function reportKey(row:Occurrence){return `${row.assignment.id}-${row.date}-${row.startTime}`}
-function reportValue(report:Report,field:EditableReportKey):unknown{
-  if(field==="attendanceStatus")return report.attendanceStatus??"scheduled";
-  if(field==="published")return report.published===true;
-  if(field==="examMaxScore")return report.examMaxScore??100;
-  if(field==="lateMinutes"||field==="examScore"||field==="homeworkStatus"||field==="correctionTaskStatus")return report[field]??null;
-  return report[field]??"";
-}
-function sameValue(left:unknown,right:unknown){return JSON.stringify(left)===JSON.stringify(right)}
-function mergeRemoteReport(local:Report,baseline:Report,remote:Report):Report{
-  const merged:Report={...remote};
-  for(const field of editableReportKeys)if(!sameValue(reportValue(local,field),reportValue(baseline,field)))Object.assign(merged,{[field]:local[field]});
-  return merged;
-}
-function mergeRemoteBaseline(local:Report,baseline:Report,remote:Report):Report{
-  const merged:Report={...remote};
-  for(const field of editableReportKeys)if(!sameValue(reportValue(local,field),reportValue(baseline,field)))Object.assign(merged,{[field]:baseline[field]});
-  return merged;
-}
 function buildOccurrences(data:Board|null,date:string):Occurrence[]{if(!data)return[];const weekday=isoWeekday(date);const rows:Occurrence[]=[];for(const a of data.assignments??[]){if(a.weekday===weekday&&isAssignmentValid(a,date)){const x=(data.exceptions??[]).find(e=>e.assignmentId===a.id&&e.originalDate===date&&(e.kind==="move"||e.kind==="cancel"));if(!x)rows.push({assignment:a,date,startTime:a.startTime,endTime:a.endTime,kind:"fixed"})}}for(const x of data.exceptions??[]){if((x.kind==="move"||x.kind==="extra")&&x.targetDate===date&&x.targetStartTime&&x.targetEndTime){const a=(data.assignments??[]).find(v=>v.id===x.assignmentId);if(a)rows.push({assignment:a,date,startTime:x.targetStartTime,endTime:x.targetEndTime,kind:x.kind,exception:x})}}return rows.sort((a,b)=>a.startTime.localeCompare(b.startTime)||a.assignment.subject.localeCompare(b.assignment.subject,"ko")||a.assignment.studentName.localeCompare(b.assignment.studentName,"ko"))}
 function isAssignmentValid(assignment:Assignment,date:string){return assignment.validFrom<=date&&(!assignment.validUntil||assignment.validUntil>=date)}
 function isoWeekday(value:string){const d=new Date(`${value}T12:00:00+09:00`);const day=d.getUTCDay();return day===0?7:day}
