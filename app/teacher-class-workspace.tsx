@@ -350,9 +350,9 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
               <strong>{item.students.length}명</strong>
             </button>
           ))}
-        {adminFilter === "all" && <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
+        {(adminFilter === "all" || adminFilter === "mine") && <button className={`teacher-special-card ${selectedId === specialLessonsId ? "active" : ""}`} onClick={() => setSelectedId(specialLessonsId)} style={{ "--class-color": "#8e888b" } as CSSProperties}>
           <i />
-          <span><small>{profile.role === "admin" ? "전체 선생님 통합" : "선생님 전용"}</small><b>개별 보강·추가수업</b><em>날짜·요일·시간 제한 없이 별도 일정 관리</em></span>
+          <span><small>{profile.role === "admin" && adminFilter === "all" ? "전체 선생님 통합" : "내 보강·추가수업"}</small><b>개별 보강·추가수업</b><em>날짜·요일·시간 제한 없이 별도 일정 관리</em></span>
           <strong>전용</strong>
         </button>}
         {filteredClasses.length === 0 && <p className="admin-class-filter-empty">조건에 맞는 클래스가 없습니다.</p>}
@@ -360,7 +360,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
       </>}
       {(!todayOnly || activeAgenda?.classId === selectedId) && selected && <ClassDayPanel supabase={supabase} classRoom={selected} date={date} onDate={setDate} day={day} onReload={async () => { await Promise.all([loadDay(), loadAgenda()]); }} onWorkspaceReload={load} focusRequestId={lessonTarget&&selected.id===lessonTarget.classId&&date===lessonTarget.date?lessonTarget.requestId:null} />}
       {todayOnly && activeAgenda?.sessionId && <SpecialLessonLearningBoard key={activeAgenda.sessionId} embedded supabase={supabase} sessionId={activeAgenda.sessionId} lessonKind={activeAgenda.kind === "개별 보강" ? "makeup" : "additional"} onClose={() => setActiveAgendaKey("")} onEdit={() => { setTodayOnly(false); setSelectedId(specialLessonsId); }} onAttendanceChange={loadAgenda} />}
-      {!todayOnly && selectedId === specialLessonsId && <TeacherSpecialLessons supabase={supabase} profile={profile} />}
+      {!todayOnly && selectedId === specialLessonsId && <TeacherSpecialLessons key={adminFilter} supabase={supabase} profile={profile} mineOnly={adminFilter === "mine"} />}
       {subjectOpen && (
         <SubjectEditor
           supabase={supabase}

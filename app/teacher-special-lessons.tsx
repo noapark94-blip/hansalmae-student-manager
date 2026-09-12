@@ -29,7 +29,7 @@ type Session = {
 type Draft = { id: string; date: string; startTime: string; endTime: string; kind: "makeup" | "additional"; subjectId: string; room: string; note: string; studentIds: string[] };
 const blank = (): Draft => ({ id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
 
-export function TeacherSpecialLessons({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+export function TeacherSpecialLessons({ supabase, profile, mineOnly = false }: { supabase: SupabaseClient; profile: Profile; mineOnly?: boolean }) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -48,7 +48,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: sessionData, error: sessionError }, { data: studentData, error: studentError }, { data: subjectData, error: subjectError }] = await Promise.all([
-      supabase.rpc("staff_teacher_special_lessons", { p_teacher_id: profile.role === "admin" ? null : profile.id }),
+      supabase.rpc("staff_teacher_special_lessons", { p_teacher_id: profile.role === "admin" && !mineOnly ? null : profile.id }),
       supabase.rpc("staff_special_lesson_student_options", { p_teacher_id: profile.id }),
       supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active", true).order("main_subject").order("name"),
     ]);
@@ -60,7 +60,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
       setError("");
     }
     setLoading(false);
-  }, [profile.id, supabase]);
+  }, [profile.id, profile.role, mineOnly, supabase]);
   useEffect(() => void load(), [load]);
   useEffect(() => {
     const closeTopLayer = (event: KeyboardEvent) => {
@@ -126,7 +126,7 @@ export function TeacherSpecialLessons({ supabase, profile }: { supabase: Supabas
   return (
     <section className="panel teacher-special-workspace">
       <header>
-        <div><p className="eyebrow">{profile.role === "admin" ? "관리자 전체 조회" : "선생님 전용"}</p><h2>개별 보강·추가수업</h2><span>정규 클래스와 분리하여 원하는 날짜와 시간에 학생을 배정합니다.</span></div>
+        <div><p className="eyebrow">{profile.role === "admin" && !mineOnly ? "관리자 전체 조회" : "내 보강·추가수업"}</p><h2>개별 보강·추가수업</h2><span>정규 클래스와 분리하여 원하는 날짜와 시간에 학생을 배정합니다.</span></div>
         <button type="button" className="primary" onClick={() => { setError(""); setDraft({ ...blank(), date: anchorDate }); }}>＋ 일정 등록</button>
       </header>
       {error ? <p className="form-error special-lesson-error">{error}</p> : null}
