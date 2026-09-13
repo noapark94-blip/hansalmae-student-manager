@@ -1,4 +1,5 @@
--- Execute after migration inside BEGIN / ROLLBACK.
+-- Always roll back fixture changes, including when run directly.
+begin;
 do $$
 declare uid uuid; eid uuid; yr int; cid uuid; lid uuid; dt date; full_data jsonb; delta jsonb; expected jsonb;
 begin
@@ -25,3 +26,5 @@ begin
  if exists(select 1 from public.staff_live_signals) then raise exception 'nonstaff saw signals';end if;
  execute 'reset role';
 end $$;
+
+rollback;
