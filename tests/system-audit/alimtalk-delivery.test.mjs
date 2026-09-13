@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {webcrypto} from 'node:crypto';
+import ts from 'typescript';
+const source=fs.readFileSync(new URL('../../supabase/functions/send-learning-alimtalk/index.ts',import.meta.url),'utf8');
+const js=ts.transpileModule(source.replace(/^import .*\n/,''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+async function scenario(options={}){
+ let handler,claims=0,providerCalls=0,writes=0,saved=null;const attempts=[];
+ const env={SUPABASE_URL:'https://example.invalid',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',SOLAPI_API_KEY:'test',SOLAPI_API_SECRET:'test',SOLAPI_SENDER_NUMBER:'01000000000',SOLAPI_KAKAO_PF_ID:'test',SOLAPI_ALIMTALK_DAILY_TEMPLATE_ID:'test'};
+ if(options.missing)delete env[options.missing];
+ const row={id:'delivery',recipient_phone:'01000000000',report_type:'daily',template_variables:{studentName:'테스트',periodStart:'2026-09-13',periodEnd:'2026-09-13',lessonSummary:'수학 추가수업',attendanceSummary:'출석',learningSummary:options.long?'가'.repeat(1100):'문제 풀이'}};
+ const auth={rpc:async()=>{claims++;return options.denied?{error:{message:'관리자만 발송할 수 있습니다.'}}:{data:[row]}},auth:{getUser:async()=>{if(options.authThrow)throw Error('offline');return {data:{user:options.noUser?null:{id:'user'}}}}}};
+ const failWrite=()=>options.permanent||writes<=(options.failures??0);
+ const admin={rpc:async(name,args)=>{writes++;if(options.lostResponse&&writes===1){saved={status:args.p_status,provider_message_id:args.p_provider_message_id,provider_group_id:args.p_provider_group_id,error_message:args.p_error_message};return {error:{message:'lost'}}}if(failWrite())return {error:{message:'database unavailable'}};saved={status:args.p_status,provider_message_id:args.p_provider_message_id,provider_group_id:args.p_provider_group_id,error_message:args.p_error_message};return {data:true}},from:table=>({select(){return this},eq(){return this},upsert(value){writes++;attempts.push(value);return this},async single(){if(table==='learning_alimtalk_deliveries')return {data:saved};return failWrite()?{error:{message:'offline'}}:{data:{id:attempts.at(-1).id}}}})};
+ vm.runInNewContext(js,{Deno:{env:{get:k=>env[k]},serve:fn=>handler=fn},createClient:(u,key)=>key==='anon'?auth:admin,Request,Response,TextEncoder,crypto:webcrypto,fetch:async()=>{providerCalls++;if(options.networkThrow)throw Error('timeout');return new Response(JSON.stringify(options.noMessageId?{}:{messageId:'mock-message',groupId:'mock-group',errorMessage:'rejected'}),{status:options.providerStatus??200})}});
+ const body=options.body??(options.resend?{resendDeliveryId:'delivery'}:{reportType:'daily'});
+ const response=await handler(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify(body)}));
+ return {status:response.status,body:await response.json(),claims,providerCalls,writes,saved,attempts};
+}
+test('missing provider configuration and daily template never claim a delivery',async()=>{for(const missing of ['SOLAPI_API_KEY','SOLAPI_ALIMTALK_DAILY_TEMPLATE_ID']){const r=await scenario({missing});assert.equal(r.status,503);assert.equal(r.claims,0);assert.equal(r.providerCalls,0)}});
+test('invalid or unavailable authentication never claims a delivery',async()=>{for(const o of [{noUser:true},{authThrow:true}]){const r=await scenario(o);assert.equal(r.claims,0);assert.equal(r.providerCalls,0)}});
+test('invalid report type is rejected before claim',async()=>{const r=await scenario({body:{reportType:'wrong'}});assert.equal(r.status,400);assert.equal(r.claims,0)});
+test('permission rejection cannot send',async()=>{const r=await scenario({denied:true});assert.equal(r.status,403);assert.equal(r.providerCalls,0)});
+test('normal delivery sends once and persists success',async()=>{const r=await scenario();assert.equal(r.status,200);assert.equal(r.providerCalls,1);assert.equal(r.saved.status,'sent')});
+test('transient persistence failure retries only the database',async()=>{const r=await scenario({failures:2});assert.equal(r.status,200);assert.equal(r.writes,3);assert.equal(r.providerCalls,1)});
+test('lost database response is recognized by reading the committed result',async()=>{const r=await scenario({lostResponse:true});assert.equal(r.status,200);assert.equal(r.writes,1);assert.equal(r.providerCalls,1)});
+test('permanent persistence failure never reports success or marks sent message failed',async()=>{const r=await scenario({permanent:true});assert.equal(r.status,503);assert.equal(r.body.providerAccepted,true);assert.equal(r.body.sent,undefined);assert.equal(r.writes,3);assert.equal(r.providerCalls,1);assert.equal(r.saved,null)});
+test('resend persistence retries use one stable log ID and one provider request',async()=>{const r=await scenario({resend:true,failures:2});assert.equal(r.status,200);assert.equal(r.providerCalls,1);assert.equal(r.attempts.length,3);assert.equal(new Set(r.attempts.map(a=>a.id)).size,1)});
+test('oversized content becomes failed without contacting provider',async()=>{const r=await scenario({long:true});assert.equal(r.status,400);assert.equal(r.providerCalls,0);assert.equal(r.saved.status,'failed')});
+test('explicit provider rejection persists failure',async()=>{const r=await scenario({providerStatus:400});assert.equal(r.status,502);assert.equal(r.saved.status,'failed');assert.equal(r.providerCalls,1)});
+test('uncertain provider outcomes remain blocked and are not automatically retried',async()=>{for(const o of [{networkThrow:true},{providerStatus:500},{providerStatus:408},{noMessageId:true}]){const r=await scenario(o);assert.equal(r.status,503);assert.equal(r.body.code,'DELIVERY_OUTCOME_UNKNOWN');assert.equal(r.writes,0);assert.equal(r.providerCalls,1)}});
