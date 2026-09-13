@@ -65,9 +65,23 @@ begin
     from public.correction_schedule_exceptions x join public.correction_assignments a on a.id=x.assignment_id and a.active
     join public.students s on s.id=a.student_id and s.status in ('active','재원') where x.kind in ('move','extra') and x.target_date between p_from and p_to
   ),
-  expected as (
+  scheduled_expected as (
     select * from regular_fixed union select * from regular_replacements union select * from class_makeups
     union all select * from special_lessons union all select * from correction_fixed union select * from correction_changes
+  ),
+  expected as (
+    select * from scheduled_expected
+    union all
+    select a.student_id,'recorded-regular:'||l.id::text,'정규수업',c.name,l.lesson_date,
+      (l.starts_at at time zone 'Asia/Seoul')::time,true
+    from public.attendance a join public.lessons l on l.id=a.lesson_id
+    join public.classes c on c.id=l.class_id
+    join public.students s on s.id=a.student_id and s.status in ('active','재원')
+    where l.status='completed' and l.lesson_date between p_from and p_to
+      and not exists(select 1 from scheduled_expected e
+        where e.student_id=a.student_id and e.occurrence_date=l.lesson_date
+        and (e.expected_key like 'regular:'||l.class_id::text||':'||l.lesson_date::text||':%'
+          or e.expected_key='class-makeup:'||l.class_id::text||':'||l.lesson_date::text))
   ),
   completed_expected as (
     select * from expected where completed
@@ -97,17 +111,27 @@ begin
     union all
     select * from unresolved_expected
   ),
-  readiness as (
+  readiness as materialized (
     select student_id,count(*)::integer expected_count,count(*) filter(where completed)::integer completed_count,
       coalesce(jsonb_agg(jsonb_build_object('kind',kind,'title',title,'date',occurrence_date,'time',to_char(start_time,'HH24:MI')) order by occurrence_date,start_time,title) filter(where not completed),'[]'::jsonb) missing_items
     from resolved_expected group by student_id
+  ),
+  report_sources as materialized (
+    select * from public.internal_alimtalk_report_sources(array(select student_id from readiness),p_from,p_to)
+  ),
+  recipients as materialized (
+    select distinct on(sg.student_id) sg.student_id,
+      jsonb_build_object('guardianName',g.name,'maskedPhone',left(regexp_replace(g.phone,'[^0-9]','','g'),3)||'-****-'||right(regexp_replace(g.phone,'[^0-9]','','g'),4),'available',true) recipient
+    from public.student_guardians sg join public.guardians g on g.id=sg.guardian_id
+    where sg.student_id in (select student_id from readiness) and length(regexp_replace(coalesce(g.phone,''),'[^0-9]','','g')) between 10 and 11
+    order by sg.student_id,sg.is_primary desc,g.created_at
   )
   select coalesce(jsonb_agg(jsonb_build_object(
     'studentId',s.id,'studentName',s.name,'school',coalesce(s.school,''),'grade',coalesce(s.grade,''),
     'expectedCount',r.expected_count,'completedCount',r.completed_count,'complete',r.completed_count=r.expected_count,'missingItems',r.missing_items,
     'lessons',public.staff_learning_report_source(s.id,p_from,p_to),'recipient',public.staff_alimtalk_recipient(s.id)
-  ) order by (r.completed_count=r.expected_count) desc,s.name),'[]'::jsonb) into result
-  from readiness r join public.students s on s.id=r.student_id where r.expected_count>0;
+  ) order by (r.completed_count=r.expected_count) desc,s.name,s.id),'[]'::jsonb) into result
+  from readiness r join public.students s on s.id=r.student_id left join report_sources src on src.student_id=s.id left join recipients rec on rec.student_id=s.id where r.expected_count>0;
   return result;
 end $function$;
 CREATE OR REPLACE FUNCTION pg_temp.reference_today(p_student_id uuid DEFAULT NULL::uuid)
@@ -116,14 +140,23 @@ CREATE OR REPLACE FUNCTION pg_temp.reference_today(p_student_id uuid DEFAULT NUL
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare base jsonb; sid uuid; today date := (now() at time zone 'Asia/Seoul')::date; result jsonb;
+declare sid uuid; today date := (now() at time zone 'Asia/Seoul')::date; result jsonb;
 begin
-  base:=public.family_live_dashboard(p_student_id);
-  sid:=nullif(base->'selectedStudent'->>'id','')::uuid;
+  sid:=nullif(public.family_live_dashboard(p_student_id)->'selectedStudent'->>'id','')::uuid;
   if sid is null then return '[]'::jsonb; end if;
   with rows as (
     select 'regular:'||l.id::text id,'regular' kind,'정규수업' label,coalesce(c.subject,c.name) subject,to_char(l.starts_at at time zone 'Asia/Seoul','HH24:MI') start_time,to_char(l.ends_at at time zone 'Asia/Seoul','HH24:MI') end_time,coalesce(p.display_name,'') teacher_name,coalesce(l.room,c.room,'') room,a.status::text attendance_status
-    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (public.student_attends_class_on(sid,c.id,today) or a.id is not null)
+    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (a.id is not null or (l.status<>'cancelled' and (
+      exists(select 1 from public.schedule_exceptions x where x.class_id=c.id
+        and x.kind in ('changed','makeup') and x.replacement_date=today
+        and (x.start_time is null or x.start_time=(l.starts_at at time zone 'Asia/Seoul')::time)
+        and public.student_attends_class_on(sid,c.id,x.original_date))
+      or (
+        public.student_attends_class_on(sid,c.id,today)
+        and not exists(select 1 from public.schedule_exceptions x
+          where x.class_id=c.id and x.original_date=today and x.kind in ('cancelled','changed','makeup'))
+      )
+    )))
     union all
     select 'special:'||l.id::text,'special',case l.kind when 'makeup' then '보강' when 'extra' then '추가수업' when 'additional' then '추가수업' else '개별수업' end,coalesce(s.name,'과목 미지정'),to_char(l.starts_at,'HH24:MI'),to_char(l.ends_at,'HH24:MI'),coalesce(p.display_name,''),coalesce(l.room,''),ss.attendance_status
     from public.teacher_special_lessons l join public.teacher_special_lesson_students ss on ss.session_id=l.id and ss.student_id=sid left join public.academy_subjects s on s.id=l.subject_id left join public.profiles p on p.id=l.teacher_profile_id where l.lesson_date=today and coalesce(l.status,'scheduled')<>'cancelled'
@@ -144,14 +177,23 @@ CREATE OR REPLACE FUNCTION pg_temp.reference_september(p_student_id uuid DEFAULT
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare base jsonb; sid uuid; today date := '2026-09-12'::date; result jsonb;
+declare sid uuid; today date := '2026-09-12'::date; result jsonb;
 begin
-  base:=public.family_live_dashboard(p_student_id);
-  sid:=nullif(base->'selectedStudent'->>'id','')::uuid;
+  sid:=nullif(public.family_live_dashboard(p_student_id)->'selectedStudent'->>'id','')::uuid;
   if sid is null then return '[]'::jsonb; end if;
   with rows as (
     select 'regular:'||l.id::text id,'regular' kind,'정규수업' label,coalesce(c.subject,c.name) subject,to_char(l.starts_at at time zone 'Asia/Seoul','HH24:MI') start_time,to_char(l.ends_at at time zone 'Asia/Seoul','HH24:MI') end_time,coalesce(p.display_name,'') teacher_name,coalesce(l.room,c.room,'') room,a.status::text attendance_status
-    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (public.student_attends_class_on(sid,c.id,today) or a.id is not null)
+    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (a.id is not null or (l.status<>'cancelled' and (
+      exists(select 1 from public.schedule_exceptions x where x.class_id=c.id
+        and x.kind in ('changed','makeup') and x.replacement_date=today
+        and (x.start_time is null or x.start_time=(l.starts_at at time zone 'Asia/Seoul')::time)
+        and public.student_attends_class_on(sid,c.id,x.original_date))
+      or (
+        public.student_attends_class_on(sid,c.id,today)
+        and not exists(select 1 from public.schedule_exceptions x
+          where x.class_id=c.id and x.original_date=today and x.kind in ('cancelled','changed','makeup'))
+      )
+    )))
     union all
     select 'special:'||l.id::text,'special',case l.kind when 'makeup' then '보강' when 'extra' then '추가수업' when 'additional' then '추가수업' else '개별수업' end,coalesce(s.name,'과목 미지정'),to_char(l.starts_at,'HH24:MI'),to_char(l.ends_at,'HH24:MI'),coalesce(p.display_name,''),coalesce(l.room,''),ss.attendance_status
     from public.teacher_special_lessons l join public.teacher_special_lesson_students ss on ss.session_id=l.id and ss.student_id=sid left join public.academy_subjects s on s.id=l.subject_id left join public.profiles p on p.id=l.teacher_profile_id where l.lesson_date=today and coalesce(l.status,'scheduled')<>'cancelled'
@@ -178,7 +220,17 @@ begin
   if sid is null then return '[]'::jsonb; end if;
   with rows as (
     select 'regular:'||l.id::text id,'regular' kind,'정규수업' label,coalesce(c.subject,c.name) subject,to_char(l.starts_at at time zone 'Asia/Seoul','HH24:MI') start_time,to_char(l.ends_at at time zone 'Asia/Seoul','HH24:MI') end_time,coalesce(p.display_name,'') teacher_name,coalesce(l.room,c.room,'') room,a.status::text attendance_status
-    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (public.student_attends_class_on(sid,c.id,today) or a.id is not null)
+    from public.lessons l join public.classes c on c.id=l.class_id left join public.profiles p on p.id=l.teacher_profile_id left join public.attendance a on a.lesson_id=l.id and a.student_id=sid where l.lesson_date=today and (a.id is not null or (l.status<>'cancelled' and (
+      exists(select 1 from public.schedule_exceptions x where x.class_id=c.id
+        and x.kind in ('changed','makeup') and x.replacement_date=today
+        and (x.start_time is null or x.start_time=(l.starts_at at time zone 'Asia/Seoul')::time)
+        and public.student_attends_class_on(sid,c.id,x.original_date))
+      or (
+        public.student_attends_class_on(sid,c.id,today)
+        and not exists(select 1 from public.schedule_exceptions x
+          where x.class_id=c.id and x.original_date=today and x.kind in ('cancelled','changed','makeup'))
+      )
+    )))
     union all
     select 'special:'||l.id::text,'special',case l.kind when 'makeup' then '보강' when 'extra' then '추가수업' when 'additional' then '추가수업' else '개별수업' end,coalesce(s.name,'과목 미지정'),to_char(l.starts_at,'HH24:MI'),to_char(l.ends_at,'HH24:MI'),coalesce(p.display_name,''),coalesce(l.room,''),ss.attendance_status
     from public.teacher_special_lessons l join public.teacher_special_lesson_students ss on ss.session_id=l.id and ss.student_id=sid left join public.academy_subjects s on s.id=l.subject_id left join public.profiles p on p.id=l.teacher_profile_id where l.lesson_date=today and coalesce(l.status,'scheduled')<>'cancelled'
