@@ -219,17 +219,16 @@ export function FamilyLiveDashboard({
     async (id: string | null, background = false) => {
       if (!background) setLoading(true);
       if (!background) setError("");
-      const [{ data: next, error: e },todayResult] = await Promise.all([
-        supabase.rpc("family_live_dashboard", { p_student_id: id }),
-        supabase.rpc("family_today_lessons", { p_student_id: id }),
-      ]);
+      const { data: next, error: e } = await supabase.rpc("family_home_snapshot", { p_student_id: id });
       if (e) setError("학습 현황을 불러오지 못했습니다.");
       else {
-        const parsed = next as Data;
+        const snapshot = next as { dashboard: Data; todayLessons: TodayLesson[] };
+        const parsed = snapshot.dashboard;
         setData((current) => JSON.stringify(current) === JSON.stringify(parsed) ? current : parsed);
         setSelectedId(parsed.selectedStudent?.id ?? null);
         onStudentChange(parsed.selectedStudent?.id ?? null);
-        if(!todayResult.error){const nextLessons=(todayResult.data??[]) as TodayLesson[];setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons)}
+        const nextLessons=snapshot.todayLessons??[];
+        setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons);
       }
       if (!background) setLoading(false);
     },
