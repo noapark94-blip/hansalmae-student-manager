@@ -1,4 +1,5 @@
 "use client";
+import { InitialPageGate } from "./initial-page-gate";
 import { FamilyLoading } from "./family-loading";
 
 import { clearFamilyPageCache } from "./family-page-cache";
@@ -732,7 +733,7 @@ export default function Home() {
   }
 
   return (
-    <RecordWorkProvider supabase={supabase} profile={profile}><ScheduleReminderProvider supabase={supabase} profile={profile}><main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
+    <InitialPageGate key={profile.id} fallback={<LoadingScreen/>}><RecordWorkProvider supabase={supabase} profile={profile}><ScheduleReminderProvider supabase={supabase} profile={profile}><main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
       <PushDeviceAccountSync key={user.id} supabase={supabase} />
       {["guardian", "teacher", "sub_admin", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
@@ -993,7 +994,7 @@ export default function Home() {
           {toast}
         </div>
       )}
-    </main></ScheduleReminderProvider></RecordWorkProvider>
+    </main></ScheduleReminderProvider></RecordWorkProvider></InitialPageGate>
   );
 }
 
