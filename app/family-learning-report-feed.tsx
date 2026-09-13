@@ -336,7 +336,6 @@ export function FamilyLearningReportFeed({
     const generation=feedGeneration.current;
     setRefreshError("");
     try {
-      const startedAt = Date.now();
       if (refreshCompleteTimer.current !== null)
         window.clearTimeout(refreshCompleteTimer.current);
       setRefreshComplete(false);
@@ -390,9 +389,6 @@ export function FamilyLearningReportFeed({
           next[receipt.reportId] = receipt.viewedAt;
         setCorrectionReads(next);
       }
-      const remaining = Math.max(0, 650 - (Date.now() - startedAt));
-      if (remaining > 0)
-        await new Promise((resolve) => window.setTimeout(resolve, remaining));
       if (generation !== feedGeneration.current) return;
       setRefreshComplete(true);
       refreshCompleteTimer.current = window.setTimeout(() => {
