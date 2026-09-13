@@ -15,7 +15,7 @@ insert into classes(id,name,active)values('${cls}','Test class',true);
 insert into class_teachers values('${cls}','${teacher}');
 insert into enrollments(student_id,class_id,status,started_on)values('${student}','${cls}','active',current_date-30);
 select set_config('test.uid','${admin}',false);`);
-await db.exec(readFileSync(new URL('../../supabase/migrations/20260913135023_missing_record_workflow.sql',import.meta.url),'utf8'));day=(await db.query("select ((now() at time zone 'Asia/Seoul')::date-1)::text d")).rows[0].d;
+await db.exec(readFileSync(new URL('../../supabase/migrations/20260913135023_missing_record_workflow.sql',import.meta.url),'utf8'));await db.exec(readFileSync(new URL('../../supabase/migrations/20260913185838_separate_record_reminder_phases.sql',import.meta.url),'utf8'));day=(await db.query("select ((now() at time zone 'Asia/Seoul')::date-1)::text d")).rows[0].d;
 await db.query(`insert into class_schedules(id,class_id,weekday,start_time,end_time) values($1,$2,extract(isodow from $3::date),'16:00','17:30')`,[id(21),cls,day]);});
 after(()=>db.close());
 const login=uid=>db.query("select set_config('test.uid',$1,false)",[uid]);const list=async()=> (await db.query('select staff_record_worklist($1,$1) data',[day])).rows[0].data;
