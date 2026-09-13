@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Holidays from "date-holidays";
-import { loadFamilyDetailReports } from "./family-detail-query";
+import { loadFamilyDetailReports, loadFamilyCalendarReports } from "./family-detail-query";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
@@ -202,6 +202,11 @@ export function FamilyLearningReportFeed({
   const [selectedDate, setSelectedDate] = useState(() => koreaDate());
   const [calendarSchedule, setCalendarSchedule] = useState<CalendarSchedule[]>([]);
   const [calendarScheduleLoading, setCalendarScheduleLoading] = useState(false);
+  const [refreshError,setRefreshError] = useState("");
+  const [calendarError,setCalendarError] = useState("");
+  const refreshInFlight = useRef(false);
+  const feedGeneration = useRef(0);
+  const recordMonth = displayMode === "calendar" ? calendarMonth : null;
   const [refreshing, setRefreshing] = useState(false);
   const [refreshComplete, setRefreshComplete] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
@@ -218,17 +223,21 @@ export function FamilyLearningReportFeed({
 
   useEffect(() => {
     let active = true;
+    feedGeneration.current++; refreshInFlight.current=false; setRefreshing(false); setRefreshError(""); setRefreshComplete(false);
+    if (refreshCompleteTimer.current !== null) window.clearTimeout(refreshCompleteTimer.current);
     void Promise.resolve().then(async () => {
       if (!active) return;
       setLoading(true);
       setUnavailable(false);
       setReadTracking(false);
+      setItems([]);
       setReads({});
       setCorrections([]);
       setCorrectionReads({});
       setSelected(null);
       const [reportResult, correctionResult] = detailDate
         ? await loadFamilyDetailReports(supabase,studentId,detailDate)
+        : recordMonth ? await loadFamilyCalendarReports(supabase,studentId,recordMonth)
         : await Promise.all([
         supabase.rpc("family_completed_learning_reports", {
           p_student_id: studentId,
@@ -240,7 +249,7 @@ export function FamilyLearningReportFeed({
         }),
       ]);
       if (!active) return;
-      if (reportResult.error || (detailDate && correctionResult.error)) {
+      if (reportResult.error || correctionResult.error) {
         setUnavailable(true);
         setItems([]);
         setLoading(false);
@@ -279,81 +288,96 @@ export function FamilyLearningReportFeed({
       setLoading(false);
     }).catch(() => { if (active) { setUnavailable(true); setLoading(false); } });
     return () => {
-      active = false;
+      active = false; feedGeneration.current++; refreshInFlight.current=false;
     };
-  }, [detailOnly, detailDate, studentId, supabase]);
+  }, [detailOnly, detailDate, recordMonth, studentId, supabase]);
 
   useEffect(() => {
     if (displayMode !== "calendar") return;
     let active = true;
-    setCalendarScheduleLoading(true);
-    void supabase.rpc("family_learning_calendar_schedule", {
+    setCalendarScheduleLoading(true); setCalendarSchedule([]); setCalendarError("");
+    void Promise.resolve(supabase.rpc("family_learning_calendar_schedule", {
       p_student_id: studentId,
       p_month: `${calendarMonth}-01`,
-    }).then(({ data, error }) => {
+    })).then(({ data, error }) => {
       if (!active) return;
+      if (error) setCalendarError("수업 일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       setCalendarSchedule(error ? [] : ((data ?? []) as CalendarSchedule[]));
       setCalendarScheduleLoading(false);
-    });
+    }).catch(() => { if(active) { setCalendarError("수업 일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); setCalendarScheduleLoading(false); } });
     return () => { active = false; };
   }, [calendarMonth, displayMode, studentId, supabase]);
 
   const refreshFeed = useCallback(async () => {
-    if (refreshing) return;
-    const startedAt = Date.now();
-    if (refreshCompleteTimer.current !== null)
-      window.clearTimeout(refreshCompleteTimer.current);
-    setRefreshComplete(false);
-    setRefreshing(true);
-    const [reportResult, correctionResult, readResult, correctionReadResult] =
-      await Promise.all([
-        supabase.rpc("family_completed_learning_reports", {
-          p_student_id: studentId,
-          p_limit: 20,
-        }),
-        supabase.rpc("family_correction_reports", {
-          p_student_id: studentId,
-          p_limit: 20,
-        }),
-        supabase.rpc("family_learning_report_reads", {
-          p_student_id: studentId,
-        }),
-        supabase.rpc("family_correction_report_reads", {
-          p_student_id: studentId,
-        }),
-      ]);
-    if (!reportResult.error)
-      setItems((reportResult.data ?? []) as Report[]);
-    if (!correctionResult.error)
-      setCorrections(
-        ((correctionResult.data ?? []) as CorrectionReport[]).map(
-          normalizeCorrectionReport,
-        ),
-      );
-    if (!readResult.error) {
-      const next: Record<string, string> = {};
-      for (const receipt of (readResult.data ?? []) as ReadReceipt[])
-        next[receipt.lessonId] = receipt.viewedAt;
-      setReads(next);
-      setReadTracking(true);
-    }
-    if (!correctionReadResult.error) {
-      const next: Record<string, string> = {};
-      for (const receipt of (correctionReadResult.data ??
-        []) as CorrectionReadReceipt[])
-        next[receipt.reportId] = receipt.viewedAt;
-      setCorrectionReads(next);
-    }
-    const remaining = Math.max(0, 650 - (Date.now() - startedAt));
-    if (remaining > 0)
-      await new Promise((resolve) => window.setTimeout(resolve, remaining));
-    setRefreshing(false);
-    setRefreshComplete(true);
-    refreshCompleteTimer.current = window.setTimeout(() => {
+    if (loading || refreshInFlight.current) return;
+    refreshInFlight.current=true;
+    const generation=feedGeneration.current;
+    setRefreshError("");
+    try {
+      const startedAt = Date.now();
+      if (refreshCompleteTimer.current !== null)
+        window.clearTimeout(refreshCompleteTimer.current);
       setRefreshComplete(false);
-      refreshCompleteTimer.current = null;
-    }, 900);
-  }, [refreshing, studentId, supabase]);
+      setRefreshing(true);
+      const [reportResult, correctionResult, readResult, correctionReadResult] =
+        await Promise.all([
+          supabase.rpc("family_completed_learning_reports", {
+            p_student_id: studentId,
+            p_limit: 20,
+          }),
+          supabase.rpc("family_correction_reports", {
+            p_student_id: studentId,
+            p_limit: 20,
+          }),
+          supabase.rpc("family_learning_report_reads", {
+            p_student_id: studentId,
+          }),
+          supabase.rpc("family_correction_report_reads", {
+            p_student_id: studentId,
+          }),
+        ]);
+      if (generation !== feedGeneration.current) return;
+      if ([reportResult,correctionResult,readResult,correctionReadResult].some(result=>result.error)) {
+        setRefreshError("새로고침하지 못했습니다. 기존 기록을 표시합니다. 다시 시도해 주세요."); return;
+      }
+      if (!reportResult.error)
+        setItems((reportResult.data ?? []) as Report[]);
+      if (!correctionResult.error)
+        setCorrections(
+          ((correctionResult.data ?? []) as CorrectionReport[]).map(
+            normalizeCorrectionReport,
+          ),
+        );
+      if (!readResult.error) {
+        const next: Record<string, string> = {};
+        for (const receipt of (readResult.data ?? []) as ReadReceipt[])
+          next[receipt.lessonId] = receipt.viewedAt;
+        setReads(next);
+        setReadTracking(true);
+      }
+      if (!correctionReadResult.error) {
+        const next: Record<string, string> = {};
+        for (const receipt of (correctionReadResult.data ??
+          []) as CorrectionReadReceipt[])
+          next[receipt.reportId] = receipt.viewedAt;
+        setCorrectionReads(next);
+      }
+      const remaining = Math.max(0, 650 - (Date.now() - startedAt));
+      if (remaining > 0)
+        await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      if (generation !== feedGeneration.current) return;
+      setRefreshComplete(true);
+      refreshCompleteTimer.current = window.setTimeout(() => {
+        if (generation !== feedGeneration.current) return;
+        setRefreshComplete(false);
+        refreshCompleteTimer.current = null;
+      }, 900);
+    } catch {
+      if (generation === feedGeneration.current) setRefreshError("새로고침하지 못했습니다. 기존 기록을 표시합니다. 다시 시도해 주세요.");
+    } finally {
+      if (generation === feedGeneration.current) { refreshInFlight.current=false; setRefreshing(false); }
+    }
+  }, [loading, studentId, supabase]);
   useEffect(() => {
     void supabase
       .rpc("family_can_report_comment")
@@ -564,13 +588,14 @@ export function FamilyLearningReportFeed({
 
   if (detailOnly && (unavailable || (!loading && !items.some(item => item.lessonId === detailTarget?.lessonId) && !corrections.some(item => item.id === detailTarget?.correctionId)))) return <section className="panel hub-message" role="status">상세 기록을 불러오지 못했습니다. 기록이 변경되었거나 연결이 원활하지 않을 수 있습니다.<button type="button" onClick={onDetailClose}>닫기</button></section>;
   if (detailOnly && loading) return <section className="panel hub-message" role="status">상세 기록을 불러오는 중이에요…</section>;
-  if (unavailable) return null;
+  if (unavailable) return <section className="panel hub-message" role="alert">학습 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</section>;
   if (detailOnly) return <>
     {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
     {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
   </>;
   if (displayMode === "calendar") return (
     <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
+      {calendarError && <p role="alert">{calendarError}</p>}
       <header className="family-calendar-toolbar">
         <button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
         <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>예정 수업과 학습 기록이 있는 날짜를 선택하세요</span></div>
@@ -630,6 +655,7 @@ export function FamilyLearningReportFeed({
         if (shouldRefresh) void refreshFeed();
       }}
     >
+      {refreshError && <p role="alert">{refreshError}</p>}
       {(pullDistance > 0 || refreshing || refreshComplete) && (
         <div
           className={`family-report-pull-refresh${refreshing ? " refreshing" : ""}${refreshComplete ? " complete" : ""}`}
