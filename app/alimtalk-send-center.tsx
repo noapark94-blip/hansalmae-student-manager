@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StudentRow } from "./supabase";
 import { HansalmaeIcon } from "./hansalmae-icons";
@@ -35,6 +35,9 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
   const [expandedHistoryId,setExpandedHistoryId]=useState("");
   const [resendTarget,setResendTarget]=useState<History|null>(null);
   const [message,setMessage]=useState("");
+  const [historyError,setHistoryError]=useState("");
+  const historyVersion=useRef(0);
+  const readyVersion=useRef(0);
   const period=useMemo(()=>periodFor(type,anchor),[type,anchor]);
   const historyMap=useMemo(()=>new Map(history.filter(item=>item.reportType===type&&item.periodStart===period.start).map(item=>[item.studentId,item])),[history,period.start,type]);
   const readyRows=useMemo(()=>readyStudents.filter(item=>historyMap.get(item.studentId)?.status!=="sent"),[historyMap,readyStudents]);
@@ -48,17 +51,44 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
   const lengthError=previewLengthError(preview);
   const checkedRows=readyStudents.filter(item=>checked.has(item.studentId)&&historyMap.get(item.studentId)?.status!=="sent"&&item.recipient.available&&item.completedCount>0);
 
-  const loadHistory=useCallback(async()=>{const{data}=await supabase.rpc("staff_alimtalk_delivery_list");setHistory((data??[]) as History[])},[supabase]);
-  useEffect(()=>{let active=true;void supabase.rpc("staff_alimtalk_delivery_list").then(({data})=>{if(active)setHistory((data??[]) as History[])});return()=>{active=false}},[supabase]);
-  const loadReady=useCallback(async()=>{setLoading(true);setMessage("");const{data,error}=await supabase.rpc("staff_alimtalk_ready_students",{p_from:period.start,p_to:period.end});if(error){setReadyStudents([]);setChecked(new Set());setMessage(error.message)}else{const rows=(data??[]) as ReadyStudent[];setReadyStudents(rows);setStudentId(current=>rows.some(row=>row.studentId===current)?current:rows[0]?.studentId??"");setChecked(new Set(rows.filter(row=>row.complete&&row.recipient.available).map(row=>row.studentId)))}setLoading(false)},[period.end,period.start,supabase]);
-  useEffect(()=>{let active=true;void supabase.rpc("staff_alimtalk_ready_students",{p_from:period.start,p_to:period.end}).then(({data,error})=>{if(!active)return;if(error){setReadyStudents([]);setChecked(new Set());setMessage(error.message);setLoading(false);return}const rows=(data??[]) as ReadyStudent[];setReadyStudents(rows);setStudentId(rows[0]?.studentId??"");setChecked(new Set(rows.filter(row=>row.complete&&row.recipient.available).map(row=>row.studentId)));setLoading(false)});return()=>{active=false}},[period.end,period.start,supabase]);
+  const loadHistory=useCallback(async()=>{
+    const version=++historyVersion.current;
+    try{
+      const{data,error}=await supabase.rpc("staff_alimtalk_delivery_list");
+      if(version!==historyVersion.current)return;
+      if(error||!Array.isArray(data)){setHistoryError("발송 내역을 새로 불러오지 못했습니다. 대상·내역 새로고침으로 다시 확인해 주세요.");return;}
+      setHistory(data as History[]);setHistoryError("");
+    }catch{if(version===historyVersion.current)setHistoryError("발송 내역 조회 중 연결이 끊겼습니다. 대상·내역 새로고침으로 다시 확인해 주세요.");}
+  },[supabase]);
+  useEffect(()=>{void loadHistory();return()=>{historyVersion.current++;}},[loadHistory]);
+  const loadReady=useCallback(async()=>{
+    const version=++readyVersion.current;
+    setLoading(true);setMessage("");
+    try{
+      const{data,error}=await supabase.rpc("staff_alimtalk_ready_students",{p_from:period.start,p_to:period.end});
+      if(version!==readyVersion.current)return;
+      if(error||!Array.isArray(data)){setReadyStudents([]);setChecked(new Set());setMessage("발송 대상을 불러오지 못했습니다. 다시 새로고침해 주세요.");return;}
+      const rows=data as ReadyStudent[];
+      setReadyStudents(rows);setStudentId(current=>rows.some(row=>row.studentId===current)?current:rows[0]?.studentId??"");
+      setChecked(new Set(rows.filter(row=>row.complete&&row.recipient.available).map(row=>row.studentId)));
+    }catch{
+      if(version===readyVersion.current){setReadyStudents([]);setChecked(new Set());setMessage("발송 대상 조회 중 연결이 끊겼습니다. 다시 새로고침해 주세요.");}
+    }finally{if(version===readyVersion.current)setLoading(false);}
+  },[period.end,period.start,supabase]);
+  useEffect(()=>{void loadReady();return()=>{readyVersion.current++;}},[loadReady]);
 
   async function sendRow(row:ReadyStudent){const itemPreview=buildPreview(row.studentName,period.start,type,row.lessons);const lengthError=previewLengthError(itemPreview);if(lengthError)return lengthError;const{error}=await supabase.functions.invoke("send-learning-alimtalk",{body:{studentId:row.studentId,reportType:type,periodStart:period.start,periodEnd:period.end,lessonSummary:itemPreview.lesson,attendanceSummary:itemPreview.attendance,examSummary:itemPreview.exam,homeworkSummary:itemPreview.homework,learningSummary:itemPreview.learningDetails}});if(!error)return null;let text=error.message;const context=(error as{context?:Response}).context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)text=body.error}catch{}return text}
   async function sendSelected(){if(!checkedRows.length)return;setSending(true);setConfirming(false);setMessage("");let sent=0;const failed:string[]=[];for(let index=0;index<checkedRows.length;index+=3){const batch=checkedRows.slice(index,index+3);const results=await Promise.all(batch.map(async row=>({row,error:await sendRow(row)})));for(const result of results){if(result.error)failed.push(`${result.row.studentName}: ${result.error}`);else sent+=1}}await loadHistory();setChecked(new Set(failed.map(line=>readyStudents.find(row=>line.startsWith(`${row.studentName}:`))?.studentId).filter(Boolean) as string[]));setMessage(failed.length?`${sent}명 발송 접수 · ${failed.length}명 확인 필요 (${failed.slice(0,2).join(" / ")})`:`${sent}명 학부모님께 알림톡 발송을 접수했습니다.`);setSending(false)}
   async function sendCurrentConfirmed(row:ReadyStudent){setIncompletePrompt(null);setSending(true);setMessage("");const error=await sendRow(row);if(error)setMessage(error);else{setMessage(`${row.studentName} 학생 학부모님께 알림톡을 접수했습니다.`);await loadHistory()}setSending(false)}
   async function resendHistory(){if(!resendTarget)return;const target=resendTarget;setResendTarget(null);setSending(true);setMessage("");const{error}=await supabase.functions.invoke("send-learning-alimtalk",{body:{resendDeliveryId:target.id}});let errorText=error?.message??"";const context=(error as{context?:Response}|null)?.context;if(context)try{const body=await context.clone().json() as{error?:string};if(body.error)errorText=body.error}catch{}if(errorText)setMessage(`${target.studentName} 재발송 확인 필요: ${errorText}`);else{setMessage(`${target.studentName} 학생 학부모님께 저장된 내용 그대로 재발송했습니다.`);await loadHistory()}setSending(false)}
   function sendCurrent(){if(!student)return;if(!student.complete){setIncompletePrompt({row:student,action:"send"});return}void sendCurrentConfirmed(student)}
-  function resetPeriod(nextType?:ReportType,nextAnchor?:string){if(nextType)setType(nextType);if(nextAnchor)setAnchor(nextAnchor);setListMode("ready");setLoading(true);setReadyStudents([]);setChecked(new Set());setStudentId("");setMessage("")}
+  function resetPeriod(nextType?:ReportType,nextAnchor?:string){
+    if(sending||(nextType??type)===type&&(nextAnchor??anchor)===anchor)return;
+    readyVersion.current++;
+    if(nextType)setType(nextType);if(nextAnchor)setAnchor(nextAnchor);
+    setConfirming(false);setIncompletePrompt(null);setResendTarget(null);
+    setListMode("ready");setLoading(true);setReadyStudents([]);setChecked(new Set());setStudentId("");setMessage("");
+  }
   function toggle(row:ReadyStudent){if(checked.has(row.studentId)){setChecked(current=>{const next=new Set(current);next.delete(row.studentId);return next});return}if(!row.complete){setIncompletePrompt({row,action:"select"});return}setChecked(current=>new Set(current).add(row.studentId))}
   function acceptIncomplete(){if(!incompletePrompt)return;if(incompletePrompt.action==="send"){void sendCurrentConfirmed(incompletePrompt.row);return}setChecked(current=>new Set(current).add(incompletePrompt.row.studentId));setIncompletePrompt(null)}
   const selectable=readyStudents.filter(row=>row.complete&&row.recipient.available&&historyMap.get(row.studentId)?.status!=="sent");
@@ -68,8 +98,9 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
     <header className={styles.hero}><div><p>학부모 소통</p><h1>알림톡 발송</h1><span>완료된 학습기록을 짧게 정리해 발송 전 확인합니다.</span></div><i><HansalmaeIcon name="chat" size={27}/></i></header>
     <nav className={styles.tabs}><button className={type==="daily"?styles.active:""} onClick={()=>resetPeriod("daily")}>일간 기록 발송</button><button className={type==="weekly"?styles.active:""} onClick={()=>resetPeriod("weekly")}>주간 기록 발송</button></nav>
     <nav className={styles.listTabs} aria-label="알림톡 발송 목록 구분"><button className={listMode==="ready"?styles.listActive:""} onClick={()=>{setListMode("ready");setQuery("")}}><span>발송 준비</span><b>{readyRows.length}명</b></button><button className={listMode==="sent"?styles.listActive:""} onClick={()=>{setListMode("sent");setQuery("")}}><span>발송 완료</span><b>{sentRows.length}명</b></button></nav>
-    <div className={styles.toolbar}><label><span>{type==="daily"?"기록 날짜":"주간 기준일"}</span><input type="date" value={anchor} onChange={event=>resetPeriod(undefined,event.target.value)}/></label><label className={styles.search}><span>{listMode==="ready"?"준비 학생 검색":"발송 완료 검색"}</span><i><HansalmaeIcon name="students" size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={listMode==="ready"?"이름·학교 검색":"학생 이름 검색"}/></i></label><div className={styles.period}><small>발송 기준</small><b>{formatPeriod(period.start,period.end)}</b></div><button className={styles.refresh} onClick={()=>void Promise.all([loadReady(),loadHistory()])}><HansalmaeIcon name="refresh" size={15}/> 대상·내역 새로고침</button></div>
+    <div className={styles.toolbar}><label><span>{type==="daily"?"기록 날짜":"주간 기준일"}</span><input type="date" disabled={sending} value={anchor} onChange={event=>resetPeriod(undefined,event.target.value)}/></label><label className={styles.search}><span>{listMode==="ready"?"준비 학생 검색":"발송 완료 검색"}</span><i><HansalmaeIcon name="students" size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={listMode==="ready"?"이름·학교 검색":"학생 이름 검색"}/></i></label><div className={styles.period}><small>발송 기준</small><b>{formatPeriod(period.start,period.end)}</b></div><button className={styles.refresh} onClick={()=>void Promise.all([loadReady(),loadHistory()])}><HansalmaeIcon name="refresh" size={15}/> 대상·내역 새로고침</button></div>
     <div className={styles.summary}><div><small>예정 학생</small><b>{readyStudents.length}명</b><span>이 기간에 수업이 있음</span></div><div><small>기록 완료</small><b>{readyStudents.filter(row=>row.complete).length}명</b><span>발송 가능한 기록 작성됨</span></div><div><small>{listMode==="ready"?"발송 선택":"발송 완료"}</small><b>{listMode==="ready"?checkedRows.length:sentRows.length}명</b><span>{listMode==="ready"?"체크한 학생만 발송":"현재 선택 기간 기준"}</span></div></div>
+    {historyError&&<p role="alert" className={styles.historyError}>{historyError}</p>}
     {message&&listMode==="sent"&&<p className={message.includes("실패")?styles.historyError:styles.historySuccess}>{message}</p>}
     {listMode==="ready"?<><div className={styles.layout}>
       <aside className={styles.students}><header><div><b>{type==="daily"?"오늘 작성 진행 현황":"이번 주 작성 진행 현황"}</b><small>예정 학생 전체 · 완료 학생 자동 선택</small></div><span>{readyStudents.length}명</span></header><div className={styles.selectAll}><label><input type="checkbox" checked={allSelected} onChange={()=>setChecked(allSelected?new Set():new Set(selectable.map(row=>row.studentId)))}/><span>완료 학생 전체 선택</span></label><em>{checkedRows.length}명 선택</em></div><div>{visibleStudents.map(item=>{const record=historyMap.get(item.studentId);const disabled=!item.recipient.available||record?.status==="sent"||item.completedCount===0;return <article key={item.studentId} className={`${selectedId===item.studentId?styles.selected:""} ${disabled?styles.disabled:""} ${!item.complete?styles.incomplete:""}`}><input aria-label={`${item.studentName} 발송 선택`} type="checkbox" checked={checked.has(item.studentId)&&!disabled} disabled={disabled} onChange={()=>toggle(item)}/><button onClick={()=>{setStudentId(item.studentId);setMessage("")}}><span><b>{item.studentName}</b><small>{item.school||"학교 미입력"} · {item.grade||"학년 미입력"} · 완료 {item.completedCount}/{item.expectedCount}</small></span><em className={record?.status==="sent"?styles.sent:record?.status==="failed"?styles.failed:item.complete?styles.sent:styles.warningBadge}>{record?.status==="sent"?"발송 완료":!item.recipient.available?"연락처 없음":item.completedCount===0?"기록 없음":record?.status==="failed"?"재발송 대기":item.complete?"준비 완료":`미작성 ${item.expectedCount-item.completedCount}건`}</em></button></article>})}{!visibleStudents.length&&<p>{loading?"예정 수업을 확인하고 있습니다…":"이 기간에 예정된 학생이 없습니다."}</p>}</div></aside>
