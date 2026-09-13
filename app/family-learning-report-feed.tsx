@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Holidays from "date-holidays";
+import { loadFamilyDetailReports } from "./family-detail-query";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
 import { familyTeacherName } from "./family-teacher-name";
@@ -178,10 +179,11 @@ export function FamilyLearningReportFeed({
   studentId: string;
   studentName?: string;
   displayMode?: "feed" | "calendar";
-  detailTarget?: { lessonId?: string; correctionId?: string } | null;
+  detailTarget?: { lessonId?: string; correctionId?: string; date?: string } | null;
   detailOnly?: boolean;
   onDetailClose?: () => void;
 }) {
+  const detailDate = detailOnly ? detailTarget?.date : undefined;
   const [items, setItems] = useState<Report[]>([]);
   const [reads, setReads] = useState<Record<string, string>>({});
   const [corrections, setCorrections] = useState<CorrectionReport[]>([]);
@@ -225,7 +227,9 @@ export function FamilyLearningReportFeed({
       setCorrections([]);
       setCorrectionReads({});
       setSelected(null);
-      const [reportResult, correctionResult] = await Promise.all([
+      const [reportResult, correctionResult] = detailDate
+        ? await loadFamilyDetailReports(supabase,studentId,detailDate)
+        : await Promise.all([
         supabase.rpc("family_completed_learning_reports", {
           p_student_id: studentId,
           p_limit: detailOnly ? 50 : 20,
@@ -236,7 +240,7 @@ export function FamilyLearningReportFeed({
         }),
       ]);
       if (!active) return;
-      if (reportResult.error) {
+      if (reportResult.error || (detailDate && correctionResult.error)) {
         setUnavailable(true);
         setItems([]);
         setLoading(false);
@@ -273,11 +277,11 @@ export function FamilyLearningReportFeed({
         setCorrectionReads(next);
       }
       setLoading(false);
-    });
+    }).catch(() => { if (active) { setUnavailable(true); setLoading(false); } });
     return () => {
       active = false;
     };
-  }, [detailOnly, studentId, supabase]);
+  }, [detailOnly, detailDate, studentId, supabase]);
 
   useEffect(() => {
     if (displayMode !== "calendar") return;
@@ -558,6 +562,8 @@ export function FamilyLearningReportFeed({
     setConfirming(null);
   }
 
+  if (detailOnly && (unavailable || (!loading && !items.some(item => item.lessonId === detailTarget?.lessonId) && !corrections.some(item => item.id === detailTarget?.correctionId)))) return <section className="panel hub-message" role="status">상세 기록을 불러오지 못했습니다. 기록이 변경되었거나 연결이 원활하지 않을 수 있습니다.<button type="button" onClick={onDetailClose}>닫기</button></section>;
+  if (detailOnly && loading) return <section className="panel hub-message" role="status">상세 기록을 불러오는 중이에요…</section>;
   if (unavailable) return null;
   if (detailOnly) return <>
     {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}

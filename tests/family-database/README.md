@@ -14,3 +14,9 @@ Cases include 67 lesson records and 75 correction records, comparison with the p
 The migration is additive: it creates `family_student_context` and `family_summary_snapshot`; it neither changes operational rows nor replaces existing report RPCs. Deploy the migration before the frontend. A frontend rollback can continue using the previous RPCs.
 
 Frontend regression tests run with `node --test tests/system-audit/family*.test.mjs`. The memory cache is scoped by client, account, student and page/period, expires after two minutes, clears on authentication changes and never writes student records to browser storage. Every page visit revalidates cached content. Initial visits and uncached detail views may still display loading indicators.
+
+## Detail and network-error follow-up
+
+Monthly summary clicks now carry the record date. The detail loader uses the authorized period RPC for that date and the preceding 31 days, instead of searching a capped recent-record list. Previous homework remains available within that window. Failed/missing detail reads show a closable message. Each selected record mounts a separate detail view so late responses cannot select a previous record.
+
+Transport errors returned as Supabase error objects preserve cached page data; recognized access-denial errors and unknown database errors clear it. Regression cases cover both returned errors and rejected promises, including the 67th lesson and 75th correction opening through the actual selection effect.

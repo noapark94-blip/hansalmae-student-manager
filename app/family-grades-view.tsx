@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
-import { familyPageCache } from "./family-page-cache";
+import { familyPageCache, isTransientFamilyError } from "./family-page-cache";
 import { ExamTrendModal } from "./family-learning-report-feed";
 import { FamilyChildSwitcher } from "./family-dashboard";
 
@@ -38,7 +38,7 @@ export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{s
       ]);
       if(version!==requestVersion.current||!cache.valid())return;
       if(dashboardResult.error||academicResult.error||!dashboardResult.data){
-        cache.clear();setData(null);setAcademic(null);setError("성적 정보를 불러오지 못했습니다.");return;
+        if([dashboardResult,academicResult].some(r=>r.error&&!isTransientFamilyError(r.error,r.status))||(!dashboardResult.error&&!dashboardResult.data)){cache.clear();setData(null);setAcademic(null);}setError("성적 정보를 불러오지 못했습니다.");return;
       }
       const next=dashboardResult.data as Dashboard;
       const snapshot={dashboard:next,academic:academicResult.data as AcademicData|null};

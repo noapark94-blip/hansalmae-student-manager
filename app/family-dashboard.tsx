@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
-import { familyPageCache, familySummaryPeriod } from "./family-page-cache";
+import { familyPageCache, familySummaryPeriod, isTransientFamilyError } from "./family-page-cache";
 import { FamilyLearningNote, type TodayLesson } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
 import { FamilyExamGrowth } from "./family-exam-growth";
@@ -244,9 +244,9 @@ export function FamilyLiveDashboard({
       }
       if (!background) setError("");
       try {
-        const { data: next, error: e } = await supabase.rpc("family_home_snapshot", { p_student_id: id });
+        const { data: next, error: e, status } = await supabase.rpc("family_home_snapshot", { p_student_id: id });
         if (version !== requestVersion.current || !cache.valid()) return;
-        if (e || !next) { cache.clear(); setData(null); setTodayLessons([]); setError("학습 현황을 불러오지 못했습니다."); }
+        if (e || !next) { if (!isTransientFamilyError(e,status)) { cache.clear(); setData(null); setTodayLessons([]); } setError("학습 현황을 불러오지 못했습니다."); }
         else {
           setError("");
           const snapshot = next as HomeSnapshot;
@@ -588,7 +588,7 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
       ]);
       if (version !== requestVersion.current || !cache.valid()) return;
       if (dashboardResult.error || correctionResult.error || !dashboardResult.data) {
-        cache.clear(); setData(null); setCorrections([]); setError("정규시간표를 불러오지 못했습니다."); return;
+        if ([dashboardResult,correctionResult].some(r => r.error && !isTransientFamilyError(r.error,r.status)) || (!dashboardResult.error && !dashboardResult.data)) { cache.clear(); setData(null); setCorrections([]); } setError("정규시간표를 불러오지 못했습니다."); return;
       }
       const snapshot={dashboard:dashboardResult.data as FamilyContext,corrections:(correctionResult.data??[]) as RegularCorrection[]};
       cache.write(snapshot);
@@ -658,9 +658,9 @@ export function FamilyCalendarView({ supabase, profile, studentId, onStudentChan
     const cache=familyPageCache<FamilyContext>(supabase,profile.id,studentId,"context");
     setData(cache.read()); setLoading(true); setError("");
     try {
-      const { data: next, error: loadError } = await supabase.rpc("family_student_context", { p_student_id: studentId });
+      const { data: next, error: loadError, status } = await supabase.rpc("family_student_context", { p_student_id: studentId });
       if (version !== requestVersion.current || !cache.valid()) return;
-      if (loadError || !next) { cache.clear(); setData(null); setError("학습캘린더를 불러오지 못했습니다."); return; }
+      if (loadError || !next) { if (!isTransientFamilyError(loadError,status)) { cache.clear(); setData(null); } setError("학습캘린더를 불러오지 못했습니다."); return; }
       const parsed=next as FamilyContext;
       cache.write(parsed);
       familyPageCache<FamilyContext>(supabase,profile.id,parsed.selectedStudent?.id??null,"context").write(parsed);
@@ -716,7 +716,7 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
   const [selectedId, setSelectedId] = useState<string | null>(initial?.dashboard.selectedStudent?.id??null);
   const [range, setRange] = useState<SummaryRange>("weekly");
   const [visibleHighlightCount, setVisibleHighlightCount] = useState(3);
-  const [detailTarget, setDetailTarget] = useState<{ lessonId?: string; correctionId?: string } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<{ lessonId?: string; correctionId?: string; date: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestVersion = useRef(0);
@@ -737,7 +737,7 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
       const result=await supabase.rpc("family_summary_snapshot", { p_student_id:studentId, p_start_date:period.start, p_end_date:period.end });
       if (version !== requestVersion.current || !cache.valid()) return;
       if (result.error || !result.data) {
-        cache.clear(); setDashboard(null); setLessons([]); setCorrections([]); setSelectedId(null);
+        if (!isTransientFamilyError(result.error,result.status)) { cache.clear(); setDashboard(null); setLessons([]); setCorrections([]); setSelectedId(null); }
         setError("학습리포트를 불러오지 못했습니다."); return;
       }
       const snapshot=result.data as SummarySnapshot;
@@ -800,7 +800,7 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
       <section className="family-report-highlights">
         <header><span><p>핵심 학습 기록</p><h2>{summaryRangeLabels[range]} 기록</h2></span><small>{highlights.length}건</small></header>
         {highlights.length ? <div>{highlights.slice(0, visibleHighlightCount).map((item) => <article key={item.id} className={`${item.tone} clickable`} role="button" tabIndex={0} onClick={() => {
-          setDetailTarget(item.tone === "correction" ? { correctionId: item.id.slice("correction-".length) } : { lessonId: item.id.slice("lesson-".length) });
+          setDetailTarget(item.tone === "correction" ? { correctionId: item.id.slice("correction-".length), date: item.date } : { lessonId: item.id.slice("lesson-".length), date: item.date });
         }} onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
@@ -821,7 +821,7 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
         </button>}
       </section>
     </>}
-    {selectedId && detailTarget && <FamilyLearningReportFeed supabase={supabase} studentId={selectedId} detailTarget={detailTarget} detailOnly onDetailClose={() => setDetailTarget(null)} />}
+    {selectedId && detailTarget && <FamilyLearningReportFeed key={`${selectedId}:${detailTarget.lessonId??detailTarget.correctionId}`} supabase={supabase} studentId={selectedId} detailTarget={detailTarget} detailOnly onDetailClose={() => setDetailTarget(null)} />}
   </div>;
 }
 function FamilyExamProgress({

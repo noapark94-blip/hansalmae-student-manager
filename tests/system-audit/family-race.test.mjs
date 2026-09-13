@@ -59,3 +59,15 @@ for(const view of ['FamilyLiveDashboard','FamilyScheduleView','FamilyCalendarVie
   const count=h.pending.length,b=h.ctx.run('b');for(const p of h.pending.slice(count))p.resolve(view==='FamilyLiveDashboard'?response('b'):{data:nameResponse(view,'b'),error:null});await b;assert.equal(h.state.parent,'b');
  });
 }
+
+for(const view of ['FamilyLiveDashboard','FamilyScheduleView','FamilyCalendarView','FamilySummaryReportView']){
+ for(const [label,error,preserve] of [['network error object',{message:'TypeError: Failed to fetch',code:''},true],['authorization error',{message:'연결된 자녀만 확인할 수 있습니다.',code:'P0001'},false]]){
+  test(view+' handles '+label+' without confusing it with an empty result',async()=>{
+   const h=harness(view);const first=h.ctx.run('a');
+   for(const p of h.pending)p.resolve(view==='FamilyLiveDashboard'?response('a'):{data:nameResponse(view,'a'),error:null});await first;
+   const count=h.pending.length;const refresh=h.ctx.run('a',view==='FamilyLiveDashboard');
+   for(const p of h.pending.slice(count))p.resolve({data:null,error});await refresh;
+   assert.equal(Boolean(h.state.data??h.state.dashboard),preserve);assert.equal(h.state.loading,false);assert.ok(h.state.error);
+  });
+ }
+}

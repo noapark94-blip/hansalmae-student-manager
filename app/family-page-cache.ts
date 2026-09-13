@@ -40,3 +40,12 @@ export function familySummaryPeriod(today: string) {
   const weekStart = new Date(Date.parse(`${today}T00:00:00Z`) - 6 * 86400000).toISOString().slice(0, 10);
   return { start: [today.slice(0, 7) + "-01", weekStart].sort()[0], end: today, weekStart };
 }
+
+// Unknown/authorization errors fail closed; only recognizable transport failures retain data.
+export function isTransientFamilyError(error: unknown, status?: number): boolean {
+  if (!error) return false;
+  const value = error as { code?: string; message?: string };
+  if (status === 401 || status === 403 || value.code === "42501" || value.code === "P0001" || value.code?.startsWith("PGRST3")) return false;
+  return status === 0 || status === 408 || status === 429 || (status !== undefined && status >= 500)
+    || ((!value.code || value.code === "57014") && /fetch|network|timeout|timed out|abort|네트워크/i.test(value.message ?? ""));
+}
