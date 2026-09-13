@@ -3,10 +3,12 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+const cacheExports={};
+vm.runInNewContext(ts.transpile(readFileSync(new URL('../../app/family-page-cache.ts',import.meta.url),'utf8'),{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}),{exports:cacheExports});
 const source=readFileSync(new URL('../../app/family-dashboard.tsx',import.meta.url),'utf8');
 function harness(name='FamilyLiveDashboard'){
  const pending=[]; const state={};
- const ctx={useCallback:f=>f,requestVersion:{current:0},requestTarget:{current:null},supabase:{rpc:(_,p)=>new Promise(resolve=>pending.push({id:p.p_student_id,resolve}))},setDashboard:v=>state.dashboard=v,setLessons:v=>state.lessons=v,setCorrections:v=>state.corrections=v,setLoading:v=>state.loading=v,setError:v=>state.error=v,setData:f=>state.data=typeof f==='function'?f(state.data):f,setSelectedId:v=>state.selected=v,onStudentChange:v=>state.parent=v,setTodayLessons:f=>state.lessons=typeof f==='function'?f(state.lessons):f};
+ const ctx={...cacheExports,profile:{id:'parent'},today:'2026-09-13',setDetailTarget:()=>{},useCallback:f=>f,requestVersion:{current:0},requestTarget:{current:null},supabase:{rpc:(_,p)=>new Promise((resolve,reject)=>pending.push({id:p.p_student_id,resolve,reject}))},setDashboard:v=>state.dashboard=v,setLessons:v=>state.lessons=v,setCorrections:v=>state.corrections=v,setLoading:v=>state.loading=v,setError:v=>state.error=v,setData:f=>state.data=typeof f==='function'?f(state.data):f,setSelectedId:v=>state.selected=v,onStudentChange:v=>state.parent=v,setTodayLessons:f=>state.lessons=typeof f==='function'?f(state.lessons):f};
  const start=source.indexOf('  const load = useCallback(',source.indexOf('export function '+name));
  const end=source.indexOf('  useEffect(',start);
  vm.createContext(ctx);vm.runInContext(ts.transpile(source.slice(start,end)+';globalThis.run=load',{target:ts.ScriptTarget.ES2022}),ctx);
@@ -21,7 +23,7 @@ test('unmounted request cannot update parent or view',async()=>{const h=harness(
 for(const view of ['FamilyScheduleView','FamilyCalendarView','FamilySummaryReportView']){
  test(view+' ignores the previous child response',async()=>{
   const h=harness(view);const a=h.ctx.run('a'),b=h.ctx.run('b');
-  const answer=item=>({data:item.id==='b'?{selectedStudent:{id:'b'}}:{selectedStudent:{id:'a'}},error:null});
+  const answer=item=>({data:nameResponse(view,item.id),error:null});
   for(const item of h.pending.filter(x=>x.id==='b'))item.resolve(answer(item));
   await new Promise(resolve=>setImmediate(resolve));
   for(const item of h.pending.filter(x=>x.id==='b'))item.resolve(answer(item));
@@ -30,13 +32,30 @@ for(const view of ['FamilyScheduleView','FamilyCalendarView','FamilySummaryRepor
   await a;assert.equal(h.state.parent,'b');
  });
 }
-test('summary details from the previous child cannot overwrite the latest details',async()=>{
- const h=harness('FamilySummaryReportView');const a=h.ctx.run('a');
- h.pending[0].resolve({data:{selectedStudent:{id:'a'}},error:null});
- await new Promise(resolve=>setImmediate(resolve));
- const b=h.ctx.run('b');h.pending.find(x=>x.id==='b').resolve({data:{selectedStudent:{id:'b'}},error:null});
- await new Promise(resolve=>setImmediate(resolve));
- for(const item of h.pending.filter(x=>x.id==='b'))item.resolve({data:[{id:'b'}],error:null});await b;
- for(const item of h.pending.filter(x=>x.id==='a'))item.resolve({data:[{id:'a'}],error:null});await a;
+test('summary snapshot updates the student and both record groups together',async()=>{
+ const h=harness('FamilySummaryReportView');const a=h.ctx.run('a'),b=h.ctx.run('b');
+ h.pending.find(x=>x.id==='b').resolve({data:nameResponse('FamilySummaryReportView','b'),error:null});await b;
+ h.pending.find(x=>x.id==='a').resolve({data:nameResponse('FamilySummaryReportView','a'),error:null});await a;
  assert.equal(h.state.parent,'b');assert.equal(h.state.lessons[0].id,'b');assert.equal(h.state.corrections[0].id,'b');
 });
+function nameResponse(view,id){return view==='FamilySummaryReportView'?{dashboard:{selectedStudent:{id}},lessons:[{id}],corrections:[{id}]}:{selectedStudent:{id}};}
+
+for(const view of ['FamilyLiveDashboard','FamilyScheduleView','FamilyCalendarView','FamilySummaryReportView']){
+ test(view+' restores matching cached content while still refreshing on revisit',async()=>{
+  const h=harness(view);const a=h.ctx.run('a');
+  for(const p of h.pending)p.resolve(view==='FamilyLiveDashboard'?response('a'):{data:nameResponse(view,'a'),error:null});
+  await a;const count=h.pending.length;const revisit=h.ctx.run('a');
+  assert.ok(h.pending.length>count,'revisit must revalidate');
+  assert.equal((h.state.data??h.state.dashboard).selectedStudent.id,'a');
+  for(const p of h.pending.slice(count))p.resolve(view==='FamilyLiveDashboard'?response('a'):{data:nameResponse(view,'a'),error:null});await revisit;
+ });
+ test(view+' late response after session invalidation cannot update the page',async()=>{
+  const h=harness(view);const a=h.ctx.run('a');h.ctx.clearFamilyPageCache(h.ctx.supabase);
+  for(const p of h.pending)p.resolve(view==='FamilyLiveDashboard'?response('a'):{data:nameResponse(view,'a'),error:null});await a;assert.equal(h.state.parent,undefined);
+ });
+ test(view+' rejected network request ends loading and can be retried',async()=>{
+  const h=harness(view);const a=h.ctx.run('a');for(const p of h.pending)p.reject(new Error('offline'));await a;
+  assert.equal(h.state.loading,false);assert.match(h.state.error,/다시 시도/);
+  const count=h.pending.length,b=h.ctx.run('b');for(const p of h.pending.slice(count))p.resolve(view==='FamilyLiveDashboard'?response('b'):{data:nameResponse(view,'b'),error:null});await b;assert.equal(h.state.parent,'b');
+ });
+}

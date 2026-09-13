@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
+import { familyPageCache, familySummaryPeriod } from "./family-page-cache";
 import { FamilyLearningNote, type TodayLesson } from "./family-learning-note";
 import { FamilyLearningReportFeed } from "./family-learning-report-feed";
 import { FamilyExamGrowth } from "./family-exam-growth";
@@ -197,6 +198,11 @@ const attendanceLabels: Record<string, string> = {
   absent: "결석",
   excused: "결석",
 };
+type HomeSnapshot = { dashboard: Data; todayLessons: TodayLesson[] };
+type FamilyContext = Pick<Data, "children" | "selectedStudent" | "weekClasses">;
+type ScheduleSnapshot = { dashboard: FamilyContext; corrections: RegularCorrection[] };
+type SummarySnapshot = { dashboard: FamilyContext; lessons: SummaryLessonReport[]; corrections: SummaryCorrectionReport[] };
+
 export function FamilyLiveDashboard({
   supabase,
   profile,
@@ -210,16 +216,18 @@ export function FamilyLiveDashboard({
   studentId: string | null;
   onStudentChange: (studentId:string|null) => void;
 }) {
-  const [data, setData] = useState<Data | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [initial] = useState(() => familyPageCache<HomeSnapshot>(supabase, profile.id, studentId, "home").read());
+  const [data, setData] = useState<Data | null>(initial?.dashboard ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(initial?.dashboard.selectedStudent?.id ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [todayLessons,setTodayLessons]=useState<TodayLesson[]>([]);
+  const [todayLessons,setTodayLessons]=useState<TodayLesson[]>(initial?.todayLessons ?? []);
   const requestVersion = useRef(0);
   const requestTarget = useRef(studentId);
   const changeStudent = useCallback((id: string | null) => {
     requestVersion.current++;
     requestTarget.current=id;
+    setData(null); setTodayLessons([]); setSelectedId(null); setLoading(true);
     window.sessionStorage.removeItem("hansalmae:family-report-target");
     onStudentChange(id);
   }, [onStudentChange]);
@@ -228,25 +236,37 @@ export function FamilyLiveDashboard({
       if (background && requestTarget.current !== id) return;
       requestTarget.current=id;
       const version=++requestVersion.current;
-      if (!background) setLoading(true);
-      if (!background) setError("");
-      const { data: next, error: e } = await supabase.rpc("family_home_snapshot", { p_student_id: id });
-      if (version !== requestVersion.current) return;
-      if (e || !next) setError("학습 현황을 불러오지 못했습니다.");
-      else {
-        setError("");
-        const snapshot = next as { dashboard: Data; todayLessons: TodayLesson[] };
-        const parsed = snapshot.dashboard;
-        setData((current) => JSON.stringify(current) === JSON.stringify(parsed) ? current : parsed);
-        requestTarget.current=parsed.selectedStudent?.id ?? null;
-        setSelectedId(parsed.selectedStudent?.id ?? null);
-        onStudentChange(parsed.selectedStudent?.id ?? null);
-        const nextLessons=snapshot.todayLessons??[];
-        setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons);
+      const cache = familyPageCache<HomeSnapshot>(supabase, profile.id, id, "home");
+      if (!background) {
+        const cached = cache.read();
+        setData(cached?.dashboard ?? null); setTodayLessons(cached?.todayLessons ?? []);
+        setSelectedId(cached?.dashboard.selectedStudent?.id ?? null); setLoading(true);
       }
-      setLoading(false);
+      if (!background) setError("");
+      try {
+        const { data: next, error: e } = await supabase.rpc("family_home_snapshot", { p_student_id: id });
+        if (version !== requestVersion.current || !cache.valid()) return;
+        if (e || !next) { cache.clear(); setData(null); setTodayLessons([]); setError("학습 현황을 불러오지 못했습니다."); }
+        else {
+          setError("");
+          const snapshot = next as HomeSnapshot;
+          cache.write(snapshot);
+          familyPageCache<HomeSnapshot>(supabase, profile.id, snapshot.dashboard.selectedStudent?.id ?? null, "home").write(snapshot);
+          const parsed = snapshot.dashboard;
+          setData((current) => JSON.stringify(current) === JSON.stringify(parsed) ? current : parsed);
+          requestTarget.current=parsed.selectedStudent?.id ?? null;
+          setSelectedId(parsed.selectedStudent?.id ?? null);
+          onStudentChange(parsed.selectedStudent?.id ?? null);
+          const nextLessons=snapshot.todayLessons??[];
+          setTodayLessons((current)=>JSON.stringify(current)===JSON.stringify(nextLessons)?current:nextLessons);
+        }
+      } catch {
+        if (version === requestVersion.current && cache.valid()) setError("학습 현황을 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        if (version === requestVersion.current && cache.valid()) setLoading(false);
+      }
     },
-    [onStudentChange, supabase],
+    [onStudentChange, profile.id, supabase],
   );
   useEffect(() => {
     let targetStudentId: string | null = null;
@@ -543,35 +563,44 @@ export function FamilyLiveDashboard({
   );
 }
 export function FamilyScheduleView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
-  const [data, setData] = useState<Data | null>(null);
-  const [corrections, setCorrections] = useState<RegularCorrection[]>([]);
+  const [initial] = useState(() => familyPageCache<ScheduleSnapshot>(supabase, profile.id, studentId, "schedule").read());
+  const [data, setData] = useState<FamilyContext | null>(initial?.dashboard ?? null);
+  const [corrections, setCorrections] = useState<RegularCorrection[]>(initial?.corrections ?? []);
   const [scheduleFilter, setScheduleFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestVersion = useRef(0);
   const changeStudent = useCallback((id: string | null) => {
     requestVersion.current++;
+    setData(null); setCorrections([]); setLoading(true);
     onStudentChange(id);
   }, [onStudentChange]);
   const load = useCallback(async (studentId: string | null) => {
     const version=++requestVersion.current;
-    setLoading(true);
-    setError("");
-    const [dashboardResult, correctionResult] = await Promise.all([
-      supabase.rpc("family_live_dashboard", { p_student_id: studentId }),
-      supabase.rpc("family_regular_correction_timetable", { p_student_id: studentId }),
-    ]);
-    if (version !== requestVersion.current) return;
-    const next = dashboardResult.data;
-    if (dashboardResult.error || correctionResult.error || !next) setError("정규시간표를 불러오지 못했습니다.");
-    else {
-      const parsed = next as Data;
-      setData(parsed);
-      setCorrections((correctionResult.data ?? []) as RegularCorrection[]);
-      onStudentChange(parsed.selectedStudent?.id ?? null);
+    const cache=familyPageCache<ScheduleSnapshot>(supabase,profile.id,studentId,"schedule");
+    const cached=cache.read();
+    setData(cached?.dashboard??null); setCorrections(cached?.corrections??[]);
+    setLoading(true); setError("");
+    try {
+      const [dashboardResult, correctionResult] = await Promise.all([
+        supabase.rpc("family_student_context", { p_student_id: studentId, p_include_schedule: true }),
+        supabase.rpc("family_regular_correction_timetable", { p_student_id: studentId }),
+      ]);
+      if (version !== requestVersion.current || !cache.valid()) return;
+      if (dashboardResult.error || correctionResult.error || !dashboardResult.data) {
+        cache.clear(); setData(null); setCorrections([]); setError("정규시간표를 불러오지 못했습니다."); return;
+      }
+      const snapshot={dashboard:dashboardResult.data as FamilyContext,corrections:(correctionResult.data??[]) as RegularCorrection[]};
+      cache.write(snapshot);
+      familyPageCache<ScheduleSnapshot>(supabase,profile.id,snapshot.dashboard.selectedStudent?.id??null,"schedule").write(snapshot);
+      setData(snapshot.dashboard); setCorrections(snapshot.corrections);
+      onStudentChange(snapshot.dashboard.selectedStudent?.id??null);
+    } catch {
+      if (version === requestVersion.current && cache.valid()) setError("정규시간표를 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      if (version === requestVersion.current && cache.valid()) setLoading(false);
     }
-    setLoading(false);
-  }, [onStudentChange, supabase]);
+  }, [onStudentChange, profile.id, supabase]);
   useEffect(() => { void load(studentId); return () => { requestVersion.current++; }; }, [load, studentId]);
   if (loading && !data) return <section className="panel hub-message">정규시간표를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
@@ -615,28 +644,33 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
 }
 
 export function FamilyCalendarView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
-  const [data, setData] = useState<Data | null>(null);
+  const [data, setData] = useState<FamilyContext | null>(() => familyPageCache<FamilyContext>(supabase,profile.id,studentId,"context").read());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestVersion = useRef(0);
   const changeStudent = useCallback((id: string | null) => {
     requestVersion.current++;
+    setData(null); setLoading(true);
     onStudentChange(id);
   }, [onStudentChange]);
   const load = useCallback(async (studentId: string | null) => {
     const version=++requestVersion.current;
-    setLoading(true);
-    setError("");
-    const { data: next, error: loadError } = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
-    if (version !== requestVersion.current) return;
-    if (loadError || !next) setError("학습캘린더를 불러오지 못했습니다.");
-    else {
-      const parsed = next as Data;
-      setData(parsed);
-      onStudentChange(parsed.selectedStudent?.id ?? null);
+    const cache=familyPageCache<FamilyContext>(supabase,profile.id,studentId,"context");
+    setData(cache.read()); setLoading(true); setError("");
+    try {
+      const { data: next, error: loadError } = await supabase.rpc("family_student_context", { p_student_id: studentId });
+      if (version !== requestVersion.current || !cache.valid()) return;
+      if (loadError || !next) { cache.clear(); setData(null); setError("학습캘린더를 불러오지 못했습니다."); return; }
+      const parsed=next as FamilyContext;
+      cache.write(parsed);
+      familyPageCache<FamilyContext>(supabase,profile.id,parsed.selectedStudent?.id??null,"context").write(parsed);
+      setData(parsed); onStudentChange(parsed.selectedStudent?.id??null);
+    } catch {
+      if (version === requestVersion.current && cache.valid()) setError("학습캘린더를 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      if (version === requestVersion.current && cache.valid()) setLoading(false);
     }
-    setLoading(false);
-  }, [onStudentChange, supabase]);
+  }, [onStudentChange, profile.id, supabase]);
   useEffect(() => { void load(studentId); return () => { requestVersion.current++; }; }, [load, studentId]);
   if (loading && !data) return <section className="panel hub-message">학습캘린더를 불러오는 중이에요…</section>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
@@ -661,9 +695,7 @@ const summaryRangeLabels: Record<SummaryRange, string> = { daily: "일간", week
 function dateInSummaryRange(date: string, range: SummaryRange, today: string) {
   if (range === "daily") return date === today;
   if (range === "monthly") return date.slice(0, 7) === today.slice(0, 7);
-  const target = new Date(`${date}T00:00:00+09:00`).getTime();
-  const end = new Date(`${today}T23:59:59+09:00`).getTime();
-  return target >= end - 6 * 86400000 && target <= end;
+  return date >= familySummaryPeriod(today).weekStart && date <= today;
 }
 
 function summaryPeriodText(range: SummaryRange, today: string) {
@@ -676,10 +708,12 @@ function summaryPeriodText(range: SummaryRange, today: string) {
 }
 
 export function FamilySummaryReportView({ supabase, profile, studentId, onStudentChange }: { supabase: SupabaseClient; profile: Profile; studentId:string|null; onStudentChange:(studentId:string|null)=>void }) {
-  const [dashboard, setDashboard] = useState<Data | null>(null);
-  const [lessons, setLessons] = useState<SummaryLessonReport[]>([]);
-  const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const today = seoulDate();
+  const [initial] = useState(() => familyPageCache<SummarySnapshot>(supabase,profile.id,studentId,`summary:${today}`).read());
+  const [dashboard, setDashboard] = useState<FamilyContext | null>(initial?.dashboard??null);
+  const [lessons, setLessons] = useState<SummaryLessonReport[]>(initial?.lessons??[]);
+  const [corrections, setCorrections] = useState<SummaryCorrectionReport[]>(initial?.corrections??[]);
+  const [selectedId, setSelectedId] = useState<string | null>(initial?.dashboard.selectedStudent?.id??null);
   const [range, setRange] = useState<SummaryRange>("weekly");
   const [visibleHighlightCount, setVisibleHighlightCount] = useState(3);
   const [detailTarget, setDetailTarget] = useState<{ lessonId?: string; correctionId?: string } | null>(null);
@@ -688,44 +722,39 @@ export function FamilySummaryReportView({ supabase, profile, studentId, onStuden
   const requestVersion = useRef(0);
   const changeStudent = useCallback((id: string | null) => {
     requestVersion.current++;
+    setDashboard(null); setLessons([]); setCorrections([]); setSelectedId(null); setDetailTarget(null); setLoading(true);
     onStudentChange(id);
   }, [onStudentChange]);
   const load = useCallback(async (studentId: string | null) => {
     const version=++requestVersion.current;
-    setLoading(true);
-    setError("");
-    const dashboardResult = await supabase.rpc("family_live_dashboard", { p_student_id: studentId });
-    if (version !== requestVersion.current) return;
-    if (dashboardResult.error || !dashboardResult.data) {
-      setError("학습리포트를 불러오지 못했습니다.");
-      setLoading(false);
-      return;
+    const cache=familyPageCache<SummarySnapshot>(supabase,profile.id,studentId,`summary:${today}`);
+    const cached=cache.read();
+    setDashboard(cached?.dashboard??null); setLessons(cached?.lessons??[]); setCorrections(cached?.corrections??[]);
+    setSelectedId(cached?.dashboard.selectedStudent?.id??null); setDetailTarget(null);
+    setLoading(true); setError("");
+    try {
+      const period=familySummaryPeriod(today);
+      const result=await supabase.rpc("family_summary_snapshot", { p_student_id:studentId, p_start_date:period.start, p_end_date:period.end });
+      if (version !== requestVersion.current || !cache.valid()) return;
+      if (result.error || !result.data) {
+        cache.clear(); setDashboard(null); setLessons([]); setCorrections([]); setSelectedId(null);
+        setError("학습리포트를 불러오지 못했습니다."); return;
+      }
+      const snapshot=result.data as SummarySnapshot;
+      cache.write(snapshot);
+      familyPageCache<SummarySnapshot>(supabase,profile.id,snapshot.dashboard.selectedStudent?.id??null,`summary:${today}`).write(snapshot);
+      setDashboard(snapshot.dashboard); setLessons(snapshot.lessons); setCorrections(snapshot.corrections);
+      setSelectedId(snapshot.dashboard.selectedStudent?.id??null);
+      onStudentChange(snapshot.dashboard.selectedStudent?.id??null);
+    } catch {
+      if (version === requestVersion.current && cache.valid()) setError("학습리포트를 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      if (version === requestVersion.current && cache.valid()) setLoading(false);
     }
-    const nextDashboard = dashboardResult.data as Data;
-    const nextId = nextDashboard.selectedStudent?.id ?? null;
-    setDashboard(nextDashboard);
-    setSelectedId(nextId);
-    onStudentChange(nextId);
-    if (!nextId) {
-      setLessons([]);
-      setCorrections([]);
-      setLoading(false);
-      return;
-    }
-    const [lessonResult, correctionResult] = await Promise.all([
-      supabase.rpc("family_completed_learning_reports", { p_student_id: nextId, p_limit: 30 }),
-      supabase.rpc("family_correction_reports", { p_student_id: nextId, p_limit: 50 }),
-    ]);
-    if (version !== requestVersion.current) return;
-    if (lessonResult.error || correctionResult.error) setError("일부 학습 기록을 불러오지 못했습니다.");
-    setLessons((lessonResult.data ?? []) as SummaryLessonReport[]);
-    setCorrections((correctionResult.data ?? []) as SummaryCorrectionReport[]);
-    setLoading(false);
-  }, [onStudentChange, supabase]);
+  }, [onStudentChange, profile.id, supabase, today]);
   useEffect(() => { void load(studentId); return () => { requestVersion.current++; }; }, [load, studentId]);
   useEffect(() => { setVisibleHighlightCount(3); }, [range, selectedId]);
 
-  const today = seoulDate();
   const periodLessons = lessons.filter((item) => dateInSummaryRange(item.lessonDate, range, today));
   const periodCorrections = corrections.filter((item) => dateInSummaryRange(item.correctionDate, range, today));
   const attendance = [

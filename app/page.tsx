@@ -1,4 +1,6 @@
 "use client";
+
+import { clearFamilyPageCache } from "./family-page-cache";
 import { ScheduleReminderProvider } from "./schedule-reminders";
 
 import dynamic from "next/dynamic";
@@ -382,6 +384,7 @@ export default function Home() {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
       if (event === "SIGNED_IN" && nextUser?.id === loadedUserIdRef.current) return;
 
+      clearFamilyPageCache(supabase);
       window.setTimeout(() => void loadProfile(nextUser), 0);
     });
     return () => listener.subscription.unsubscribe();
@@ -894,7 +897,7 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "schedule" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
+          {view === "schedule" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
           {view === "attendance" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <AttendanceBoard supabase={supabase} /> : <SimplePanel title="출결·보강" description="내 수업의 출결 기록을 확인합니다." items={["출결 기록은 담당 선생님이 입력합니다."]} />)}
@@ -902,9 +905,9 @@ export default function Home() {
           {view === "assignments" && <AssignmentBoard supabase={supabase} />}
           {view === "vocabulary-tests" && <VocabularyTestGenerator supabase={supabase} profile={profile} />}
           {view === "alimtalk" && (profile.role === "admin" || profile.role === "sub_admin") && <AlimtalkSendCenter supabase={supabase} students={students} />}
-          {familyStudentReady && view === "reports" && familyAccount && <FamilySummaryReportView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
-          {familyStudentReady && view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
-          {familyStudentReady && view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
+          {familyStudentReady && view === "reports" && familyAccount && <FamilySummaryReportView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
+          {familyStudentReady && view === "calendar" && (profile.role === "student" || profile.role === "guardian") && <FamilyCalendarView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
+          {familyStudentReady && view === "grades" && (profile.role === "student" || profile.role === "guardian") && <FamilyGradesView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} />}
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} role={profile.role} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
@@ -1483,7 +1486,7 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
     };
   }, [profile.role, supabase]);
   if (profile.role === "student" || profile.role === "guardian") {
-    return <FamilyLiveDashboard supabase={supabase} profile={profile} onNavigate={onNavigate} studentId={familyStudentId} onStudentChange={onFamilyStudentChange} />;
+    return <FamilyLiveDashboard key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} onNavigate={onNavigate} studentId={familyStudentId} onStudentChange={onFamilyStudentChange} />;
   }
   const attendance = live?.attendance;
   const nextClass = live?.todayClasses.find(

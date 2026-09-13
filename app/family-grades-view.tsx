@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
+import { familyPageCache } from "./family-page-cache";
 import { ExamTrendModal } from "./family-learning-report-feed";
 import { FamilyChildSwitcher } from "./family-dashboard";
 
@@ -11,10 +12,12 @@ type Dashboard={children:Child[];selectedStudent:Child|null};
 type RecordType="school"|"mock";
 type AcademicRecord={id:string;recordType:RecordType;academicYear:number;semester:number|null;examDate:string;examName:string;subject:string;score:number|null;grade:number|null;achievementLevel:string|null;rank:number|null;cohortSize:number|null;schoolAverage:number|null;standardScore:number|null;percentile:number|null;note:string|null};
 type AcademicData={student:Child|null;records:AcademicRecord[]};
+type GradesSnapshot={dashboard:Dashboard;academic:AcademicData|null};
 type GradeTab="academy"|RecordType;
 
 export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{supabase:SupabaseClient;profile:Profile;studentId:string|null;onStudentChange:(studentId:string|null)=>void}){
-  const[data,setData]=useState<Dashboard|null>(null);const[academic,setAcademic]=useState<AcademicData|null>(null);
+  const[initial]=useState(()=>familyPageCache<GradesSnapshot>(supabase,profile.id,studentId,"grades").read());
+  const[data,setData]=useState<Dashboard|null>(initial?.dashboard??null);const[academic,setAcademic]=useState<AcademicData|null>(initial?.academic??null);
   const[tab,setTab]=useState<GradeTab>("academy");
   const[loading,setLoading]=useState(true);const[error,setError]=useState("");
   const requestVersion=useRef(0);
@@ -25,25 +28,30 @@ export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{s
   },[onStudentChange]);
   const load=useCallback(async(id:string|null)=>{
     const version=++requestVersion.current;
-    setLoading(true);setError("");setData(null);setAcademic(null);
+    const cache=familyPageCache<GradesSnapshot>(supabase,profile.id,id,"grades");
+    const cached=cache.read();
+    setLoading(true);setError("");setData(cached?.dashboard??null);setAcademic(cached?.academic??null);
     try{
       const[dashboardResult,academicResult]=await Promise.all([
-        supabase.rpc("family_live_dashboard",{p_student_id:id}),
+        supabase.rpc("family_student_context",{p_student_id:id}),
         supabase.rpc("family_academic_records",{p_student_id:id})
       ]);
-      if(version!==requestVersion.current)return;
+      if(version!==requestVersion.current||!cache.valid())return;
       if(dashboardResult.error||academicResult.error||!dashboardResult.data){
-        setError("성적 정보를 불러오지 못했습니다.");return;
+        cache.clear();setData(null);setAcademic(null);setError("성적 정보를 불러오지 못했습니다.");return;
       }
       const next=dashboardResult.data as Dashboard;
-      setData(next);setAcademic(academicResult.data as AcademicData);
+      const snapshot={dashboard:next,academic:academicResult.data as AcademicData|null};
+      cache.write(snapshot);
+      familyPageCache<GradesSnapshot>(supabase,profile.id,next.selectedStudent?.id??null,"grades").write(snapshot);
+      setData(next);setAcademic(snapshot.academic);
       onStudentChange(next.selectedStudent?.id??null);
     }catch{
-      if(version===requestVersion.current)setError("성적 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      if(version===requestVersion.current&&cache.valid())setError("성적 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }finally{
-      if(version===requestVersion.current)setLoading(false);
+      if(version===requestVersion.current&&cache.valid())setLoading(false);
     }
-  },[onStudentChange,supabase]);
+  },[onStudentChange,profile.id,supabase]);
   useEffect(()=>{void load(studentId);return()=>{requestVersion.current++;}},[load,studentId]);
   const student=data?.selectedStudent;const isMiddle=/^중\s*[1-3]/.test(student?.grade?.trim()??"");
   useEffect(()=>{if(isMiddle&&tab==="mock")setTab("school")},[isMiddle,tab]);

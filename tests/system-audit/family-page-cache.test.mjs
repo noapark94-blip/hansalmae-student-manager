@@ -1,0 +1,16 @@
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const source=readFileSync(new URL('../../app/family-page-cache.ts',import.meta.url),'utf8');
+function harness(){let now=0;class Clock extends Date {static now(){return now;}}
+ const exports={};vm.runInNewContext(ts.transpile(source,{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}),{exports,Date:Clock});
+ return {...exports,advance:ms=>{now+=ms;}};
+}
+test('revisit finds the same account, child and page snapshot',()=>{const h=harness(),client={};h.familyPageCache(client,'parent','a','home').write({records:[1]});assert.equal(h.familyPageCache(client,'parent','a','home').read().records[0],1);});
+test('different children, accounts, pages and clients never share records',()=>{const h=harness(),client={};h.familyPageCache(client,'parent','a','home').write({secret:'a'});for(const args of [[client,'parent','b','home'],[client,'other','a','home'],[client,'parent','a','grades'],[{},'parent','a','home']])assert.equal(h.familyPageCache(...args).read(),null);});
+test('signout clears entries and an old in-flight response cannot repopulate the new session',()=>{const h=harness(),client={};const old=h.familyPageCache(client,'parent','a','home');old.write({old:true});h.clearFamilyPageCache(client);old.write({late:true});assert.equal(old.valid(),false);assert.equal(h.familyPageCache(client,'parent','a','home').read(),null);const next=h.familyPageCache(client,'parent','a','home');next.write({new:true});old.clear();assert.equal(next.read().new,true);});
+test('cached student records expire after two minutes and storage is bounded',()=>{const h=harness(),client={};h.familyPageCache(client,'parent','a','home').write({ok:true});h.advance(120000);assert.equal(h.familyPageCache(client,'parent','a','home').read(),null);for(let n=0;n<41;n++)h.familyPageCache(client,'parent',String(n),'home').write(n);assert.equal(h.familyPageCache(client,'parent','0','home').read(),null);assert.equal(h.familyPageCache(client,'parent','40','home').read(),40);});
+test('summary period covers month start and all seven days across year/leap boundaries',()=>{const h=harness();for(const [today,start,weekStart] of [['2026-09-13','2026-09-01','2026-09-07'],['2026-09-01','2026-08-26','2026-08-26'],['2026-01-01','2025-12-26','2025-12-26'],['2024-03-01','2024-02-24','2024-02-24']]){const p=h.familySummaryPeriod(today);assert.equal(p.start,start);assert.equal(p.end,today);assert.equal(p.weekStart,weekStart);}});
+test('weekly client filter includes the first day and excludes outside dates',()=>{const h=harness();const dashboard=readFileSync(new URL('../../app/family-dashboard.tsx',import.meta.url),'utf8');const start=dashboard.indexOf('function dateInSummaryRange('),end=dashboard.indexOf('\nfunction summaryPeriodText',start);const ctx={familySummaryPeriod:h.familySummaryPeriod};vm.createContext(ctx);vm.runInContext(ts.transpile(dashboard.slice(start,end)+';globalThis.filter=dateInSummaryRange;',{target:ts.ScriptTarget.ES2022}),ctx);assert.equal(ctx.filter('2026-09-07','weekly','2026-09-13'),true);assert.equal(ctx.filter('2026-09-06','weekly','2026-09-13'),false);assert.equal(ctx.filter('2026-09-14','weekly','2026-09-13'),false);});
