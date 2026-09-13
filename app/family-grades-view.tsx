@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./supabase";
 import { ExamTrendModal } from "./family-learning-report-feed";
@@ -17,12 +17,34 @@ export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{s
   const[data,setData]=useState<Dashboard|null>(null);const[academic,setAcademic]=useState<AcademicData|null>(null);
   const[tab,setTab]=useState<GradeTab>("academy");
   const[loading,setLoading]=useState(true);const[error,setError]=useState("");
-  const load=useCallback(async(id:string|null)=>{setLoading(true);setError("");const[dashboardResult,academicResult]=await Promise.all([
-    supabase.rpc("family_live_dashboard",{p_student_id:id}),supabase.rpc("family_academic_records",{p_student_id:id})
-  ]);if(dashboardResult.error||academicResult.error){setError("성적 정보를 불러오지 못했습니다.");setLoading(false);return}
-    const next=dashboardResult.data as Dashboard;setData(next);setAcademic(academicResult.data as AcademicData);onStudentChange(next.selectedStudent?.id??null);setLoading(false);
+  const requestVersion=useRef(0);
+  const changeStudent=useCallback((id:string|null)=>{
+    requestVersion.current++;
+    setData(null);setAcademic(null);setLoading(true);setError("");
+    onStudentChange(id);
+  },[onStudentChange]);
+  const load=useCallback(async(id:string|null)=>{
+    const version=++requestVersion.current;
+    setLoading(true);setError("");setData(null);setAcademic(null);
+    try{
+      const[dashboardResult,academicResult]=await Promise.all([
+        supabase.rpc("family_live_dashboard",{p_student_id:id}),
+        supabase.rpc("family_academic_records",{p_student_id:id})
+      ]);
+      if(version!==requestVersion.current)return;
+      if(dashboardResult.error||academicResult.error||!dashboardResult.data){
+        setError("성적 정보를 불러오지 못했습니다.");return;
+      }
+      const next=dashboardResult.data as Dashboard;
+      setData(next);setAcademic(academicResult.data as AcademicData);
+      onStudentChange(next.selectedStudent?.id??null);
+    }catch{
+      if(version===requestVersion.current)setError("성적 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }finally{
+      if(version===requestVersion.current)setLoading(false);
+    }
   },[onStudentChange,supabase]);
-  useEffect(()=>{void load(studentId)},[load,studentId]);
+  useEffect(()=>{void load(studentId);return()=>{requestVersion.current++;}},[load,studentId]);
   const student=data?.selectedStudent;const isMiddle=/^중\s*[1-3]/.test(student?.grade?.trim()??"");
   useEffect(()=>{if(isMiddle&&tab==="mock")setTab("school")},[isMiddle,tab]);
   if(loading&&!data)return <section className="panel hub-message">성적 정보를 불러오는 중이에요…</section>;
@@ -31,7 +53,7 @@ export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{s
     <header className="family-grades-heading"><p>{profile.role==="guardian"?"자녀 성장 기록":"나의 성장 기록"}</p><h1>성적확인</h1><span>학원 시험과 학교 성적의 흐름을 필요한 정보만 모아 확인하세요.</span></header>
     {error&&<p className="attendance-error">{error}</p>}
     {student?<>
-      {profile.role==="guardian"&&<FamilyChildSwitcher childOptions={data?.children??[]} selected={student} loading={loading} onStudentChange={onStudentChange}/>}
+      {profile.role==="guardian"&&<FamilyChildSwitcher childOptions={data?.children??[]} selected={student} loading={loading} onStudentChange={changeStudent}/>}
       <nav className={`family-grade-tabs${isMiddle?" middle":""}`} aria-label="성적 종류"><button className={tab==="academy"?"active":""} onClick={()=>setTab("academy")}>학원 시험</button><button className={tab==="school"?"active":""} onClick={()=>setTab("school")}>학교 내신</button>{!isMiddle&&<button className={tab==="mock"?"active":""} onClick={()=>setTab("mock")}>모의고사</button>}</nav>
       {tab==="academy"?<ExamTrendModal supabase={supabase} studentId={student.id} initialSubject="영어" embedded onClose={()=>setTab("school")}/>:<AcademicRecords records={academic?.records??[]} type={tab} isMiddle={isMiddle}/>} 
     </>:<section className="panel family-empty"><b>연결된 학생 정보가 없습니다.</b></section>}
