@@ -36,8 +36,8 @@ const reportFingerprint=(report:Report)=>JSON.stringify({
   correctionTaskFeedback:report.correctionTaskFeedback??"",assistantFeedback:report.assistantFeedback??"",nextPreparation:report.nextPreparation??"",
 });
 
-export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
-  const[date,setDate]=useState(koreaToday());
+export function CorrectionWorkBoard({supabase,initialDate,focusStudentId}:{supabase:SupabaseClient;initialDate?:string;focusStudentId?:string}){
+  const[date,setDate]=useState(initialDate??koreaToday());
   const activeDateRef=useRef(date);
   const pendingSaves=useRef(new Set<string>());
   const[data,setData]=useState<Board|null>(null);
@@ -134,7 +134,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
     else setCategories((next??[]) as ExamCategory[]);
   },[supabase]);
   const selectDate=(nextDate:string)=>{activeDateRef.current=nextDate;setIncompleteOnly(false);setDate(nextDate)};
-  const rows=useMemo(()=>buildOccurrences(data,date),[data,date]);
+  const rows=useMemo(()=>buildOccurrences(data,date).filter(row=>!focusStudentId||row.assignment.studentId===focusStudentId),[data,date,focusStudentId]);
   const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
   const completedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true).length;
   const incompleteRows=rows.filter(row=>drafts[reportKey(row)]?.published!==true);
@@ -268,7 +268,7 @@ export function CorrectionWorkBoard({supabase}:{supabase:SupabaseClient}){
   const renderRow=(row:Occurrence)=>{
     const key=reportKey(row),report=drafts[key]??{},status=report.attendanceStatus??"scheduled";
     const detailCount=[Boolean(report.examTitle||report.examScore!=null),Boolean(report.correctionContent?.trim())].filter(Boolean).length;
-    const detailsOpen=openStudentKey===key;
+    const detailsOpen=Boolean(focusStudentId)||openStudentKey===key;
     const showRecordedBy=Boolean(report.recordedByName)&&(status!=="scheduled"||hasCorrectionDetails(report));
     const score=report.examScore,max=report.examMaxScore??100,converted=score==null||!Number.isFinite(Number(score))||!Number.isFinite(Number(max))||Number(max)<=0?null:Math.round(Number(score)/Number(max)*1000)/10;
     const originalLabel=row.kind==="move"&&row.exception?`${weekdays[isoWeekday(row.exception.originalDate)-1]} ${row.assignment.startTime.slice(0,5)} → ${weekdays[isoWeekday(row.date)-1]} ${row.startTime.slice(0,5)}`:row.kind==="extra"?"정규 일정 외 추가 첨삭":"";

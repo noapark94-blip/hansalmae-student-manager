@@ -1,6 +1,7 @@
 "use client";
 
 import { clearFamilyPageCache } from "./family-page-cache";
+import { RecordWorkProvider, RecordWorkPanel } from "./record-work";
 import { ScheduleReminderProvider } from "./schedule-reminders";
 
 import dynamic from "next/dynamic";
@@ -730,7 +731,7 @@ export default function Home() {
   }
 
   return (
-    <ScheduleReminderProvider supabase={supabase} profile={profile}><main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
+    <RecordWorkProvider supabase={supabase} profile={profile}><ScheduleReminderProvider supabase={supabase} profile={profile}><main className={`app-shell${familyAccount ? " family-app-shell" : ""}${staffAccount ? " staff-app-shell" : ""}${sidebarCollapsed && !familyAccount ? " sidebar-collapsed" : ""}`}>
       <PushDeviceAccountSync key={user.id} supabase={supabase} />
       {["guardian", "teacher", "sub_admin", "assistant", "admin", "manager"].includes(profile.role) && <GuardianPushPrompt key={`${user.id}:${profile.role}`} supabase={supabase} role={profile.role} />}
       {!familyAccount && (
@@ -869,6 +870,7 @@ export default function Home() {
         )}
 
         <div className={`content${familyAccount ? " family-app-content" : ""}${staffLessonTarget ? " staff-lesson-deep-link" : ""}`}>
+          {staffAccount && (view === "dashboard" || view === "assignments" || view === "alimtalk") && <RecordWorkPanel key={view} expanded={view === "alimtalk"} />}
           {familyAccount && !familyStudentReady && <section className="panel hub-message">자녀 정보를 불러오는 중이에요…</section>}
           {view === "dashboard" && staffAccount && !staffLessonTarget && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
@@ -990,7 +992,7 @@ export default function Home() {
           {toast}
         </div>
       )}
-    </main></ScheduleReminderProvider>
+    </main></ScheduleReminderProvider></RecordWorkProvider>
   );
 }
 
