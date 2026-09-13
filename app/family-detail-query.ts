@@ -1,12 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Query the chosen record's date, not its position within a recent-record list.
-// Include preceding days so the detail can still show previous homework.
+// Previous homework is loaded separately by record identity, without a date cap.
 export async function loadFamilyDetailReports(supabase: SupabaseClient, studentId: string, date: string) {
   const parsed = new Date(`${date}T00:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10) !== date) throw new Error("유효하지 않은 수업 날짜입니다.");
-  const start = new Date(parsed.getTime() - 31 * 86400000).toISOString().slice(0,10);
-  return loadFamilyPeriodReports(supabase,studentId,start,date);
+  return loadFamilyPeriodReports(supabase,studentId,date,date);
 }
 
 export function loadFamilyCalendarReports(supabase: SupabaseClient, studentId: string, month: string) {

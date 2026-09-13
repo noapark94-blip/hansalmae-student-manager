@@ -12,15 +12,10 @@ test('actual navigation handler updates month, selected date and loading togethe
  ctx.move('2026-02');assert.equal(state.date,'2026-02-28');assert.equal(state.month,'2026-02');assert.equal(state.loading,true);assert.equal(state.detail,null);
  ctx.pick('2026-10-01');assert.equal(state.month,'2026-10');assert.equal(state.date,'2026-10-01');
 });
-test('calendar details retrieve previous-month homework for both lesson and correction',async()=>{
- const lesson={lessonId:'current',classId:'same',startsAt:'2026-09-01T12:00:00+09:00',homeworkContent:'new'};
- const previous={lessonId:'previous',classId:'same',startsAt:'2026-08-31T12:00:00+09:00',homeworkContent:'10~12쪽'};
- const correction={id:'current',subject:'수학',correctionDate:'2026-09-01',startTime:'12:00',homeworkInstruction:'new'};
- const previousCorrection={id:'previous',subject:'수학',correctionDate:'2026-08-31',startTime:'12:00',homeworkInstruction:'이전 첨삭 과제'};
- const [lessons,corrections]=await exports.loadFamilyDetailReports({rpc:async(name,args)=>{assert.equal(args.p_start_date,'2026-08-01');assert.equal(args.p_end_date,'2026-09-01');return {data:{lessons:[lesson,previous],corrections:[correction,previousCorrection]},error:null};}},'student','2026-09-01');
- const a=source.indexOf('function findPreviousLessonHomework'),b=source.indexOf('function formatCommentTime',a);const ctx={};vm.createContext(ctx);vm.runInContext(compile(source.slice(a,b)),ctx);
- assert.equal(ctx.findPreviousLessonHomework(lesson,lessons.data),'10~12쪽');assert.equal(ctx.findPreviousCorrectionHomework(correction,corrections.data),'이전 첨삭 과제');
- assert.equal(ctx.findPreviousLessonHomework(lesson,[lesson]),'');
+test('lesson and correction details use an independent homework lookup, not the loaded month',()=>{
+ assert.match(source,/useFamilyPreviousHomework\(supabase,studentId,item.lessonId,"lesson"\)/);
+ assert.match(source,/useFamilyPreviousHomework\(supabase,studentId,item.id,"correction"\)/);
+ assert.doesNotMatch(source,/function findPreviousLessonHomework/);
 });
 test('calendar details use date-based detail loading, with an independent key for each record',()=>{
  const a=source.indexOf('  if (displayMode === "calendar") return ('),b=source.indexOf('\n  return (',a),calendar=source.slice(a,b);

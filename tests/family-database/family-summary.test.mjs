@@ -16,6 +16,7 @@ before(async()=>{
  await db.exec(read('schema.sql'));
  await db.exec(read('original-report-functions.sql'));
  await db.exec(read('../../supabase/migrations/20260913103003_family_page_queries_and_period_summary.sql'));
+ await db.exec(read('../../supabase/migrations/20260913123906_family_previous_homework_lookup.sql'));
  today=(await db.query('select current_date::text today')).rows[0].today;
 });
 beforeEach(async()=>{
@@ -107,4 +108,38 @@ test('context reads schedule only when requested and preserves assignment/date r
 });
 test('empty linked history is returned as arrays and includes the correct child',async()=>{
  const result=await snapshot();assert.equal(result.dashboard.selectedStudent.id,A);assert.deepEqual(result.lessons,[]);assert.deepEqual(result.corrections,[]);
+});
+
+const previousHomework=async(student,record,kind)=> (await db.query('select family_previous_homework($1,$2,$3) value',[student,record,kind])).rows[0].value;
+test('previous homework survives a 90-day gap and prefers student-specific homework',async()=>{
+ await regular(3);
+ await db.exec(`update lessons set lesson_date=current_date-90,starts_at=(current_date-90)::timestamp where id=md5('lesson1')::uuid;
+ update lessons set lesson_date=current_date-120,starts_at=(current_date-120)::timestamp where id=md5('lesson2')::uuid;
+ insert into lesson_homework_results(lesson_id,student_id,assigned_homework) values(md5('lesson1')::uuid,'${A}','개별 지난 숙제');`);
+ const record=(await db.query("select md5('lesson3')::uuid id")).rows[0].id;
+ assert.equal(await previousHomework(A,record,'lesson'),'개별 지난 숙제');
+ await db.exec("update lessons set status='scheduled' where id=md5('lesson1')::uuid");
+ assert.equal(await previousHomework(A,record,'lesson'),'공통 숙제');
+});
+test('previous correction homework ignores private records and another student',async()=>{
+ await corrections(3);
+ await db.exec(`update correction_reports set correction_date=current_date-100,homework_instruction='오래된 첨삭 과제' where id=md5('correction1')::uuid;
+ update correction_reports set correction_date=current_date-10,homework_instruction='비공개',published=false where id=md5('correction2')::uuid;`);
+ const record=(await db.query("select md5('correction3')::uuid id")).rows[0].id;
+ assert.equal(await previousHomework(A,record,'correction'),'오래된 첨삭 과제');
+ await assert.rejects(previousHomework(B,record,'correction'),/연결된 자녀/);
+ await db.exec(`update correction_reports set student_id='${B}' where id=md5('correction1')::uuid`);
+ assert.equal(await previousHomework(A,record,'correction'),'');
+});
+test('current-record ownership and publication are required for homework access',async()=>{
+ await regular(2,B);const record=(await db.query("select md5('lesson2')::uuid id")).rows[0].id;
+ await assert.rejects(previousHomework(A,record,'lesson'),/공개된 수업/);
+ await assert.rejects(previousHomework(A,record,'other'),/지원하지/);
+ assert.equal((await db.query("select has_function_privilege('anon','family_previous_homework(uuid,uuid,text)','execute') allowed")).rows[0].allowed,false);
+});
+test('special homework uses matching teacher, subject and lesson kind across long gaps',async()=>{
+ await special();
+ await db.exec(`insert into teacher_special_lessons(id,lesson_date,starts_at,kind,status) values ('${id(103)}',current_date-100,'15:00','extra','completed'),('${id(104)}',current_date-10,'15:00','makeup','completed');
+ insert into teacher_special_lesson_students(session_id,student_id,assigned_homework) values ('${id(103)}','${A}','이전 추가수업 숙제'),('${id(104)}','${A}','다른 종류 숙제');`);
+ assert.equal(await previousHomework(A,id(101),'lesson'),'이전 추가수업 숙제');
 });

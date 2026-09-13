@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Holidays from "date-holidays";
+import { clearFamilyPageCache, isTransientFamilyError } from "./family-page-cache";
+import { useFamilyPreviousHomework } from "./use-family-previous-homework";
 import { calendarMonthSelection } from "./family-calendar-selection";
 import { loadFamilyDetailReports, loadFamilyCalendarReports } from "./family-detail-query";
 import { HansalmaeIcon } from "./hansalmae-icons";
@@ -193,6 +195,7 @@ export function FamilyLearningReportFeed({
   >({});
   const [subject, setSubject] = useState("전체");
   const [loading, setLoading] = useState(true);
+  const [retryAttempt,setRetryAttempt] = useState(0);
   const [unavailable, setUnavailable] = useState(false);
   const [readTracking, setReadTracking] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -213,6 +216,12 @@ export function FamilyLearningReportFeed({
   const [pullDistance, setPullDistance] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const refreshCompleteTimer = useRef<number | null>(null);
+
+  const retryFeed = () => {
+    feedGeneration.current++; refreshInFlight.current=false;
+    setLoading(true); setUnavailable(false); setRefreshError(""); setSelected(null);
+    setRetryAttempt(value=>value+1);
+  };
 
   const selectCalendarDate = (date: string) => {
     const month = date.slice(0,7);
@@ -302,7 +311,7 @@ export function FamilyLearningReportFeed({
     return () => {
       active = false; feedGeneration.current++; refreshInFlight.current=false;
     };
-  }, [detailOnly, detailDate, recordMonth, studentId, supabase]);
+  }, [detailOnly, detailDate, recordMonth, retryAttempt, studentId, supabase]);
 
   useEffect(() => {
     if (displayMode !== "calendar") return;
@@ -318,7 +327,7 @@ export function FamilyLearningReportFeed({
       setCalendarScheduleLoading(false);
     }).catch(() => { if(active) { setCalendarError("수업 일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); setCalendarScheduleLoading(false); } });
     return () => { active = false; };
-  }, [calendarMonth, displayMode, studentId, supabase]);
+  }, [calendarMonth, displayMode, retryAttempt, studentId, supabase]);
 
   const refreshFeed = useCallback(async () => {
     if (loading || refreshInFlight.current) return;
@@ -350,7 +359,13 @@ export function FamilyLearningReportFeed({
         ]);
       if (generation !== feedGeneration.current) return;
       if ([reportResult,correctionResult,readResult,correctionReadResult].some(result=>result.error)) {
-        setRefreshError("새로고침하지 못했습니다. 기존 기록을 표시합니다. 다시 시도해 주세요."); return;
+        if ([reportResult,correctionResult,readResult,correctionReadResult].some(result=>result.error&&!isTransientFamilyError(result.error,result.status))) {
+          clearFamilyPageCache(supabase);
+          setItems([]); setCorrections([]); setReads({}); setCorrectionReads({});
+          setSelected(null); setCalendarSchedule([]); setReadTracking(false); setCanComment(false); setUnavailable(true);
+          setRefreshError("기록을 조회할 수 없습니다. 계정과 자녀 연결을 확인해 주세요.");
+        } else setRefreshError("새로고침하지 못했습니다. 기존 기록을 표시합니다. 다시 시도해 주세요.");
+        return;
       }
       if (!reportResult.error)
         setItems((reportResult.data ?? []) as Report[]);
@@ -598,16 +613,16 @@ export function FamilyLearningReportFeed({
     setConfirming(null);
   }
 
-  if (detailOnly && (unavailable || (!loading && !items.some(item => item.lessonId === detailTarget?.lessonId) && !corrections.some(item => item.id === detailTarget?.correctionId)))) return <section className="panel hub-message" role="status">상세 기록을 불러오지 못했습니다. 기록이 변경되었거나 연결이 원활하지 않을 수 있습니다.<button type="button" onClick={onDetailClose}>닫기</button></section>;
+  if (detailOnly && (unavailable || (!loading && !items.some(item => item.lessonId === detailTarget?.lessonId) && !corrections.some(item => item.id === detailTarget?.correctionId)))) return <section className="panel hub-message" role="status">상세 기록을 불러오지 못했습니다. 기록이 변경되었거나 연결이 원활하지 않을 수 있습니다.<button type="button" onClick={retryFeed}>다시 시도</button><button type="button" onClick={onDetailClose}>닫기</button></section>;
   if (detailOnly && loading) return <section className="panel hub-message" role="status">상세 기록을 불러오는 중이에요…</section>;
-  if (unavailable) return <section className="panel hub-message" role="alert">학습 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</section>;
+  if (unavailable) return <section className="panel hub-message" role="alert">{refreshError || "학습 기록을 불러오지 못했습니다."}<button type="button" onClick={retryFeed}>다시 시도</button></section>;
   if (detailOnly) return <>
-    {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
-    {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
+    {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
+    {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
   </>;
   if (displayMode === "calendar") return (
     <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
-      {calendarError && <p role="alert">{calendarError}</p>}
+      {calendarError && <p role="alert">{calendarError}<button type="button" onClick={retryFeed}>다시 시도</button></p>}
       <header className="family-calendar-toolbar">
         <button type="button" aria-label="이전 달" onClick={() => navigateCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
         <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>예정 수업과 학습 기록이 있는 날짜를 선택하세요</span></div>
@@ -803,7 +818,6 @@ export function FamilyLearningReportFeed({
           supabase={supabase}
           studentId={studentId}
           item={selected.report}
-          previousHomework={findPreviousLessonHomework(selected.report, items)}
           canComment={canComment}
           onClose={() => setSelected(null)}
         />
@@ -813,10 +827,6 @@ export function FamilyLearningReportFeed({
           supabase={supabase}
           studentId={studentId}
           item={selected.report}
-          previousHomework={findPreviousCorrectionHomework(
-            selected.report,
-            corrections,
-          )}
           onClose={() => setSelected(null)}
         />
       )}
@@ -951,15 +961,15 @@ function CorrectionFeedDetail({
   supabase,
   studentId,
   item,
-  previousHomework,
   onClose,
 }: {
   supabase: SupabaseClient;
   studentId: string;
   item: CorrectionReport;
-  previousHomework: string;
   onClose: () => void;
 }) {
+  const homework = useFamilyPreviousHomework(supabase,studentId,item.id,"correction");
+  const previousHomework=homework.value;
   useFamilyModalScrollLock();
   const [trendOpen, setTrendOpen] = useState(false);
   const examRange = cleanCorrectionRange(item.examRange);
@@ -994,6 +1004,8 @@ function CorrectionFeedDetail({
           <span />
         </header>
         <div className="family-report-detail-scroll">
+          {homework.loading && <p role="status">지난 숙제를 확인하고 있어요…</p>}
+          {homework.error && <p role="alert">{homework.error}<button type="button" onClick={homework.retry}>다시 시도</button></p>}
           <section className="family-report-detail-hero correction">
             <div className="family-report-card-labels">
               <span>{item.subject} 첨삭</span>
@@ -1216,17 +1228,17 @@ function ReportDetail({
   supabase,
   studentId,
   item,
-  previousHomework,
   canComment,
   onClose,
 }: {
   supabase: SupabaseClient;
   studentId: string;
   item: Report;
-  previousHomework: string;
   canComment: boolean;
   onClose: () => void;
 }) {
+  const homework = useFamilyPreviousHomework(supabase,studentId,item.lessonId,"lesson");
+  const previousHomework=homework.value;
   useFamilyModalScrollLock();
   const [trendOpen, setTrendOpen] = useState(false);
   const attendance = item.attendance;
@@ -1272,6 +1284,8 @@ function ReportDetail({
           <span />
         </header>
         <div className="family-report-detail-scroll">
+          {homework.loading && <p role="status">지난 숙제를 확인하고 있어요…</p>}
+          {homework.error && <p role="alert">{homework.error}<button type="button" onClick={homework.retry}>다시 시도</button></p>}
           <section className="family-report-detail-hero">
             <div className="family-report-card-labels">
               <span>{reportBadgeLabel(item)}</span>
@@ -1809,39 +1823,6 @@ function getConvertedScore(exam: Exam) {
   if (!Number.isFinite(Number(exam.maxScore)) || Number(exam.maxScore) <= 0)
     return null;
   return Math.round((Number(exam.score) / Number(exam.maxScore)) * 1000) / 10;
-}
-function findPreviousLessonHomework(current: Report, reports: Report[]) {
-  return (
-    reports
-      .filter(
-        (report) =>
-          report.classId === current.classId &&
-          report.startsAt < current.startsAt &&
-          report.homeworkContent.trim(),
-      )
-      .sort((left, right) => right.startsAt.localeCompare(left.startsAt))[0]
-      ?.homeworkContent.trim() ?? ""
-  );
-}
-function findPreviousCorrectionHomework(
-  current: CorrectionReport,
-  reports: CorrectionReport[],
-) {
-  const currentTime = `${current.correctionDate}T${current.startTime}`;
-  return (
-    reports
-      .filter(
-        (report) =>
-          report.subject === current.subject &&
-          `${report.correctionDate}T${report.startTime}` < currentTime &&
-          report.homeworkInstruction.trim(),
-      )
-      .sort((left, right) =>
-        `${right.correctionDate}T${right.startTime}`.localeCompare(
-          `${left.correctionDate}T${left.startTime}`,
-        ),
-      )[0]?.homeworkInstruction.trim() ?? ""
-  );
 }
 function formatCommentTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
