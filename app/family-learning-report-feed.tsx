@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading } from "./family-loading";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -614,7 +615,7 @@ export function FamilyLearningReportFeed({
   }
 
   if (detailOnly && (unavailable || (!loading && !items.some(item => item.lessonId === detailTarget?.lessonId) && !corrections.some(item => item.id === detailTarget?.correctionId)))) return <section className="panel hub-message" role="status">상세 기록을 불러오지 못했습니다. 기록이 변경되었거나 연결이 원활하지 않을 수 있습니다.<button type="button" onClick={retryFeed}>다시 시도</button><button type="button" onClick={onDetailClose}>닫기</button></section>;
-  if (detailOnly && loading) return <section className="panel hub-message" role="status">상세 기록을 불러오는 중이에요…</section>;
+  if (detailOnly && loading) return <FamilyLoading/>;
   if (unavailable) return <section className="panel hub-message" role="alert">{refreshError || "학습 기록을 불러오지 못했습니다."}<button type="button" onClick={retryFeed}>다시 시도</button></section>;
   if (detailOnly) return <>
     {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} canComment={canComment} onClose={() => { setSelected(null); onDetailClose?.(); }} />}
@@ -641,7 +642,7 @@ export function FamilyLearningReportFeed({
       </div>
       <section className="family-calendar-day-panel">
         <header><div><strong>{formatCalendarDate(selectedDate)}</strong><span>{formatDateWeekday(selectedDate)}</span></div><small>{selectedCalendarItems.length ? `${selectedCalendarItems.length}개 수업` : "수업 없음"}</small></header>
-        {loading || calendarScheduleLoading ? <p className="family-report-empty">수업 일정을 불러오는 중이에요…</p> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
+        {loading || calendarScheduleLoading ? <FamilyLoading/> : selectedCalendarItems.length ? <div className="family-calendar-day-list">{selectedCalendarItems.map(item => {
           const title = item.kind === "schedule" ? item.schedule.title : item.kind === "lesson" ? reportDisplayTitle(item.report) : `${item.report.subject} 첨삭`;
           const attendance = item.kind === "schedule" ? item.schedule.attendanceStatus : item.kind === "lesson" ? item.report.attendance?.status : item.report.attendanceStatus;
           const isSchedule = item.kind === "schedule";
@@ -760,7 +761,7 @@ export function FamilyLearningReportFeed({
         </nav>
       )}
       {loading ? (
-        <p className="family-report-empty">학습 기록을 불러오는 중이에요…</p>
+        <FamilyLoading/>
       ) : !feedItems.length ? (
         <p className="family-report-empty">아직 도착한 학습 기록이 없습니다.</p>
       ) : (

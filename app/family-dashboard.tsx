@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading } from "./family-loading";
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -328,9 +329,7 @@ export function FamilyLiveDashboard({
   }, [data, todayLessons]);
   if (loading && !data)
     return (
-      <section className="panel hub-message">
-        학습 현황을 불러오는 중이에요…
-      </section>
+      <FamilyLoading/>
     );
   if (error && !data)
     return <section className="panel hub-message error">{error}</section>;
@@ -602,7 +601,7 @@ export function FamilyScheduleView({ supabase, profile, studentId, onStudentChan
     }
   }, [onStudentChange, profile.id, supabase]);
   useEffect(() => { void load(studentId); return () => { requestVersion.current++; }; }, [load, studentId]);
-  if (loading && !data) return <section className="panel hub-message">정규시간표를 불러오는 중이에요…</section>;
+  if (loading && !data) return <FamilyLoading/>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
   const scheduleSubjects = Array.from(new Set((data?.weekClasses ?? []).map((item) => item.subject).filter(Boolean)));
@@ -672,7 +671,7 @@ export function FamilyCalendarView({ supabase, profile, studentId, onStudentChan
     }
   }, [onStudentChange, profile.id, supabase]);
   useEffect(() => { void load(studentId); return () => { requestVersion.current++; }; }, [load, studentId]);
-  if (loading && !data) return <section className="panel hub-message">학습캘린더를 불러오는 중이에요…</section>;
+  if (loading && !data) return <FamilyLoading/>;
   if (error && !data) return <section className="panel hub-message error">{error}</section>;
   const selected = data?.selectedStudent;
   return <div className="family-schedule-page family-calendar-page">

@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading } from "./family-loading";
 
 import { clearFamilyPageCache } from "./family-page-cache";
 import { RecordWorkProvider, RecordWorkPanel } from "./record-work";
@@ -19,11 +20,11 @@ const SettingsBoard=dynamic(()=>import("./settings-board").then(module=>module.S
 import { AccountDeletionPanel } from "./account-deletion-panel";
 import { MyAccount } from "./my-account";
 const StudentDetailHub=dynamic(()=>import("./student-detail-hub").then(module=>module.StudentDetailHub),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
-const FamilyCalendarView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyCalendarView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
-const FamilyLiveDashboard=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyLiveDashboard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
-const FamilyScheduleView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyScheduleView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
-const FamilySummaryReportView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilySummaryReportView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
-const FamilyGradesView=dynamic(()=>import("./family-grades-view").then(module=>module.FamilyGradesView),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
+const FamilyCalendarView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyCalendarView),{loading:()=> <FamilyLoading/>});
+const FamilyLiveDashboard=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyLiveDashboard),{loading:()=> <FamilyLoading/>});
+const FamilyScheduleView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilyScheduleView),{loading:()=> <FamilyLoading/>});
+const FamilySummaryReportView=dynamic(()=>import("./family-dashboard").then(module=>module.FamilySummaryReportView),{loading:()=> <FamilyLoading/>});
+const FamilyGradesView=dynamic(()=>import("./family-grades-view").then(module=>module.FamilyGradesView),{loading:()=> <FamilyLoading/>});
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
 const TuitionBoard=dynamic(()=>import("./tuition-board").then(module=>module.TuitionBoard),{loading:()=> <p role="status">화면을 불러오는 중이에요…</p>});
@@ -871,7 +872,7 @@ export default function Home() {
 
         <div className={`content${familyAccount ? " family-app-content" : ""}${staffLessonTarget ? " staff-lesson-deep-link" : ""}`}>
           {staffAccount && (view === "dashboard" || view === "assignments" || view === "alimtalk") && <RecordWorkPanel key={view} expanded={view === "alimtalk"} />}
-          {familyAccount && !familyStudentReady && <section className="panel hub-message">자녀 정보를 불러오는 중이에요…</section>}
+          {familyAccount && !familyStudentReady && <FamilyLoading/>}
           {view === "dashboard" && staffAccount && !staffLessonTarget && <StaffMobileHomeHero supabase={supabase} role={profile.role} displayName={signedInDisplayName} activeStudentCount={students.filter(isActiveStudent).length} studentsLoading={studentsLoading} onNavigate={selectView} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} />}
           {view === "dashboard" && profile.role === "admin" && (
             <>
@@ -2816,20 +2817,7 @@ function GuardianSelfSignup({supabase,onBack}:{supabase:SupabaseClient;onBack:()
   return <main className="auth-shell"><section className="auth-card signup-card guardian-self-signup"><button type="button" className="signup-back" aria-label="로그인으로 돌아가기" onClick={onBack}>‹</button><AuthBrand compact/><header className="signup-heading"><p className="signup-eyebrow">학부모 회원가입</p><h1>{done?"연결 요청을 보냈어요":"자녀 연결 요청"}</h1></header>{done?<div className="signup-complete"><i>✓</i><p className="auth-copy">관리자가 학생 정보를 확인한 뒤 승인합니다.<br/>승인 후 등록한 이메일과 비밀번호로 로그인해 주세요.</p><button className="primary signup-finish" onClick={onBack}>로그인으로 돌아가기</button></div>:<><p className="auth-copy guardian-request-copy">학생부와 안전하게 연결할 수 있도록 학부모님과 자녀 정보를 입력해 주세요.</p><form onSubmit={submit}><div className="guardian-request-grid"><label>학부모 이름<input required value={guardianName} onChange={event=>setGuardianName(event.target.value)} placeholder="실명을 입력해 주세요"/></label><label>학부모 연락처<input required inputMode="tel" value={guardianPhone} onChange={event=>setGuardianPhone(formatPhoneNumber(event.target.value))} placeholder="010-0000-0000"/></label><label>자녀 이름<input required value={studentName} onChange={event=>setStudentName(event.target.value)} placeholder="학생 이름"/></label><label>학교<input value={school} onChange={event=>setSchool(event.target.value)} placeholder="예: 서해고등학교"/></label><label>학년<input value={grade} onChange={event=>setGrade(event.target.value)} placeholder="예: 고1"/></label><label>학부모 로그인 이메일<input required type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="학부모님 이메일"/></label></div><div className="signup-passwords"><label>학부모 로그인 비밀번호<input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={event=>setPassword(event.target.value)} placeholder="8자 이상"/></label><label>학부모 로그인 비밀번호 확인<input required minLength={8} type="password" autoComplete="new-password" value={confirm} onChange={event=>setConfirm(event.target.value)} placeholder="한 번 더 입력"/></label></div>{message&&<p className="auth-error">{message}</p>}<button className="primary" disabled={loading}>{loading?"요청 등록 중…":"회원가입·자녀 연결 요청"}</button></form></>}</section></main>;
 }
 
-function LoadingScreen() {
-  return (
-    <main className="auth-loading-shell" role="status" aria-live="polite">
-      <section className="auth-loading-content">
-        <div className="auth-loading-brand">
-          <img src="/app-icon-192-v13.png" alt="" />
-          <p><strong>한살매</strong><span>수업노트</span></p>
-        </div>
-        <p className="auth-loading-copy">오늘의 배움을 불러오고 있어요</p>
-        <span className="auth-loading-progress" aria-hidden="true"><i /></span>
-      </section>
-    </main>
-  );
-}
+function LoadingScreen() { return <FamilyLoading fullScreen/>; }
 function ConfigurationScreen() {
   return (
     <main className="auth-shell">

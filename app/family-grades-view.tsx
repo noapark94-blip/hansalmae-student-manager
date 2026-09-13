@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading } from "./family-loading";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,7 +56,7 @@ export function FamilyGradesView({supabase,profile,studentId,onStudentChange}:{s
   useEffect(()=>{void load(studentId);return()=>{requestVersion.current++;}},[load,studentId]);
   const student=data?.selectedStudent;const isMiddle=/^중\s*[1-3]/.test(student?.grade?.trim()??"");
   useEffect(()=>{if(isMiddle&&tab==="mock")setTab("school")},[isMiddle,tab]);
-  if(loading&&!data)return <section className="panel hub-message">성적 정보를 불러오는 중이에요…</section>;
+  if(loading&&!data)return <FamilyLoading/>;
   if(error&&!data)return <section className="panel hub-message error">{error}</section>;
   return <div className="family-grades-page">
     <header className="family-grades-heading"><p>{profile.role==="guardian"?"자녀 성장 기록":"나의 성장 기록"}</p><h1>성적확인</h1><span>학원 시험과 학교 성적의 흐름을 필요한 정보만 모아 확인하세요.</span></header>
