@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -256,7 +257,7 @@ export function TeacherScheduleHub({
   };
 
   if (loading && data.teachers.length === 0)
-    return <ScheduleMessage text="시간표를 불러오는 중이에요…" />;
+    return <AppLoading/>;
   if (error) return <ScheduleMessage text={error} error />;
 
   return (

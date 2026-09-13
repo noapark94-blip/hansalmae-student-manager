@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -172,7 +173,7 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
   return <section inert={editingSchedule||reviewing} className={`${embedded ? "class-learning-board special-board-embedded" : "student-modal"} special-board-modal special-record-viewport`} spellCheck={false}>
     <SpecialFamilyReportReadStatus key={readRevision} supabase={supabase} sessionId={sessionId} />
     <div className="learning-board-scroll"><div className="learning-board-table"><div className="learning-board-heading"><span>학생·출결</span><span>개인별 수업 내용</span><span className="learning-exam-heading"><b>개인별 시험</b><button type="button" onClick={() => setCategoryManager(true)}>시험 카테고리 관리</button></span><span>지난 숙제 검사</span><span>오늘 내줄 숙제</span></div>
-    {loading ? <p className="settings-empty">불러오는 중이에요…</p> : <div className="learning-board-rows">{rows.map((row) => {
+    {loading ? <AppLoading/> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
       const detailCount=[row.lessonContent.trim(),row.exam.examType.trim()||row.exam.examTitle.trim(),row.inspectionStatus.trim()||row.assignedHomework.trim()].filter(Boolean).length;
       return <article key={row.id} className={`${openStudentId===row.id?"mobile-open":""} ${row.status&&detailCount===3?"record-ready":"record-pending"}`}>

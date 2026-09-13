@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -20,7 +21,7 @@ export function MakeupBoard({supabase}:{supabase:SupabaseClient}){
  const classes=useMemo(()=>Array.from(new Map(data.items.filter(i=>i.classId&&(!subject||i.subjectId===subject)).map(i=>[i.classId!,i.className])).entries()),[data.items,subject]);
  const filtered=useMemo(()=>data.items.filter(i=>i.status!=="cancelled"&&(tab==="all"?i.recordKind==="absence":state(i)===tab)&&(!subject||i.subjectId===subject)&&(!classId||i.classId===classId)&&(!query||`${i.studentName} ${i.className}`.toLowerCase().includes(query.toLowerCase()))),[data.items,tab,subject,classId,query]);
  const groups=useMemo(()=>Array.from(new Set(filtered.map(i=>`${i.subjectName}::${i.className}`))).map(key=>({key,items:filtered.filter(i=>`${i.subjectName}::${i.className}`===key)})),[filtered]);
- if(loading)return <section className="panel makeup-empty">결석·보강 내역을 불러오는 중이에요…</section>;
+ if(loading)return <AppLoading/>;
  return <><div className="page-heading compact absence-heading"><div><p className="eyebrow">출결 기록 통합</p><h1>결석 · 보강</h1><p>{data.role==="admin"?"전체 클래스":"담당 클래스"}의 모든 결석과 보강 일정을 한곳에서 관리합니다.</p></div></div>{error&&<p className="attendance-error">{error}</p>}
  <div className="absence-summary">{(["all","waiting","scheduled","completed"] as Tab[]).map((key,index)=><button key={key} className={tab===key?"active":""} onClick={()=>setTab(key)}><small>{["전체 결석","보강 대기","예약","완료"][index]}</small><b>{counts[key]}명</b><span>{["모든 수업의 결석 기록","보강 일정 미등록","보강 일정 등록 완료","수업 완료 기록"][index]}</span></button>)}</div>
  <section className="panel absence-board"><div className="absence-filters"><input aria-label="학생 검색" value={query} onChange={e=>setQuery(e.target.value)} placeholder="학생 이름 검색"/><select aria-label="과목 필터" value={subject} onChange={e=>{setSubject(e.target.value);setClassId("")}}><option value="">전체 과목</option>{subjects.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select><select aria-label="클래스 필터" value={classId} onChange={e=>setClassId(e.target.value)}><option value="">전체 클래스</option>{classes.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select><span>검색 결과 <b>{filtered.length}명</b></span></div>

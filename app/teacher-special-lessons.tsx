@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -178,7 +179,7 @@ export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEd
           </article>;
         })}</div><button type="button" aria-label="다음 주" onClick={() => setAnchorDate(shiftDate(anchorDate, 7))}>›</button></div>
       </section>
-      {loading && !activeSession ? <p className="settings-empty">일정을 불러오는 중이에요…</p> : (
+      {loading && !activeSession ? <AppLoading/> : (
         activeSession ? <SpecialLessonLearningBoard embedded supabase={supabase} profile={profile} sessionId={activeSession.id} lessonKind={activeSession.kind} onClose={() => setActiveSession(null)} onAttendanceChange={refreshSessionAttendance} /> : <section className="special-day-agenda">
           <header><div><p className="eyebrow">선택한 날짜</p><h3>{formatDate(anchorDate)}</h3><span>{selectedDaySessions.length ? `${selectedDaySessions.length}개의 일정` : "등록된 일정이 없습니다."}</span></div></header>
           <div className="special-lesson-list">{selectedDaySessions.map((session) => <article key={session.id}>

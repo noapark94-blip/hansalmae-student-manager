@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -203,7 +204,7 @@ export function AttendanceBoard({ supabase }: { supabase: SupabaseClient }) {
         </p>
       )}
       {loading ? (
-        <section className="panel attendance-empty">수업 명단을 불러오는 중이에요…</section>
+        <AppLoading/>
       ) : classes.length === 0 ? (
         <section className="panel attendance-empty">선택한 날짜에 등록된 수업이 없습니다.</section>
       ) : (

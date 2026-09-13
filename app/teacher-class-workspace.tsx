@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import type { CSSProperties, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -269,7 +270,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
   useEffect(() => {
     void loadDay();
   }, [loadDay]);
-  if (loading) return <section className="panel teacher-workspace-empty">담당 클래스를 불러오는 중이에요…</section>;
+  if (loading) return <AppLoading/>;
   if (error && !data) return <section className="panel teacher-workspace-empty error">{error}</section>;
   return (
     <>
@@ -317,7 +318,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         {todayOnly && <span className="class-agenda-summary"><span className="class-agenda-desktop-summary">{todayDate} · {visibleAgenda.length}개 수업</span><span className="class-agenda-mobile-summary"><span>{new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", weekday: "short" }).format(clock)}</span><strong>오늘 수업 <b>{visibleAgenda.length}</b>개</strong></span></span>}
       </nav>
       {todayOnly && <section className="teacher-class-cards">
-        {showAgendaLoading && agendaLoading && !agenda.length && <p>오늘 수업을 불러오는 중이에요…</p>}
+        {showAgendaLoading && agendaLoading && !agenda.length && <AppLoading/>}
         {agendaError ? <p>{agendaError} <button onClick={() => void loadAgenda()}>다시 시도</button></p> : visibleAgenda.map(entry => {
           const item = data?.classes.find(item => item.id === entry.classId);
           return <button type="button" key={entry.key} className={activeAgendaKey === entry.key ? "active" : ""} onClick={() => openAgenda(entry)} style={{ "--class-color": item?.color ?? entry.color } as CSSProperties}>

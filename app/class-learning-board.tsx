@@ -1,4 +1,5 @@
 "use client";
+import { FamilyLoading as AppLoading } from "./family-loading";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -1398,7 +1399,7 @@ export function ClassLearningBoard({
             <span>오늘 내줄 숙제</span>
           </div>
           {loading ? (
-            <p className="settings-empty">불러오는 중이에요…</p>
+            <AppLoading/>
           ) : (
             <div className="learning-board-rows">
               {rows.map((row) => {
