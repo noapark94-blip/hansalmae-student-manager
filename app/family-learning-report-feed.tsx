@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Holidays from "date-holidays";
+import { calendarMonthSelection } from "./family-calendar-selection";
 import { loadFamilyDetailReports, loadFamilyCalendarReports } from "./family-detail-query";
 import { HansalmaeIcon } from "./hansalmae-icons";
 import { appConfirm } from "./app-dialog";
@@ -212,6 +213,17 @@ export function FamilyLearningReportFeed({
   const [pullDistance, setPullDistance] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const refreshCompleteTimer = useRef<number | null>(null);
+
+  const selectCalendarDate = (date: string) => {
+    const month = date.slice(0,7);
+    if (month !== calendarMonth) { setLoading(true); setCalendarScheduleLoading(true); }
+    setSelected(null);
+    setSelectedDate(date);
+    setCalendarMonth(month);
+  };
+  const navigateCalendarMonth = (month: string) => {
+    selectCalendarDate(calendarMonthSelection(month,selectedDate));
+  };
 
   useEffect(
     () => () => {
@@ -597,16 +609,16 @@ export function FamilyLearningReportFeed({
     <section className="family-learning-calendar" aria-label={`${studentName ?? "학생"} 학습캘린더`}>
       {calendarError && <p role="alert">{calendarError}</p>}
       <header className="family-calendar-toolbar">
-        <button type="button" aria-label="이전 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
+        <button type="button" aria-label="이전 달" onClick={() => navigateCalendarMonth(shiftMonth(calendarMonth, -1))}>‹</button>
         <div><strong>{formatCalendarMonth(calendarMonth)}</strong><span>예정 수업과 학습 기록이 있는 날짜를 선택하세요</span></div>
-        <button type="button" aria-label="다음 달" onClick={() => setCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button>
+        <button type="button" aria-label="다음 달" onClick={() => navigateCalendarMonth(shiftMonth(calendarMonth, 1))}>›</button>
       </header>
       <div className="family-calendar-weekdays" aria-hidden="true">{["일", "월", "화", "수", "목", "금", "토"].map(day => <span key={day}>{day}</span>)}</div>
       <div className="family-calendar-grid">
         {calendarDays.map(day => {
           const dayItems = calendarItemsByDate.get(day.date) ?? [];
           const isSelected = day.date === selectedDate;
-          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""} ${publicHolidayDates.has(day.date) ? "public-holiday" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 수업 ${dayItems.length}개` : ", 수업 없음"}`} onClick={() => setSelectedDate(day.date)}>
+          return <button type="button" key={day.date} className={`${day.inMonth ? "" : "outside"} ${isSelected ? "selected" : ""} ${day.date === koreaDate() ? "today" : ""} ${publicHolidayDates.has(day.date) ? "public-holiday" : ""}`} aria-pressed={isSelected} aria-label={`${day.date}${dayItems.length ? `, 수업 ${dayItems.length}개` : ", 수업 없음"}`} onClick={() => selectCalendarDate(day.date)}>
             <span>{day.day}</span>
             <i>{dayItems.slice(0, 3).map((item, index) => <em key={`${calendarItemId(item)}-${index}`} className={`${calendarItemTone(item)} ${item.kind === "schedule" ? item.schedule.state : "recorded"}`} />)}</i>
           </button>;
@@ -621,15 +633,19 @@ export function FamilyLearningReportFeed({
           return <button type="button" className={isSchedule ? `schedule ${item.schedule.state}` : "recorded"} key={calendarItemId(item)} disabled={isSchedule} onClick={() => {
             if (item.kind === "schedule") return;
             setSelected(item);
-            if (item.kind === "lesson") void confirmRead(item.report.lessonId);
-            else void confirmCorrectionRead(item.report.id);
           }}>
             <time>{item.kind === "lesson" ? formatTime(item.time) : item.time.slice(0, 5)}</time><span><strong>{title}</strong><small>{isSchedule ? `${item.schedule.label}${item.schedule.room ? ` · ${item.schedule.room}` : ""}` : item.kind === "lesson" ? reportBadgeLabel(item.report) : "첨삭수업"}</small></span>{isSchedule ? <em className={item.schedule.state}>{item.schedule.state === "cancelled" ? "취소" : selectedDate < koreaDate() ? "기록 대기" : "예정"}</em> : attendance && <em className={attendance}>{attendanceLabel[attendance] ?? attendance}</em>}{!isSchedule && <b>›</b>}
           </button>;
         })}</div> : <div className="family-calendar-empty"><HansalmaeIcon name="calendar" size={24}/><p>이날은 예정되거나 저장된 수업이 없어요.</p></div>}
       </section>
-      {selected?.kind === "lesson" && <ReportDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousLessonHomework(selected.report, items)} canComment={canComment} onClose={() => setSelected(null)} />}
-      {selected?.kind === "correction" && <CorrectionFeedDetail supabase={supabase} studentId={studentId} item={selected.report} previousHomework={findPreviousCorrectionHomework(selected.report, corrections)} onClose={() => setSelected(null)} />}
+      {selected && <FamilyLearningReportFeed
+        key={selected.kind === "lesson" ? selected.report.lessonId : selected.report.id}
+        supabase={supabase} studentId={studentId} detailOnly
+        detailTarget={selected.kind === "lesson"
+          ? { lessonId:selected.report.lessonId, date:selected.date }
+          : { correctionId:selected.report.id, date:selected.date }}
+        onDetailClose={() => setSelected(null)}
+      />}
     </section>
   );
   return (
