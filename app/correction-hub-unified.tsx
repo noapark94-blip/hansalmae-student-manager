@@ -1,5 +1,7 @@
 "use client";
 
+import "./correction-mode.css";
+
 import { useEffect,useMemo,useState } from "react";
 import { createPortal } from "react-dom";
 import { createSupabaseBrowserClient } from "./supabase";
