@@ -1,7 +1,7 @@
 /* Only the individual makeup/additional lesson workspace. */
 .teacher-special-workspace .special-week-strip > article {
-  height: 324px;
-  min-height: 0;
+  height: auto;
+  min-height: 105px;
   box-sizing: border-box;
 }
 .teacher-special-workspace .special-week-session {
