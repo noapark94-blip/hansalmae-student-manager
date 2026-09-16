@@ -124,11 +124,18 @@ export function AlimtalkSendCenter({supabase}:{supabase:SupabaseClient;students:
 }
 
 function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[]):Preview{
-  const lessonItems=groupBySubject(lessons.map(row=>({
-    subject:row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`,
-    value:row.attendance?.status==="absent"||row.attendance?.status==="excused"?`결석${row.attendance.absenceReason?.trim()?`(${cleanMultiline(row.attendance.absenceReason)})`:""}`:row.source==="correction"?"":cleanMultiline(row.lessonContent),
-  })),"수업 완료");
-  const statuses=lessons.map(row=>row.attendance?.status).filter(Boolean) as string[];const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
+  const statusOf=(row:Lesson)=>row.attendance?.status==="excused"?"absent":row.attendance?.status??"";
+  const statusOrder:Record<string,number>={present:0,late:1,absent:3};
+  const orderedLessons=[...lessons].sort((a,b)=>(statusOrder[statusOf(a)]??2)-(statusOrder[statusOf(b)]??2));
+  const lessonLine=(row:Lesson,includeContent:boolean)=>{
+    const subject=`${row.subject} ${row.source==="regular"?"수업":kindLabel[row.source]}`;
+    const status=statusOf(row);
+    const label=status==="absent"?`결석${row.attendance?.absenceReason?.trim()?`(${cleanMultiline(row.attendance.absenceReason).replace(/\n/g," ")})`:""}`:status==="late"?`지각${row.attendance?.lateMinutes?`(${row.attendance.lateMinutes}분)`:""}`:attendanceLabel[status]??"출결 미입력";
+    const content=includeContent&&status!=="absent"&&row.source!=="correction"?cleanMultiline(row.lessonContent):"";
+    return `- ${subject} · ${label}${content?`: ${content}`:""}`;
+  };
+  const lessonItems=unique(orderedLessons.map(row=>lessonLine(row,true)));
+  const statuses=orderedLessons.map(statusOf).filter(Boolean);const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
   const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));const content=cleanExamContent(row.examContent);return scored.length?scored:content?[`- ${row.subject}: ${short(content,42)}`]:[]}));
   const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
   const correctionTaskItems=lessons.filter(row=>row.source==="correction"&&(row.lessonContent.trim()||row.correctionTaskStatus||row.correctionTaskFeedback?.trim())).map(formatCorrectionTask);
@@ -142,11 +149,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
       value:cleanMultiline(row.lessonContent),
     }))):[];
   const useLessonDetails=fallbackItems.length>0;
-  const lessonSummaryItems=useLessonDetails?unique(lessons.map(row=>{
-    const subject=row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`;
-    const absent=row.attendance?.status==="absent"||row.attendance?.status==="excused";
-    return `- ${subject}${absent?`: 결석${row.attendance?.absenceReason?.trim()?`(${cleanMultiline(row.attendance.absenceReason)})`:""}`:""}`;
-  })):lessonItems;
+  const lessonSummaryItems=useLessonDetails?unique(orderedLessons.map(row=>lessonLine(row,false))):lessonItems;
   const lesson=summarize(lessonSummaryItems,type==="weekly"?3:4)||"완료된 수업 없음";
   const learningDetails=useLessonDetails
     ?summarize(fallbackItems,type==="weekly"?3:4)
