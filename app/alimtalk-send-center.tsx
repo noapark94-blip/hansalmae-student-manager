@@ -131,7 +131,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
     const subject=`${row.subject} ${row.source==="regular"?"수업":kindLabel[row.source]}`;
     const status=statusOf(row);
     const label=status==="absent"?`결석${row.attendance?.absenceReason?.trim()?`(${cleanMultiline(row.attendance.absenceReason).replace(/\n/g," ")})`:""}`:status==="late"?`지각${row.attendance?.lateMinutes?`(${row.attendance.lateMinutes}분)`:""}`:attendanceLabel[status]??"출결 미입력";
-    const content=includeContent&&status!=="absent"&&row.source!=="correction"?cleanMultiline(row.lessonContent):"";
+    const content=includeContent&&row.source!=="correction"?cleanMultiline(row.lessonContent):"";
     return `- ${subject} · ${label}${content?`: ${content}`:""}`;
   };
   const lessonItems=unique(orderedLessons.map(row=>lessonLine(row,true)));
@@ -144,7 +144,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   const correctionTask=summarize(correctionTaskItems,type==="weekly"?3:4);
   const date=type==="daily"?formatDay(start):formatPeriod(...Object.values(periodFor(type,start)) as [string,string]);
   const fallbackItems=!exam&&!homework&&!correctionTask
-    ?groupBySubject(lessons.filter(row=>row.attendance?.status!=="absent"&&row.attendance?.status!=="excused"&&row.source!=="correction").map(row=>({
+    ?groupBySubject(lessons.filter(row=>row.source!=="correction").map(row=>({
       subject:row.source==="regular"?row.subject:`${row.subject} ${kindLabel[row.source]}`,
       value:cleanMultiline(row.lessonContent),
     }))):[];

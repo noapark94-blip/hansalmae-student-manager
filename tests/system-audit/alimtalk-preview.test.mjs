@@ -10,7 +10,23 @@ const row={subject:'수학',source:'extra',lessonContent:'학교 교과서 문�
 const preview=(rows,type='daily')=>ctx.preview('학생','2026-09-12',type,rows);
 test('lesson-only fallback moves content once and keeps class kind',()=>{const p=preview([row]);assert.equal(p.lesson,'- 수학 추가수업 · 출석');assert.match(p.learningDetails,/학교 교과서/);assert.equal(p.body.split(row.lessonContent).length-1,1)});
 test('exam, homework and correction content preserve existing sections',()=>{for(const r of [{...row,examContent:'평가 내용'},{...row,homeworkContent:'숙제 내용'},{...row,source:'correction'}]){const p=preview([r]);assert.match(p.learningDetails,/<시험>|<숙제>|<첨삭 과제>/)}});
-test('empty and absent content do not invent learning details',()=>{for(const r of [{...row,lessonContent:'  '},{...row,attendance:{status:'absent',absenceReason:'감기'}}]){const p=preview([r]);assert.equal(p.learningDetails,'등록된 학습 상세가 없습니다.')}assert.match(preview([{...row,attendance:{status:'absent',absenceReason:'감기'}}]).lesson,/결석\(감기\)/)});
+test('empty learning fields show the empty message regardless of attendance',()=>{for(const status of ['present','absent','excused']){const p=preview([{...row,lessonContent:'  ',attendance:{status,absenceReason:'감기'}}]);assert.equal(p.learningDetails,'등록된 학습 상세가 없습니다.')}});
+test('absent students retain written lesson content in daily and weekly reports',()=>{
+ for(const status of ['absent','excused'])for(const source of ['regular','extra','makeup'])for(const type of ['daily','weekly'])for(const homeworkContent of ['', '29p 오답']){
+  const p=preview([{...row,source,homeworkContent,attendance:{status,absenceReason:'감기'}}],type);
+  assert.match(p.lesson,/결석\(감기\)/);
+  assert.equal(p.body.split(row.lessonContent).length-1,1);
+  assert.ok(!p.learningDetails.includes('등록된 학습 상세가 없습니다.'));
+  if(homeworkContent){assert.ok(p.lesson.includes(row.lessonContent));assert.ok(p.learningDetails.includes(homeworkContent));}
+  else assert.ok(p.learningDetails.includes(row.lessonContent));
+ }
+});
+test('absence does not hide exams or correction tasks',()=>{
+ for(const r of [{...row,examContent:'평가 내용'},{...row,source:'correction'}]){
+  const p=preview([{...r,attendance:{status:'absent'}}]);
+  assert.match(p.learningDetails,/<시험>|<첨삭 과제>/);
+ }
+});
 test('long content survives both layout paths',()=>{const content='수업 내용 '.repeat(40)+'마지막 문장';for(const homeworkContent of ['', '숙제']){const p=preview([{...row,lessonContent:content,homeworkContent}]);assert.ok(p.body.includes(content));assert.equal(ctx.lengthError(p),'')}});
 test('weekly makeup labels remain visible',()=>{assert.equal(preview([{...row,source:'makeup'}],'weekly').lesson,'- 수학 보강 · 출석')});
 test('over-limit content is preserved and rejected before sending',()=>{const p=preview([{...row,lessonContent:'가'.repeat(1100)}]);assert.match(p.learningDetails,/가{1100}/);assert.match(ctx.lengthError(p),/1,000자/);assert.ok(source.includes('if(lengthError)return lengthError;const{error}'))});
