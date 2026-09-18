@@ -617,18 +617,26 @@ function SubjectEditor({ supabase, subjects, onClose, onSaved, onRemoved }: { su
     <div className="modal-backdrop">
       <form className="modal subject-editor" onSubmit={submit}>
         <header>
-          <div><p className="eyebrow">과목 설정</p><h2>하위과목 관리</h2><p>국어·영어·수학 아래에 세부 과목을 추가합니다.</p></div>
+          <div><p className="eyebrow">과목 설정</p><h2>하위과목 관리</h2><p>과목을 추가하고 사용 목록을 정리하세요.</p></div>
           <button type="button" className="modal-close" disabled={saving} onClick={onClose}>×</button>
         </header>
         <div className="modal-body">
-          <label>과목 이름<input value={name} onChange={(event)=>setName(event.target.value)} placeholder="예: 영어 독해" /></label>
-          <div className="subject-main-options">{(["국어","영어","수학"] as const).map((item)=><button type="button" key={item} className={mainSubject===item?"active":""} onClick={()=>setMainSubject(item)}>{item}</button>)}</div>
-          <div className="existing-subjects"><b>현재 하위과목</b>{subjects.map((item)=><div className="subject-management-row" key={item.id}><span>{item.mainSubject} · {item.name}</span>{item.parentId ? <button type="button" disabled={saving} onClick={()=>{setPendingDelete(item);setError("");setNotice("");}} aria-label={item.name+" 과목 삭제"}>삭제</button> : <small>기본</small>}</div>)}</div>
+          <section className="subject-add-section" aria-label="하위과목 추가">
+            <div className="subject-section-heading"><h3>새 하위과목</h3></div>
+            <div className="subject-main-options" role="group" aria-label="상위 과목">{(["국어","영어","수학"] as const).map((item)=><button type="button" key={item} aria-pressed={mainSubject===item} className={mainSubject===item?"active":""} onClick={()=>setMainSubject(item)}>{item}</button>)}</div>
+            <label className="subject-name-field">과목 이름<input value={name} onChange={(event)=>setName(event.target.value)} placeholder={mainSubject==="영어"?"예: 독해, 문법":mainSubject==="수학"?"예: 기하, 확률과 통계":"예: 문학, 독서"} /></label>
+          </section>
+          <section className="subject-catalog" aria-label="등록된 과목">
+            <div className="subject-section-heading"><h3>등록된 하위과목 <em>{subjects.filter(item=>item.parentId).length}</em></h3></div>
+            <div className="subject-base-summary"><small>기본 과목</small><div>{subjects.filter(item=>!item.parentId).map(item=><span key={item.id}>{item.name}</span>)}</div></div>
+            <div className="subject-custom-list">{subjects.filter(item=>item.parentId).map((item)=><div className="subject-management-row" key={item.id}><div className="subject-row-title"><span className="subject-parent-badge">{item.mainSubject}</span><strong>{item.name}</strong></div><button type="button" disabled={saving} onClick={()=>{setPendingDelete(item);setError("");setNotice("");}} aria-label={item.name+" 과목 삭제"}><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg><span>삭제</span></button></div>)}
+            {!subjects.some(item=>item.parentId)&&<p className="subject-catalog-empty">추가한 하위과목이 없습니다.</p>}</div>
+          </section>
           {pendingDelete && <div className="subject-delete-confirm" role="alert"><b>{pendingDelete.name} 과목을 삭제할까요?</b><p>선택 목록에서 숨깁니다. 기존 수업과 기록은 유지되며, 같은 이름으로 다시 추가하면 복구됩니다.</p><div><button type="button" disabled={saving} onClick={()=>setPendingDelete(null)}>취소</button><button type="button" className="primary" disabled={saving} onClick={()=>void remove()}>{saving?"삭제 중…":"삭제"}</button></div></div>}
           {notice && <p className="subject-management-notice" role="status">{notice}</p>}
         </div>
         {error && <p className="form-error">{error}</p>}
-        <footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button className="primary" disabled={saving || !!pendingDelete}>{saving&&!pendingDelete?"추가 중…":"추가"}</button></footer>
+        <footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>닫기</button><button className="primary" disabled={saving || !!pendingDelete || !name.trim()}>{saving&&!pendingDelete?"추가 중…":"과목 추가"}</button></footer>
       </form>
     </div>
   );

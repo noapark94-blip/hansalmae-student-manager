@@ -46,14 +46,38 @@
 @media(max-width:560px){.class-creator .teacher-picker>div{display:grid;grid-template-columns:1fr 1fr}.class-creator .schedule-row{grid-template-columns:1fr 12px 1fr}.class-creator .weekday-options{grid-column:1/-1}.class-creator .schedule-row>label:first-of-type{grid-column:1}.class-creator .schedule-row>span{grid-column:2}.class-creator .schedule-row>label:last-of-type{grid-column:3}}
 @media(max-width:760px){.class-creator .schedule-field-title{color:#51484c;font-size:9px;font-weight:800}.class-creator .weekday-title{grid-column:1/-1;grid-row:1}.class-creator .start-title{grid-column:1;grid-row:3}.class-creator .end-title{grid-column:3;grid-row:3}.class-creator .schedule-row>.weekday-options{grid-column:1/-1;grid-row:2}.class-creator .start-time-input{grid-column:1;grid-row:4}.class-creator .schedule-row>span{grid-column:2;grid-row:4;align-self:center}.class-creator .end-time-input{grid-column:3;grid-row:4}.class-creator .schedule-time-input>label{display:block;font-size:0;color:transparent}.class-creator .schedule-time-input input{display:block;width:100%;height:39px;padding:0 9px;border:1px solid #ded6d9;border-radius:9px;background:#fff;color:var(--text);text-align:center}.class-creator .schedule-time-input small{display:none}.class-creator .schedule-row>.danger-link{grid-column:1/-1;grid-row:5;justify-self:end}}
 
-/* Compact subject management; existing lesson references remain intact. */
-.subject-editor .subject-management-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:36px}
-.subject-editor .subject-management-row>span{overflow-wrap:anywhere}
-.subject-editor .subject-management-row>button{min-width:48px;min-height:32px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--wine);font-size:12px;white-space:nowrap}
-.subject-editor .subject-management-row>small{padding:5px 10px;color:var(--muted);font-size:11px}
+
+/* Subject manager: compact basics, readable custom rows. */
+.subject-editor .subject-add-section,.subject-editor .subject-catalog{min-width:0}
+.subject-editor .subject-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.subject-editor .subject-section-heading h3{margin:0;font-size:14px;line-height:1.5;font-weight:750;color:var(--text)}
+.subject-editor .subject-section-heading h3 em{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;margin-left:5px;padding:0 6px;border-radius:7px;background:#f5e9f0;color:var(--wine);font-size:12px;font-style:normal}
+.subject-editor .subject-main-options{margin:0 0 16px;padding:4px;gap:4px;background:#f6f3f5;border-radius:12px}
+.subject-editor .subject-main-options button{height:38px;border:1px solid transparent;border-radius:9px;background:transparent;color:#756b70;font-size:13px;font-weight:700}
+.subject-editor .subject-main-options button.active{border-color:#ead4df;background:#fff;color:var(--wine);box-shadow:0 2px 5px #48223308}
+.subject-editor .subject-name-field{display:grid;margin:0;gap:8px;font-size:12px;font-weight:650;color:var(--muted)}
+.subject-editor .subject-name-field input{margin:0;width:100%;min-width:0;height:46px;box-sizing:border-box;padding:0 13px;border:1px solid #ded6d9;background:#fff;color:var(--text);font:inherit;font-size:14px;border-radius:11px}
+.subject-editor .subject-name-field input:focus{outline:2px solid #eed8e3;outline-offset:1px;border-color:var(--wine)}
+.subject-editor .subject-catalog{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.subject-editor .subject-base-summary{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.subject-editor .subject-base-summary>small{font-size:11px;color:var(--muted)}
+.subject-editor .subject-base-summary>div{display:flex;flex-wrap:wrap;gap:6px}
+.subject-editor .subject-base-summary span{padding:4px 9px;border:1px solid #eee7eb;border-radius:7px;background:#faf8f9;color:#82777d;font-size:11px;line-height:1.4}
+.subject-editor .subject-custom-list{max-height:240px;overflow-y:auto;overscroll-behavior:contain}
+.subject-editor .subject-management-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:54px;padding:8px 0;border-bottom:1px solid #f0eaed}
+.subject-editor .subject-management-row:last-child{border-bottom:0}
+.subject-editor .subject-row-title{display:flex;align-items:center;min-width:0;gap:10px}
+.subject-editor .subject-parent-badge{flex-shrink:0;padding:5px 8px;border-radius:7px;background:#f8eef3;color:var(--wine);font-size:11px;font-weight:650;line-height:1.3}
+.subject-editor .subject-row-title strong{min-width:0;color:var(--text);font-size:14px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+.subject-editor .subject-management-row>button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:40px;padding:7px 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:#93838b;font-size:12px;white-space:nowrap}
+.subject-editor .subject-management-row>button:hover{background:#fcf0f3;color:#a3355b}
+.subject-editor .subject-management-row>button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.subject-editor .subject-catalog-empty{margin:0;padding:14px 0;color:var(--muted);font-size:12px;line-height:1.5}
 .subject-editor .subject-delete-confirm{margin-top:14px;padding:14px;border:1px solid #ebcedb;border-radius:12px;background:#fff8fb}
 .subject-editor .subject-delete-confirm>b{font-size:14px;overflow-wrap:anywhere}
 .subject-editor .subject-delete-confirm>p{margin:8px 0;color:var(--muted);font-size:12px;line-height:1.6}
 .subject-editor .subject-delete-confirm>div{display:flex;justify-content:flex-end;gap:8px}
-.subject-editor .subject-delete-confirm button{min-height:36px;padding:7px 16px;border:1px solid var(--line);border-radius:9px}
+.subject-editor .subject-delete-confirm button{min-height:40px;padding:7px 16px;border:1px solid var(--line);border-radius:9px}
 .subject-editor .subject-management-notice{color:var(--wine);font-size:12px;line-height:1.5}
+.subject-editor>footer{gap:10px}
+@media(max-width:480px){.subject-editor .subject-management-row{gap:6px}.subject-editor .subject-row-title{gap:7px}.subject-editor .subject-catalog{margin-top:20px;padding-top:18px}.subject-editor .subject-custom-list{max-height:200px}.subject-editor .subject-management-row>button{min-height:44px}}
