@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { ExpenseAccountBalance } from "./expense-account-balance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const categories = ["임대료","급여","관리비","교재비","광고비","비품","기타"] as const;
@@ -87,6 +88,7 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
       <article><span>실제 수납액</span><strong>{loading||!data?"—":won(Number(data.receipts))}</strong><small>선택한 달에 실제로 받은 원비</small></article>
       <article><span>수납 − 지출</span><strong className={data&&Number(data.receipts)-total<0?"expense-negative":""}>{loading||!data?"—":won(Number(data.receipts)-total)}</strong><small>등록된 지출 기준 차액</small></article>
     </div>
+    <ExpenseAccountBalance supabase={supabase}/>
     {error&&<p className="expense-error" role="alert">{error}</p>}
     {notice&&<p className="expense-notice" role="status">{notice}</p>}
     {!!scheduled.length&&<section className="expense-scheduled"><header><div><h2>고정지출 · 지급 예정 <span>{scheduled.length}</span></h2><p>지급 완료 후 실제 지출에 반영됩니다.</p></div><strong>{won(scheduledTotal)}</strong></header>{scheduled.map(item=><article key={item.recurrence_id}><div><b>{item.vendor}</b><small>{item.spent_on.slice(5).replace("-",". ")}. 예정 · {item.category}</small></div><strong>{won(item.amount)}</strong><div className="expense-scheduled-actions"><button className="expense-outline" onClick={()=>setDraft({...item,id:crypto.randomUUID(),amount:String(item.amount),version:null,receipt_path:null,receipt_name:null})}>지급 완료</button><button disabled={busy} onClick={()=>void setFixed(item,false)}>고정 해제</button></div></article>)}</section>}

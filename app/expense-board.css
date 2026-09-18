@@ -176,3 +176,31 @@
  .content .expense-scheduled-actions{grid-column:1/-1;justify-content:flex-end}
  .content .expense-scheduled-actions>button{min-height:44px}
 }
+
+.expense-balance{margin-bottom:20px;padding:20px 22px;border:1px solid #e7dce3;border-radius:16px;background:white}
+.expense-balance-display{display:flex;align-items:center;gap:18px}
+.expense-balance-display>div{flex:1;min-width:0}
+.expense-balance h2{margin:0;font-size:15px;color:#584350}
+.expense-balance h2>span{display:inline-block;margin-left:6px;padding:3px 6px;border-radius:5px;background:#f5eff3;color:#9b7e8f;font-size:10px;font-weight:500;vertical-align:middle}
+.expense-balance-display p{margin:7px 0 0;font-size:11px;color:#9b8993;line-height:1.5}
+.expense-balance-display>strong{font-size:23px;letter-spacing:-.5px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.expense-balance-hint{margin:12px 0 0;font-size:11px;color:#9b8993;line-height:1.6}
+.expense-balance form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:end;margin-top:18px;padding-top:17px;border-top:1px solid #f0e7ed}
+.expense-balance form>label{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:12px;font-weight:650;color:#786170}
+.expense-balance form input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #e3d5df;border-radius:10px;background:white;font:inherit;font-size:16px;color:#48343f}
+.expense-balance form label>div{position:relative}
+.expense-balance form label>div input{padding-right:32px;text-align:right}
+.expense-balance form label>div span{position:absolute;right:12px;top:14px;color:#a08a97;font-size:12px}
+.expense-balance-actions{display:flex;gap:8px}
+.expense-balance-error{margin-top:12px;font-size:12px;color:#a53957;line-height:1.6}
+.expense-balance-error button{margin-left:10px;padding:5px 8px;border:1px solid #e4d5dd;border-radius:6px;background:white;color:#942d64;font-size:11px}
+.expense-balance-notice{margin:10px 0 0;color:#942d64;font-size:12px}
+@media(max-width:760px){
+ .content .expense-balance{padding:15px 14px;border-radius:14px;margin-bottom:16px}
+ .content .expense-balance-display{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
+ .content .expense-balance-display>div{grid-column:1/-1}
+ .content .expense-balance-display>strong{font-size:22px}
+ .content .expense-balance h2{font-size:14px}
+ .content .expense-balance form{grid-template-columns:minmax(0,1fr);gap:13px}
+ .content .expense-balance-actions{justify-content:flex-end}
+}
