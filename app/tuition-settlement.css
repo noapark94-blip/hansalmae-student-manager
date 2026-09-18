@@ -180,3 +180,53 @@
 .tuition-month-payment-form .payment-meta-grid>label.full{display:grid;grid-column:1/-1}
 .tuition-month-payment-form .payment-meta-grid input,.tuition-month-payment-form .payment-meta-grid select{box-sizing:border-box;width:100%;min-width:0;height:44px}
 @media(max-width:650px){.payment-month-picker{padding:16px 18px 0}.payment-month-options button{font-size:12px;padding:8px 4px}.tuition-month-payment-form .payment-meta-grid{grid-template-columns:minmax(0,1fr)}.payment-target-state{padding:20px 18px}.tuition-month-payment-form .payment-month-guard{grid-template-columns:minmax(0,1fr);gap:12px}.tuition-month-payment-form .payment-month-guard>i{display:none}}
+
+/* A single payment-management entry, with quieter per-record actions. */
+.tuition-settlement-head,.tuition-row,.has-payment-edit .tuition-settlement-head,.has-payment-edit .tuition-row{min-width:1080px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 232px}
+.has-payment-edit .tuition-settlement-head,.has-payment-edit .tuition-row{min-width:1000px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 158px}
+.payment-manager{max-height:calc(100dvh - 180px);overflow-y:auto}
+.payment-manager-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:var(--wine);font-size:13px;font-weight:700}
+.payment-manager-heading button{border:0;background:transparent;color:var(--wine);padding:8px;font-size:12px}
+.payment-manager-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:18px 14px;background:#faf6f8;border:1px solid #eee2e8;border-radius:13px}
+.payment-manager-totals>div{display:grid;gap:8px;min-width:0}
+.payment-manager-totals>div+div{border-left:1px solid #e9dfe4;padding-left:14px}
+.payment-manager-totals span{font-size:12px;color:var(--muted)}
+.payment-manager-totals b{font-size:16px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.payment-manager-totals>div:last-child b{color:var(--wine)}
+.payment-manager-section-title{display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px}
+.payment-manager-section-title h3,.payment-manager-view-title{margin:0;font-size:15px;color:#40353d}
+.payment-manager-section-title>span{font-size:12px;color:var(--muted)}
+.payment-manager-view-title{margin:22px 0 16px}
+.payment-record-list{display:grid;gap:10px}
+.payment-record{border:1px solid #e9e0e5;border-radius:12px;padding:16px}
+.payment-record-main{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.payment-record-main>div:first-child{min-width:0}
+.payment-record-main b{font-size:17px;font-variant-numeric:tabular-nums}
+.payment-record-main p{margin:7px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.payment-record-main small{display:block;margin-top:5px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.payment-record-side{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.payment-record-more{display:grid;place-items:center;width:36px;height:36px;border:1px solid #eee5e9;border-radius:9px;background:#faf8f9;color:#67575f;font-size:23px;line-height:1}
+.payment-record-menu{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #f0e9ed;margin-top:12px;padding-top:12px}
+.payment-record-menu button{height:36px;padding:0 14px;border:1px solid #e9dde4;border-radius:8px;background:#fff;color:#62545c;font-size:12px;font-weight:650}
+.payment-record-menu .payment-cancel-link{color:#b03c53}
+.payment-manager-empty{padding:24px 12px;border:1px dashed #e8dce3;border-radius:12px;text-align:center;color:var(--muted);font-size:13px}
+.payment-history-status{font-size:12px;color:var(--muted);margin-top:16px}
+.payment-history-status button{border:0;background:transparent;color:var(--wine);text-decoration:underline}
+.payment-cancelled-history{margin-top:18px;border-top:1px solid #eee5ea;padding-top:14px}
+.payment-cancelled-history summary{cursor:pointer;color:var(--muted);font-size:12px}
+.payment-cancelled-history summary>span{margin-left:5px}
+.payment-cancelled-history article{padding:14px 12px;margin-top:10px;background:#f8f6f7;border-radius:10px}
+.payment-cancelled-history article>div{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.payment-cancelled-history article>div>span{font-size:11px;color:#a25a69}
+.payment-cancelled-history p,.payment-cancelled-history small{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.6;overflow-wrap:anywhere}
+.payment-manager-footnote{margin:10px 0 0;text-align:right;font-size:12px;color:var(--muted);line-height:1.6}
+.payment-cancel-summary{padding:18px;border-radius:12px;border:1px solid #f0dbe1;background:#fff8fa}
+.payment-cancel-summary>span{display:block;font-size:12px;color:#956775}
+.payment-cancel-summary>strong{display:block;margin-top:8px;font-size:24px;color:#a63852}
+.payment-cancel-summary>p{font-size:12px;color:var(--muted);margin:8px 0 14px}
+.payment-cancel-summary>div{display:flex;justify-content:space-between;gap:10px;padding-top:14px;border-top:1px solid #eddde3;font-size:13px}
+.payment-manager .payment-cancel-form>label{display:grid;gap:9px;margin-top:20px;font-size:13px;font-weight:650}
+.payment-cancel-form textarea{width:100%;min-width:0;box-sizing:border-box;resize:vertical;min-height:90px;border:1px solid #e6d6df;border-radius:10px;padding:12px;font:inherit;line-height:1.6}
+.payment-cancel-note{font-size:12px;color:var(--muted);line-height:1.7;word-break:keep-all}
+.payment-manager .payment-cancel-submit{background:#ac3c55}
+@media(max-width:650px){.payment-manager{max-height:calc(100dvh - 140px)}.payment-manager-totals{padding:14px 10px;gap:7px}.payment-manager-totals>div+div{padding-left:8px}.payment-manager-totals b{font-size:14px}.payment-manager-totals span{font-size:11px}.payment-record{padding:13px}.payment-record-main b{font-size:16px}.payment-record-side{gap:5px}.payment-manager-footnote{text-align:center}.payment-record-more{width:40px;height:40px}}

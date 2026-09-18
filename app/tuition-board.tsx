@@ -64,9 +64,9 @@ export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
     {message&&<p className={message.includes("못")?"attendance-error":"attendance-prepared"}>{message}</p>}
     {data.isStaff&&<div className="tuition-advanced-filterbar"><div className="tuition-filter-selects"><label><span>학교</span><select value={schoolFilter} onChange={event=>setSchoolFilter(event.target.value)}><option value="">전체 학교</option>{filterOptions.schools.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>학년</span><select value={gradeFilter} onChange={event=>setGradeFilter(event.target.value)}><option value="">전체 학년</option>{filterOptions.grades.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>과목</span><select value={subjectFilter} onChange={event=>setSubjectFilter(event.target.value)}><option value="">전체 과목</option>{filterOptions.subjects.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>클래스</span><select value={classFilter} onChange={event=>setClassFilter(event.target.value)}><option value="">전체 클래스</option>{filterOptions.classes.map(value=><option key={value} value={value}>{value}</option>)}</select></label></div><div className="tuition-sort-controls"><span>학생 {visible.length}명</span><label><span>정렬</span><select value={sort} onChange={event=>setSort(event.target.value as TuitionSort)}><option value="balance">미수금 많은 순</option><option value="name">이름순</option><option value="charged">청구액 많은 순</option><option value="recent">최근 납부일순</option></select></label>{hasAdvancedFilter&&<button onClick={()=>{setSchoolFilter("");setGradeFilter("");setSubjectFilter("");setClassFilter("");}}>필터 초기화</button>}</div></div>}
     <div className="tuition-summary tuition-summary-five"><article><span>총 청구액</span><b>{money(totals.charged)}</b><small>{data.items.length}명 기준</small></article><article><span>납부액</span><b>{money(totals.paid)}</b><small>수납률 {collectionRate}%</small></article><article className="outstanding"><span>미수금</span><b>{money(totals.balance)}</b><small>미납·부분 납부 합계</small></article><article><span>납부 완료</span><b>{totals.completed}명</b><small>전체 {data.items.length}명</small></article><article className={totals.unpaid?"attention":""}><span>확인 필요</span><b>{totals.unpaid}명</b><small>미납·부분 납부</small></article></div>
-    <section className="panel tuition-settlement-panel"><header className="tuition-toolbar"><div className="tuition-filters" role="group" aria-label="납부 상태 필터">{([['all','전체'],['unpaid','미납'],['partial','부분 납부'],['paid','납부 완료'],['waived','면제']] as [Filter,string][]).map(([value,label])=><button key={value} className={filter===value?"active":""} onClick={()=>setFilter(value)}>{label}<small>{filterCount(data.items,value)}</small></button>)}</div><div className="tuition-toolbar-actions"><label className="tuition-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="학생·수강 검색"/></label>{data.isStaff&&<button className="secondary-button tuition-reminder-button" disabled={loading||!totals.unpaid} title={loading?"미납 내역을 확인하고 있습니다.":!totals.unpaid?"안내를 보낼 미납 학생이 없습니다.":`${totals.unpaid}명의 대상과 금액을 확인합니다.`} onClick={()=>setReminderOpen(true)}>{loading?"확인 중…":totals.unpaid?`미납 안내 보내기 · ${totals.unpaid}명`:"미납 없음"}</button>}</div></header><div className={`tuition-table-scroll${data.isStaff&&filter==="paid"?" has-payment-edit":""}`}><div className="tuition-settlement-head"><span>학생</span><span>수강 내역</span><span>청구액</span><span>납부액</span><span>미수금</span><span>상태</span><span>최근 납부</span><span>비고</span><span/></div><div className="tuition-settlement-body">{loading?<p className="tuition-empty">원비 정산 내역을 불러오는 중이에요…</p>:!visible.length?<p className="tuition-empty">조건에 맞는 정산 내역이 없습니다.</p>:visible.map(row=>{const latest=row.payments[0];return <article key={row.id} className={`tuition-row ${row.status}`}><span className="student"><b>{row.studentName}</b><small>{row.payments.length?`${row.payments.length}회 납부`:"납부 기록 없음"}</small></span><span className="classes" title={row.classes}>{row.classes}</span><strong>{money(row.totalAmount)}<small>기본 {money(row.baseAmount)}{row.discountAmount?` · 할인 -${money(row.discountAmount)}`:""}{row.additionalAmount?` · 추가 +${money(row.additionalAmount)}`:""}</small></strong><strong>{money(row.paidAmount)}</strong><strong className={row.balance>0?"balance":""}>{money(row.balance)}</strong><span><i className={row.status}>{statusLabel[row.status]}</i>{row.payments.some(payment=>paymentIsEarly(payment.paidAt,month))&&<small className="tuition-early-badge">선납</small>}</span><span>{latest?<><b>{formatDate(latest.paidAt)}</b><small>{methodLabel(latest.method)}</small></>:<small>—</small>}</span><span className="memo" title={row.memo??""}>{row.memo||"—"}</span>{data.isStaff?<div className="tuition-row-actions">{filter==="paid"&&<button type="button" className="more payment-edit-action" aria-label={`${row.studentName} 납부 내역 수정`} onClick={()=>setPaymentEditing(row)}>납부 수정</button>}{row.status!=="waived"&&<button className="quick-pay" onClick={()=>setPaying(row)}>{row.balance>0?"납부 등록":"선납 등록"}</button>}<button className="more" onClick={()=>setEditing(row)}>이번 달 수정</button>{row.paidAmount>0&&<button className="more" onClick={()=>printReceipt(row)}>영수증</button>}</div>:<span/>}</article>})}</div></div></section>
+    <section className="panel tuition-settlement-panel"><header className="tuition-toolbar"><div className="tuition-filters" role="group" aria-label="납부 상태 필터">{([['all','전체'],['unpaid','미납'],['partial','부분 납부'],['paid','납부 완료'],['waived','면제']] as [Filter,string][]).map(([value,label])=><button key={value} className={filter===value?"active":""} onClick={()=>setFilter(value)}>{label}<small>{filterCount(data.items,value)}</small></button>)}</div><div className="tuition-toolbar-actions"><label className="tuition-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="학생·수강 검색"/></label>{data.isStaff&&<button className="secondary-button tuition-reminder-button" disabled={loading||!totals.unpaid} title={loading?"미납 내역을 확인하고 있습니다.":!totals.unpaid?"안내를 보낼 미납 학생이 없습니다.":`${totals.unpaid}명의 대상과 금액을 확인합니다.`} onClick={()=>setReminderOpen(true)}>{loading?"확인 중…":totals.unpaid?`미납 안내 보내기 · ${totals.unpaid}명`:"미납 없음"}</button>}</div></header><div className={`tuition-table-scroll${data.isStaff&&filter==="paid"?" has-payment-edit":""}`}><div className="tuition-settlement-head"><span>학생</span><span>수강 내역</span><span>청구액</span><span>납부액</span><span>미수금</span><span>상태</span><span>최근 납부</span><span>비고</span><span/></div><div className="tuition-settlement-body">{loading?<p className="tuition-empty">원비 정산 내역을 불러오는 중이에요…</p>:!visible.length?<p className="tuition-empty">조건에 맞는 정산 내역이 없습니다.</p>:visible.map(row=>{const latest=row.payments[0];return <article key={row.id} className={`tuition-row ${row.status}`}><span className="student"><b>{row.studentName}</b><small>{row.payments.length?`${row.payments.length}회 납부`:"납부 기록 없음"}</small></span><span className="classes" title={row.classes}>{row.classes}</span><strong>{money(row.totalAmount)}<small>기본 {money(row.baseAmount)}{row.discountAmount?` · 할인 -${money(row.discountAmount)}`:""}{row.additionalAmount?` · 추가 +${money(row.additionalAmount)}`:""}</small></strong><strong>{money(row.paidAmount)}</strong><strong className={row.balance>0?"balance":""}>{money(row.balance)}</strong><span><i className={row.status}>{statusLabel[row.status]}</i>{row.payments.some(payment=>paymentIsEarly(payment.paidAt,month))&&<small className="tuition-early-badge">선납</small>}</span><span>{latest?<><b>{formatDate(latest.paidAt)}</b><small>{methodLabel(latest.method)}</small></>:<small>—</small>}</span><span className="memo" title={row.memo??""}>{row.memo||"—"}</span>{data.isStaff?<div className="tuition-row-actions"><button type="button" className="quick-pay" onClick={()=>setPaymentEditing(row)}>납부 관리</button>{filter!=="paid"&&<button className="more" onClick={()=>setEditing(row)}>이번 달 수정</button>}{row.paidAmount>0&&<button className="more" onClick={()=>printReceipt(row)}>영수증</button>}</div>:<span/>}</article>})}</div></div></section>
     {editing&&<ChargeEditor row={editing} supabase={supabase} onClose={()=>setEditing(null)} onSaved={async()=>{setEditing(null);await load();}}/>}
-    {paymentEditing&&<PaymentHistoryEditor row={paymentEditing} supabase={supabase} onClose={()=>setPaymentEditing(null)} onSaved={async()=>{setPaymentEditing(null);await load();}}/>}
+    {paymentEditing&&<PaymentManager row={paymentEditing} billingMonth={month} supabase={supabase} onClose={()=>setPaymentEditing(null)} onRegister={()=>{setPaying(paymentEditing);setPaymentEditing(null);}} onSaved={async()=>{setPaymentEditing(null);setFilter("all");await load();}}/>}
     {paying&&<PaymentEditor row={paying} billingMonth={month} supabase={supabase} onClose={()=>setPaying(null)} onSaved={async(savedMonth)=>{setPaying(null);setFilter("all");if(savedMonth===month)await load();else setMonth(savedMonth);setMessage(`${formatMonth(savedMonth)}분 납부 내역을 저장했습니다.`);}}/>}
     {settingsOpen&&<TuitionSettingsModal supabase={supabase} month={month} charges={data.items} onClose={()=>setSettingsOpen(false)} onSaved={load}/>}
     {policyOpen&&<FeePolicyModal supabase={supabase} month={month} onClose={()=>setPolicyOpen(false)} onSaved={load}/>}
@@ -210,16 +210,64 @@ function combinationTotalText(discount:CombinationDiscount,groups:FeeGroup[]){
   return `원비 합계 ${money(base)} − 할인 ${money(discount.amount)} = 결합 금액 ${money(Math.max(0,base-discount.amount))}`;
 }
 
-function PaymentHistoryEditor({row,supabase,onClose,onSaved}:{row:Charge;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
- const [paymentId,setPaymentId]=useState(row.payments[0]?.id??"");
- const payment=row.payments.find(item=>item.id===paymentId);
- return <TuitionModal title={`${row.studentName} 납부 내역 수정`} onClose={onClose}>
- <div className="tuition-payment-history"><p className="payment-editor-intro">저장된 납부 정보를 확인하고 변경할 항목을 수정해 주세요.</p>
- {row.payments.length>1&&<label>수정할 납부 기록<select value={paymentId} onChange={event=>setPaymentId(event.target.value)}>{row.payments.map(item=><option key={item.id} value={item.id}>{formatDate(item.paidAt)} · {money(item.amount)} · {methodLabel(item.method)}</option>)}</select></label>}
- {payment&&<ExistingPaymentForm key={payment.id} payment={payment} row={row} supabase={supabase} onClose={onClose} onSaved={onSaved}/>}
+type CancelledPayment = {payment_id:string;reason:string;cancelled_at:string;payment_snapshot:{amount:number;paid_at:string;payment_method:string;memo:string|null}};
+function paymentExpected(payment:Payment){return {amount:payment.amount,method:payment.method,paidAt:payment.paidAt,memo:payment.memo,methodDetail:payment.methodDetail,allocations:payment.allocations};}
+function PaymentManager({row,billingMonth,supabase,onClose,onRegister,onSaved}:{row:Charge;billingMonth:string;supabase:SupabaseClient;onClose:()=>void;onRegister:()=>void;onSaved:()=>Promise<void>}){
+ const [mode,setMode]=useState<"list"|"edit"|"cancel">("list");
+ const [selected,setSelected]=useState<Payment|null>(null);
+ const [menu,setMenu]=useState<string|null>(null);
+ const [cancelled,setCancelled]=useState<CancelledPayment[]>([]);
+ const [historyLoading,setHistoryLoading]=useState(true);
+ const [historyError,setHistoryError]=useState("");
+ const [revision,setRevision]=useState(0);
+ const [saving,setSaving]=useState(false);
+ const [reason,setReason]=useState("");
+ const [error,setError]=useState("");
+ useEffect(()=>{let active=true;setHistoryLoading(true);setHistoryError("");
+  void supabase.from("tuition_payment_cancellations").select("payment_id,reason,cancelled_at,payment_snapshot").eq("charge_id",row.id).order("cancelled_at",{ascending:false}).then(({data,error:loadError})=>{
+   if(!active)return;setHistoryLoading(false);
+   if(loadError){setHistoryError("취소 이력을 불러오지 못했습니다.");return;}
+   setCancelled((data??[]) as CancelledPayment[]);
+  });return()=>{active=false;};
+ },[supabase,row.id,revision]);
+ const close=()=>{if(!saving)onClose();};
+ const back=()=>{if(saving)return;setMode("list");setSelected(null);setReason("");setError("");};
+ const choose=(payment:Payment,next:"edit"|"cancel")=>{setSelected(payment);setMenu(null);setMode(next);setError("");setReason("");};
+ const cancelPayment=async(event:FormEvent)=>{
+  event.preventDefault();if(saving||!selected)return;
+  if(!reason.trim()){setError("취소 사유를 입력해 주세요.");return;}
+  setSaving(true);setError("");
+  try{
+   const {error:cancelError}=await supabase.rpc("staff_cancel_tuition_payment",{p_payment_id:selected.id,p_expected:paymentExpected(selected),p_reason:reason.trim()});
+   if(cancelError){setError(cancelError.message);return;}
+   await onSaved();
+  }catch{setError("처리 결과를 확인하지 못했습니다. 창을 다시 열어 납부 내역을 확인해 주세요.");}
+  finally{setSaving(false);}
+ };
+ return <TuitionModal title={row.studentName+" 납부 관리"} onClose={close}>
+ <div className="tuition-payment-history payment-manager">
+ <div className="payment-manager-heading"><span>{formatMonth(billingMonth)}분</span>{mode!=="list"&&<button type="button" disabled={saving} onClick={back}>‹ 납부 내역</button>}</div>
+ <div className="payment-manager-totals"><div><span>청구액</span><b>{money(row.totalAmount)}</b></div><div><span>납부액</span><b>{money(row.paidAmount)}</b></div><div><span>미수금</span><b>{money(row.balance)}</b></div></div>
+ {mode==="list"?<>
+ <div className="payment-manager-section-title"><h3>납부 내역</h3><span>{row.payments.length}건</span></div>
+ <div className="payment-record-list">{row.payments.length?row.payments.map(payment=><article key={payment.id} className="payment-record">
+ <div className="payment-record-main"><div><b>{money(payment.amount)}</b><p>{formatFullDate(new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Seoul"}).format(new Date(payment.paidAt)))} · {methodLabel(payment.method)}</p>{payment.memo&&<small>{payment.memo}</small>}</div><div className="payment-record-side">{paymentIsEarly(payment.paidAt,billingMonth)&&<span className="tuition-early-badge">선납</span>}<button type="button" className="payment-record-more" aria-label={money(payment.amount)+" 납부 메뉴"} aria-expanded={menu===payment.id} onClick={()=>setMenu(current=>current===payment.id?null:payment.id)}>⋯</button></div></div>
+ {menu===payment.id&&<div className="payment-record-menu"><button type="button" onClick={()=>choose(payment,"edit")}>내역 수정</button><button type="button" className="payment-cancel-link" onClick={()=>choose(payment,"cancel")}>납부 취소</button></div>}
+ </article>):<p className="payment-manager-empty">아직 등록된 납부 내역이 없습니다.</p>}</div>
+ {historyLoading?<p className="payment-history-status">취소 이력 확인 중…</p>:historyError?<div className="payment-history-status" role="alert">{historyError} <button type="button" onClick={()=>setRevision(value=>value+1)}>다시 확인</button></div>:cancelled.length>0&&<details className="payment-cancelled-history"><summary>취소 이력 <span>{cancelled.length}건</span></summary>{cancelled.map(item=><article key={item.payment_id}><div><b>{money(item.payment_snapshot.amount)}</b><span>납부 취소</span></div><p>{formatDate(item.payment_snapshot.paid_at)} 납부 · {methodLabel(item.payment_snapshot.payment_method)}</p><p>{item.reason}</p><small>{formatDate(item.cancelled_at)} 취소 처리</small></article>)}</details>}
+ <footer><button type="button" className="secondary-button" onClick={close}>닫기</button>{row.status!=="waived"&&<button type="button" className="primary" onClick={onRegister}>납부 등록</button>}</footer>
+ {row.status!=="waived"&&<p className="payment-manager-footnote">선납은 납부 등록에서 귀속월을 선택해 주세요.</p>}
+ </>:mode==="edit"&&selected?<><h3 className="payment-manager-view-title">납부 내역 수정</h3><ExistingPaymentForm key={selected.id} payment={selected} row={row} supabase={supabase} onClose={back} onSaved={onSaved} onSaving={setSaving}/></>:selected&&<form className="payment-cancel-form" onSubmit={cancelPayment}>
+ <h3 className="payment-manager-view-title">납부 취소</h3>
+ <div className="payment-cancel-summary"><span>취소할 납부액</span><strong>{money(selected.amount)}</strong><p>{formatDate(selected.paidAt)} · {methodLabel(selected.method)}</p><div><span>취소 후 미수금</span><b>{money(Math.max(0,row.totalAmount-row.paidAmount+selected.amount))}</b></div></div>
+ <label>취소 사유<textarea required maxLength={500} disabled={saving} value={reason} onChange={event=>setReason(event.target.value)} placeholder="예: 중복 입력, 납부 대상 착오" rows={3}/></label>
+ <p className="payment-cancel-note">취소 이력은 보관되며, 해당 금액이 수납 합계에서 제외됩니다. 실제 결제 취소나 환불은 별도로 처리해 주세요.</p>
+ {error&&<p className="form-error" role="alert">{error}</p>}
+ <footer><button type="button" className="secondary-button" disabled={saving} onClick={back}>돌아가기</button><button className="primary payment-cancel-submit" disabled={saving||!reason.trim()}>{saving?"취소 처리 중…":"납부 취소 확인"}</button></footer>
+ </form>}
  </div></TuitionModal>;
 }
-function ExistingPaymentForm({payment,row,supabase,onClose,onSaved}:{payment:Payment;row:Charge;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>}){
+function ExistingPaymentForm({payment,row,supabase,onClose,onSaved,onSaving}:{payment:Payment;row:Charge;supabase:SupabaseClient;onClose:()=>void;onSaved:()=>Promise<void>;onSaving:(saving:boolean)=>void}){
  const [amount,setAmount]=useState(payment.amount);
  const [method,setMethod]=useState(payment.method);
  const [detail,setDetail]=useState(payment.methodDetail??"");
@@ -231,12 +279,12 @@ function ExistingPaymentForm({payment,row,supabase,onClose,onSaved}:{payment:Pay
  const submit=async(event:FormEvent)=>{
   event.preventDefault();if(saving)return;
   if(!Number.isSafeInteger(amount)||amount<=0||amount+otherPaid>row.totalAmount){setError("납부 금액은 1원 이상이며, 합계가 청구액을 초과할 수 없습니다.");return;}
-  setSaving(true);setError("");
+  setSaving(true);onSaving(true);setError("");
   const {error:saveError}=await supabase.rpc("staff_edit_tuition_payment",{
    p_payment_id:payment.id,p_expected:{amount:payment.amount,method:payment.method,paidAt:payment.paidAt,memo:payment.memo,methodDetail:payment.methodDetail,allocations:payment.allocations},
    p_amount:amount,p_method:method,p_paid_on:paidOn,p_method_detail:detail,p_memo:memo
   });
-  if(saveError){setError(saveError.message);setSaving(false);return;}
+  if(saveError){setError(saveError.message);setSaving(false);onSaving(false);return;}
   await onSaved();
  };
  return <form className="payment-history-form" onSubmit={submit}>
