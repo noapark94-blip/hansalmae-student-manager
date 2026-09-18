@@ -152,3 +152,27 @@
   .expense-dialog .expense-date-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid #f1e6ec}
   .expense-dialog .expense-date-footer button{min-height:34px;padding:5px 8px;border:0;border-radius:7px;background:white;color:#942d64;font-size:12px}
 }
+
+.expense-fixed-badge{display:inline-flex;margin-left:7px;padding:3px 7px;border-radius:6px;background:#f6eaf2;color:#942d64;font-size:10px;vertical-align:middle;white-space:nowrap}
+.expense-fixed-option{padding:14px 16px;border:1px solid #eadbe4;border-radius:12px;background:#fcf8fb}
+.expense-fixed-option>label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:#6c3a56}
+.expense-dialog .expense-fixed-option input[type=checkbox]{width:16px;min-height:16px;height:16px;margin:0;accent-color:#942d64}
+.expense-fixed-option>small{display:block;margin:7px 0 0;font-size:11px;line-height:1.6;color:#96838e}
+.expense-scheduled{margin-bottom:18px;border:1px solid #ead9e4;border-radius:16px;background:#fdf9fc;overflow:hidden}
+.expense-scheduled>header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px}
+.expense-scheduled h2{margin:0;font-size:15px;color:#7f345d}
+.expense-scheduled h2 span{margin-left:6px;font-size:12px}
+.expense-scheduled header p{margin:6px 0 0;color:#998591;font-size:11px}
+.expense-scheduled header>strong{font-size:17px;color:#942d64;white-space:nowrap}
+.expense-scheduled>article{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px;padding:14px 22px;border-top:1px solid #f0e4eb;background:white}
+.expense-scheduled article b{font-size:13px;overflow-wrap:anywhere}
+.expense-scheduled article small{display:block;margin-top:5px;font-size:11px;color:#a08c97}
+.expense-scheduled article>strong{font-size:14px;white-space:nowrap}
+.expense-scheduled-actions{display:flex;align-items:center;gap:8px}
+.expense-scheduled-actions>button:last-child{border:0;background:transparent;color:#9b7d8d;font-size:11px;min-height:40px}
+@media(max-width:760px){
+ .content .expense-scheduled>header{padding:15px 14px;flex-wrap:wrap}
+ .content .expense-scheduled>article{grid-template-columns:minmax(0,1fr) auto;padding:14px;gap:10px}
+ .content .expense-scheduled-actions{grid-column:1/-1;justify-content:flex-end}
+ .content .expense-scheduled-actions>button{min-height:44px}
+}

@@ -5,13 +5,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const categories = ["임대료","급여","관리비","교재비","광고비","비품","기타"] as const;
 const methods: Record<string,string> = {transfer:"계좌이체",card:"카드",cash:"현금",other:"기타"};
-type Expense = {id:string;spent_on:string;category:string;vendor:string;amount:number;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number};
-type Board = {items:Expense[];receipts:number};
-type Draft = {id:string;spent_on:string;category:string;vendor:string;amount:string;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number|null};
+type Recurrence = {is_fixed?:boolean;recurrence_id?:string|null;recurrence_version?:number;scheduled_month?:string|null};
+type Expense = Recurrence & {id:string;spent_on:string;category:string;vendor:string;amount:number;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number};
+type Scheduled = Recurrence & {spent_on:string;category:string;vendor:string;amount:number;payment_method:string;memo:string};
+type Board = {items:Expense[];scheduled?:Scheduled[];receipts:number};
+type Draft = Recurrence & {id:string;spent_on:string;category:string;vendor:string;amount:string;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number|null};
 const won = (value:number)=>value.toLocaleString("ko-KR")+"원";
 const today = ()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 function nextMonth(month:string,offset:number){const [y,m]=month.split("-").map(Number);const date=new Date(Date.UTC(y,m-1+offset,1));return date.toISOString().slice(0,7);}
-function copyDate(date:string){const month=nextMonth(date.slice(0,7),1);const [y,m]=month.split("-").map(Number);const day=Math.min(Number(date.slice(8)),new Date(Date.UTC(y,m,0)).getUTCDate());return month+"-"+String(day).padStart(2,"0");}
 const monthLabel=(month:string)=>month.replace("-","년 ")+"월";
 function emptyDraft(month:string):Draft{return {id:crypto.randomUUID(),spent_on:today().startsWith(month)?today():month+"-01",category:"기타",vendor:"",amount:"",payment_method:"transfer",memo:"",receipt_path:null,receipt_name:null,version:null};}
 function message(error:unknown){return (error as {message?:string})?.message||"처리하지 못했습니다. 다시 시도해 주세요.";}
@@ -41,6 +42,8 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   },[month,supabase]);
   useEffect(()=>{void load();return()=>{request.current++;};},[load]);
   const items=data?.items??[];
+  const scheduled=(data?.scheduled??[]).filter(item=>(category==="전체"||item.category===category)&&[item.vendor,item.category].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
+  const scheduledTotal=scheduled.reduce((sum,item)=>sum+item.amount,0);
   const total=items.reduce((sum,item)=>sum+item.amount,0);
   const visible=items.filter(item=>(category==="전체"||item.category===category)&&[item.vendor,item.memo,item.category].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
   const shownTotal=visible.reduce((sum,item)=>sum+item.amount,0);
@@ -48,6 +51,11 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   const remove=async()=>{
     if(!removing||busy)return;setBusy(true);setError("");
     try{const {error:failure}=await supabase.rpc("admin_delete_expense",{p_id:removing.id,p_expected_version:removing.version});if(failure)throw failure;setRemoving(null);setNotice("지출 내역을 삭제했습니다.");await load();}
+    catch(err){setError(message(err));}finally{setBusy(false);}
+  };
+  const setFixed=async(item:Recurrence,active:boolean)=>{
+    if(busy||!item.recurrence_id)return;setBusy(true);setError("");
+    try{const {error:failure}=await supabase.rpc("admin_set_expense_recurrence",{p_id:item.recurrence_id,p_expected_version:item.recurrence_version,p_active:active});if(failure)throw failure;setNotice(active?"고정지출로 설정했습니다.":"고정지출을 해제했습니다. 지급 기록은 유지됩니다.");await load();}
     catch(err){setError(message(err));}finally{setBusy(false);}
   };
   const openReceipt=async(item:Expense)=>{
@@ -68,17 +76,18 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
     </div>
     {error&&<p className="expense-error" role="alert">{error}</p>}
     {notice&&<p className="expense-notice" role="status">{notice}</p>}
+    {!!scheduled.length&&<section className="expense-scheduled"><header><div><h2>고정지출 · 지급 예정 <span>{scheduled.length}</span></h2><p>지급 완료 후 실제 지출에 반영됩니다.</p></div><strong>{won(scheduledTotal)}</strong></header>{scheduled.map(item=><article key={item.recurrence_id}><div><b>{item.vendor}</b><small>{item.spent_on.slice(5).replace("-",". ")}. 예정 · {item.category}</small></div><strong>{won(item.amount)}</strong><div className="expense-scheduled-actions"><button className="expense-outline" onClick={()=>setDraft({...item,id:crypto.randomUUID(),amount:String(item.amount),version:null,receipt_path:null,receipt_name:null})}>지급 완료</button><button disabled={busy} onClick={()=>void setFixed(item,false)}>고정 해제</button></div></article>)}</section>}
     <section className="expense-ledger"><header><div><h2>지출 내역</h2><p>{monthLabel(month)}의 운영 기록</p></div><label className="expense-search"><span className="expense-sr-only">사용처·비고 검색</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="사용처·비고 검색"/></label></header>
       <div className="expense-category-tabs" role="group" aria-label="지출 분류">{["전체",...categories].map(value=><button key={value} aria-pressed={category===value} className={category===value?"active":""} onClick={()=>setCategory(value)}>{value}</button>)}</div>
       <div className="expense-list-caption"><span>{visible.length}건</span><strong>합계 {won(shownTotal)}</strong></div>
       <div className="expense-table-head"><span>지급일</span><span>분류</span><span>사용처 · 비고</span><span>금액</span><span>결제 방법</span><span>관리</span></div>
       {loading?<p className="expense-empty">지출 내역을 불러오는 중이에요.</p>:!data?<p className="expense-empty">내역을 불러오지 못했습니다. 새로고침해 주세요.</p>:!visible.length?<div className="expense-empty"><b>{items.length?"검색 조건에 맞는 지출이 없습니다.":"아직 등록된 지출이 없습니다."}</b><p>{items.length?"다른 검색어나 분류를 선택해 주세요.":"임대료, 급여, 교재비부터 간편하게 기록해 보세요."}</p>{!items.length&&<button className="expense-outline" onClick={()=>setDraft(emptyDraft(month))}>첫 지출 등록</button>}</div>:visible.map(item=><article className="expense-row" key={item.id}>
-        <time dateTime={item.spent_on}>{item.spent_on.slice(5).replace("-",". ")}.</time><span className="expense-category">{item.category}</span><div className="expense-description"><b>{item.vendor}</b>{item.memo&&<p>{item.memo}</p>}{item.receipt_path&&<button disabled={receiptBusy===item.id} onClick={()=>void openReceipt(item)}>{receiptBusy===item.id?"불러오는 중…":"↗ 영수증"}</button>}</div><strong className="expense-amount">{won(item.amount)}</strong><span className="expense-method">{methods[item.payment_method]??item.payment_method}</span>
-        <div className="expense-row-actions"><button onClick={()=>setDraft({...item,amount:String(item.amount)})}>수정</button><details><summary aria-label={item.vendor+" 추가 작업"}>⋯</summary><div><button onClick={()=>setDraft({...item,id:crypto.randomUUID(),spent_on:copyDate(item.spent_on),amount:String(item.amount),version:null,receipt_path:null,receipt_name:null})}>다음 달에 복사</button><button className="expense-delete" onClick={()=>{setError("");setRemoving(item);}}>삭제</button></div></details></div>
+        <time dateTime={item.spent_on}>{item.spent_on.slice(5).replace("-",". ")}.</time><span className="expense-category">{item.category}</span><div className="expense-description"><b>{item.vendor}</b>{item.recurrence_id&&<span className="expense-fixed-badge">{item.is_fixed?"고정":"고정 종료"}</span>}{item.memo&&<p>{item.memo}</p>}{item.receipt_path&&<button disabled={receiptBusy===item.id} onClick={()=>void openReceipt(item)}>{receiptBusy===item.id?"불러오는 중…":"↗ 영수증"}</button>}</div><strong className="expense-amount">{won(item.amount)}</strong><span className="expense-method">{methods[item.payment_method]??item.payment_method}</span>
+        <div className="expense-row-actions"><button onClick={()=>setDraft({...item,amount:String(item.amount)})}>수정</button><details><summary aria-label={item.vendor+" 추가 작업"}>⋯</summary><div><button disabled={busy} onClick={()=>{if(item.recurrence_id)void setFixed(item,!item.is_fixed);else setDraft({...item,amount:String(item.amount),is_fixed:true});}}>{item.is_fixed?"고정지출 해제":"고정지출 설정"}</button><button className="expense-delete" onClick={()=>{setError("");setRemoving(item);}}>삭제</button></div></details></div>
       </article>)}
     </section>
     {draft&&<ExpenseEditor supabase={supabase} initial={draft} onClose={()=>setDraft(null)} onSaved={async(savedMonth)=>{setDraft(null);setNotice("지출 내역을 저장했습니다.");if(savedMonth!==month)setMonth(savedMonth);else await load();}}/>}
-    {removing&&<div className="expense-overlay"><section className="expense-dialog expense-confirm" role="dialog" aria-modal="true" aria-labelledby="expense-delete-title"><header><div><h2 id="expense-delete-title">지출을 삭제할까요?</h2><p>{removing.vendor} · {won(removing.amount)}</p></div></header><div className="expense-dialog-body"><p>삭제하면 월별 지출 합계에서 제외됩니다.</p>{error&&<p className="expense-error" role="alert">{error}</p>}</div><footer><button className="expense-outline" disabled={busy} onClick={()=>setRemoving(null)}>취소</button><button className="expense-primary" disabled={busy} onClick={()=>void remove()}>{busy?"삭제 중…":"삭제"}</button></footer></section></div>}
+    {removing&&<div className="expense-overlay"><section className="expense-dialog expense-confirm" role="dialog" aria-modal="true" aria-labelledby="expense-delete-title"><header><div><h2 id="expense-delete-title">지출을 삭제할까요?</h2><p>{removing.vendor} · {won(removing.amount)}</p></div></header><div className="expense-dialog-body"><p>삭제하면 월별 지출 합계에서 제외됩니다.{removing.recurrence_id&&" 고정지출의 반복 설정은 유지됩니다."}</p>{error&&<p className="expense-error" role="alert">{error}</p>}</div><footer><button className="expense-outline" disabled={busy} onClick={()=>setRemoving(null)}>취소</button><button className="expense-primary" disabled={busy} onClick={()=>void remove()}>{busy?"삭제 중…":"삭제"}</button></footer></section></div>}
   </section>;
 }
 
@@ -107,7 +116,7 @@ function ExpenseEditor({supabase,initial,onClose,onSaved}:{supabase:SupabaseClie
         const {error:uploadError}=await supabase.storage.from("expense-receipts").upload(path,file,{contentType:file.type,upsert:false});
         if(uploadError)throw uploadError;uploaded=path;receiptPath=path;receiptName=file.name;
       }
-      const {error:saveError}=await supabase.rpc("admin_save_expense",{p_id:draft.id,p_expected_version:draft.version,p_values:{spent_on:draft.spent_on,category:draft.category,vendor:draft.vendor.trim(),amount,payment_method:draft.payment_method,memo:draft.memo,receipt_path:receiptPath,receipt_name:receiptName}});
+      const {error:saveError}=await supabase.rpc("admin_save_expense",{p_id:draft.id,p_expected_version:draft.version,p_values:{is_fixed:!!draft.is_fixed,recurrence_id:draft.recurrence_id,recurrence_version:draft.recurrence_version,scheduled_month:draft.scheduled_month,spent_on:draft.spent_on,category:draft.category,vendor:draft.vendor.trim(),amount,payment_method:draft.payment_method,memo:draft.memo,receipt_path:receiptPath,receipt_name:receiptName}});
       if(saveError)throw saveError;
       uploaded=null;
       await onSaved(draft.spent_on.slice(0,7));
@@ -120,17 +129,18 @@ function ExpenseEditor({supabase,initial,onClose,onSaved}:{supabase:SupabaseClie
     if(event.key==="Escape"&&!busy){event.stopPropagation();onClose();}
     if(event.key==="Tab"){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
   }}>
-    <header><div><p>학원 운영 기록</p><h2 id="expense-editor-title">{initial.version?"지출 내역 수정":"지출 등록"}</h2><span>실제로 지급한 날짜와 금액을 입력해 주세요.</span></div><button type="button" aria-label="닫기" disabled={busy} onClick={onClose}>×</button></header>
+    <header><div><p>학원 운영 기록</p><h2 id="expense-editor-title">{initial.version?"지출 내역 수정":initial.recurrence_id?"고정지출 지급 완료":"지출 등록"}</h2><span>실제로 지급한 날짜와 금액을 입력해 주세요.</span></div><button type="button" aria-label="닫기" disabled={busy} onClick={onClose}>×</button></header>
     <div className="expense-dialog-body"><div className="expense-form-grid">
       <ExpenseDatePicker value={draft.spent_on} disabled={busy} onChange={spent_on=>patch({spent_on})}/>
       <label>분류<select value={draft.category} disabled={busy} onChange={e=>patch({category:e.target.value})}>{categories.map(value=><option key={value}>{value}</option>)}</select></label>
       <label className="expense-full">사용처<input required maxLength={120} value={draft.vendor} disabled={busy} onChange={e=>patch({vendor:e.target.value})} placeholder="예: 9월 임대료, 교재 구입"/></label>
       <label>지출 금액<div className="expense-money-input"><input required inputMode="numeric" value={draft.amount?Number(draft.amount.replace(/,/g,"")).toLocaleString("ko-KR"):""} disabled={busy} onChange={e=>patch({amount:e.target.value.replace(/[^0-9]/g,"").slice(0,10)})} placeholder="0"/><span>원</span></div></label>
       <label>결제 방법<select value={draft.payment_method} disabled={busy} onChange={e=>patch({payment_method:e.target.value})}>{Object.entries(methods).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
+      <div className="expense-full expense-fixed-option"><label><input type="checkbox" checked={!!draft.is_fixed} disabled={busy} onChange={e=>patch({is_fixed:e.target.checked})}/><span>매월 반복되는 고정지출</span></label><small>{initial.recurrence_id?"해제하면 이후 지급 예정 표시가 중단됩니다. 이번 지급 기록은 저장됩니다.":"다음 달부터 같은 금액과 날짜로 지급 예정에 표시합니다. 월말 날짜는 해당 월의 마지막 날로 맞춥니다."}</small>{initial.recurrence_id&&!initial.version&&<small>이번에 변경한 금액·날짜는 이번 지급에만 적용합니다.</small>}</div>
       <label className="expense-full">비고 <small>선택</small><textarea rows={3} maxLength={2000} value={draft.memo} disabled={busy} onChange={e=>patch({memo:e.target.value})} placeholder="지출 관련 참고 사항을 적어 주세요."/></label>
       <div className="expense-full expense-attachment"><label htmlFor="expense-file">영수증 <small>선택</small></label><p>사진 또는 PDF · 최대 10MB</p><input id="expense-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy} onChange={e=>setFile(e.target.files?.[0]??null)}/>{(file||draft.receipt_name)&&<div><span>{file?.name??draft.receipt_name}</span><button type="button" disabled={busy} onClick={()=>{setFile(null);patch({receipt_path:null,receipt_name:null});const input=dialog.current?.querySelector<HTMLInputElement>("#expense-file");if(input)input.value="";}}>첨부 해제</button></div>}</div>
     </div>{error&&<p className="expense-error" role="alert">{error}</p>}</div>
-    <footer><button type="button" className="expense-outline" disabled={busy} onClick={onClose}>취소</button><button className="expense-primary" disabled={busy}>{busy?"저장 중…":"지출 저장"}</button></footer>
+    <footer><button type="button" className="expense-outline" disabled={busy} onClick={onClose}>취소</button><button className="expense-primary" disabled={busy}>{busy?"저장 중…":initial.recurrence_id&&!initial.version?"지급 완료 저장":"지출 저장"}</button></footer>
   </form></div>;
 }
 
