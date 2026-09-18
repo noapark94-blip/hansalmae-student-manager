@@ -283,3 +283,31 @@
 .income-detail>p{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0;word-break:keep-all}
 .tuition-insights>footer{flex-shrink:0;margin:0;padding:12px 24px;background:#fff}
 @media(max-width:700px){.tuition-insights{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:18px}.tuition-insights .tuition-analytics-body{padding:14px}.tuition-insights .tuition-analytics-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tuition-insights .tuition-analytics-summary article{padding:14px;min-height:105px}.tuition-insights .tuition-analytics-summary b{font-size:18px}.tuition-insights .tuition-analytics-summary span{font-size:11px}.tuition-insights .tuition-analytics-summary small{font-size:10px}.income-trend>header{align-items:flex-start;flex-direction:column;padding:16px}.income-legend{gap:12px}.income-detail{padding:16px}.income-detail strong{font-size:20px}.income-detail-grid{gap:8px}.income-detail-grid b{font-size:14px}.income-detail-grid span{font-size:11px}.income-bars{min-width:660px}.tuition-insights>footer{padding:12px 16px}}
+
+/* Payment memo stays visible below the amount/date grid. */
+.student-modal .tuition-payment-memo{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;width:100%;min-width:0;margin-top:20px;font-size:13px;font-weight:650;color:#5e5059}
+.tuition-payment-memo>span{display:flex;align-items:center;gap:7px}
+.tuition-payment-memo small{font-size:11px;font-weight:400;color:var(--muted)}
+.student-modal .tuition-payment-memo textarea{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:96px;margin:0;padding:12px 14px;border:1px solid #e4d8df;border-radius:10px;background:#fff;color:var(--text);font:inherit;font-weight:400;line-height:1.7;resize:vertical}
+.student-modal .tuition-payment-memo textarea:focus{outline:2px solid #e7c5d7;outline-offset:2px}
+.student-modal .tuition-payment-memo textarea::placeholder{color:#a4969e}
+.payment-record-main small{white-space:pre-wrap}
+@media(max-width:650px){.student-modal .tuition-payment-memo textarea{font-size:16px;min-height:104px}}
+
+.student-modal .tuition-date-field{display:grid;align-content:start;gap:8px;min-width:0}
+.tuition-date-label{font-size:13px;font-weight:650;color:#655961}
+.student-modal .tuition-date-trigger{box-sizing:border-box;width:100%;height:44px;margin:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 13px;border:1px solid #e4d8df;border-radius:10px;background:#fff;color:var(--text);font-size:14px;text-align:left}
+.tuition-date-trigger:focus-visible,.tuition-date-calendar button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.tuition-date-calendar{border:1px solid #e6d5df;border-radius:12px;background:#fff;padding:12px;box-shadow:0 6px 20px #5420390a}
+.tuition-date-nav{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;align-items:center;gap:8px;margin-bottom:10px}
+.tuition-date-nav strong{text-align:center;font-size:13px}
+.tuition-date-nav button{height:34px;border:0;border-radius:8px;background:#f8f1f5;color:var(--wine);font-size:21px}
+.tuition-date-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.tuition-date-weekday{text-align:center;font-size:11px;color:var(--muted);padding:4px 0}
+.tuition-date-days button{min-width:0;min-height:34px;padding:4px 0;border:1px solid transparent;border-radius:8px;background:#fff;color:#5a4c54;font-size:12px}
+.tuition-date-days button:hover{background:#f8edf3}
+.tuition-date-days button[aria-current=date]{border-color:#d9b1c6}
+.tuition-date-days button[aria-pressed=true]{background:var(--wine);color:#fff}
+.tuition-date-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f0e5eb}
+.tuition-date-bottom button{border:0;background:transparent;color:var(--wine);font-size:12px;font-weight:700;padding:5px}
+.tuition-date-bottom small{font-size:10px;color:var(--muted)}
