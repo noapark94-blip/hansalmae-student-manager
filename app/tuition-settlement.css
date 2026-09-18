@@ -159,3 +159,24 @@
 .tuition-payment-history footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
 .tuition-payment-history footer button{min-height:44px;white-space:nowrap}
 @media(max-width:650px){.tuition-payment-history .payment-meta-grid{grid-template-columns:minmax(0,1fr);gap:16px}.tuition-payment-history footer{display:grid;grid-template-columns:1fr 1.5fr}.tuition-payment-history footer button{min-width:0;width:100%;padding:0 10px}}
+
+/* Month-specific collection: independent billing month and receipt date. */
+.tuition-settlement-head,.tuition-row{min-width:1080px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 232px}
+.has-payment-edit .tuition-settlement-head,.has-payment-edit .tuition-row{min-width:1160px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 306px}
+.tuition-early-badge,.tuition-row small.tuition-early-badge{display:inline-flex;width:max-content;align-items:center;vertical-align:middle;padding:3px 8px;border-radius:20px;background:#eaf1fa;color:#466b99;font-size:11px;font-weight:700;font-style:normal;white-space:nowrap}
+.payment-month-picker{padding:20px 28px 0}
+.payment-picker-label{display:block;margin-bottom:10px;font-size:13px;font-weight:750;color:#5e5059}
+.payment-month-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;border-radius:12px;background:#f5f1f3}
+.payment-month-options button{min-height:40px;padding:8px;border:1px solid transparent;border-radius:9px;background:transparent;color:#796a73;font-size:13px;font-weight:700;white-space:nowrap}
+.payment-month-options button[aria-pressed=true]{border-color:#e6cddb;background:#fff;color:var(--wine);box-shadow:0 2px 6px #40203008}
+.payment-month-picker>p{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.payment-custom-month{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;margin-top:12px;font-size:12px;color:#6e5d66}
+.payment-custom-month input{min-width:0;width:100%;height:42px;border:1px solid var(--line);border-radius:9px;padding:0 12px;box-sizing:border-box;background:#fff}
+.payment-target-state{padding:24px 28px;font-size:13px;line-height:1.7;color:var(--muted)}
+.tuition-month-payment-form fieldset{border:0;margin:0;padding:0;min-width:0}
+.tuition-month-payment-form .payment-month-guard{margin-top:0}
+.tuition-month-payment-form .payment-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.tuition-month-payment-form .payment-meta-grid>label{display:grid;gap:8px;min-width:0}
+.tuition-month-payment-form .payment-meta-grid>label.full{display:grid;grid-column:1/-1}
+.tuition-month-payment-form .payment-meta-grid input,.tuition-month-payment-form .payment-meta-grid select{box-sizing:border-box;width:100%;min-width:0;height:44px}
+@media(max-width:650px){.payment-month-picker{padding:16px 18px 0}.payment-month-options button{font-size:12px;padding:8px 4px}.tuition-month-payment-form .payment-meta-grid{grid-template-columns:minmax(0,1fr)}.payment-target-state{padding:20px 18px}.tuition-month-payment-form .payment-month-guard{grid-template-columns:minmax(0,1fr);gap:12px}.tuition-month-payment-form .payment-month-guard>i{display:none}}
