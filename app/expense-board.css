@@ -92,3 +92,43 @@
 @media(max-width:1000px){.expense-table-head,.expense-row{grid-template-columns:67px 66px minmax(110px,1fr) 110px 64px 80px;gap:10px;padding-left:18px;padding-right:18px}.expense-summary article{padding:20px}}
 @media(max-width:760px){.expense-heading{gap:12px;margin-bottom:20px}.expense-heading h1{font-size:24px}.expense-heading span{font-size:12px}.expense-heading>.expense-primary{padding:9px 12px;font-size:12px!important}.expense-month-bar{flex-wrap:wrap;gap:8px}.expense-month-bar>span{order:3;width:100%;padding-left:3px;font-size:11px}.expense-summary{gap:9px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px}.expense-summary-main{grid-column:1/-1}.expense-summary article{padding:18px;gap:10px}.expense-summary strong{font-size:23px}.expense-summary article>span{font-size:12px}.expense-summary small{font-size:10px}.expense-ledger>header{padding:18px 16px;flex-wrap:wrap}.expense-search{width:100%}.expense-search input{width:100%}.expense-category-tabs{padding:0 16px 14px;gap:3px}.expense-list-caption{padding:12px 16px}.expense-table-head{display:none}.expense-row{grid-template-columns:minmax(0,1fr) auto;gap:7px 12px;padding:16px;min-height:0}.expense-row>time{grid-column:1;grid-row:1;font-size:11px}.expense-row>.expense-category{grid-column:2;grid-row:1;justify-self:end}.expense-description{grid-column:1;grid-row:2/4}.expense-description>b{font-size:14px}.expense-row>.expense-amount{grid-column:2;grid-row:2;font-size:15px}.expense-method{grid-column:2;grid-row:3;text-align:right;font-size:10px}.expense-row-actions{grid-column:1/-1;grid-row:4;margin-top:3px}.expense-row-actions>button,.expense-row-actions summary{min-height:38px}.expense-overlay{padding:12px}.expense-dialog{max-height:calc(100dvh - 24px);border-radius:18px}.expense-dialog>header{padding:21px 20px 18px}.expense-dialog-body{padding:20px}.expense-dialog>footer{padding:15px 20px 18px}.expense-form-grid{gap:16px 12px}.expense-dialog h2{font-size:20px}}
 @media(max-width:380px){.expense-form-grid{grid-template-columns:1fr}.expense-summary strong{font-size:20px}.expense-summary article{padding:15px}.expense-heading span{max-width:190px;display:block}}
+
+/* Compact expense management on phones; desktop rules stay unchanged. */
+@media (max-width:760px) {
+  .content .expense-board { min-width:0; padding-bottom:20px; }
+  .content .expense-board .expense-heading { position:relative; display:block; margin-bottom:16px; padding-right:0; }
+  .content .expense-heading > div { min-width:0; }
+  .content .expense-heading p { margin:0 0 7px; font-size:11px; }
+  .content .expense-heading h1 { margin:0 112px 8px 0; font-size:23px; line-height:1.35; font-weight:750; }
+  .content .expense-heading span { display:block; max-width:none; font-size:12px; line-height:1.5; }
+  .content .expense-heading > .expense-primary { position:absolute; right:0; top:20px; min-height:40px; padding:8px 12px; border-radius:11px; }
+  .content .expense-month-bar { gap:6px 10px; margin-bottom:12px; }
+  .content .expense-month-picker { min-width:0; padding:2px; border-radius:11px; }
+  .content .expense-month-picker > button { width:40px; height:40px; }
+  .content .expense-month-picker label { min-width:0; }
+  .content .expense-month-picker input { box-sizing:border-box; width:132px; min-width:0; max-width:100%; font-size:16px; padding:4px; }
+  .content .expense-month-bar > span { font-size:10px; line-height:1.4; }
+  .content .expense-text-button { min-height:44px; padding:8px; }
+  .content .expense-summary { gap:8px; margin-bottom:16px; }
+  .content .expense-summary article { min-width:0; padding:14px; gap:7px; border-radius:14px; }
+  .content .expense-summary article > span { font-size:11px; line-height:1.4; }
+  .content .expense-summary article strong { font-size:clamp(16px,4.6vw,21px); line-height:1.3; letter-spacing:-.6px; }
+  .content .expense-summary article small { font-size:10px; line-height:1.4; }
+  .content .expense-summary .expense-summary-main { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 12px; padding:15px 16px; }
+  .content .expense-summary-main > span { grid-column:1; grid-row:1; }
+  .content .expense-summary-main > small { grid-column:1; grid-row:2; }
+  .content .expense-summary .expense-summary-main > strong { grid-column:2; grid-row:1/3; font-size:24px; text-align:right; }
+  .content .expense-ledger { min-width:0; border-radius:15px; }
+  .content .expense-ledger > header { gap:12px; padding:15px 14px 10px; }
+  .content .expense-ledger h2 { font-size:16px; font-weight:750; line-height:1.4; }
+  .content .expense-ledger header p { margin-top:4px; font-size:11px; }
+  .content .expense-search { min-width:0; }
+  .content .expense-search input { width:100%; min-width:0; min-height:44px; font-size:16px; padding:10px 12px; }
+  .content .expense-category-tabs { padding:0 14px 10px; gap:4px; }
+  .content .expense-category-tabs button { min-height:40px; padding:8px 11px; font-size:12px; }
+  .content .expense-list-caption { padding:11px 14px; }
+  .content .expense-row { min-width:0; padding:14px; gap:8px 12px; }
+  .content .expense-row-actions > button,.content .expense-row-actions summary { min-width:44px; min-height:44px; }
+  .content .expense-empty { padding:30px 16px; }
+  .expense-overlay .expense-dialog input:not([type=file]),.expense-overlay .expense-dialog select,.expense-overlay .expense-dialog textarea { font-size:16px; }
+}
