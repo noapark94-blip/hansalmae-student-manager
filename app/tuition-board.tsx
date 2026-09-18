@@ -78,9 +78,9 @@ export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
 
 function MonthPicker({value,year,onYear,onSelect,onClose}:{value:string;year:number;onYear:(year:number)=>void;onSelect:(value:string)=>void;onClose:()=>void}){const current=koreaMonth();return <><button className="tuition-month-dismiss" aria-label="월 선택 닫기" onClick={onClose}/><section className="tuition-month-popover"><header><button aria-label="이전 연도" onClick={()=>onYear(year-1)}>‹</button><b>{year}년</b><button aria-label="다음 연도" onClick={()=>onYear(year+1)}>›</button></header><div>{Array.from({length:12},(_,index)=>{const next=`${year}-${String(index+1).padStart(2,"0")}`;return <button key={next} className={`${next===value?"selected ":""}${next===current?"current":""}`} onClick={()=>onSelect(next)}><b>{index+1}월</b>{next===current&&<small>이번 달</small>}</button>})}</div><footer><button onClick={()=>{const now=koreaMonth();onYear(Number(now.slice(0,4)));onSelect(now);}}>이번 달로 이동</button></footer></section></>}
 
-type AnalyticsCharge={billing_month:string;base_amount:number;discount_amount:number;additional_amount:number;status:string;tuition_payments:{amount:number}[]};
+type AnalyticsCharge={billing_month:string;base_amount:number;discount_amount:number;additional_amount:number;status:string;tuition_payments:{id:string;amount:number;paid_at:string}[]};
 type AnalyticsPayment={id:string;amount:number;paid_at:string;tuition_charges:{billing_month:string}};
-function tuitionAnalyticsPoints(months:string[],charges:AnalyticsCharge[],payments:AnalyticsPayment[]):MonthlyTuitionPoint[]{
+function tuitionAnalyticsPoints(months:string[],charges:AnalyticsCharge[],payments:AnalyticsPayment[],basis:"receipt"|"billing"="receipt"):MonthlyTuitionPoint[]{
  const result=new Map(months.map(month=>[month,{month,charged:0,early:0,onTime:0,late:0,balance:0}]));
  for(const charge of charges){
   const point=result.get(charge.billing_month.slice(0,7));if(!point||charge.status==="waived")continue;
@@ -88,17 +88,21 @@ function tuitionAnalyticsPoints(months:string[],charges:AnalyticsCharge[],paymen
   point.charged+=total;point.balance+=Math.max(0,total-charge.tuition_payments.reduce((sum,payment)=>sum+payment.amount,0));
  }
  const seen=new Set<string>();
- for(const payment of payments){
+ const source=basis==="billing"?charges.flatMap(charge=>charge.tuition_payments.map(payment=>({...payment,tuition_charges:{billing_month:charge.billing_month}}))):payments;
+ for(const payment of source){
   if(seen.has(payment.id))continue;seen.add(payment.id);
   const paidMonth=new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit"}).format(new Date(payment.paid_at));
-  const point=result.get(paidMonth);if(!point)continue;
   const billingMonth=payment.tuition_charges.billing_month.slice(0,7);
+  const point=result.get(basis==="billing"?billingMonth:paidMonth);if(!point)continue;
   if(paidMonth<billingMonth)point.early+=payment.amount;else if(paidMonth===billingMonth)point.onTime+=payment.amount;else point.late+=payment.amount;
  }
  return months.map(month=>result.get(month)!);
 }
 function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseClient;endMonth:string;onClose:()=>void}){
- const [points,setPoints]=useState<MonthlyTuitionPoint[]>([]);
+ const [basis,setBasis]=useState<"billing"|"receipt">("billing");
+ const [report,setReport]=useState<{billing:MonthlyTuitionPoint[];receipt:MonthlyTuitionPoint[]}>({billing:[],receipt:[]});
+ const points=report[basis];
+ const isBilling=basis==="billing";
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
  const [selectedMonth,setSelectedMonth]=useState(endMonth);
@@ -110,7 +114,7 @@ function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseCli
   const readCharges=async()=>{
    const rows:AnalyticsCharge[]=[];
    for(let offset=0;;offset+=500){
-    const {data,error:queryError}=await supabase.from("tuition_charges").select("billing_month,base_amount,discount_amount,additional_amount,status,tuition_payments(amount)").gte("billing_month",months[0]+"-01").lt("billing_month",shiftMonth(endMonth,1)+"-01").order("id").range(offset,offset+499);
+    const {data,error:queryError}=await supabase.from("tuition_charges").select("billing_month,base_amount,discount_amount,additional_amount,status,tuition_payments(id,amount,paid_at)").gte("billing_month",months[0]+"-01").lt("billing_month",shiftMonth(endMonth,1)+"-01").order("id").range(offset,offset+499);
     if(queryError)throw queryError;if(!active)return [];
     rows.push(...(data as unknown as AnalyticsCharge[]));
     if(data.length<500)return rows;
@@ -127,7 +131,7 @@ function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseCli
   };
   void Promise.all([readCharges(),readPayments()]).then(([charges,payments])=>{
    if(!active)return;
-   setPoints(tuitionAnalyticsPoints(months,charges,payments));setLoading(false);
+   setReport({receipt:tuitionAnalyticsPoints(months,charges,payments),billing:tuitionAnalyticsPoints(months,charges,payments,"billing")});setLoading(false);
   }).catch(()=>{if(active){setError("월별 수납 현황을 불러오지 못했습니다.");setLoading(false);}});
   return()=>{active=false;};
  },[endMonth,supabase,revision]);
@@ -138,29 +142,31 @@ function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseCli
  const current=points.at(-1);
  const selected=points.find(point=>point.month===selectedMonth)??current;
  return <div className="modal-backdrop tuition-analytics-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal tuition-analytics-modal tuition-insights">
- <header><div><p className="eyebrow">수납 리포트</p><h2>월별 수납 현황</h2><span>{formatMonth(shiftMonth(endMonth,-11))} — {formatMonth(endMonth)} · 실제 납부일 기준</span></div><button onClick={onClose} aria-label="수납 현황 닫기">×</button></header>
+ <header><div><p className="eyebrow">수납 리포트</p><h2>월별 수납 현황</h2><span>{formatMonth(shiftMonth(endMonth,-11))} — {formatMonth(endMonth)} · {isBilling?"원비 귀속월 기준":"실제 납부일 기준"}</span></div><button onClick={onClose} aria-label="수납 현황 닫기">×</button></header>
  {loading?<p className="tuition-analytics-empty" role="status">수납 흐름을 확인하고 있어요…</p>:error?<div className="tuition-analytics-empty" role="alert"><p>{error}</p><button className="secondary-button" onClick={()=>setRevision(value=>value+1)}>다시 확인</button></div>:<div className="tuition-analytics-body">
+ <div className="income-basis-switch" role="group" aria-label="수납 집계 기준"><button type="button" aria-pressed={isBilling} onClick={()=>setBasis("billing")}>원비 귀속월 기준</button><button type="button" aria-pressed={!isBilling} onClick={()=>setBasis("receipt")}>수납일 기준</button></div>
+ <p className="income-basis-description">{isBilling?"각 월분 원비에 납부된 금액을 모아 봅니다. 미리 받거나 늦게 받은 금액도 해당 원비 월에 포함됩니다.":"실제로 돈을 받은 달에 모아 봅니다. 다른 달분 원비의 선납·지연 납부도 받은 달에 포함됩니다."}</p>
  <section className="tuition-analytics-summary">
- <article className="insight-primary"><span>12개월 총수납</span><b>{money(total)}</b><small>실제로 받은 금액</small></article>
- <article><span>월평균 수납</span><b>{money(Math.round(total/12))}</b><small>수납 없는 달 포함 · 12개월 기준</small></article>
- <article><span>최고 수납 월</span><b>{top?formatMonth(top.month):"기록 없음"}</b><small>{top?money(paid(top)):"수납 기록이 쌓이면 표시됩니다."}</small></article>
+ <article className="insight-primary"><span>{isBilling?"12개월분 납부 합계":"12개월 총수납"}</span><b>{money(total)}</b><small>{isBilling?"해당 기간 원비에 납부된 금액":"실제 납부일 기준으로 받은 금액"}</small></article>
+ <article><span>{isBilling?"월평균 납부액":"월평균 수납"}</span><b>{money(Math.round(total/12))}</b><small>수납 없는 달 포함 · 12개월 기준</small></article>
+ <article><span>{isBilling?"납부액이 가장 큰 귀속월":"최고 수납 월"}</span><b>{top?formatMonth(top.month):"기록 없음"}</b><small>{top?money(paid(top)):"수납 기록이 쌓이면 표시됩니다."}</small></article>
  <article className={current?.balance?"attention":""}><span>{formatMonth(endMonth)}분 미수금</span><b>{money(current?.balance??0)}</b><small>해당 월 청구서의 현재 잔액</small></article>
  </section>
  <section className="income-trend">
- <header><div><h3>월별 수납 흐름</h3><p>월을 선택하면 상세 금액을 확인할 수 있어요.</p></div><div className="income-legend"><span className="early">선납</span><span className="ontime">당월 납부</span><span className="late">지연 납부</span></div></header>
- {total===0&&<p className="income-no-data">이 기간에 등록된 수납 내역이 없습니다.</p>}
- <div className="income-trend-scroll" ref={chartScroll}><div className="income-bars" role="group" aria-label="월별 수납 금액">
- {points.map(point=>{const amount=paid(point);return <button type="button" key={point.month} className="income-month" aria-pressed={selected?.month===point.month} aria-label={formatMonth(point.month)+" 수납 "+money(amount)} onClick={()=>setSelectedMonth(point.month)}>
+ <header><div><h3>{isBilling?"월별 원비 납부 현황":"월별 수납 흐름"}</h3><p>월을 선택하면 상세 금액을 확인할 수 있어요.</p></div><div className="income-legend"><span className="early">선납</span><span className="ontime">당월 납부</span><span className="late">지연 납부</span></div></header>
+ {total===0&&<p className="income-no-data">{isBilling?"해당 기간 원비에 등록된 납부 내역이 없습니다.":"이 기간에 등록된 수납 내역이 없습니다."}</p>}
+ <div className="income-trend-scroll" ref={chartScroll}><div className="income-bars" role="group" aria-label={isBilling?"귀속월별 납부 금액":"월별 수납 금액"}>
+ {points.map(point=>{const amount=paid(point);return <button type="button" key={point.month} className="income-month" aria-pressed={selected?.month===point.month} aria-label={formatMonth(point.month)+(isBilling?"분 납부액 ":" 수납 ")+money(amount)} onClick={()=>setSelectedMonth(point.month)}>
  <span className="income-track"><span className="income-stack-wrap" style={{height:amount?Math.max(3,amount/max*160):0}}><span className="income-bar-value">{amount?compactMoney(amount):""}</span><span className="income-stack"><i className="early" style={{flex:point.early}}/><i className="ontime" style={{flex:point.onTime}}/><i className="late" style={{flex:point.late}}/></span></span>{!amount&&<span className="income-zero"/>}</span>
  <b>{Number(point.month.slice(5))}월</b><small>{point.month.slice(0,4)}</small>
  </button>})}
  </div></div>
  </section>
  {selected&&<section className="income-detail" aria-live="polite">
- <header><div><span>선택한 월</span><h3>{formatMonth(selected.month)}</h3></div><div><span>실제 수납액</span><strong>{money(paid(selected))}</strong></div></header>
+ <header><div><span>{isBilling?"원비 귀속월":"수납 월"}</span><h3>{formatMonth(selected.month)}</h3></div><div><span>{isBilling?"해당 월분 납부액":"실제 수납액"}</span><strong>{money(paid(selected))}</strong></div></header>
  <div className="income-detail-grid">{([["선납",selected.early,"early"],["당월 납부",selected.onTime,"ontime"],["지연 납부",selected.late,"late"]] as [string,number,string][]).map(([label,amount,kind])=><div key={kind}><span className={kind}>{label}</span><b>{money(amount)}</b></div>)}</div>
  <div className="income-billing-note"><span>이 달 청구액 <b>{money(selected.charged)}</b></span><span>현재 미수금 <b>{money(selected.balance)}</b></span></div>
- <p>수납액은 이 달에 받은 금액이며, 청구액·미수금은 이 달분 원비 기준입니다.</p>
+ <p>{isBilling?"납부액은 받은 날짜와 관계없이 이 달분 원비에 반영된 금액입니다. 청구액·미수금은 현재 기준입니다.":"수납액은 이 달에 받은 금액이며, 청구액·미수금은 이 달분 원비 기준입니다."}</p>
  </section>}
  </div>}
  <footer><button className="secondary-button" onClick={onClose}>닫기</button></footer>

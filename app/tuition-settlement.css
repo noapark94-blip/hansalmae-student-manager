@@ -311,3 +311,10 @@
 .tuition-date-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f0e5eb}
 .tuition-date-bottom button{border:0;background:transparent;color:var(--wine);font-size:12px;font-weight:700;padding:5px}
 .tuition-date-bottom small{font-size:10px;color:var(--muted)}
+
+.income-basis-switch{display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border:1px solid #eadfe5;border-radius:12px;background:#f3eef1}
+.income-basis-switch button{min-height:40px;padding:9px 20px;border:1px solid transparent;border-radius:9px;background:transparent;color:#7e6d76;font-size:13px;font-weight:700}
+.income-basis-switch button[aria-pressed=true]{background:#fff;border-color:#e5cbd9;color:var(--wine);box-shadow:0 2px 5px #54203908}
+.income-basis-switch button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.income-basis-description{margin:10px 0 18px;font-size:12px;color:var(--muted);line-height:1.7;word-break:keep-all}
+@media(max-width:700px){.income-basis-switch{display:grid;width:100%;box-sizing:border-box}.income-basis-switch button{padding:10px 8px;font-size:12px}}
