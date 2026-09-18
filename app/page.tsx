@@ -28,6 +28,7 @@ const FamilySummaryReportView=dynamic(()=>import("./family-dashboard").then(modu
 const FamilyGradesView=dynamic(()=>import("./family-grades-view").then(module=>module.FamilyGradesView),{loading:()=> <FamilyLoading/>});
 import { StudentLifecycleDashboard, type StudentStatusFilter } from "./student-lifecycle-dashboard";
 import { NotificationCenter, type StaffLessonTarget } from "./notification-center";
+const ExpenseBoard=dynamic(()=>import("./expense-board").then(module=>module.ExpenseBoard),{loading:()=> <FamilyLoading/>});
 const TuitionBoard=dynamic(()=>import("./tuition-board").then(module=>module.TuitionBoard),{loading:()=> <FamilyLoading/>});
 const OperationsAnalytics=dynamic(()=>import("./operations-analytics").then(module=>module.OperationsAnalytics),{loading:()=> <FamilyLoading/>});
 const BackupBoard=dynamic(()=>import("./backup-board").then(module=>module.BackupBoard),{loading:()=> <FamilyLoading/>});
@@ -50,11 +51,11 @@ const GradeProgressionBoard=dynamic(()=>import("./grade-progression-board").then
 const VocabularyTestGenerator=dynamic(()=>import("./vocabulary-test-generator").then(module=>module.VocabularyTestGenerator),{loading:()=> <FamilyLoading/>});
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "expenses" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "hansalmae:sidebar-collapsed";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "reports", "calendar", "grades", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "reports", "calendar", "grades", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -190,6 +191,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "consultations", label: "상담", icon: "☏" },
   { id: "communications", label: "공지·문자", icon: "▣" },
   { id: "tuition", label: "원비 정산", icon: "₩" },
+  { id: "expenses", label: "지출 관리", icon: "₩" },
   { id: "analytics", label: "운영 현황", icon: "▥" },
   { id: "backup", label: "데이터 백업", icon: "⇩" },
   { id: "settings", label: "계정·역할", icon: "⚙" },
@@ -211,7 +213,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 }
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "analytics", "backup", "settings", "my-account", "audit"],
+  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"],
   sub_admin: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "my-account"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
@@ -915,6 +917,7 @@ export default function Home() {
           {view === "consultations" && <ConsultationBoard supabase={supabase} />}
           {view === "communications" && <CommunicationBoard supabase={supabase} role={profile.role} />}
           {view === "tuition" && <TuitionBoard supabase={supabase} />}
+          {view === "expenses" && profile.role === "admin" && <ExpenseBoard supabase={supabase} />}
           {view === "analytics" && <OperationsAnalytics supabase={supabase} onNavigate={selectView} />}
           {view === "backup" && <BackupBoard supabase={supabase} />}
           {view === "settings" && (
@@ -1407,7 +1410,7 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
-    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "analytics", "alimtalk", "backup", "settings"],
+    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "expenses", "analytics", "alimtalk", "backup", "settings"],
     sub_admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "alimtalk", "communications", "my-account"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],

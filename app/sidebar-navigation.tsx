@@ -20,7 +20,7 @@ const defaultLayout: MenuLayout = {
     { id: "students", name: "학생 관리", itemIds: ["students"] },
     { id: "schedules", name: "시간표", itemIds: ["schedule", "corrections", "transport"] },
     { id: "lessons", name: "수업 관리", itemIds: ["makeups", "consultations"] },
-    { id: "operations", name: "학원 운영", itemIds: ["alimtalk", "communications", "tuition", "analytics", "backup", "audit"] },
+    { id: "operations", name: "학원 운영", itemIds: ["alimtalk", "communications", "tuition", "expenses", "analytics", "backup", "audit"] },
     { id: "accounts", name: "계정 설정", itemIds: ["settings", "my-account"] },
   ],
   labels: {},
@@ -167,7 +167,11 @@ function mergeMissingItems(layout: MenuLayout, items: MenuItem[]): MenuLayout {
   for (const id of missing) {
     const defaultFolderId=defaultLayout.folders.find(folder=>folder.itemIds.includes(id))?.id;
     const targetIndex=Math.max(0,folders.findIndex(folder=>folder.id===defaultFolderId));
-    folders[targetIndex]={...folders[targetIndex],itemIds:[...folders[targetIndex].itemIds,id]};
+    const itemIds=[...folders[targetIndex].itemIds];
+    const tuitionIndex=itemIds.indexOf("tuition");
+    if(id==="expenses"&&tuitionIndex>=0)itemIds.splice(tuitionIndex+1,0,id);
+    else itemIds.push(id);
+    folders[targetIndex]={...folders[targetIndex],itemIds};
   }
   const validLabelEntries = Object.entries(layout.labels ?? {}).filter(([id]) => validIds.has(id as View));
   return { folders, labels: Object.fromEntries(validLabelEntries) as Partial<Record<View, string>> };
