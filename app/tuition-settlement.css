@@ -131,3 +131,11 @@
 }
 
 .fee-policy-modal .fee-combination-total{margin:12px 0 0;padding:12px 14px;background:#faf3f7;border-radius:10px;color:var(--wine);font-size:13px;font-weight:650;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+
+.tuition-row .tuition-student-name{display:flex;align-items:center;gap:6px;min-width:0}
+.tuition-payment-edit{flex:none;border:1px solid #e1c8d4;border-radius:6px;padding:4px 6px;background:#fff;color:var(--wine);font-size:10px;white-space:nowrap}
+.tuition-payment-history{padding:18px 22px;overflow:auto}
+.tuition-payment-history>label{display:grid;gap:8px;margin-bottom:16px}
+.tuition-payment-history>label>select{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px}
+.tuition-payment-edit-note{font-size:12px;line-height:1.6;color:var(--muted);word-break:keep-all}
+@media(max-width:650px){.tuition-payment-history{padding:14px}.tuition-payment-history .form-grid{grid-template-columns:minmax(0,1fr)}}
