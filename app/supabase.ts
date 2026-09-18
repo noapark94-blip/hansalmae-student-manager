@@ -10,6 +10,8 @@ export type Profile = {
 };
 
 export type StudentRow = {
+  phone?: string | null;
+  guardianPhones?: string[];
   id: string;
   name: string;
   school: string | null;

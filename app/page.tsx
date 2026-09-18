@@ -402,7 +402,7 @@ export default function Home() {
     const loadStudents = async () => {
       setStudentsLoading(true);
       setStudentsError("");
-      const [{ data, error }, { data: classData, error: classError }, { data: subjectData, error: subjectError }, { data: timetableData, error: timetableError }, { data: attendanceData, error: attendanceError }] = await Promise.all([supabase.rpc("staff_student_roster"), supabase.from("classes").select("id, name, subject, subject_id, room, color, active").eq("active", true).order("name"), supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active", true).order("main_subject").order("name"), supabase.rpc("staff_student_weekly_timetables"), supabase.rpc("staff_student_attendance_rates", { p_days: 30 })]);
+      const [{ data, error }, { data: classData, error: classError }, { data: subjectData, error: subjectError }, { data: timetableData, error: timetableError }, { data: attendanceData, error: attendanceError }] = await Promise.all([supabase.rpc("staff_student_roster_with_contacts"), supabase.from("classes").select("id, name, subject, subject_id, room, color, active").eq("active", true).order("name"), supabase.from("academy_subjects").select("id,name,main_subject,parent_id").eq("active", true).order("main_subject").order("name"), supabase.rpc("staff_student_weekly_timetables"), supabase.rpc("staff_student_attendance_rates", { p_days: 30 })]);
 
       if (!active) return;
       if (error || classError || subjectError || timetableError || attendanceError) {
@@ -455,7 +455,7 @@ export default function Home() {
     const q = query.trim().toLowerCase();
     return students.filter((student) => {
       const matchesStatus = studentStatusFilter === "all" || normalizeStudentStatus(student.status) === studentStatusFilter;
-      const matchesQuery = !q || [student.name, student.school ?? "", student.grade ?? "", ...getStudentSubjects(student)].some((value) => value.toLowerCase().includes(q));
+      const matchesQuery = studentMatchesContactSearch(student,q);
       return matchesStatus && matchesQuery;
     });
   }, [query, studentStatusFilter, students]);
@@ -464,7 +464,7 @@ export default function Home() {
     const text = query.trim().toLowerCase();
     if (!text) return { students: [] as StudentRow[], classes: [] as AcademyClass[] };
     return {
-      students: students.filter((student) => [student.name, student.school ?? "", student.grade ?? "", ...getStudentSubjects(student)].some((value) => value.toLowerCase().includes(text))).slice(0, 6),
+      students: students.filter((student) => studentMatchesContactSearch(student,text)).slice(0, 6),
       classes: academyClasses.filter((item) => [item.name, item.subject, item.room ?? ""].some((value) => value.toLowerCase().includes(text))).slice(0, 6),
     };
   }, [academyClasses, query, students]);
@@ -817,7 +817,7 @@ export default function Home() {
                         }
                       }
                     }}
-                    placeholder="학생, 클래스 검색"
+                    placeholder="학생·클래스·전화번호 검색" aria-label="학생·클래스·전화번호 검색"
                   />
                 </div>
                 {searchOpen && query.trim() && (
@@ -1684,7 +1684,7 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
         <div className="table-tools student-list-tools">
           <div className="search-wrap inner">
             <span>⌕</span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름, 학교, 과목 검색" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름·학교·과목·전화번호 검색" aria-label="학생 목록 검색" />
           </div>
           <div className="student-list-filters">
             <label>
@@ -2894,4 +2894,13 @@ function Activity({ icon, tone, title, meta }: { icon: string; tone: string; tit
       </div>
     </div>
   );
+}
+
+function studentMatchesContactSearch(student:StudentRow,query:string){
+ const text=query.trim().toLowerCase();
+ if(!text)return true;
+ if([student.name,student.school??"",student.grade??"",...getStudentSubjects(student)].some(value=>value.toLowerCase().includes(text)))return true;
+ const digits=text.replace(/\D/g,"");
+ if(!/^[\d\s()+-]+$/.test(text)||digits.length<4)return false;
+ return [student.phone,...(student.guardianPhones??[])].some(phone=>!!phone&&phone.replace(/\D/g,"").includes(digits));
 }
