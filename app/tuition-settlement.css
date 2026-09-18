@@ -325,3 +325,7 @@
 .student-modal .payment-meta-grid>label,.student-modal .payment-meta-grid>.tuition-date-field{display:grid;align-content:start;gap:8px;min-width:0;font-size:13px;font-weight:650;line-height:20px}
 .student-modal .payment-meta-grid .tuition-date-label{font-size:inherit;line-height:20px}
 .student-modal .payment-meta-grid>label>input,.student-modal .payment-meta-grid>label>select,.student-modal .payment-meta-grid .tuition-date-trigger{box-sizing:border-box;width:100%;min-width:0;height:44px;margin:0;font-size:14px}
+
+/* Overlay the payment calendar without expanding the form grid. */
+.student-modal .payment-meta-grid>.tuition-date-field{position:relative;align-self:start}
+.student-modal .tuition-date-field>.tuition-date-calendar{position:absolute;top:calc(100% + 8px);left:0;z-index:20;box-sizing:border-box;width:100%;min-width:0;max-height:min(380px,60dvh);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 12px 32px rgba(54,27,42,.16)}
