@@ -132,3 +132,23 @@
   .content .expense-empty { padding:30px 16px; }
   .expense-overlay .expense-dialog input:not([type=file]),.expense-overlay .expense-dialog select,.expense-overlay .expense-dialog textarea { font-size:16px; }
 }
+
+.expense-date-field{min-width:0}
+.expense-date-native{display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;font-size:12px;font-weight:650;color:#73606c}
+.expense-date-mobile{display:none}
+@media(max-width:760px){
+  .expense-dialog .expense-date-native{display:none}
+  .expense-dialog .expense-date-mobile{display:flex;position:relative;flex-direction:column;gap:8px;font-size:12px;font-weight:650;color:#73606c}
+  .expense-dialog .expense-date-trigger{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:11px 12px;border:1px solid #e4d8df;border-radius:10px;background:white;color:#48343f;font-size:14px;line-height:20px}
+  .expense-dialog .expense-date-popover{box-sizing:border-box;position:absolute;left:0;top:calc(100% + 6px);z-index:10;width:min(280px,calc(100vw - 72px));padding:10px;background:white;border:1px solid #e8d5e0;border-radius:14px;box-shadow:0 10px 32px #48233724}
+  .expense-dialog .expense-date-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .expense-dialog .expense-date-nav strong{font-size:14px;color:#48343f}
+  .expense-dialog .expense-date-nav button{width:36px;height:36px;border:0;border-radius:9px;background:#f8f0f5;color:#942d64;font-size:22px}
+  .expense-dialog .expense-date-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+  .expense-dialog .expense-date-grid>span{display:flex;align-items:center;justify-content:center;min-height:24px;font-size:11px;color:#95818c}
+  .expense-dialog .expense-date-grid>button{min-width:0;height:34px;padding:0;border:0;border-radius:9px;background:white;color:#493b43;font-size:13px}
+  .expense-dialog .expense-date-grid>button[aria-current=date]{box-shadow:inset 0 0 0 1px #d7afc5}
+  .expense-dialog .expense-date-grid>button[aria-pressed=true]{background:#942d64;color:white;font-weight:750}
+  .expense-dialog .expense-date-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid #f1e6ec}
+  .expense-dialog .expense-date-footer button{min-height:34px;padding:5px 8px;border:0;border-radius:7px;background:white;color:#942d64;font-size:12px}
+}

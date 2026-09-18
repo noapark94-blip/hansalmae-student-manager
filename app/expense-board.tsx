@@ -87,7 +87,7 @@ function ExpenseEditor({supabase,initial,onClose,onSaved}:{supabase:SupabaseClie
   const dialog=useRef<HTMLFormElement>(null);
   useEffect(()=>{
     const previous=document.activeElement as HTMLElement|null;
-    dialog.current?.querySelector<HTMLInputElement>("input")?.focus();
+    Array.from(dialog.current?.querySelectorAll<HTMLElement>(".expense-date-trigger,input")??[]).find(node=>node.getClientRects().length>0)?.focus();
     return()=>previous?.focus();
   },[]);
   const patch=(value:Partial<Draft>)=>setDraft(current=>({...current,...value}));
@@ -122,7 +122,7 @@ function ExpenseEditor({supabase,initial,onClose,onSaved}:{supabase:SupabaseClie
   }}>
     <header><div><p>학원 운영 기록</p><h2 id="expense-editor-title">{initial.version?"지출 내역 수정":"지출 등록"}</h2><span>실제로 지급한 날짜와 금액을 입력해 주세요.</span></div><button type="button" aria-label="닫기" disabled={busy} onClick={onClose}>×</button></header>
     <div className="expense-dialog-body"><div className="expense-form-grid">
-      <label>지급일<input type="date" required value={draft.spent_on} disabled={busy} onChange={e=>patch({spent_on:e.target.value})}/></label>
+      <ExpenseDatePicker value={draft.spent_on} disabled={busy} onChange={spent_on=>patch({spent_on})}/>
       <label>분류<select value={draft.category} disabled={busy} onChange={e=>patch({category:e.target.value})}>{categories.map(value=><option key={value}>{value}</option>)}</select></label>
       <label className="expense-full">사용처<input required maxLength={120} value={draft.vendor} disabled={busy} onChange={e=>patch({vendor:e.target.value})} placeholder="예: 9월 임대료, 교재 구입"/></label>
       <label>지출 금액<div className="expense-money-input"><input required inputMode="numeric" value={draft.amount?Number(draft.amount.replace(/,/g,"")).toLocaleString("ko-KR"):""} disabled={busy} onChange={e=>patch({amount:e.target.value.replace(/[^0-9]/g,"").slice(0,10)})} placeholder="0"/><span>원</span></div></label>
@@ -132,4 +132,39 @@ function ExpenseEditor({supabase,initial,onClose,onSaved}:{supabase:SupabaseClie
     </div>{error&&<p className="expense-error" role="alert">{error}</p>}</div>
     <footer><button type="button" className="expense-outline" disabled={busy} onClick={onClose}>취소</button><button className="expense-primary" disabled={busy}>{busy?"저장 중…":"지출 저장"}</button></footer>
   </form></div>;
+}
+
+function ExpenseDatePicker({value,onChange,disabled}:{value:string;onChange:(value:string)=>void;disabled:boolean}){
+  const [open,setOpen]=useState(false);
+  const [month,setMonth]=useState(value.slice(0,7)||today().slice(0,7));
+  const root=useRef<HTMLDivElement>(null);
+  const trigger=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{
+    if(!open)return;
+    const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setOpen(false);};
+    document.addEventListener("pointerdown",outside);
+    return()=>document.removeEventListener("pointerdown",outside);
+  },[open]);
+  const [year,number]=month.split("-").map(Number);
+  const offset=new Date(Date.UTC(year,number-1,1)).getUTCDay();
+  const count=new Date(Date.UTC(year,number,0)).getUTCDate();
+  const choose=(date:string)=>{onChange(date);setOpen(false);trigger.current?.focus();};
+  return <div className="expense-date-field" ref={root} onKeyDown={event=>{
+    if(open&&event.key==="Escape"){event.preventDefault();event.stopPropagation();setOpen(false);trigger.current?.focus();}
+  }}>
+    <label className="expense-date-native">지급일<input type="date" required value={value} disabled={disabled} onChange={event=>onChange(event.target.value)}/></label>
+    <div className="expense-date-mobile">
+      <span>지급일</span>
+      <button type="button" ref={trigger} className="expense-date-trigger" disabled={disabled} aria-label={"지급일 "+value} aria-expanded={open} onClick={()=>{if(!open)setMonth(value.slice(0,7)||today().slice(0,7));setOpen(current=>!current);}}><span>{value||"날짜 선택"}</span><span aria-hidden="true">▦</span></button>
+      {open&&<div className="expense-date-popover" role="group" aria-label="지급일 선택">
+        <div className="expense-date-nav"><button type="button" disabled={disabled||month<="1900-01"} aria-label="이전 달" onClick={()=>setMonth(nextMonth(month,-1))}>‹</button><strong aria-live="polite">{monthLabel(month)}</strong><button type="button" disabled={disabled||month>="9998-12"} aria-label="다음 달" onClick={()=>setMonth(nextMonth(month,1))}>›</button></div>
+        <div className="expense-date-grid">
+          {["일","월","화","수","목","금","토"].map(day=><span key={day}>{day}</span>)}
+          {Array.from({length:offset},(_,i)=><span key={"blank"+i}/>)}
+          {Array.from({length:count},(_,i)=>{const date=month+"-"+String(i+1).padStart(2,"0");return <button type="button" key={date} disabled={disabled} aria-label={date} aria-pressed={value===date} aria-current={date===today()?"date":undefined} onClick={()=>choose(date)}>{i+1}</button>;})}
+        </div>
+        <div className="expense-date-footer"><button type="button" disabled={disabled} onClick={()=>choose(today())}>오늘 선택</button><button type="button" onClick={()=>{setOpen(false);trigger.current?.focus();}}>닫기</button></div>
+      </div>}
+    </div>
+  </div>;
 }
