@@ -9,7 +9,7 @@ const methods: Record<string,string> = {transfer:"계좌이체",card:"카드",ca
 type Recurrence = {is_fixed?:boolean;recurrence_id?:string|null;recurrence_version?:number;scheduled_month?:string|null};
 type Expense = Recurrence & {id:string;spent_on:string;category:string;vendor:string;amount:number;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number};
 type Scheduled = Recurrence & {spent_on:string;category:string;vendor:string;amount:number;payment_method:string;memo:string};
-type Board = {items:Expense[];scheduled?:Scheduled[];receipts:number};
+type Board = {items:Expense[];scheduled?:Scheduled[];receipts:number;receipts_billing:number};
 type Draft = Recurrence & {id:string;spent_on:string;category:string;vendor:string;amount:string;payment_method:string;memo:string;receipt_path:string|null;receipt_name:string|null;version:number|null};
 const won = (value:number)=>value.toLocaleString("ko-KR")+"원";
 const today = ()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -20,6 +20,7 @@ function message(error:unknown){return (error as {message?:string})?.message||"�
 
 export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   const [month,setMonth]=useState(()=>today().slice(0,7));
+  const [receiptBasis,setReceiptBasis]=useState<"billing"|"payment">("billing");
   const [data,setData]=useState<Board|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
@@ -58,6 +59,8 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   const items=data?.items??[];
   const scheduled=(data?.scheduled??[]).filter(item=>(category==="전체"||item.category===category)&&[item.vendor,item.category].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
   const scheduledTotal=scheduled.reduce((sum,item)=>sum+item.amount,0);
+  const receiptTotal=Number((receiptBasis==="billing"?data?.receipts_billing:data?.receipts)??0);
+  const selectedMonthName=Number(month.slice(5))+"월";
   const total=items.reduce((sum,item)=>sum+item.amount,0);
   const visible=items.filter(item=>(category==="전체"||item.category===category)&&[item.vendor,item.memo,item.category].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
   const shownTotal=visible.reduce((sum,item)=>sum+item.amount,0);
@@ -82,11 +85,11 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   };
   return <section className="expense-board" ref={boardRef}>
     <header className="expense-heading"><div><p>관리자 전용</p><h1>지출 관리</h1><span>학원 운영에 사용한 금액을 월별로 기록합니다.</span></div><button className="expense-primary" onClick={()=>{setNotice("");setDraft(emptyDraft(month));}}>＋ 지출 등록</button></header>
-    <div className="expense-month-bar"><div className="expense-month-picker"><button aria-label="이전 달" onClick={()=>changeMonth(nextMonth(month,-1))}>‹</button><label><span className="expense-sr-only">조회 월</span><input type="month" value={month} min="1900-01" max="9998-12" onChange={e=>changeMonth(e.target.value)}/></label><button aria-label="다음 달" onClick={()=>changeMonth(nextMonth(month,1))}>›</button></div><span>실제 수납일 · 지급일 기준</span><button className="expense-text-button" onClick={()=>void load()} disabled={loading}>새로고침</button></div>
+    <div className="expense-month-bar"><div className="expense-month-picker"><button aria-label="이전 달" onClick={()=>changeMonth(nextMonth(month,-1))}>‹</button><label><span className="expense-sr-only">조회 월</span><input type="month" value={month} min="1900-01" max="9998-12" onChange={e=>changeMonth(e.target.value)}/></label><button aria-label="다음 달" onClick={()=>changeMonth(nextMonth(month,1))}>›</button></div><div className="expense-receipt-basis" role="group" aria-label="수납액 계산 기준"><button type="button" aria-pressed={receiptBasis==="billing"} onClick={()=>setReceiptBasis("billing")}>귀속월</button><button type="button" aria-pressed={receiptBasis==="payment"} onClick={()=>setReceiptBasis("payment")}>납부일</button></div><span>수납: {receiptBasis==="billing"?"원비 귀속월":"실제 납부일"} · 지출: 실제 지급일</span><button className="expense-text-button" onClick={()=>void load()} disabled={loading}>새로고침</button></div>
     <div className="expense-summary" aria-busy={loading}>
       <article className="expense-summary-main"><span>이번 달 지출</span><strong>{loading||!data?"—":won(total)}</strong><small>{loading?"내역 확인 중":items.length+"건의 지출"}</small></article>
-      <article><span>실제 수납액</span><strong>{loading||!data?"—":won(Number(data.receipts))}</strong><small>선택한 달에 실제로 받은 원비</small></article>
-      <article><span>수납 − 지출</span><strong className={data&&Number(data.receipts)-total<0?"expense-negative":""}>{loading||!data?"—":won(Number(data.receipts)-total)}</strong><small>등록된 지출 기준 차액</small></article>
+      <article><span>{receiptBasis==="billing"?selectedMonthName+"분 수납액":selectedMonthName+"에 받은 금액"}</span><strong>{loading||!data?"—":won(receiptTotal)}</strong><small>{receiptBasis==="billing"?"귀속월 기준 · 선납·지연 납부 포함":"납부일 기준 · 해당 월에 실제로 받은 원비"}</small></article>
+      <article><span>수납 − 지출</span><strong className={data&&receiptTotal-total<0?"expense-negative":""}>{loading||!data?"—":won(receiptTotal-total)}</strong><small>{receiptBasis==="billing"?"해당 월분 수납액 − 해당 월 지급액":"해당 월 실제 수납액 − 지급액"}</small></article>
     </div>
     <ExpenseAccountBalance supabase={supabase}/>
     {error&&<p className="expense-error" role="alert">{error}</p>}

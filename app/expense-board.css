@@ -204,3 +204,11 @@
  .content .expense-balance form{grid-template-columns:minmax(0,1fr);gap:13px}
  .content .expense-balance-actions{justify-content:flex-end}
 }
+
+.expense-receipt-basis{display:flex;flex-shrink:0;gap:3px;padding:4px;border-radius:10px;background:#f3edf1}
+.expense-receipt-basis button{min-height:34px;padding:7px 13px;border:0;border-radius:7px;background:transparent;color:#937b88;font-size:12px;white-space:nowrap}
+.expense-receipt-basis button[aria-pressed=true]{background:white;color:#942d64;font-weight:750;box-shadow:0 1px 4px #4220310d}
+@media(max-width:760px){
+ .content .expense-month-bar .expense-receipt-basis{order:4;width:100%;box-sizing:border-box}
+ .content .expense-receipt-basis button{flex:1;min-height:40px}
+}
