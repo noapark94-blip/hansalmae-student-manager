@@ -367,12 +367,9 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         <SubjectEditor
           supabase={supabase}
           subjects={data?.subjects ?? []}
-          onRemoved={load}
+          onRemoved={() => load(true)}
           onClose={() => setSubjectOpen(false)}
-          onSaved={async () => {
-            setSubjectOpen(false);
-            await load();
-          }}
+          onSaved={() => load(true)}
         />
       )}
       {classOpen && (
@@ -603,15 +600,21 @@ function SubjectEditor({ supabase, subjects, onClose, onSaved, onRemoved }: { su
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim() || saving || pendingDelete) return;
+    const addedName = name.trim();
     setSaving(true);
     setError("");
-    const { error: saveError } = await supabase.rpc("staff_create_subject", { p_name: name.trim(), p_main_subject: mainSubject });
-    if (saveError) {
-      setError(saveError.message);
+    setNotice("");
+    try {
+      const { error: saveError } = await supabase.rpc("staff_create_subject", { p_name: addedName, p_main_subject: mainSubject });
+      if (saveError) throw saveError;
+      await onSaved();
+      setName("");
+      setNotice(`${addedName} 과목을 추가했습니다.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (err as { message?: string }).message || "추가하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
       setSaving(false);
-      return;
     }
-    await onSaved();
   };
   return (
     <div className="modal-backdrop">
