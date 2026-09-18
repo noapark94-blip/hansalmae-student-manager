@@ -318,3 +318,5 @@
 .income-basis-switch button:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 .income-basis-description{margin:10px 0 18px;font-size:12px;color:var(--muted);line-height:1.7;word-break:keep-all}
 @media(max-width:700px){.income-basis-switch{display:grid;width:100%;box-sizing:border-box}.income-basis-switch button{padding:10px 8px;font-size:12px}}
+
+.tuition-row .memo.tuition-row-memos{display:flex;flex-direction:column;gap:8px;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}.tuition-row-memos>span{display:flex;flex-direction:column;gap:3px;min-width:0}.tuition-row-memos>span>span{white-space:pre-wrap;overflow-wrap:anywhere}.tuition-row-memos .tuition-row-charge-memo{color:var(--muted)}.tuition-row-memos small{font-size:inherit;font-weight:600;color:var(--muted)}
