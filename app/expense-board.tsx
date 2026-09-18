@@ -30,6 +30,19 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
   const [busy,setBusy]=useState(false);
   const [receiptBusy,setReceiptBusy]=useState<string|null>(null);
   const request=useRef(0);
+  const boardRef=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    const closeMenu=(event:KeyboardEvent)=>{
+      if(event.key!=="Escape"||event.defaultPrevented||boardRef.current?.querySelector(".expense-overlay"))return;
+      const menus=Array.from(boardRef.current?.querySelectorAll<HTMLDetailsElement>(".expense-row-actions details[open]")??[]);
+      if(!menus.length)return;
+      event.preventDefault();event.stopPropagation();
+      menus.forEach(menu=>{menu.open=false;});
+      menus.at(-1)?.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("keydown",closeMenu);
+    return()=>document.removeEventListener("keydown",closeMenu);
+  },[]);
   const load=useCallback(async()=>{
     const id=++request.current;setLoading(true);setError("");
     try{
@@ -66,7 +79,7 @@ export function ExpenseBoard({supabase}:{supabase:SupabaseClient}){
       const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=item.receipt_name||"영수증";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }catch(err){setError(message(err));}finally{setReceiptBusy(null);}
   };
-  return <section className="expense-board">
+  return <section className="expense-board" ref={boardRef}>
     <header className="expense-heading"><div><p>관리자 전용</p><h1>지출 관리</h1><span>학원 운영에 사용한 금액을 월별로 기록합니다.</span></div><button className="expense-primary" onClick={()=>{setNotice("");setDraft(emptyDraft(month));}}>＋ 지출 등록</button></header>
     <div className="expense-month-bar"><div className="expense-month-picker"><button aria-label="이전 달" onClick={()=>changeMonth(nextMonth(month,-1))}>‹</button><label><span className="expense-sr-only">조회 월</span><input type="month" value={month} min="1900-01" max="9998-12" onChange={e=>changeMonth(e.target.value)}/></label><button aria-label="다음 달" onClick={()=>changeMonth(nextMonth(month,1))}>›</button></div><span>실제 수납일 · 지급일 기준</span><button className="expense-text-button" onClick={()=>void load()} disabled={loading}>새로고침</button></div>
     <div className="expense-summary" aria-busy={loading}>
