@@ -139,3 +139,23 @@
 .tuition-payment-history>label>select{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px}
 .tuition-payment-edit-note{font-size:12px;line-height:1.6;color:var(--muted);word-break:keep-all}
 @media(max-width:650px){.tuition-payment-history{padding:14px}.tuition-payment-history .form-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Payment history actions and scoped editor layout */
+.has-payment-edit .tuition-settlement-head,.has-payment-edit .tuition-row{min-width:1080px;grid-template-columns:90px minmax(145px,1.2fr) 90px 75px 85px 60px 78px minmax(100px,.75fr) 232px}
+.tuition-row-actions .payment-edit-action{color:var(--wine);border-color:#dfc5d2;background:#fcf6f9}
+.tuition-payment-history .payment-editor-intro{margin:0 0 22px;color:var(--muted);font-size:13px;line-height:1.6;word-break:keep-all}
+.tuition-payment-history .payment-history-form{padding:0;margin:0}
+.tuition-payment-history .payment-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px}
+.tuition-payment-history .payment-meta-grid>label{display:grid;gap:8px;min-width:0;font-size:13px;font-weight:650;color:#655961}
+.tuition-payment-history .payment-meta-grid>label.full{display:grid;grid-column:1/-1}
+.tuition-payment-history .payment-meta-grid input,.tuition-payment-history .payment-meta-grid select{box-sizing:border-box;width:100%;min-width:0;height:46px;padding:0 13px;border:1px solid #e4d8df;border-radius:10px;background:#fff;font-size:14px;color:#342c31}
+.tuition-payment-history .payment-meta-grid input:focus,.tuition-payment-history .payment-meta-grid select:focus{outline:2px solid #e7c5d7;outline-offset:2px}
+.tuition-payment-history .payment-balance-summary{display:flex;flex-direction:column;justify-content:space-between;gap:8px;padding:12px 15px;border:1px solid #eddde6;border-radius:10px;background:#fcf7fa}
+.payment-balance-summary span{font-size:12px;color:var(--muted)}
+.payment-balance-summary strong{font-size:20px;color:var(--wine);font-variant-numeric:tabular-nums}
+.tuition-payment-history .tuition-payment-edit-note{margin:20px 0 0;padding:14px 16px;background:#f8f6f7;border-radius:10px;font-size:12px;line-height:1.7}
+.tuition-payment-edit-note>b{color:#655961}
+.tuition-payment-edit-note>p{margin:4px 0 0;font-size:12px;line-height:1.7}
+.tuition-payment-history footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.tuition-payment-history footer button{min-height:44px;white-space:nowrap}
+@media(max-width:650px){.tuition-payment-history .payment-meta-grid{grid-template-columns:minmax(0,1fr);gap:16px}.tuition-payment-history footer{display:grid;grid-template-columns:1fr 1.5fr}.tuition-payment-history footer button{min-width:0;width:100%;padding:0 10px}}
