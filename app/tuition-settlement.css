@@ -230,3 +230,56 @@
 .payment-cancel-note{font-size:12px;color:var(--muted);line-height:1.7;word-break:keep-all}
 .payment-manager .payment-cancel-submit{background:#ac3c55}
 @media(max-width:650px){.payment-manager{max-height:calc(100dvh - 140px)}.payment-manager-totals{padding:14px 10px;gap:7px}.payment-manager-totals>div+div{padding-left:8px}.payment-manager-totals b{font-size:14px}.payment-manager-totals span{font-size:11px}.payment-record{padding:13px}.payment-record-main b{font-size:16px}.payment-record-side{gap:5px}.payment-manager-footnote{text-align:center}.payment-record-more{width:40px;height:40px}}
+
+/* Compact, selectable monthly collection report. */
+.tuition-insights{width:min(1100px,calc(100vw - 32px));display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}
+.tuition-insights>header{flex-shrink:0}
+.tuition-insights>header span{font-size:12px;line-height:1.6}
+.tuition-insights .tuition-analytics-body{min-height:0;padding:20px 24px;background:#fcfafb}
+.tuition-insights .tuition-analytics-summary{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.tuition-insights .tuition-analytics-summary article{min-height:110px;padding:18px;border-radius:14px;gap:10px;min-width:0}
+.tuition-insights .tuition-analytics-summary span{font-size:12px;font-weight:650}
+.tuition-insights .tuition-analytics-summary b{font-size:21px;letter-spacing:-.5px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tuition-insights .tuition-analytics-summary small{font-size:11px;line-height:1.5}
+.tuition-insights .tuition-analytics-summary .insight-primary{background:#953064;border-color:#953064;color:#fff}
+.tuition-insights .insight-primary span,.tuition-insights .insight-primary small{color:#f3ddea}
+.income-trend{background:#fff;border:1px solid #eadfe5;border-radius:15px;overflow:hidden}
+.income-trend>header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px}
+.income-trend h3{margin:0;font-size:15px}
+.income-trend header p{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.income-legend{display:flex;gap:14px;flex-wrap:wrap}
+.income-legend span,.income-detail-grid span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.income-legend span:before,.income-detail-grid span:before{content:"";width:8px;height:8px;border-radius:3px;flex-shrink:0}
+.income-legend .early:before,.income-detail-grid .early:before,.income-stack .early{background:#d9ad53}
+.income-legend .ontime:before,.income-detail-grid .ontime:before,.income-stack .ontime{background:#9d3269}
+.income-legend .late:before,.income-detail-grid .late:before,.income-stack .late{background:#6987b4}
+.income-trend-scroll{overflow-x:auto;padding:0 14px 12px}
+.income-bars{display:grid;grid-template-columns:repeat(12,minmax(48px,1fr));gap:6px;min-width:660px}
+.income-month{min-width:0;border:1px solid transparent;border-radius:10px;background:transparent;padding:0 3px 10px;display:flex;flex-direction:column;align-items:center;color:#71646c;cursor:pointer}
+.income-month[aria-pressed=true]{background:#fbf0f6;border-color:#ead0de;color:var(--wine)}
+.income-month:hover{background:#faf5f8}
+.income-month:focus-visible{outline:2px solid var(--wine);outline-offset:-2px}
+.income-track{height:190px;width:100%;display:flex;justify-content:center;align-items:flex-end;border-bottom:1px solid #ede5e9;position:relative;margin-bottom:10px;background:repeating-linear-gradient(to top,transparent 0,transparent 46px,#f6f1f4 47px,transparent 48px)}
+.income-stack-wrap{position:relative;width:min(32px,75%);flex-shrink:0}
+.income-bar-value{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);font-size:10px;white-space:nowrap;font-weight:700;color:#66555e}
+.income-stack{display:flex;flex-direction:column-reverse;overflow:hidden;border-radius:6px 6px 2px 2px;height:100%;width:100%}
+.income-stack i{display:block;min-height:0}
+.income-zero{width:20px;height:2px;background:#e9e1e6;margin-bottom:1px;border-radius:3px}
+.income-month>b{font-size:12px}
+.income-month>small{font-size:10px;color:#a1929a;margin-top:4px}
+.income-no-data{padding:10px 20px;margin:0;color:var(--muted);font-size:13px}
+.income-detail{margin-top:16px;background:#fff;border:1px solid #eadfe5;border-radius:15px;padding:20px}
+.income-detail>header{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.income-detail>header>div{display:grid;gap:6px;min-width:0}
+.income-detail>header>div:last-child{text-align:right}
+.income-detail header span{font-size:11px;color:var(--muted)}
+.income-detail h3{margin:0;font-size:17px}
+.income-detail strong{font-size:23px;color:var(--wine);font-variant-numeric:tabular-nums}
+.income-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px;padding:16px 0;border-top:1px solid #f0e8ed;border-bottom:1px solid #f0e8ed}
+.income-detail-grid>div{display:grid;gap:9px;min-width:0}
+.income-detail-grid b{font-size:16px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.income-billing-note{display:flex;flex-wrap:wrap;gap:12px 24px;margin-top:14px;font-size:12px;color:var(--muted)}
+.income-billing-note b{margin-left:6px;color:#5d4d56}
+.income-detail>p{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0;word-break:keep-all}
+.tuition-insights>footer{flex-shrink:0;margin:0;padding:12px 24px;background:#fff}
+@media(max-width:700px){.tuition-insights{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:18px}.tuition-insights .tuition-analytics-body{padding:14px}.tuition-insights .tuition-analytics-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tuition-insights .tuition-analytics-summary article{padding:14px;min-height:105px}.tuition-insights .tuition-analytics-summary b{font-size:18px}.tuition-insights .tuition-analytics-summary span{font-size:11px}.tuition-insights .tuition-analytics-summary small{font-size:10px}.income-trend>header{align-items:flex-start;flex-direction:column;padding:16px}.income-legend{gap:12px}.income-detail{padding:16px}.income-detail strong{font-size:20px}.income-detail-grid{gap:8px}.income-detail-grid b{font-size:14px}.income-detail-grid span{font-size:11px}.income-bars{min-width:660px}.tuition-insights>footer{padding:12px 16px}}

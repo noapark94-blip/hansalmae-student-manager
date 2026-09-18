@@ -3,7 +3,7 @@
 import type * as React from "react";
 import Image from "next/image";
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type PaymentAllocation = { key:string; label:string; amount:number };
@@ -78,7 +78,94 @@ export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
 
 function MonthPicker({value,year,onYear,onSelect,onClose}:{value:string;year:number;onYear:(year:number)=>void;onSelect:(value:string)=>void;onClose:()=>void}){const current=koreaMonth();return <><button className="tuition-month-dismiss" aria-label="월 선택 닫기" onClick={onClose}/><section className="tuition-month-popover"><header><button aria-label="이전 연도" onClick={()=>onYear(year-1)}>‹</button><b>{year}년</b><button aria-label="다음 연도" onClick={()=>onYear(year+1)}>›</button></header><div>{Array.from({length:12},(_,index)=>{const next=`${year}-${String(index+1).padStart(2,"0")}`;return <button key={next} className={`${next===value?"selected ":""}${next===current?"current":""}`} onClick={()=>onSelect(next)}><b>{index+1}월</b>{next===current&&<small>이번 달</small>}</button>})}</div><footer><button onClick={()=>{const now=koreaMonth();onYear(Number(now.slice(0,4)));onSelect(now);}}>이번 달로 이동</button></footer></section></>}
 
-function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseClient;endMonth:string;onClose:()=>void}){const[points,setPoints]=useState<MonthlyTuitionPoint[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState("");useEffect(()=>{let active=true;const months=Array.from({length:12},(_,index)=>shiftMonth(endMonth,index-11));void Promise.all(months.map(month=>supabase.rpc("tuition_board",{p_month:`${month}-01`}))).then(results=>{if(!active)return;if(results.some(result=>result.error)){setError("월별 수납 현황을 불러오지 못했습니다.");setLoading(false);return;}const next=new Map(months.map(month=>[month,{month,charged:0,early:0,onTime:0,late:0,balance:0}]));const paymentIds=new Set<string>();results.forEach((result,index)=>{const billingMonth=months[index];const board=result.data as Data;const point=next.get(billingMonth)!;board.items.forEach(row=>{if(row.status!=="waived"){point.charged+=row.totalAmount;point.balance+=row.balance;}row.payments.forEach(payment=>{if(paymentIds.has(payment.id))return;paymentIds.add(payment.id);const paidMonth=payment.paidAt.slice(0,7);const paidPoint=next.get(paidMonth);if(!paidPoint)return;if(paidMonth<billingMonth)paidPoint.early+=payment.amount;else if(paidMonth===billingMonth)paidPoint.onTime+=payment.amount;else paidPoint.late+=payment.amount;});});});setPoints(months.map(month=>next.get(month)!));setLoading(false);});return()=>{active=false};},[endMonth,supabase]);const paid=(point:MonthlyTuitionPoint)=>point.early+point.onTime+point.late;const total=points.reduce((sum,point)=>sum+paid(point),0);const max=Math.max(1,...points.map(point=>Math.max(paid(point),point.charged)));const top=total>0?points.reduce<MonthlyTuitionPoint|null>((best,point)=>!best||paid(point)>paid(best)?point:best,null):null;const selected=points.at(-1);return <div className="modal-backdrop tuition-analytics-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal tuition-analytics-modal"><header><div><p className="eyebrow">최근 12개월</p><h2>월별 수납 현황</h2><span>실제 납부일을 기준으로 조기·정시·지연 수납을 구분합니다.</span></div><button onClick={onClose}>×</button></header>{loading?<p className="tuition-analytics-empty">수납 흐름을 계산하는 중이에요…</p>:error?<p className="attendance-error">{error}</p>:<div className="tuition-analytics-body"><section className="tuition-analytics-summary"><article><span>12개월 총수납</span><b>{money(total)}</b></article><article><span>월평균 수납</span><b>{money(Math.round(total/12))}</b></article><article><span>최고 수납 월</span><b>{top?formatMonth(top.month):"수납 기록 없음"}</b><small>{top?money(paid(top)):"최근 12개월 기준"}</small></article><article className={selected?.balance?"attention":""}><span>{formatMonth(endMonth)} 미수금</span><b>{money(selected?.balance??0)}</b></article></section><section className="tuition-income-chart"><header><div><h3>월별 실제 수납액</h3><p>막대에 마우스를 올리면 월별 상세 금액을 확인할 수 있습니다.</p></div><div><span className="early">조기 납부</span><span className="ontime">정시 납부</span><span className="late">지연 납부</span></div></header><div className="tuition-chart-stage">{points.map(point=>{const amount=paid(point);const status=point.charged===0?"청구 없음":point.balance?`미수 ${compactMoney(point.balance)}`:"정산 완료";return <article key={point.month} title={`${formatMonth(point.month)} · 수납 ${money(amount)} · 청구 ${money(point.charged)} · 미수 ${money(point.balance)}`}><div className="tuition-chart-value">{amount?compactMoney(amount):""}</div><div className="tuition-chart-column" style={{height:`${Math.max(amount/max*100,amount?5:0)}%`}}><i className="early" style={{height:`${amount?point.early/amount*100:0}%`}}/><i className="ontime" style={{height:`${amount?point.onTime/amount*100:0}%`}}/><i className="late" style={{height:`${amount?point.late/amount*100:0}%`}}/></div><b>{Number(point.month.slice(5))}월</b><small className={point.balance?"has-balance":""}>{status}</small></article>})}</div></section></div>}<footer><button className="secondary-button" onClick={onClose}>닫기</button></footer></section></div>}
+type AnalyticsCharge={billing_month:string;base_amount:number;discount_amount:number;additional_amount:number;status:string;tuition_payments:{amount:number}[]};
+type AnalyticsPayment={id:string;amount:number;paid_at:string;tuition_charges:{billing_month:string}};
+function tuitionAnalyticsPoints(months:string[],charges:AnalyticsCharge[],payments:AnalyticsPayment[]):MonthlyTuitionPoint[]{
+ const result=new Map(months.map(month=>[month,{month,charged:0,early:0,onTime:0,late:0,balance:0}]));
+ for(const charge of charges){
+  const point=result.get(charge.billing_month.slice(0,7));if(!point||charge.status==="waived")continue;
+  const total=Math.max(0,charge.base_amount-charge.discount_amount+charge.additional_amount);
+  point.charged+=total;point.balance+=Math.max(0,total-charge.tuition_payments.reduce((sum,payment)=>sum+payment.amount,0));
+ }
+ const seen=new Set<string>();
+ for(const payment of payments){
+  if(seen.has(payment.id))continue;seen.add(payment.id);
+  const paidMonth=new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit"}).format(new Date(payment.paid_at));
+  const point=result.get(paidMonth);if(!point)continue;
+  const billingMonth=payment.tuition_charges.billing_month.slice(0,7);
+  if(paidMonth<billingMonth)point.early+=payment.amount;else if(paidMonth===billingMonth)point.onTime+=payment.amount;else point.late+=payment.amount;
+ }
+ return months.map(month=>result.get(month)!);
+}
+function TuitionAnalyticsModal({supabase,endMonth,onClose}:{supabase:SupabaseClient;endMonth:string;onClose:()=>void}){
+ const [points,setPoints]=useState<MonthlyTuitionPoint[]>([]);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
+ const [selectedMonth,setSelectedMonth]=useState(endMonth);
+ const chartScroll=useRef<HTMLDivElement>(null);
+ useEffect(()=>{if(!loading&&chartScroll.current)chartScroll.current.scrollLeft=chartScroll.current.scrollWidth;},[loading,points]);
+ const [revision,setRevision]=useState(0);
+ useEffect(()=>{let active=true;setLoading(true);setError("");
+  const months=Array.from({length:12},(_,index)=>shiftMonth(endMonth,index-11));
+  const readCharges=async()=>{
+   const rows:AnalyticsCharge[]=[];
+   for(let offset=0;;offset+=500){
+    const {data,error:queryError}=await supabase.from("tuition_charges").select("billing_month,base_amount,discount_amount,additional_amount,status,tuition_payments(amount)").gte("billing_month",months[0]+"-01").lt("billing_month",shiftMonth(endMonth,1)+"-01").order("id").range(offset,offset+499);
+    if(queryError)throw queryError;if(!active)return [];
+    rows.push(...(data as unknown as AnalyticsCharge[]));
+    if(data.length<500)return rows;
+   }
+  };
+  const readPayments=async()=>{
+   const rows:AnalyticsPayment[]=[];
+   for(let offset=0;;offset+=500){
+    const {data,error:queryError}=await supabase.from("tuition_payments").select("id,amount,paid_at,tuition_charges!inner(billing_month)").gte("paid_at",months[0]+"-01T00:00:00+09:00").lt("paid_at",shiftMonth(endMonth,1)+"-01T00:00:00+09:00").order("id").range(offset,offset+499);
+    if(queryError)throw queryError;if(!active)return [];
+    rows.push(...(data as unknown as AnalyticsPayment[]));
+    if(data.length<500)return rows;
+   }
+  };
+  void Promise.all([readCharges(),readPayments()]).then(([charges,payments])=>{
+   if(!active)return;
+   setPoints(tuitionAnalyticsPoints(months,charges,payments));setLoading(false);
+  }).catch(()=>{if(active){setError("월별 수납 현황을 불러오지 못했습니다.");setLoading(false);}});
+  return()=>{active=false;};
+ },[endMonth,supabase,revision]);
+ const paid=(point:MonthlyTuitionPoint)=>point.early+point.onTime+point.late;
+ const total=points.reduce((sum,point)=>sum+paid(point),0);
+ const max=Math.max(1,...points.map(paid));
+ const top=total>0?points.reduce<MonthlyTuitionPoint|null>((best,point)=>!best||paid(point)>paid(best)?point:best,null):null;
+ const current=points.at(-1);
+ const selected=points.find(point=>point.month===selectedMonth)??current;
+ return <div className="modal-backdrop tuition-analytics-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}><section className="student-modal tuition-analytics-modal tuition-insights">
+ <header><div><p className="eyebrow">수납 리포트</p><h2>월별 수납 현황</h2><span>{formatMonth(shiftMonth(endMonth,-11))} — {formatMonth(endMonth)} · 실제 납부일 기준</span></div><button onClick={onClose} aria-label="수납 현황 닫기">×</button></header>
+ {loading?<p className="tuition-analytics-empty" role="status">수납 흐름을 확인하고 있어요…</p>:error?<div className="tuition-analytics-empty" role="alert"><p>{error}</p><button className="secondary-button" onClick={()=>setRevision(value=>value+1)}>다시 확인</button></div>:<div className="tuition-analytics-body">
+ <section className="tuition-analytics-summary">
+ <article className="insight-primary"><span>12개월 총수납</span><b>{money(total)}</b><small>실제로 받은 금액</small></article>
+ <article><span>월평균 수납</span><b>{money(Math.round(total/12))}</b><small>수납 없는 달 포함 · 12개월 기준</small></article>
+ <article><span>최고 수납 월</span><b>{top?formatMonth(top.month):"기록 없음"}</b><small>{top?money(paid(top)):"수납 기록이 쌓이면 표시됩니다."}</small></article>
+ <article className={current?.balance?"attention":""}><span>{formatMonth(endMonth)}분 미수금</span><b>{money(current?.balance??0)}</b><small>해당 월 청구서의 현재 잔액</small></article>
+ </section>
+ <section className="income-trend">
+ <header><div><h3>월별 수납 흐름</h3><p>월을 선택하면 상세 금액을 확인할 수 있어요.</p></div><div className="income-legend"><span className="early">선납</span><span className="ontime">당월 납부</span><span className="late">지연 납부</span></div></header>
+ {total===0&&<p className="income-no-data">이 기간에 등록된 수납 내역이 없습니다.</p>}
+ <div className="income-trend-scroll" ref={chartScroll}><div className="income-bars" role="group" aria-label="월별 수납 금액">
+ {points.map(point=>{const amount=paid(point);return <button type="button" key={point.month} className="income-month" aria-pressed={selected?.month===point.month} aria-label={formatMonth(point.month)+" 수납 "+money(amount)} onClick={()=>setSelectedMonth(point.month)}>
+ <span className="income-track"><span className="income-stack-wrap" style={{height:amount?Math.max(3,amount/max*160):0}}><span className="income-bar-value">{amount?compactMoney(amount):""}</span><span className="income-stack"><i className="early" style={{flex:point.early}}/><i className="ontime" style={{flex:point.onTime}}/><i className="late" style={{flex:point.late}}/></span></span>{!amount&&<span className="income-zero"/>}</span>
+ <b>{Number(point.month.slice(5))}월</b><small>{point.month.slice(0,4)}</small>
+ </button>})}
+ </div></div>
+ </section>
+ {selected&&<section className="income-detail" aria-live="polite">
+ <header><div><span>선택한 월</span><h3>{formatMonth(selected.month)}</h3></div><div><span>실제 수납액</span><strong>{money(paid(selected))}</strong></div></header>
+ <div className="income-detail-grid">{([["선납",selected.early,"early"],["당월 납부",selected.onTime,"ontime"],["지연 납부",selected.late,"late"]] as [string,number,string][]).map(([label,amount,kind])=><div key={kind}><span className={kind}>{label}</span><b>{money(amount)}</b></div>)}</div>
+ <div className="income-billing-note"><span>이 달 청구액 <b>{money(selected.charged)}</b></span><span>현재 미수금 <b>{money(selected.balance)}</b></span></div>
+ <p>수납액은 이 달에 받은 금액이며, 청구액·미수금은 이 달분 원비 기준입니다.</p>
+ </section>}
+ </div>}
+ <footer><button className="secondary-button" onClick={onClose}>닫기</button></footer>
+ </section></div>;
+}
 
 function FeePolicyModal({supabase,month,onClose,onSaved}:{supabase:SupabaseClient;month:string;onClose:()=>void;onSaved:()=>Promise<void>}){
   const[data,setData]=useState<FeePolicyData>({groups:[],subjects:[],discounts:[]});
