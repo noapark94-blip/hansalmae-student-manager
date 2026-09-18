@@ -129,3 +129,5 @@
 .tuition-settings-modal .tuition-rule-list>div>label{grid-column:1 / -1}
 .tuition-settings-modal .tuition-rule-list>div>em{display:block;white-space:nowrap}
 }
+
+.fee-policy-modal .fee-combination-total{margin:12px 0 0;padding:12px 14px;background:#faf3f7;border-radius:10px;color:var(--wine);font-size:13px;font-weight:650;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
