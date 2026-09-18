@@ -109,3 +109,23 @@
 .tuition-sort-controls button{height:36px;padding:0 11px;border:1px solid #dec8d3;border-radius:9px;background:#fff;color:var(--wine);font-size:9px;font-weight:750;white-space:nowrap}
 @media(max-width:1100px){.tuition-advanced-filterbar{align-items:stretch;flex-direction:column}.tuition-filter-selects{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.tuition-advanced-filterbar select,.tuition-filter-selects label:last-child select{width:100%;min-width:0}.tuition-sort-controls{justify-content:flex-end}}
 @media(max-width:650px){.tuition-advanced-filterbar{padding:11px;margin-bottom:12px}.tuition-filter-selects{grid-template-columns:1fr 1fr}.tuition-sort-controls{display:grid;grid-template-columns:auto 1fr auto;align-items:end}.tuition-sort-controls label select{width:100%;min-width:0}.tuition-sort-controls button{padding:0 8px}}
+
+
+/* Keep monetary units and adjustment labels intact in student settings. */
+.tuition-settings-modal .tuition-settings-layout main>section>header{gap:16px;align-items:flex-start}
+.tuition-settings-modal .tuition-settings-layout main>section>header>div{min-width:0;flex:1}
+.tuition-settings-modal .tuition-settings-layout main>section>header>b{flex-shrink:0;white-space:nowrap}
+.tuition-settings-modal .tuition-settings-layout main header p{word-break:keep-all;overflow-wrap:break-word}
+.tuition-settings-modal .tuition-rule-list>div{grid-template-columns:max-content minmax(0,1fr) minmax(90px,124px) 18px;column-gap:12px}
+.tuition-settings-modal .tuition-rule-list label{white-space:nowrap}
+.tuition-settings-modal .tuition-rule-list label input{flex-shrink:0}
+.tuition-settings-modal .tuition-rule-list>div>input{min-width:0;width:100%;box-sizing:border-box}
+@media(max-width:700px){
+.tuition-settings-modal .tuition-settings-layout{grid-template-columns:minmax(0,1fr)}
+.tuition-settings-modal .tuition-settings-layout main{min-width:0}
+.tuition-settings-modal .tuition-settings-layout main>section>header{flex-wrap:wrap;gap:8px}
+.tuition-settings-modal .tuition-settings-layout main>section>header>div{flex-basis:100%}
+.tuition-settings-modal .tuition-rule-list>div{grid-template-columns:minmax(0,1fr) minmax(72px,100px) 16px;gap:8px;padding:12px 0}
+.tuition-settings-modal .tuition-rule-list>div>label{grid-column:1 / -1}
+.tuition-settings-modal .tuition-rule-list>div>em{display:block;white-space:nowrap}
+}
