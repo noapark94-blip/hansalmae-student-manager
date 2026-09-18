@@ -367,6 +367,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
         <SubjectEditor
           supabase={supabase}
           subjects={data?.subjects ?? []}
+          onRemoved={load}
           onClose={() => setSubjectOpen(false)}
           onSaved={async () => {
             setSubjectOpen(false);
@@ -580,14 +581,28 @@ function StudentExamResultEditor({ supabase, classRoom, date, examTitle, onClose
   );
 }
 
-function SubjectEditor({ supabase, subjects, onClose, onSaved }: { supabase: SupabaseClient; subjects: Subject[]; onClose: () => void; onSaved: () => Promise<void> }) {
+function SubjectEditor({ supabase, subjects, onClose, onSaved, onRemoved }: { supabase: SupabaseClient; subjects: Subject[]; onClose: () => void; onSaved: () => Promise<void>; onRemoved: () => Promise<void> }) {
   const [name, setName] = useState("");
   const [mainSubject, setMainSubject] = useState<Subject["mainSubject"]>("영어");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Subject | null>(null);
+  const [notice, setNotice] = useState("");
+  const remove = async () => {
+    if (!pendingDelete || saving) return;
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const { error: removeError } = await supabase.rpc("staff_archive_subject", { p_subject_id: pendingDelete.id });
+      if (removeError) throw removeError;
+      setNotice(`${pendingDelete.name} 과목을 목록에서 삭제했습니다.`);
+      setPendingDelete(null);
+      await onRemoved();
+    } catch (err) { setError(err instanceof Error ? err.message : (err as { message?: string }).message || "삭제하지 못했습니다. 다시 시도해 주세요."); }
+    finally { setSaving(false); }
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || saving || pendingDelete) return;
     setSaving(true);
     setError("");
     const { error: saveError } = await supabase.rpc("staff_create_subject", { p_name: name.trim(), p_main_subject: mainSubject });
@@ -602,16 +617,18 @@ function SubjectEditor({ supabase, subjects, onClose, onSaved }: { supabase: Sup
     <div className="modal-backdrop">
       <form className="modal subject-editor" onSubmit={submit}>
         <header>
-          <div><p className="eyebrow">과목 설정</p><h2>하위과목 추가</h2><p>국어·영어·수학 아래에 세부 과목을 추가합니다.</p></div>
-          <button type="button" className="modal-close" onClick={onClose}>×</button>
+          <div><p className="eyebrow">과목 설정</p><h2>하위과목 관리</h2><p>국어·영어·수학 아래에 세부 과목을 추가합니다.</p></div>
+          <button type="button" className="modal-close" disabled={saving} onClick={onClose}>×</button>
         </header>
         <div className="modal-body">
           <label>과목 이름<input value={name} onChange={(event)=>setName(event.target.value)} placeholder="예: 영어 독해" /></label>
           <div className="subject-main-options">{(["국어","영어","수학"] as const).map((item)=><button type="button" key={item} className={mainSubject===item?"active":""} onClick={()=>setMainSubject(item)}>{item}</button>)}</div>
-          <div className="existing-subjects"><b>현재 하위과목</b>{subjects.length ? subjects.map((item)=><span key={item.id}>{item.mainSubject} · {item.name}</span>) : <span>등록된 하위과목이 없습니다.</span>}</div>
+          <div className="existing-subjects"><b>현재 하위과목</b>{subjects.map((item)=><div className="subject-management-row" key={item.id}><span>{item.mainSubject} · {item.name}</span>{item.parentId ? <button type="button" disabled={saving} onClick={()=>{setPendingDelete(item);setError("");setNotice("");}} aria-label={item.name+" 과목 삭제"}>삭제</button> : <small>기본</small>}</div>)}</div>
+          {pendingDelete && <div className="subject-delete-confirm" role="alert"><b>{pendingDelete.name} 과목을 삭제할까요?</b><p>선택 목록에서 숨깁니다. 기존 수업과 기록은 유지되며, 같은 이름으로 다시 추가하면 복구됩니다.</p><div><button type="button" disabled={saving} onClick={()=>setPendingDelete(null)}>취소</button><button type="button" className="primary" disabled={saving} onClick={()=>void remove()}>{saving?"삭제 중…":"삭제"}</button></div></div>}
+          {notice && <p className="subject-management-notice" role="status">{notice}</p>}
         </div>
         {error && <p className="form-error">{error}</p>}
-        <footer><button type="button" className="secondary-button" onClick={onClose}>취소</button><button className="primary" disabled={saving}>{saving?"추가 중…":"추가"}</button></footer>
+        <footer><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>취소</button><button className="primary" disabled={saving || !!pendingDelete}>{saving&&!pendingDelete?"추가 중…":"추가"}</button></footer>
       </form>
     </div>
   );
