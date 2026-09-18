@@ -417,4 +417,4 @@ function TuitionPaymentDatePicker({value,onChange,disabled=false}:{value:string;
  </div>;
 }
 
-function TuitionRowMemo({row}:{row:Charge}){const notes=row.payments.filter(payment=>payment.memo?.trim());return <span className="memo tuition-row-memos">{notes.map(payment=><span className="tuition-row-payment-memo" key={payment.id}><small>납부 비고 · {formatDate(payment.paidAt)}</small><span>{payment.memo}</span></span>)}{row.memo?.trim()&&<span className="tuition-row-charge-memo">{notes.length>0&&<small>청구 비고</small>}<span>{row.memo}</span></span>}{!notes.length&&!row.memo?.trim()&&"—"}</span>}
+function TuitionRowMemo({row}:{row:Charge}){const notes=row.payments.filter(payment=>payment.memo?.trim());return <span className="memo tuition-row-memos">{notes.map(payment=><span className="tuition-row-payment-memo" key={payment.id}><span>{payment.memo}</span></span>)}{row.memo?.trim()&&<span className="tuition-row-charge-memo"><span>{row.memo}</span></span>}{!notes.length&&!row.memo?.trim()&&"—"}</span>}
