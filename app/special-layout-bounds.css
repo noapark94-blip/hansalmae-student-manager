@@ -90,3 +90,17 @@
 .special-board-modal.special-record-viewport.special-board-embedded > footer {
   box-shadow: none;
 }
+
+/* Mixed lessons use a short label and a distinct, warm calendar color. */
+.teacher-special-workspace .special-week-session.mixed {
+  border-color: #e7d39c;
+  background: #fff9e8;
+}
+.teacher-special-workspace .special-week-session.mixed > b em {
+  background: #f7e7b5;
+  color: #785519;
+}
+.teacher-special-workspace .special-week-session.mixed.active {
+  border-color: #b58b36;
+  background: #fff1c8;
+}
