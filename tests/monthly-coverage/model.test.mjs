@@ -10,3 +10,5 @@ const row={target:12,attended:7,planned:3,unrecorded:0};
 test('shortfall shows forecast vs final',()=>{assert.equal(coverageStatus(row,false).label,'2회 부족 예상');assert.equal(coverageStatus({...row,planned:0},true).label,'5회 미달');});
 test('missing attendance requires review rather than definitive shortfall',()=>{const s=coverageStatus({...row,unrecorded:2},true);assert.equal(s.kind,'check');assert.equal(s.gap,2);});
 test('achieved, expected and excluded states',()=>{assert.equal(coverageStatus({...row,attended:12},false).kind,'good');assert.equal(coverageStatus({...row,planned:5},false).label,'달성 예정');assert.equal(coverageStatus({...row,target:0},false).label,'목표 제외');});
+
+test('ended enrollment preserves history but leaves attention statuses',()=>{const s=coverageStatus({...row,enrollmentEnded:true,unrecorded:3},false);assert.equal(s.kind,'neutral');assert.equal(s.label,'수강 종료');assert.equal(s.gap,0);});

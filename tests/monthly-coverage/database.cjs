@@ -16,6 +16,7 @@ insert into student_schedule_assignments values('${id(2)}','${id(6)}');
 const old=fs.readFileSync('tests/schedule-swap/existing-functions.sql','utf8');await db.exec(old.slice(old.indexOf('CREATE OR REPLACE FUNCTION public.student_uses_class_schedule')));
 const helper=fs.readFileSync('supabase/migrations/20260919102036_audit_class_schedule_record_consistency.sql','utf8');await db.exec(helper.slice(0,helper.indexOf('CREATE OR REPLACE FUNCTION public.family_learning_calendar_schedule')));
 await db.exec(fs.readFileSync('supabase/migrations/20260919112542_monthly_lesson_coverage.sql','utf8'));
+await db.exec(fs.readFileSync('supabase/migrations/20260919115104_monthly_coverage_ended_enrollments.sql','utf8'));
 const report=async month=>(await db.query('select staff_monthly_lesson_coverage($1) r',[month])).rows[0].r;
 const future=await report('2090-01-01');let r=future.items[0];const mondays=(await db.query("select count(*)::int n from generate_series(date '2090-01-01',date '2090-01-31',interval '1 day') d where extract(isodow from d)=1")).rows[0].n;assert.equal(r.planned,mondays);assert.equal(r.attended,0);assert.equal(r.target,12);
 await db.exec(`insert into lessons(id,class_id,lesson_date,starts_at,ends_at,status) values
@@ -47,6 +48,15 @@ await db.exec(`insert into classes(id,name,subject,subject_id,active) values('${
 insert into class_schedules(id,class_id,weekday,start_time,end_time,valid_from) values('${id(81)}','${id(80)}',1,'16:00','17:30','2090-01-01');
 insert into class_makeup_attendees(class_id,student_id,attendance_date) values('${id(80)}','${id(3)}','2090-01-03');`);
 const korean=(await report('2090-01-01')).items.find(x=>x.studentId===id(3));assert.equal(korean.target,8);assert.equal(korean.planned,1);
+// Ended enrollment retains history without flagging a full-month target.
+await db.exec(`update enrollments set status='completed',ended_on='2020-01-10' where student_id='${id(2)}'`);
+r=(await report('2020-01-01')).items.find(x=>x.studentId===id(2));assert.equal(r.enrollmentEnded,true);assert.equal(r.attended,5);assert.ok(r.events.length);
+assert.equal((await report('2019-12-01')).items.find(x=>x.studentId===id(2)).enrollmentEnded,false);
+assert.equal(korean.enrollmentEnded,false);
+// Same-subject transfer remains eligible even when the old class ended.
+await db.exec(`insert into classes(id,name,subject,subject_id,active) values('${id(90)}','새 영어','영어','${id(4)}',true);
+insert into enrollments(student_id,class_id,status,started_on) values('${id(2)}','${id(90)}','active','2020-01-11');`);
+assert.equal((await report('2020-01-01')).items.find(x=>x.studentId===id(2)).enrollmentEnded,false);
 await db.exec(`select set_config('test.role','teacher',false),set_config('test.uid','${id(99)}',false)`);assert.equal((await report('2020-01-01')).items.length,0);await assert.rejects(db.query('select admin_save_monthly_lesson_target($1,$2,$3,$4,$5)',[id(2),'영어','2020-01-01',6,1]),/관리자/);
 await db.exec(`select set_config('test.role','guardian',false)`);await assert.rejects(report('2020-01-01'),/권한/);await db.exec(`select set_config('test.role','admin',false),set_config('test.uid','',false)`);await assert.rejects(report('2020-01-01'),/권한/);
 assert.equal((await db.query("select has_function_privilege('anon','staff_monthly_lesson_coverage(date)','execute') allowed")).rows[0].allowed,false);
