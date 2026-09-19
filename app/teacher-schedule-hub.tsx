@@ -8,6 +8,8 @@ import type { Profile } from "./supabase";
 import { isMilitaryTime, MilitaryTimeInput } from "./military-time-input";
 import { AcademicCalendar } from "./academic-calendar";
 import { appConfirm } from "./app-dialog";
+import { ClassScheduleSwap } from "./class-schedule-swap";
+import swapStyles from "./class-schedule-swap.module.css";
 
 type HubTab = "all" | "teacher" | "correction" | "vehicle" | "academic";
 type Named = { id: string; name: string };
@@ -2022,6 +2024,8 @@ function ClassEditor({
   );
   const [scheduleBase]=useState(()=>row?{weekday:row.weekday,startTime:row.startTime.slice(0,5),endTime:row.endTime.slice(0,5),teacherIds:row.teachers.map(x=>x.id).sort()}:null);
   const [newBase,setNewBase]=useState<{classId:string;teacherIds:string[]}|null>(null);
+  const [swapping, setSwapping] = useState(false);
+  const [swapBusy, setSwapBusy] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(()=>{
@@ -2110,9 +2114,10 @@ function ClassEditor({
     <EditorModal
       title={row ? "수업 배정 수정" : "수업 배정 등록"}
       description="공동담당 선생님은 모두 개인 시간표에 자동 표시됩니다."
-      onClose={onClose}
+      onClose={() => { if (!swapBusy && !saving) onClose(); }}
     >
-      <form className="class-editor-form" onSubmit={submit} inert={saving}>
+      {swapping && row ? <div className={swapStyles.editor}><ClassScheduleSwap supabase={supabase} row={row} schedules={data.classSchedules} onSaved={onSaved} onCancel={() => setSwapping(false)} onBusyChange={setSwapBusy}/></div> : <form className="class-editor-form" onSubmit={submit} inert={saving}>
+        {row && <><button type="button" className={swapStyles.entry} onClick={() => setSwapping(true)}>다른 수업과 시간 맞바꾸기 <span aria-hidden="true">⇄</span></button><p className={swapStyles.hint}>{weekdays[row.weekday - 1]}요일의 저장된 수업 시간을 기준으로 맞바꿉니다.</p></>}
         <FormSelect
           label="클래스"
           value={classId}
@@ -2164,7 +2169,7 @@ function ClassEditor({
           saveLabel="변경사항 저장"
           deleteLabel="배정 삭제"
         />
-      </form>
+      </form>}
     </EditorModal>
   );
 }
