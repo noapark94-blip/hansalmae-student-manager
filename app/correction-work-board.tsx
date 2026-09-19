@@ -37,7 +37,7 @@ const reportFingerprint=(report:Report)=>JSON.stringify({
   correctionTaskFeedback:report.correctionTaskFeedback??"",assistantFeedback:report.assistantFeedback??"",nextPreparation:report.nextPreparation??"",
 });
 
-export function CorrectionWorkBoard({supabase,initialDate,focusStudentId}:{supabase:SupabaseClient;initialDate?:string;focusStudentId?:string}){
+export function CorrectionWorkBoard({supabase,initialDate,focusStudentId,focusAssignmentId,focusTime}:{supabase:SupabaseClient;initialDate?:string;focusStudentId?:string;focusAssignmentId?:string;focusTime?:string}){
   const[date,setDate]=useState(initialDate??koreaToday());
   const activeDateRef=useRef(date);
   const pendingSaves=useRef(new Set<string>());
@@ -135,7 +135,7 @@ export function CorrectionWorkBoard({supabase,initialDate,focusStudentId}:{supab
     else setCategories((next??[]) as ExamCategory[]);
   },[supabase]);
   const selectDate=(nextDate:string)=>{activeDateRef.current=nextDate;setIncompleteOnly(false);setDate(nextDate)};
-  const rows=useMemo(()=>buildOccurrences(data,date).filter(row=>!focusStudentId||row.assignment.studentId===focusStudentId),[data,date,focusStudentId]);
+  const rows=useMemo(()=>buildOccurrences(data,date).filter(row=>(!focusStudentId||row.assignment.studentId===focusStudentId)&&(!focusAssignmentId||row.assignment.id===focusAssignmentId)&&(!focusTime||row.startTime.slice(0,5)===focusTime.slice(0,5))),[data,date,focusStudentId,focusAssignmentId,focusTime]);
   const completed=rows.length>0&&rows.every(row=>drafts[reportKey(row)]?.published===true);
   const completedCount=rows.filter(row=>drafts[reportKey(row)]?.published===true).length;
   const incompleteRows=rows.filter(row=>drafts[reportKey(row)]?.published!==true);

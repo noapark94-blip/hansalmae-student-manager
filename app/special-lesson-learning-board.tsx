@@ -33,7 +33,7 @@ type FamilyReadStatus = { lessonId:string|null; totalStudents:number; linkedStud
 const attendance: [Status, string][] = [["present", "출석"], ["late", "지각"], ["absent", "결석"]];
 const homework = [["", "미검사"], ["complete", "완료"], ["partial", "일부"], ["missing", "미제출"], ["excused", "면제"]];
 
-export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false }: { supabase: SupabaseClient; profile: Profile; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onAttendanceChange?: (change?:{studentId:string;status:Status|null}) => void | Promise<void>; embedded?: boolean }) {
+export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lessonKind, onClose, onAttendanceChange, embedded = false, focusStudentId }: { supabase: SupabaseClient; profile: Profile; sessionId: string; lessonKind: "makeup"|"additional"; onClose: () => void; onAttendanceChange?: (change?:{studentId:string;status:Status|null}) => void | Promise<void>; embedded?: boolean;focusStudentId?:string }) {
   const [editingSchedule,setEditingSchedule]=useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState("");
@@ -165,6 +165,7 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
       if(scope.current===sessionId)acceptSnapshot(data as Snapshot,submitted);
     }catch(e){setError(e instanceof Error?e.message:"저장하지 못했습니다.");}finally{busy.current=false;setSaving("");}
   };
+  useEffect(()=>{if(focusStudentId)setOpenStudentId(focusStudentId);},[focusStudentId]);
   const deleteRecord = async () => {
     if (!await appConfirm({eyebrow:"수업 기록 삭제",title:"이 보강·추가수업 기록을 삭제할까요?",notice:"출결·수업 내용·시험·숙제와 학부모 리포트 반영이 모두 삭제됩니다.",confirmLabel:"기록 삭제",tone:"danger"})) return;
     setSaving("all"); setError("");
@@ -179,7 +180,7 @@ export function SpecialLessonLearningBoard({ supabase, profile, sessionId, lesso
     {loading ? <AppLoading/> : <div className="learning-board-rows">{rows.map((row) => {
       const score = Number(row.exam.score), max = Number(row.exam.maxScore), converted = row.exam.score !== "" && max > 0 ? Math.round(score / max * 1000) / 10 : null;
       const detailCount=[row.lessonContent.trim(),row.exam.examType.trim()||row.exam.examTitle.trim(),row.inspectionStatus.trim()||row.assignedHomework.trim()].filter(Boolean).length;
-      return <article key={row.id} className={`${openStudentId===row.id?"mobile-open":""} ${row.status&&detailCount===3?"record-ready":"record-pending"}`}>
+      return <article data-record-student={row.id} key={row.id} className={`${openStudentId===row.id?"mobile-open":""} ${row.status&&detailCount===3?"record-ready":"record-pending"}`}>
         <div className="mobile-student-record-head"><button type="button" className="mobile-student-record-toggle" aria-expanded={openStudentId===row.id} onClick={()=>setOpenStudentId(current=>current===row.id?null:row.id)}><i>{row.name[0]}</i><span><b>{row.name}<span className={mixedStyles.badge}>{(row.lessonKind??lessonKind)==="makeup"?"보강":"추가수업"}</span></b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></span><em>{detailCount}/3 입력</em><strong aria-hidden="true">⌄</strong></button><button type="button" className="mobile-student-history" aria-label={`${row.name} 학생 누적 기록 보기`} onClick={()=>setHistoryStudent(row)}>기록</button></div>
         <div className="learning-person-attendance"><span className="learning-student"><button type="button" className="learning-student-history-button" onClick={()=>setHistoryStudent(row)} title={`${row.name} 학생 누적 수업 기록 보기`}><i>{row.name[0]}</i><b>{row.name}<span className={mixedStyles.badge}>{(row.lessonKind??lessonKind)==="makeup"?"보강":"추가수업"}</span></b><small>{[row.school,row.grade].filter(Boolean).join(" · ")}</small></button></span><div className="learning-attendance">{attendance.map(([status,label]) => <button type="button" key={status} className={`${status} ${row.status === status ? "active" : ""}`} disabled={saving===row.id} onClick={() => void saveAttendance(row,status)}>{label}</button>)}{row.status ? <small>{row.status === "late" ? `${row.lateMinutes}분 지각 · ` : row.status === "absent" && row.absenceReason ? `${row.absenceReason} · ` : ""}같은 버튼을 다시 누르면 취소</small> : null}</div></div>
         <div className="learning-individual-content"><textarea value={row.lessonContent} onChange={(event) => update(row.id,{lessonContent:event.target.value})} placeholder="이 학생의 교재·단원·진도" rows={4}/></div>

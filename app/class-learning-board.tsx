@@ -1422,7 +1422,7 @@ export function ClassLearningBoard({
                 return (
                   <article
                     className={`${mobileOpen ? "mobile-open" : ""} ${row.status && detailCount === 3 ? "record-ready" : "record-pending"}`}
-                    key={row.id}
+                    key={row.id} data-record-student={row.id}
                   >
                     <div className="mobile-student-record-head">
                       <button

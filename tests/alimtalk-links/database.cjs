@@ -1,0 +1,31 @@
+const {PGlite}=require(process.env.HSM_PGLITE_MODULE||'@electric-sql/pglite');const fs=require('node:fs'),assert=require('node:assert/strict');const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+(async()=>{const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
+create function can_send_alimtalk() returns boolean language sql as $$select current_setting('test.role',true) in ('admin','sub_admin')$$;
+create table learning_alimtalk_deliveries(id uuid,student_id uuid,period_start date,period_end date,template_variables jsonb,status text);
+create function staff_learning_report_source(uuid,date,date) returns jsonb language sql as $$select coalesce(nullif(current_setting('test.rows',true),'')::jsonb,'[]')$$;`);await db.exec(fs.readFileSync('tests/special-record/mixed-schema.sql','utf8'));
+// A legacy delivery predates the migration and must never be rewritten.
+await db.query('insert into learning_alimtalk_deliveries values($1,$2,$3,$4,$5,$6)',[id(10),id(1),'2026-09-01','2026-09-01',{lessonSummary:'old'},'sent']);
+await db.exec(fs.readFileSync('supabase/migrations/20260919144854_alimtalk_record_links.sql','utf8'));
+await db.exec(`select set_config('test.uid','${id(99)}',false),set_config('test.role','admin',false);
+insert into classes(id,name) values('${id(2)}','가상 영어');
+insert into lessons(id,class_id,lesson_date,starts_at) values('${id(3)}','${id(2)}','2026-09-01','2026-09-01 16:00+09');
+insert into attendance(lesson_id,student_id) values('${id(3)}','${id(1)}');
+insert into teacher_special_lessons(id,lesson_date,starts_at) values('${id(4)}','2026-09-01','18:00');
+insert into teacher_special_lesson_students(session_id,student_id) values('${id(4)}','${id(1)}');
+insert into correction_assignments(id,student_id) values('${id(5)}','${id(1)}');
+insert into correction_reports(id,assignment_id,student_id,correction_date,start_time,subject) values('${id(6)}','${id(5)}','${id(1)}','2026-09-01','19:00','국어');`);
+const rows=[{lessonId:id(3),source:'makeup',subject:'영어',lessonDate:'2026-09-01',className:'가상 영어',exams:[],homeworkContent:'숙제'}, {lessonId:id(4),source:'extra',subject:'영어',lessonDate:'2026-09-01',className:'추가수업',exams:[{score:80}]},{lessonId:id(6),source:'correction',subject:'국어',lessonDate:'2026-09-01',className:'첨삭',exams:[]}];
+await db.query("select set_config('test.rows',$1,false)",[JSON.stringify(rows)]);
+const links=async delivery=>(await db.query('select staff_alimtalk_record_links($1,$2,$3,$4) r',[delivery,delivery?null:id(1),delivery?null:'2026-09-01',delivery?null:'2026-09-01'])).rows[0].r;
+let result=await links(id(10));assert.equal(result.mode,'history');assert.equal(result.items.find(r=>r.lessonId===id(3)).target.classId,id(2));assert.equal(result.items.find(r=>r.lessonId===id(4)).target.sessionId,id(4));assert.equal(result.items.find(r=>r.lessonId===id(6)).target.assignmentId,id(5));assert.equal(result.items.find(r=>r.lessonId===id(6)).target.time,'19:00');
+assert.equal((await db.query('select source_refs from learning_alimtalk_deliveries where id=$1',[id(10)])).rows[0].source_refs,null);
+await db.query('insert into learning_alimtalk_deliveries(id,student_id,period_start,period_end,template_variables,status) values($1,$2,$3,$4,$5,$6)',[id(11),id(1),'2026-09-01','2026-09-01',{lessonSummary:'new'},'sending']);
+result=await links(id(11));assert.equal(result.mode,'saved');assert.equal(result.items.length,3);assert.equal(result.items.find(r=>r.lessonId===id(3)).homework,true);assert.equal(result.items.find(r=>r.lessonId===id(4)).exam,true);assert.equal(result.items.find(r=>r.lessonId===id(6)).correction,true);
+await db.query("select set_config('test.rows','[]',false)");await db.exec("update learning_alimtalk_deliveries set status='sent'");assert.equal((await links(id(11))).items.length,3);
+await db.query('delete from teacher_special_lessons where id=$1',[id(4)]);assert.equal((await links(id(11))).items.find(r=>r.lessonId===id(4)).target,null);
+assert.equal((await links(null)).mode,'current');
+for(const role of ['teacher','guardian','assistant']){await db.query("select set_config('test.role',$1,false)",[role]);await assert.rejects(links(id(11)),/권한/);}
+await db.exec("select set_config('test.role','sub_admin',false)");assert.equal((await links(id(11))).mode,'saved');
+await db.exec("select set_config('test.uid','',false)");await assert.rejects(links(id(11)),/권한/);
+assert.equal((await db.query("select has_function_privilege('anon','staff_alimtalk_record_links(uuid,uuid,date,date)','execute') p")).rows[0].p,false);
+console.log('PASS: source identity, class makeup vs special, correction assignment/time, legacy preservation, snapshots, deletion and authorization');await db.close();})().catch(e=>{console.error(e);process.exit(1)});

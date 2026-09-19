@@ -146,6 +146,8 @@ const classColors = ["#a92d68", "#4c86a8", "#c85c7d", "#df8658", "#c8952a", "#5f
 const specialLessonsId = "__teacher_special_lessons__";
 
 export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, lessonTarget=null, onClassesChanged }: { supabase: SupabaseClient; profile: Profile; manageOnly?: boolean; lessonTarget?:StaffLessonTarget|null; onClassesChanged?: () => void | Promise<void> }) {
+  const [appliedTarget,setAppliedTarget]=useState("");
+  const targetKey=lessonTarget?`${lessonTarget.classId}:${lessonTarget.date}:${lessonTarget.requestId}`:"";
   const [todayOnly, setTodayOnly] = useState(profile.role !== "admin");
   const [agenda, setAgenda] = useState<AgendaEntry[]>([]);
   const [agendaError, setAgendaError] = useState("");
@@ -230,7 +232,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
     return invalidateWorkspace;
   }, [load,invalidateWorkspace]);
   useStaffLiveUpdates(supabase,`class-list-${profile.id}`,"topic=eq.classes",async()=>{await Promise.all([load(true),loadAgenda()]);},failure=>setError((failure as {message?:string}).message??"클래스 정보를 갱신하지 못했습니다."));
-  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setTodayOnly(false);setSelectedId(lessonTarget.classId);setDate(lessonTarget.date)},[data,lessonTarget]);
+  useEffect(()=>{if(!data||!lessonTarget||!data.classes.some(item=>item.id===lessonTarget.classId))return;setTodayOnly(false);setSelectedId(lessonTarget.classId);setDate(lessonTarget.date);setAppliedTarget(targetKey)},[data,lessonTarget,targetKey]);
   const selected = data?.classes.find((item) => item.id === selectedId);
   const teacherOptions = useMemo(() => {
     const teachers = new Map<string, Named>();
@@ -273,7 +275,9 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
     void loadDay();
   }, [loadDay]);
   if (loading) return <AppLoading/>;
+  if (lessonTarget && data && !data.classes.some(item=>item.id===lessonTarget.classId)) return <section className="panel teacher-workspace-empty">연결된 클래스를 열 수 없습니다. 클래스가 종료·삭제되었거나 조회 권한이 변경되었을 수 있습니다.</section>;
   if (error && !data) return <section className="panel teacher-workspace-empty error">{error}</section>;
+  if (lessonTarget && appliedTarget!==targetKey) return <AppLoading/>;
   return (
     <>
       <div className="teacher-home-heading">
