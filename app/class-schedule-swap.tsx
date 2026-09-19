@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { previewScheduleSwap, scheduleSwapBase, type SwapSchedule } from "./class-schedule-swap-model";
+import { isSwapScheduleAvailable, previewScheduleSwap, scheduleSwapBase, type SwapSchedule } from "./class-schedule-swap-model";
 import styles from "./class-schedule-swap.module.css";
 const days = ["월", "화", "수", "목", "금", "토", "일"];
 export function ClassScheduleSwap({ supabase, row, schedules, onSaved, onCancel, onBusyChange }: {
@@ -12,7 +12,7 @@ export function ClassScheduleSwap({ supabase, row, schedules, onSaved, onCancel,
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
-  const candidates = schedules.filter(s => s.id !== row.id && s.weekday === row.weekday).sort((a,b) => a.startTime.localeCompare(b.startTime) || a.className.localeCompare(b.className));
+  const candidates = schedules.filter(s => isSwapScheduleAvailable(s) && s.id !== row.id && s.weekday === row.weekday).sort((a,b) => a.startTime.localeCompare(b.startTime) || a.className.localeCompare(b.className));
   const target = candidates.find(s => s.id === targetId);
   const preview = target ? previewScheduleSwap(row, target, schedules) : null;
   const save = async () => {

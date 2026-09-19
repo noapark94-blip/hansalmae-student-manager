@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ClassScheduleSwap } from "./class-schedule-swap";
-import type { SwapSchedule } from "./class-schedule-swap-model";
+import { isSwapScheduleAvailable, type SwapSchedule } from "./class-schedule-swap-model";
 import styles from "./class-settings-swap.module.css";
 const days = ["월", "화", "수", "목", "금", "토", "일"];
 export function ClassSettingsSwap({supabase,classId,onCancel,onSaved,onBusyChange}:{supabase:SupabaseClient;classId:string;onCancel:()=>void;onSaved:()=>Promise<void>;onBusyChange:(value:boolean)=>void}) {
@@ -13,7 +13,7 @@ export function ClassSettingsSwap({supabase,classId,onCancel,onSaved,onBusyChang
   const [attempt,setAttempt]=useState(0);
   const [busy,setBusy]=useState(false);
   useEffect(()=>{let active=true;const load=async()=>{setLoading(true);setError("");try{const {data,error:failure}=await supabase.rpc("staff_schedule_hub");if(failure)throw failure;if(!Array.isArray(data?.classSchedules))throw new Error("수업 시간을 불러오지 못했습니다.");if(active){setRows(data.classSchedules);setSourceId("");}}catch(e){if(active)setError((e as {message?:string}).message??"수업 시간을 불러오지 못했습니다.");}finally{if(active)setLoading(false);}};void load();return()=>{active=false;};},[supabase,classId,attempt]);
-  const own=rows.filter(r=>r.classId===classId).sort((a,b)=>a.weekday-b.weekday||a.startTime.localeCompare(b.startTime));
+  const own=rows.filter(r=>r.classId===classId&&isSwapScheduleAvailable(r)).sort((a,b)=>a.weekday-b.weekday||a.startTime.localeCompare(b.startTime));
   const selected=own.find(r=>r.id===sourceId);
   return <div className={styles.container}>
     <div className={styles.intro}><small>정규 시간표</small><h3>어느 요일의 시간을 바꿀까요?</h3><p>묶여 있는 요일도 하나씩 선택할 수 있어요.</p></div>

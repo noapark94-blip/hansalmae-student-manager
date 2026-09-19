@@ -62,11 +62,26 @@ await db.exec(`update classes set room='102' where id='${id(5)}';update class_sc
 assert.equal((await db.query('select count(*)::int n from lessons')).rows[0].n,3);assert.equal((await db.query('select count(*)::int n from attendance')).rows[0].n,2);
 // The shared conflict trigger must still support an atomic two-class swap.
 await db.exec(fs.readFileSync('supabase/migrations/20260919160338_swap_class_schedule_times.sql','utf8'));
+// Empty unrelated hub tables: only class schedule metadata is exercised here.
+await db.exec(`create table correction_exceptions(id uuid,assignment_id uuid,week_start date,weekday smallint,slot_index smallint,note text);
+create table correction_slot_capacities(teacher_profile_id uuid,weekday smallint,slot_index smallint,capacity integer);
+create table vehicle_runs(id uuid,manager_profile_id uuid,weekday smallint,pickup_time time,pickup_location text,active boolean);
+create table vehicle_boardings(run_id uuid,student_id uuid);`);
+await db.exec(fs.readFileSync('supabase/migrations/20260919104128_align_swap_validity_checks.sql','utf8'));
+const hubRows=(await db.query('select staff_schedule_hub() r')).rows[0].r.classSchedules;assert.equal(hubRows[0].active,true);assert.ok(Object.hasOwn(hubRows[0],'validUntil'));
 const base=async sid=>(await db.query("select jsonb_build_object('weekday',weekday,'startTime',to_char(start_time,'HH24:MI'),'endTime',to_char(end_time,'HH24:MI'),'teacherIds',coalesce((select jsonb_agg(profile_id::text order by profile_id) from class_teachers where class_id=s.class_id),'[]'::jsonb)) b from class_schedules s where id=$1",[sid])).rows[0].b;
 const firstBase=await base(id(6)),secondBase=await base(id(14));
 await db.query('select staff_swap_class_schedule_times($1,$2,$3,$4)',[id(6),id(14),JSON.stringify(firstBase),JSON.stringify(secondBase)]);
 assert.equal((await base(id(6))).startTime,'15:30');assert.equal((await base(id(14))).startTime,'14:00');
 assert.equal((await db.query('select count(*)::int n from student_schedule_assignments')).rows[0].n,1);
+// Expired same-class rows must not block a swap; expired source rows must reject atomically.
+await db.exec(`insert into class_schedules(id,class_id,weekday,start_time,end_time,valid_until) values('${id(30)}','${id(4)}',extract(isodow from current_date),'14:00','15:30',current_date-1)`);
+const swapAgain=async()=>db.query('select staff_swap_class_schedule_times($1,$2,$3,$4)',[id(6),id(14),JSON.stringify(await base(id(6))),JSON.stringify(await base(id(14)))]);
+await swapAgain();assert.equal((await base(id(6))).startTime,'14:00');
+const beforeExpired=await base(id(6));
+await assert.rejects(db.query('select staff_swap_class_schedule_times($1,$2,$3,$4)',[id(6),id(30),JSON.stringify(beforeExpired),JSON.stringify(await base(id(30)))]),/종료된/);
+assert.deepEqual(await base(id(6)),beforeExpired);
+await db.exec(`delete from class_schedules where id='${id(30)}'`);
 // The family report and graph must use the same current exam as the editor/alimtalk.
 await db.exec(`update students set profile_id='${id(1)}' where id='${id(2)}';
 insert into lesson_exam_results(id,lesson_id,student_id,exam_type,exam_title,score,max_score,evaluation,created_at) values

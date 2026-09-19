@@ -2,13 +2,25 @@ export type SwapSchedule = {
   id: string; classId: string; className: string; weekday: number;
   startTime: string; endTime: string; room: string | null;
   teachers: { id: string; name: string }[];
+  active?: boolean; validFrom?: string | null; validUntil?: string | null;
 };
+const koreaToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+export function isSwapScheduleAvailable(row: SwapSchedule, today = koreaToday()) {
+  return row.active !== false && (!row.validUntil || row.validUntil >= today);
+}
+function periodsOverlap(a: SwapSchedule, b: SwapSchedule, today: string) {
+  const start = [today, a.validFrom || today, b.validFrom || today].sort().at(-1)!;
+  const end = [a.validUntil || "9999-12-31", b.validUntil || "9999-12-31"].sort()[0];
+  return start <= end;
+}
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 const clock = (value: number) => `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 export function scheduleSwapBase(row: SwapSchedule) {
   return { weekday: row.weekday, startTime: row.startTime.slice(0, 5), endTime: row.endTime.slice(0, 5), teacherIds: row.teachers.map(t => t.id).sort() };
 }
 export function previewScheduleSwap(first: SwapSchedule, second: SwapSchedule, all: SwapSchedule[]) {
+  const today = koreaToday();
+  if (![first, second].every(row => isSwapScheduleAvailable(row, today))) return { rows: [], error: "종료된 수업 시간은 맞바꿀 수 없습니다. 최신 시간표를 다시 열어 주세요." };
   if (first.id === second.id || first.weekday !== second.weekday) return { rows: [], error: "같은 요일의 다른 수업을 선택해 주세요." };
   if (minutes(first.startTime) === minutes(second.startTime)) return { rows: [], error: "이미 시작 시간이 같은 수업입니다." };
   const rows = [first, second].map((row, i) => {
@@ -17,7 +29,7 @@ export function previewScheduleSwap(first: SwapSchedule, second: SwapSchedule, a
     return { ...row, startTime: clock(start), endTime: clock(start + duration) };
   });
   if (rows.some(r => r.endTime >= "24:00" || r.endTime <= r.startTime)) return { rows: [], error: "맞바꾼 수업이 자정을 넘거나 시간이 올바르지 않습니다." };
-  const final = [...all.filter(r => r.id !== first.id && r.id !== second.id), ...rows];
-  const conflicts = rows.flatMap(row => final.filter(other => other.id !== row.id && other.weekday === row.weekday && other.startTime.slice(0,5) < row.endTime && other.endTime.slice(0,5) > row.startTime && (other.classId === row.classId || other.teachers.some(t => row.teachers.some(m => m.id === t.id)) || Boolean(row.room?.trim() && row.room.trim() === other.room?.trim()))).map(other => `${row.className} ↔ ${other.className}`));
+  const final = [...all.filter(r => r.id !== first.id && r.id !== second.id && isSwapScheduleAvailable(r, today)), ...rows];
+  const conflicts = rows.flatMap(row => final.filter(other => other.id !== row.id && periodsOverlap(row, other, today) && other.weekday === row.weekday && other.startTime.slice(0,5) < row.endTime && other.endTime.slice(0,5) > row.startTime && (other.classId === row.classId || other.teachers.some(t => row.teachers.some(m => m.id === t.id)) || Boolean(row.room?.trim() && row.room.trim() === other.room?.trim()))).map(other => `${row.className} ↔ ${other.className}`));
   return { rows, error: conflicts.length ? `맞바꾼 시간에 겹치는 수업이 있어요: ${[...new Set(conflicts)].join(" / ")}` : "" };
 }
