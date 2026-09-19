@@ -42,11 +42,15 @@
 }
 
 .monthField{display:contents}
+.monthValue{display:none}
 @media(max-width:760px){
  .month{grid-template-columns:44px minmax(0,1fr) 44px auto;align-items:center;min-width:0}
  .monthField{display:block;position:relative;min-width:0;width:100%;height:44px;box-sizing:border-box;overflow:hidden;border:1px solid #e7d8e1;border-radius:10px;background:#fff}
  .month .monthField input{display:block;position:absolute;inset:0;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0 8px!important;border:0;border-radius:0;background:transparent;appearance:none;-webkit-appearance:none;line-height:normal}
- .monthField input::-webkit-date-and-time-value{text-align:left;min-width:0}
+ /* Render the label independently of iOS native date text alignment.
+    The transparent native input still receives touch and keyboard input. */
+ .monthValue{display:flex;align-items:center;justify-content:center;width:100%;height:100%;box-sizing:border-box;padding:0 8px;color:#623c52;font-size:16px;font-weight:700;line-height:1;white-space:nowrap;pointer-events:none}
+ .month .monthField input{opacity:0;cursor:pointer;z-index:1}
  .monthField:focus-within{outline:2px solid #b16690;outline-offset:2px}
  .month>button{height:44px;min-width:0;box-sizing:border-box;padding:0 9px}
 }
