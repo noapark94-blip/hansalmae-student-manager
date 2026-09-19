@@ -1,0 +1,41 @@
+// Synthetic, in-memory regression tests. No production records are modified.
+const {PGlite}=require(process.env.HSM_PGLITE_MODULE||'@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict');const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+(async()=>{
+const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;
+create function auth.uid() returns uuid language sql as $$select '${id(9)}'::uuid$$;
+create function is_staff() returns boolean language sql as $$select current_setting('test.staff',true) is distinct from 'false'$$;
+create function current_user_role() returns text language sql as $$select 'admin'$$;
+create table classes(id uuid primary key,name text,room text,active boolean default true,subject text,subject_id uuid,color text);
+create table profiles(id uuid primary key,display_name text,role text,is_active boolean);
+create table academy_subjects(id uuid primary key,name text,active boolean);
+create table class_teachers(class_id uuid,profile_id uuid);
+create table class_schedules(id uuid primary key default gen_random_uuid(),class_id uuid references classes,weekday smallint check(weekday between 1 and 7),start_time time,end_time time,valid_from date,valid_until date,check(end_time>start_time));
+create table students(id uuid primary key,name text);
+create table enrollments(student_id uuid,class_id uuid,status text);
+create table student_schedule_assignments(student_id uuid,class_schedule_id uuid references class_schedules);
+create table correction_assignments(id uuid,student_id uuid,active boolean,weekday smallint,subject text,start_time time,end_time time,slot_index smallint);
+create table correction_schedule_exceptions(assignment_id uuid,kind text,target_date date,target_start_time time,target_end_time time);
+`);
+await db.exec(fs.readFileSync('tests/schedule-swap/existing-functions.sql','utf8'));
+await db.exec(fs.readFileSync('supabase/migrations/20260919095910_preserve_assigned_class_times.sql','utf8'));
+await db.exec(`create trigger class_schedules_prevent_conflict after insert or update on class_schedules for each row execute function prevent_class_schedule_conflict();create trigger class_teachers_prevent_conflict before insert or update on class_teachers for each row execute function prevent_class_schedule_conflict();
+insert into profiles values('${id(9)}','가상 선생님','admin',true);insert into academy_subjects values('${id(8)}','영어',true);
+insert into classes(id,name,room) values('${id(1)}','가상 영어','601'),('${id(2)}','가상 수학','602');
+insert into class_teachers values('${id(1)}','${id(9)}');
+insert into students values('${id(50)}','가상 학생');insert into enrollments values('${id(50)}','${id(1)}','active'),('${id(50)}','${id(2)}','active');
+insert into class_schedules(id,class_id,weekday,start_time,end_time) values('${id(11)}','${id(1)}',6,'11:00','12:30'),('${id(12)}','${id(1)}',2,'20:00','20:30'),('${id(13)}','${id(1)}',4,'20:00','20:30');
+insert into student_schedule_assignments values('${id(50)}','${id(11)}'),('${id(50)}','${id(12)}'),('${id(50)}','${id(13)}');`);
+const schedules=[{weekday:2,startTime:'20:00',endTime:'20:30'},{weekday:4,startTime:'20:00',endTime:'20:30'},{weekday:6,startTime:'12:30',endTime:'14:00'}];
+const save=async(s=schedules)=>db.query('select staff_update_class_with_teachers($1,$2,$3,$4,$5,$6,$7)',[id(1),'가상 영어',id(8),'601','#922D61',JSON.stringify(s),[id(9)]]);
+const snapshot=async()=>(await db.query('select * from class_schedules order by id')).rows;
+await save();assert.equal((await db.query('select start_time from class_schedules where id=$1',[id(11)])).rows[0].start_time,'12:30:00');assert.equal((await db.query('select count(*)::int n from student_schedule_assignments')).rows[0].n,3);
+await save();assert.equal((await snapshot()).length,3);
+let before=await snapshot();await assert.rejects(save(schedules.slice(0,2)),/가상 학생.*토 12:30–14:00/);assert.deepEqual(await snapshot(),before);
+await assert.rejects(save([...schedules.slice(0,2),{weekday:6,startTime:'14:00',endTime:'15:00'},{weekday:6,startTime:'15:00',endTime:'16:00'}]),/가상 학생/);assert.deepEqual(await snapshot(),before);
+await db.exec(`insert into class_schedules(id,class_id,weekday,start_time,end_time) values('${id(20)}','${id(2)}',6,'14:00','15:30');insert into student_schedule_assignments values('${id(50)}','${id(20)}');`);
+before=await snapshot();await assert.rejects(save([...schedules.slice(0,2),{weekday:6,startTime:'13:00',endTime:'14:30'}]),/가상 학생.*가상 수학 14:00–15:30/);assert.deepEqual(await snapshot(),before);
+await save(); // Touching endpoints are allowed.
+await db.exec(`select set_config('test.staff','false',false)`);await assert.rejects(save(),/담당 클래스/);
+console.log('PASS: same-day identity/assignment preservation, unchanged weekdays, repeat save, named deletion/ambiguous edit errors, named real conflict, atomic rollback, touching endpoints, authorization.');await db.close();
+})().catch(e=>{console.error(e);process.exit(1)});
