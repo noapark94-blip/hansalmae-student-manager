@@ -22,12 +22,20 @@ type Filter = "all"|"unpaid"|"partial"|"paid"|"waived";
 type TuitionSort = "balance"|"name"|"charged"|"recent";
 type MonthlyTuitionPoint = { month:string; charged:number; early:number; onTime:number; late:number; balance:number };
 
+const EMPTY_TUITION_DATA: Data = { isStaff:false,items:[] };
+
 const statusLabel = { open:"미납", partial:"부분 납부", paid:"납부 완료", waived:"면제" };
 
 export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
   const [month,setMonth] = useState(koreaMonth());
-  const [data,setData] = useState<Data>({ isStaff:false,items:[] });
-  const [loading,setLoading] = useState(true);
+  const [loaded,setLoaded] = useState<{month:string;client:SupabaseClient;data:Data}|null>(null);
+  const [pending,setPending] = useState(true);
+  const request=useRef(0);
+  const activeContext=useRef({month,supabase});
+  activeContext.current={month,supabase};
+  const current=loaded?.month===month&&loaded.client===supabase;
+  const data=current?loaded.data:EMPTY_TUITION_DATA;
+  const loading=pending||!current;
   const [message,setMessage] = useState("");
   const [search,setSearch] = useState("");
   const [filter,setFilter] = useState<Filter>("all");
@@ -47,10 +55,23 @@ export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
   const [monthPickerOpen,setMonthPickerOpen] = useState(false);
   const [calendarYear,setCalendarYear] = useState(Number(month.slice(0,4)));
   const [analyticsOpen,setAnalyticsOpen] = useState(false);
-  const load = useCallback(async () => { setLoading(true); setMessage(""); const { data:next,error } = await supabase.rpc("tuition_board",{ p_month:`${month}-01` }); if (error) setMessage("원비 정산 내역을 불러오지 못했습니다."); else setData(next as Data); setLoading(false); },[month,supabase]);
-  // Data is loaded whenever the selected settlement month changes.
+  const load = useCallback(async () => {
+    if(activeContext.current.month!==month||activeContext.current.supabase!==supabase)return;
+    const id=++request.current;
+    const isCurrent=()=>id===request.current&&activeContext.current.month===month&&activeContext.current.supabase===supabase;
+    setPending(true);setMessage("");
+    try{
+      const {data:next,error}=await supabase.rpc("tuition_board",{p_month:`${month}-01`});
+      if(!isCurrent())return;
+      if(error||!next||!Array.isArray(next.items))throw error||new Error("invalid response");
+      setLoaded({month,client:supabase,data:next as Data});
+    }catch{
+      if(isCurrent()){setLoaded({month,client:supabase,data:EMPTY_TUITION_DATA});setMessage("원비 정산 내역을 불러오지 못했습니다. 다시 시도해 주세요.");}
+    }finally{if(isCurrent())setPending(false);}
+  },[month,supabase]);
+  // Invalidate late responses on month/account changes and unmount.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); },[load]);
+  useEffect(() => { void load();return()=>{request.current++;}; },[load]);
   const generate = async () => { const { data:count,error } = await supabase.rpc("staff_generate_monthly_tuition",{ p_month:`${month}-01` }); if (error) setMessage("이번 달 정산을 만들지 못했습니다."); else { await load(); setMessage(`${Number(count??0)}명의 이번 달 정산을 만들었습니다.`); } };
   const remind = async () => { setReminderSending(true); const { data:count,error } = await supabase.rpc("staff_queue_tuition_reminders",{ p_month:`${month}-01` }); setMessage(error ? "미납 안내를 보내지 못했습니다." : `${Number(count??0)}명에게 앱 미납 안내를 보냈습니다.`); setReminderSending(false); if(!error)setReminderOpen(false); };
   const totals = useMemo(() => data.items.reduce((result,row) => ({ charged:result.charged+row.totalAmount, paid:result.paid+row.paidAmount, balance:result.balance+row.balance, completed:result.completed+(row.status==="paid"?1:0), unpaid:result.unpaid+(row.balance>0&&row.status!=="waived"?1:0) }),{ charged:0,paid:0,balance:0,completed:0,unpaid:0 }),[data.items]);
@@ -61,7 +82,7 @@ export function TuitionBoard({ supabase }:{ supabase:SupabaseClient }) {
   const printReceipt = (row:Charge) => { setReceipt(row); setTimeout(() => window.print(),100); };
   return <>
     <div className="page-heading compact tuition-page-heading"><div><p className="eyebrow">월별 청구·수납 통합 관리</p><h1>원비 정산</h1><p>{data.isStaff?"학생별 청구액과 납부 상태를 한 화면에서 확인하고 처리합니다.":"월별 원비 청구와 납부 내역을 확인합니다."}</p></div><div className="tuition-heading-actions"><div className="tuition-month-picker"><button aria-label="이전 달" onClick={()=>setMonth(current=>shiftMonth(current,-1))}>‹</button><button className="tuition-month-trigger" aria-label="정산 월 선택" aria-expanded={monthPickerOpen} onClick={()=>{setCalendarYear(Number(month.slice(0,4)));setMonthPickerOpen(open=>!open);}}><span>{formatMonth(month)}</span><i aria-hidden="true">▦</i></button><button aria-label="다음 달" onClick={()=>setMonth(current=>shiftMonth(current,1))}>›</button>{monthPickerOpen&&<MonthPicker value={month} year={calendarYear} onYear={setCalendarYear} onSelect={value=>{setMonth(value);setMonthPickerOpen(false);}} onClose={()=>setMonthPickerOpen(false)}/>}</div>{data.isStaff&&<><button className="secondary-button tuition-analytics-button" onClick={()=>setAnalyticsOpen(true)}>수납 분석</button><button className="secondary-button" onClick={()=>setPolicyOpen(true)}>기본 원비표</button><button className="secondary-button" onClick={()=>setSettingsOpen(true)}>학생별 예외</button><button className="primary" onClick={()=>void generate()}>＋ 선택한 달 청구서 생성</button></>}</div></div>
-    {message&&<p className={message.includes("못")?"attendance-error":"attendance-prepared"}>{message}</p>}
+    {message&&<p className={message.includes("못")?"attendance-error":"attendance-prepared"}>{message}{message.startsWith("원비 정산 내역을 불러오지 못")&&<button type="button" className="secondary-button" disabled={loading} onClick={()=>void load()}>다시 시도</button>}</p>}
     {data.isStaff&&<div className="tuition-advanced-filterbar"><div className="tuition-filter-selects"><label><span>학교</span><select value={schoolFilter} onChange={event=>setSchoolFilter(event.target.value)}><option value="">전체 학교</option>{filterOptions.schools.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>학년</span><select value={gradeFilter} onChange={event=>setGradeFilter(event.target.value)}><option value="">전체 학년</option>{filterOptions.grades.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>과목</span><select value={subjectFilter} onChange={event=>setSubjectFilter(event.target.value)}><option value="">전체 과목</option>{filterOptions.subjects.map(value=><option key={value} value={value}>{value}</option>)}</select></label><label><span>클래스</span><select value={classFilter} onChange={event=>setClassFilter(event.target.value)}><option value="">전체 클래스</option>{filterOptions.classes.map(value=><option key={value} value={value}>{value}</option>)}</select></label></div><div className="tuition-sort-controls"><span>학생 {visible.length}명</span><label><span>정렬</span><select value={sort} onChange={event=>setSort(event.target.value as TuitionSort)}><option value="balance">미수금 많은 순</option><option value="name">이름순</option><option value="charged">청구액 많은 순</option><option value="recent">최근 납부일순</option></select></label>{hasAdvancedFilter&&<button onClick={()=>{setSchoolFilter("");setGradeFilter("");setSubjectFilter("");setClassFilter("");}}>필터 초기화</button>}</div></div>}
     <div className="tuition-summary tuition-summary-five"><article><span>총 청구액</span><b>{money(totals.charged)}</b><small>{data.items.length}명 기준</small></article><article><span>납부액</span><b>{money(totals.paid)}</b><small>수납률 {collectionRate}%</small></article><article className="outstanding"><span>미수금</span><b>{money(totals.balance)}</b><small>미납·부분 납부 합계</small></article><article><span>납부 완료</span><b>{totals.completed}명</b><small>전체 {data.items.length}명</small></article><article className={totals.unpaid?"attention":""}><span>확인 필요</span><b>{totals.unpaid}명</b><small>미납·부분 납부</small></article></div>
     <section className="panel tuition-settlement-panel"><header className="tuition-toolbar"><div className="tuition-filters" role="group" aria-label="납부 상태 필터">{([['all','전체'],['unpaid','미납'],['partial','부분 납부'],['paid','납부 완료'],['waived','면제']] as [Filter,string][]).map(([value,label])=><button key={value} className={filter===value?"active":""} onClick={()=>setFilter(value)}>{label}<small>{filterCount(data.items,value)}</small></button>)}</div><div className="tuition-toolbar-actions"><label className="tuition-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="학생·수강·전화번호·시루 번호 검색" aria-label="학생·수강·전화번호·시루 번호 검색"/></label>{data.isStaff&&<button className="secondary-button tuition-reminder-button" disabled={loading||!totals.unpaid} title={loading?"미납 내역을 확인하고 있습니다.":!totals.unpaid?"안내를 보낼 미납 학생이 없습니다.":`${totals.unpaid}명의 대상과 금액을 확인합니다.`} onClick={()=>setReminderOpen(true)}>{loading?"확인 중…":totals.unpaid?`미납 안내 보내기 · ${totals.unpaid}명`:"미납 없음"}</button>}</div></header><div className={`tuition-table-scroll${data.isStaff&&filter==="paid"?" has-payment-edit":""}`}><div className="tuition-settlement-head"><span>학생</span><span>수강 내역</span><span>청구액</span><span>납부액</span><span>미수금</span><span>상태</span><span>최근 납부</span><span>비고</span><span/></div><div className="tuition-settlement-body">{loading?<p className="tuition-empty">원비 정산 내역을 불러오는 중이에요…</p>:!visible.length?<p className="tuition-empty">조건에 맞는 정산 내역이 없습니다.</p>:visible.map(row=>{const latest=row.payments[0];return <article key={row.id} className={`tuition-row ${row.status}`}><span className="student"><b>{row.studentName}</b><small>{row.payments.length?`${row.payments.length}회 납부`:"납부 기록 없음"}</small>{tuitionNumberMatchLabels(row,search).length>0&&<small>{tuitionNumberMatchLabels(row,search).join(" · ")}</small>}</span><span className="classes" title={row.classes}>{row.classes}</span><strong>{money(row.totalAmount)}<small>기본 {money(row.baseAmount)}{row.discountAmount?` · 할인 -${money(row.discountAmount)}`:""}{row.additionalAmount?` · 추가 +${money(row.additionalAmount)}`:""}</small></strong><strong>{money(row.paidAmount)}</strong><strong className={row.balance>0?"balance":""}>{money(row.balance)}</strong><span><i className={row.status}>{statusLabel[row.status]}</i>{row.payments.some(payment=>paymentIsEarly(payment.paidAt,month))&&<small className="tuition-early-badge">선납</small>}</span><span>{latest?<><b>{formatDate(latest.paidAt)}</b><small>{methodLabel(latest.method)}</small></>:<small>—</small>}</span><TuitionRowMemo row={row}/>{data.isStaff?<div className="tuition-row-actions"><button type="button" className="quick-pay" onClick={()=>setPaymentEditing(row)}>납부 관리</button>{filter!=="paid"&&<button className="more" onClick={()=>setEditing(row)}>이번 달 수정</button>}{row.paidAmount>0&&<button className="more" onClick={()=>printReceipt(row)}>영수증</button>}</div>:<span/>}</article>})}</div></div></section>
