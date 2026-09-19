@@ -31,3 +31,18 @@ student assignments, rollback on teacher/room/student/correction/class conflicts
 stale times/teachers, cross-day/self swaps, midnight limits, authorization,
 ordinary single-row edits, 320/390/1440px layout, RPC payloads, pending saves,
 error/retry, empty state and cancellation.
+
+## Schedule / record continuity audit
+
+`record-continuity-audit.cjs` loads current function fixtures and the audit migration into isolated PGlite. It reproduces the pre-fix behavior before checking the corrected behavior. No production credentials, messages, or student-data writes are used.
+
+Coverage:
+- Historical student records/read-status survive removal from a class.
+- Saved times override reconstructed calendar times; empty duplicate lessons and duplicate attendance do not duplicate cards.
+- Enrollment start dates, selected original weekdays for moved lessons, and expired schedule windows are respected.
+- Moved lessons can be saved on their replacement day with a stable lesson ID.
+- Actual teacher/room conflicts name the other lesson and time; adjacent periods are allowed.
+- Atomic swaps still retain student schedule assignments.
+- Family reports and exam graphs use the editor's current exam; obsolete copies and draft scores stay out of published results, including after clearing a score.
+
+Run with `HSM_PGLITE_MODULE` pointing to an installed PGlite package. Also run `assigned-time-edit.cjs`, `../class-record/lesson-identity.test.cjs`, and `node --test tests/system-audit/family-calendar-boundary.test.mjs` from the repository root. Fixtures contain schema/functions and synthetic data only. Auth/context providers unrelated to the change are stubbed; this is not an authenticated production-browser test.

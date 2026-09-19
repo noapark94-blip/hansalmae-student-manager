@@ -871,6 +871,12 @@ function calendarItemTone(item: CalendarItem) {
 }
 
 function calendarRecordMatchesSchedule(item: FeedItem, schedule: CalendarSchedule) {
+  if (schedule.id.startsWith("regular-saved:")) {
+    return item.kind === "lesson" && item.report.lessonId === schedule.id.slice("regular-saved:".length);
+  }
+  if (schedule.id.startsWith("special:")) {
+    return item.kind === "lesson" && item.report.lessonId === schedule.id.slice("special:".length);
+  }
   const itemTime = item.kind === "correction" ? item.time.slice(0, 5) : formatTime(item.time);
   if (itemTime !== schedule.startTime.slice(0, 5)) return false;
   const tone = calendarItemTone(item);

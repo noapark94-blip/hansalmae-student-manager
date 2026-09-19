@@ -21,3 +21,11 @@ test('calendar details use date-based detail loading, with an independent key fo
  const a=source.indexOf('  if (displayMode === "calendar") return ('),b=source.indexOf('\n  return (',a),calendar=source.slice(a,b);
  assert.match(calendar,/<FamilyLearningReportFeed/);assert.match(calendar,/studentId=\{studentId\} detailOnly/);assert.equal((calendar.match(/date:selected.date/g)||[]).length,2);assert.doesNotMatch(calendar,/previousHomework=\{findPrevious/);assert.match(calendar,/onClick=\{\(\) => selectCalendarDate\(day.date\)\}/);
 });
+test('saved calendar lessons match by record identity, not just the displayed time',()=>{
+ const a=source.indexOf('function calendarRecordMatchesSchedule('),b=source.indexOf('\nfunction feedFilterLabel',a);
+ const context={formatTime:()=> '11:00',calendarItemTone:()=> 'regular'};vm.createContext(context);vm.runInContext(compile(source.slice(a,b)+';globalThis.match=calendarRecordMatchesSchedule;'),context);
+ const item={kind:'lesson',time:'11:00',report:{lessonId:'saved-a'}};
+ assert.equal(context.match(item,{id:'regular-saved:saved-a',startTime:'14:00',kind:'regular'}),true);
+ assert.equal(context.match(item,{id:'regular-saved:saved-b',startTime:'11:00',kind:'regular'}),false);
+ assert.equal(context.match(item,{id:'special:saved-b',startTime:'11:00',kind:'extra'}),false);
+});
