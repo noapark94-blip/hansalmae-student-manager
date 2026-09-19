@@ -26,3 +26,8 @@ Live updates: run `node --experimental-strip-types --test tests/class-record/liv
 Mounted class records subscribe only to their class/date and their class roster signal. Snapshot+week reads are batched (two RPCs), not per-student calls. Local dirty input and its original conflict baseline survive live updates; removed dirty rows remain recoverable. Class list/settings changes reconcile workspace/agenda metadata in fixed parallel requests, while the open record editor remains mounted. The class manager list also refreshes without resetting its editor.
 
 Calendar events use one ID-batch delta RPC; focus/reconnect refreshes the year and metadata. Editor baselines remain frozen for conflict detection; note previews refresh. Identifiers/dates only are published; staff RLS restricts record signals to assigned teachers/admin. No polling interval added. Category/student/profile naming changes reconcile on focus rather than dedicated signals. Other routes such as the separate timetable hub are outside the live subscriptions. Actual two-device/mobile visual verification and end-to-end latency benchmarking remain unperformed in this environment.
+
+## Lesson identity after timetable edits
+
+Run `HSM_PGLITE_MODULE=/path/to/@electric-sql/pglite node tests/class-record/lesson-identity.test.cjs`.
+The test uses the actual record readers, normalizers, patch/revision functions and captured existing writers in an isolated PGlite database. It reproduces a 12:30 draft / 14:00 completed split, checks that all editor reads and writes target the completed report, and checks that future timetable changes reuse the saved lesson ID. Existing duplicate lesson rows are preserved, not merged or deleted. Lock contention is not simulated by PGlite.
