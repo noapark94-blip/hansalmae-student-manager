@@ -6,6 +6,7 @@ create function staff_learning_report_source(uuid,date,date) returns jsonb langu
 // A legacy delivery predates the migration and must never be rewritten.
 await db.query('insert into learning_alimtalk_deliveries values($1,$2,$3,$4,$5,$6)',[id(10),id(1),'2026-09-01','2026-09-01',{lessonSummary:'old'},'sent']);
 await db.exec(fs.readFileSync('supabase/migrations/20260919144854_alimtalk_record_links.sql','utf8'));
+await db.exec(fs.readFileSync('supabase/migrations/20260919225052_isolate_alimtalk_link_errors.sql','utf8'));
 await db.exec(`select set_config('test.uid','${id(99)}',false),set_config('test.role','admin',false);
 insert into classes(id,name) values('${id(2)}','가상 영어');
 insert into lessons(id,class_id,lesson_date,starts_at) values('${id(3)}','${id(2)}','2026-09-01','2026-09-01 16:00+09');
@@ -24,6 +25,20 @@ result=await links(id(11));assert.equal(result.mode,'saved');assert.equal(result
 await db.query("select set_config('test.rows','[]',false)");await db.exec("update learning_alimtalk_deliveries set status='sent'");assert.equal((await links(id(11))).items.length,3);
 await db.query('delete from teacher_special_lessons where id=$1',[id(4)]);assert.equal((await links(id(11))).items.find(r=>r.lessonId===id(4)).target,null);
 assert.equal((await links(null)).mode,'current');
+// Optional link capture failure must preserve every delivery variable and status.
+const exact={studentName:'가상 학생',lessonSummary:'- 영어 수업 · 출석\n  내용',attendanceSummary:'출석 1회',learningSummary:'<시험>\n- 영어: 단어 80/100개\n  피드백: 재시험\n\n<숙제>\n- 영어: 복습',periodStart:'2026-09-01',periodEnd:'2026-09-01'};
+await db.exec(`create or replace function staff_learning_report_source(uuid,date,date) returns jsonb language plpgsql as $$begin raise exception 'simulated source lookup failure';end$$;`);
+await db.query('insert into learning_alimtalk_deliveries(id,student_id,period_start,period_end,template_variables,status) values($1,$2,$3,$4,$5,$6)',[id(12),id(1),'2026-09-01','2026-09-01',exact,'sending']);
+let saved=(await db.query('select template_variables,status,source_refs from learning_alimtalk_deliveries where id=$1',[id(12)])).rows[0];assert.deepEqual(saved.template_variables,exact);assert.equal(saved.status,'sending');assert.equal(saved.source_refs,null);
+// Retry with new text may not retain stale source IDs after capture fails.
+await db.query('update learning_alimtalk_deliveries set template_variables=$1,status=$2 where id=$3',[exact,'sending',id(11)]);
+saved=(await db.query('select template_variables,status,source_refs from learning_alimtalk_deliveries where id=$1',[id(11)])).rows[0];assert.deepEqual(saved.template_variables,exact);assert.equal(saved.source_refs,null);
+await db.exec(`create or replace function staff_learning_report_source(uuid,date,date) returns jsonb language sql as $$select coalesce(nullif(current_setting('test.rows',true),'')::jsonb,'[]')$$;`);
+assert.equal((await links(id(12))).mode,'history');
+// Normal capture also preserves the full outgoing payload byte-for-byte in fields.
+await db.query("select set_config('test.rows',$1,false)",[JSON.stringify(rows)]);
+await db.query('update learning_alimtalk_deliveries set template_variables=$1 where id=$2',[exact,id(11)]);
+saved=(await db.query('select template_variables,source_refs from learning_alimtalk_deliveries where id=$1',[id(11)])).rows[0];assert.deepEqual(saved.template_variables,exact);assert.equal(saved.source_refs.length,3);
 for(const role of ['teacher','guardian','assistant']){await db.query("select set_config('test.role',$1,false)",[role]);await assert.rejects(links(id(11)),/권한/);}
 await db.exec("select set_config('test.role','sub_admin',false)");assert.equal((await links(id(11))).mode,'saved');
 await db.exec("select set_config('test.uid','',false)");await assert.rejects(links(id(11)),/권한/);
