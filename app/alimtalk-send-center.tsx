@@ -8,7 +8,7 @@ import styles from "./alimtalk-send-center.module.css";
 
 type ReportType="daily"|"weekly";
 type ListMode="ready"|"sent";
-type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;correctionTaskStatus?:"completed"|"partial"|"incomplete"|null;correctionTaskFeedback?:string;attendance:{status:string;lateMinutes:number|null;absenceReason?:string|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number}[]};
+type Lesson={lessonId:string;lessonDate:string;className:string;subject:string;source:"regular"|"makeup"|"extra"|"correction";lessonContent:string;homeworkContent:string;examContent:string;correctionTaskStatus?:"completed"|"partial"|"incomplete"|null;correctionTaskFeedback?:string;attendance:{status:string;lateMinutes:number|null;absenceReason?:string|null}|null;exams:{examType:string;examTitle:string;score:number|null;maxScore:number;evaluation?:string|null}[]};
 type Recipient={guardianName:string;maskedPhone:string;available:boolean};
 type TemplateVariables={studentName:string;periodStart:string;periodEnd:string;lessonSummary:string;attendanceSummary:string;learningSummary:string};
 type History={id:string;studentId:string;studentName:string;reportType:ReportType;periodStart:string;status:string;sentAt:string|null;errorMessage:string|null;templateVariables:TemplateVariables;maskedPhone:string;sendCount:number};
@@ -136,7 +136,7 @@ function buildPreview(name:string,start:string,type:ReportType,lessons:Lesson[])
   };
   const lessonItems=unique(orderedLessons.map(row=>lessonLine(row,true)));
   const statuses=orderedLessons.map(statusOf).filter(Boolean);const attendance=statuses.length?Array.from(new Set(statuses)).map(status=>`${attendanceLabel[status]??status} ${statuses.filter(value=>value===status).length}회`).join(" · "):"출결 기록 없음";
-  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!==null).map(exam=>formatExam(row.subject,exam));const content=cleanExamContent(row.examContent);return scored.length?scored:content?[`- ${row.subject}: ${short(content,42)}`]:[]}));
+  const examItems=unique(lessons.flatMap(row=>{const scored=(row.exams??[]).filter(exam=>exam.score!=null||Boolean(exam.evaluation?.trim())).map(exam=>formatExam(row.subject,exam));const content=cleanExamContent(row.examContent);return scored.length?scored:content?[`- ${row.subject}: ${short(content,42)}`]:[]}));
   const homeworkItems=groupBySubject(lessons.filter(row=>row.homeworkContent).map(row=>({subject:row.subject,value:cleanMultiline(row.homeworkContent)})));
   const correctionTaskItems=lessons.filter(row=>row.source==="correction"&&(row.lessonContent.trim()||row.correctionTaskStatus||row.correctionTaskFeedback?.trim())).map(formatCorrectionTask);
   const exam=summarize(examItems,type==="weekly"?3:4);
@@ -164,7 +164,10 @@ function formatExam(subject:string,exam:Lesson["exams"][number]){
   const score=Number(exam.score);
   const wordUnit=category.replace(/\s+/g,"").includes("단어시험")?"개":"";
   const converted=Number.isFinite(score)&&Number.isFinite(maxScore)&&maxScore>0?` (${Math.round(score*100/maxScore)}점)`:"";
-  return `- ${subject}: ${category}${title&&title!==category?`(${title})`:""} ${score}/${maxScore}${wordUnit}${converted}`;
+  const result=exam.score!=null?` ${score}/${maxScore}${wordUnit}${converted}`:"";
+  const evaluation=cleanMultiline(exam.evaluation??"");
+  const feedback=evaluation?`\n  피드백: ${evaluation.replace(/\n/g,"\n  ")}`:"";
+  return `- ${subject}: ${category}${title&&title!==category?`(${title})`:""}${result}${feedback}`;
 }
 function groupBySubject(items:{subject:string;value:string}[],emptyValue=""){
   const grouped=new Map<string,string[]>();

@@ -49,3 +49,21 @@ test('late, unknown and legacy absent states are not presented as attendance',()
  const p=preview([{...row,attendance:{status:'excused',absenceReason:'감기'}}]);
  assert.match(p.lesson,/결석\(감기\)/);assert.equal(p.attendance,'결석 1회');
 });
+
+test('exam feedback follows scores for every exam category and report period',()=>{
+ for(const examType of ['영단어 시험','주간 시험','월간 시험','모의고사'])for(const type of ['daily','weekly']){
+  const p=preview([{...row,exams:[{examType,examTitle:'범위',score:80,maxScore:100,evaluation:'재시험'}]}],type);
+  assert.match(p.exam,/80\/100(?:개)? \(80점\)\n  피드백: 재시험/);assert.ok(p.learningDetails.includes(p.exam));assert.ok(p.body.includes(p.exam));
+ }
+});
+test('feedback without a score never becomes a zero score',()=>{
+ const p=preview([{...row,exams:[{examType:'영단어 시험',examTitle:'내신 단어 part2',score:null,maxScore:100,evaluation:'재시험'}]}]);
+ assert.equal(p.exam,'- 수학: 영단어 시험(내신 단어 part2)\n  피드백: 재시험');assert.ok(!p.body.includes('0/100'));
+});
+test('empty feedback leaves the existing score format unchanged',()=>{
+ for(const evaluation of [undefined,null,'',' \n '])assert.equal(preview([{...row,exams:[{examType:'영단어 시험',examTitle:'범위',score:0,maxScore:100,evaluation}]}]).exam,'- 수학: 영단어 시험(범위) 0/100개 (0점)');
+});
+test('multiline feedback is preserved and counted by the send length guard',()=>{
+ const p=preview([{...row,exams:[{examType:'시험',examTitle:'',score:null,maxScore:100,evaluation:' 재시험\r\n\n 단어 복습 '+ '가'.repeat(1000)}]}]);
+ assert.match(p.exam,/피드백: 재시험\n  단어 복습/);assert.match(ctx.lengthError(p),/1,000자/);
+});
