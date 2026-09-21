@@ -896,7 +896,7 @@ export default function Home() {
             <div className="student-page-layout">
               {profile.role === "admin" && <GradeProgressionBoard supabase={supabase} onChanged={() => window.location.reload()} />}
               {profile.role === "admin" && <StudentLifecycleDashboard supabase={supabase} filter={studentStatusFilter} onFilter={setStudentStatusFilter} />}
-              <Students rows={filteredStudents} allRows={students} total={students.length} statusFilter={studentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} onOpen={openStudentDetails} />
+              <Students rows={filteredStudents} allRows={students} total={students.length} statusFilter={studentStatusFilter} onStatusFilter={setStudentStatusFilter} loading={studentsLoading} error={studentsError} query={query} setQuery={setQuery} onRegister={() => void refreshStudentRegistrationCatalog().then((ready) => ready && setRegistrationOpen(true))} onOpen={openStudentDetails} />
             </div>
           )}
           {view === "bulk-import" && <BulkImportBoard supabase={supabase} />}
@@ -1623,12 +1623,15 @@ function Dashboard({ supabase, profile, activeStudentCount, studentsLoading, onN
   );
 }
 
-function Students({ rows, allRows, total, statusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; allRows: StudentRow[]; total: number; statusFilter: StudentStatusFilter; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
+function Students({ rows, allRows, total, statusFilter, onStatusFilter, loading, error, query, setQuery, onRegister, onOpen }: { rows: StudentRow[]; allRows: StudentRow[]; total: number; statusFilter: StudentStatusFilter; onStatusFilter: (value: StudentStatusFilter) => void; loading: boolean; error: string; query: string; setQuery: (value: string) => void; onRegister: () => void; onOpen: (student: StudentRow) => void }) {
   const [subject, setSubject] = useState("all");
   const [classId, setClassId] = useState("all");
   const [grade, setGrade] = useState("all");
   const [school, setSchool] = useState("all");
   const [sort, setSort] = useState<"name" | "school" | "grade" | "attendance">("name");
+  useEffect(() => {
+    if (statusFilter !== "active") setClassId((current) => current === "unassigned" ? "all" : current);
+  }, [statusFilter]);
   const activeEnrollments = (student: StudentRow) => student.enrollments.filter((item) => item.status === "active" && item.classes);
   const subjects = useMemo(() => Array.from(new Set(allRows.flatMap(getStudentSubjects))).sort((a, b) => a.localeCompare(b, "ko")), [allRows]);
   const classes = useMemo(
@@ -1657,15 +1660,16 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
       rows
         .filter((student) => {
           const enrollments = activeEnrollments(student);
-          const matchesClass = classId === "all" || (classId === "unassigned" ? enrollments.length === 0 : enrollments.some((item) => item.class_id === classId));
+          const matchesClass = classId === "all" || (classId === "unassigned" ? isActiveStudent(student) && enrollments.length === 0 : enrollments.some((item) => item.class_id === classId));
           return (subject === "all" || enrollments.some((item) => item.classes?.subject === subject)) && matchesClass && (grade === "all" || student.grade === grade) && (school === "all" || student.school === school);
         })
         .sort((a, b) => (sort === "attendance" ? (b.attendanceRate ?? -1) - (a.attendanceRate ?? -1) || a.name.localeCompare(b.name, "ko") : sort === "school" ? (a.school ?? "").localeCompare(b.school ?? "", "ko") || a.name.localeCompare(b.name, "ko") : sort === "grade" ? (a.grade ?? "").localeCompare(b.grade ?? "", "ko") || a.name.localeCompare(b.name, "ko") : a.name.localeCompare(b.name, "ko"))),
     [rows, subject, classId, grade, school, sort],
   );
   const selectedClass = classes.find((item) => item.id === classId);
-  const hasFilters = subject !== "all" || classId !== "all" || grade !== "all" || school !== "all";
+  const hasFilters = statusFilter !== "all" || subject !== "all" || classId !== "all" || grade !== "all" || school !== "all";
   const reset = () => {
+    onStatusFilter("all");
     setSubject("all");
     setClassId("all");
     setGrade("all");
@@ -1707,7 +1711,7 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
             </label>
             <label>
               <span>클래스</span>
-              <select value={classId} onChange={(event) => {const value=event.target.value;setClassId(value);if(value==="unassigned")setSubject("all");}}>
+              <select value={classId} onChange={(event) => {const value=event.target.value;setClassId(value);if(value==="unassigned"){setSubject("all");onStatusFilter("active");}}}>
                 <option value="all">전체 클래스</option>
                 <option value="unassigned">미배정</option>
                 {classes.map((item) => (
@@ -1736,6 +1740,15 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
               </select>
             </label>
             <label>
+              <span>재원 상태</span>
+              <select value={statusFilter} onChange={(event) => onStatusFilter(event.target.value as StudentStatusFilter)}>
+                <option value="all">전체 상태</option>
+                <option value="active">재원생</option>
+                <option value="paused">휴원생</option>
+                <option value="completed">퇴원생</option>
+              </select>
+            </label>
+            <label>
               <span>정렬</span>
               <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
                 <option value="name">이름순</option>
@@ -1751,6 +1764,7 @@ function Students({ rows, allRows, total, statusFilter, loading, error, query, s
         </div>
         {hasFilters ? (
           <div className="student-filter-chips">
+            {statusFilter !== "all" && <button onClick={() => onStatusFilter("all")}>{studentStatusLabel(statusFilter)} ×</button>}
             {subject !== "all" && (
               <button
                 onClick={() => {
