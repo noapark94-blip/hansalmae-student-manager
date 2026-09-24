@@ -8,6 +8,7 @@ import { appConfirm, appPrompt } from "./app-dialog";
 import { useStaffLiveUpdates } from "./use-staff-live-updates";
 import { compareEdits } from "./edit-conflict-dialog";
 import { editChanges, preservePendingEdits, mergeLiveEditValues, type EditValues } from "./class-record-concurrency";
+import { ClassDayParticipants, type ParticipationChange } from "./class-day-participants";
 import { sendLearningFeedPush } from "./learning-feed-push";
 
 type Status = "present" | "late" | "absent";
@@ -21,6 +22,8 @@ type Student = {
   absenceReason: string | null;
   note: string | null;
   directAdded?: boolean;
+  excluded?: boolean;
+  exclusionReason?: string;
 };
 type ExamDraft = {
   id: string;
@@ -40,7 +43,7 @@ type Row = Omit<Student, "status"> & {
   inspectionStatus: string;
   inspectionNote: string;
 };
-type EditSnapshot = {values:EditValues;state:"draft"|"completed";revision:RevisionDraftResult|null;exams:ExamResult[];homework:HomeworkResult[];day:{students:Student[]};notice:string;lessonContent:string};
+type EditSnapshot = {values:EditValues;state:"draft"|"completed";revision:RevisionDraftResult|null;exams:ExamResult[];homework:HomeworkResult[];day:{students:Student[];rosterVersion:string};notice:string;lessonContent:string};
 function rowEditValues(rows:Row[],notice:string,lessonContent:string):EditValues {
  return {notice,lessonContent,students:Object.fromEntries(rows.map(row=>[row.id,{
   status:row.status,lateMinutes:row.lateMinutes,absenceReason:row.absenceReason??"",note:row.note??"",
@@ -269,7 +272,7 @@ export function ClassLearningBoard({
     const merged=preservePendingEdits(latestEditRef.current,submitted,snapshot.values);
     editBaselineRef.current=snapshot;
     latestEditRef.current=merged;
-    setRows(current=>applyEditValues(current,merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);
+    setRows(current=>applyEditValues(current.map(row=>{const metadata=snapshot.day.students.find(s=>s.id===row.id);return metadata?{...row,excluded:metadata.excluded,exclusionReason:metadata.exclusionReason}:row;}),merged));setNotice(merged.notice);setLessonContent(merged.lessonContent);
     setLessonState(snapshot.state);setHasRevisionDraft(Boolean(snapshot.revision?.payload));setRevisionSavedAt(snapshot.revision?.savedAt??null);
   };
   const persistEdits=async(mode:"draft"|"complete"|"revision"|"publish"|"attendance",values=latestEditRef.current)=>{
@@ -279,7 +282,7 @@ export function ClassLearningBoard({
     editBusyRef.current=true;
     try{
       const changes=editChanges(base.values,values);
-      const {data,error:saveError}=await supabase.rpc("staff_patch_class_record",{p_class_id:classId,p_date:date,p_changes:changes,p_expected_state:base.state,p_mode:mode});
+      const {data,error:saveError}=await supabase.rpc("staff_patch_class_record_with_roster",{p_class_id:classId,p_date:date,p_changes:changes,p_expected_state:base.state,p_mode:mode,p_roster_version:base.day.rosterVersion});
       if(saveError)throw new Error(saveError.message);
       if(editScopeRef.current===`${classId}:${date}`)acceptSavedSnapshot(data as EditSnapshot,values);
     }finally{editBusyRef.current=false;void refreshLive();}
@@ -646,16 +649,16 @@ export function ClassLearningBoard({
   const applyHomework = () => {
     if (!commonHomework.trim()) return;
     setRows((current) =>
-      current.map((row) => ({ ...row, assignedHomework: commonHomework })),
+      current.map((row) => row.excluded ? row : ({ ...row, assignedHomework: commonHomework })),
     );
   };
   const applyLessonContent = () => {
     if (!lessonContent.trim()) return;
-    setRows((current) => current.map((row) => ({ ...row, lessonContent })));
+    setRows((current) => current.map((row) => row.excluded ? row : ({ ...row, lessonContent })));
   };
   const applyExam = () => {
     setRows((current) =>
-      current.map((row) => ({
+      current.map((row) => row.excluded ? row : ({
         ...row,
         exams: [
           {
@@ -710,14 +713,14 @@ export function ClassLearningBoard({
     setCommonEvaluation(template.exam?.evaluation ?? "");
     if (template.assignedHomework)
       setRows((current) =>
-        current.map((row) => ({
+        current.map((row) => row.excluded ? row : ({
           ...row,
           assignedHomework: template.assignedHomework,
         })),
       );
     if (template.exam)
       setRows((current) =>
-        current.map((row) => ({
+        current.map((row) => row.excluded ? row : ({
           ...row,
           exams: [
             {
@@ -744,7 +747,7 @@ export function ClassLearningBoard({
     editBusyRef.current=true;
     try{
     const prior=structuredClone(latestEditRef.current);
-    const {data,error:saveError}=await supabase.rpc("staff_patch_class_record",{p_class_id:classId,p_date:date,p_changes:editChanges(base.values,values),p_expected_state:base.state,p_mode:"attendance"});
+    const {data,error:saveError}=await supabase.rpc("staff_patch_class_record_with_roster",{p_class_id:classId,p_date:date,p_changes:editChanges(base.values,values),p_expected_state:base.state,p_mode:"attendance",p_roster_version:base.day.rosterVersion});
     if(saveError)throw new Error(saveError.message);
     if(editScopeRef.current!==`${classId}:${date}`)throw new Error("이전 날짜의 저장이 완료됐습니다.");
     const submitted=structuredClone(prior);Object.assign(submitted.students[row.id],{status,lateMinutes:late,absenceReason:reason??"",note:row.note??""});
@@ -904,13 +907,14 @@ export function ClassLearningBoard({
 
   const validateRows = (requireAttendance: boolean) => {
     if (requireAttendance) {
-      const missing = rows.filter((row) => !row.status).map((row) => row.name);
+      const missing = rows.filter((row) => !row.excluded && !row.status).map((row) => row.name);
       if (missing.length) {
         setError(`출결 미입력 학생: ${missing.join(", ")}`);
         return false;
       }
     }
     for (const row of rows) {
+      if (row.excluded) continue;
       const exam = row.exams[0];
       const hasExamInput = Boolean(
         exam.examTitle.trim() || exam.score !== "" || exam.evaluation.trim(),
@@ -945,9 +949,29 @@ export function ClassLearningBoard({
     setError("");
     try {
       await persistEdits(complete?"complete":"draft");
-      if(complete&&lessonState!=="completed")await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.map(row=>row.id)});
+      if(complete&&lessonState!=="completed")await sendLearningFeedPush(supabase,{sourceType:"class_lesson",classId,date,studentIds:rows.filter(row=>!row.excluded).map(row=>row.id)});
     }catch(e){setError(e instanceof Error?e.message:"저장하지 못했습니다. 입력 내용은 유지됩니다.");}
     finally{setSaving("");}
+  };
+
+  const changeParticipants=async(changes:ParticipationChange[],expectedVersion:string)=>{
+    const scope=`${classId}:${date}`;
+    const base=editBaselineRef.current;
+    if(!base||editBusyRef.current||saving)throw new Error("앞선 저장이 끝난 뒤 다시 시도해 주세요.");
+    if(!validateRows(false))throw new Error("작성 중인 시험 종류와 점수를 확인한 뒤 다시 시도해 주세요. 입력 내용은 유지됩니다.");
+    const version=expectedVersion;
+    if(version!==base.day.rosterVersion)throw new Error("수업 대상이 변경됐습니다. 창을 닫고 최신 명단을 다시 확인해 주세요.");
+    setSaving("all");setError("");
+    try{
+      // Preserve pending input privately before hiding any rows. Never publish it here.
+      if(editChanges(base.values,latestEditRef.current).length)await persistEdits(base.state==="completed"?"revision":"draft");
+      if(editScopeRef.current!==scope)throw new Error("날짜가 변경됐습니다. 수업 대상을 다시 확인해 주세요.");
+      editBusyRef.current=true;
+      const {data,error:rosterError}=await supabase.rpc("staff_set_class_lesson_participants",{p_class_id:classId,p_date:date,p_changes:changes,p_expected_version:version});
+      if(rosterError)throw new Error(rosterError.message);
+      if(editScopeRef.current===scope)acceptSavedSnapshot(data as EditSnapshot,structuredClone(latestEditRef.current));
+      await Promise.all([onReload(),loadWeek()]);
+    }finally{editBusyRef.current=false;setSaving("");void refreshLive();}
   };
 
   const saveRevisionDraft=async()=>{
@@ -1130,7 +1154,7 @@ export function ClassLearningBoard({
             있습니다.
           </p>
           {error ? (
-            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경|수업 대상이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
           ) : null}
         </section>
       ) : (
@@ -1386,6 +1410,7 @@ export function ClassLearningBoard({
             classId={classId}
             date={date}
           />
+          <ClassDayParticipants key={`${classId}:${date}`} date={date} students={rows} version={editBaselineRef.current?.day.rosterVersion??""} disabled={loading||Boolean(saving)} onApply={changeParticipants}/>
           <div className="learning-board-heading">
             <span>학생·출결</span>
             <span>개인별 수업 내용</span>
@@ -1402,7 +1427,7 @@ export function ClassLearningBoard({
             <AppLoading/>
           ) : (
             <div className="learning-board-rows">
-              {rows.map((row) => {
+              {rows.filter(row=>!row.excluded).map((row) => {
                 const exam = row.exams[0],
                   score = Number(exam.score),
                   max = Number(exam.maxScore);
@@ -1646,15 +1671,15 @@ export function ClassLearningBoard({
                   </article>
                 );
               })}
-              {!rows.length ? (
+              {!rows.some(row=>!row.excluded) ? (
                 <div className="makeup-empty">
-                  <p>이 날짜에 등록된 수강생이 없습니다.</p>
+                  <p>{rows.length ? "오늘 수업 대상이 없습니다. 수업 대상 변경에서 다시 포함할 수 있습니다." : "이 날짜에 등록된 수강생이 없습니다."}</p>
                 </div>
               ) : null}
             </div>
           )}
           {error ? (
-            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
+            <div className="form-error learning-board-error"><span>{error}</span>{/다른 선생님|완료 상태|명단이 변경|수업 대상이 변경/.test(error)&&<button type="button" className="secondary-button" disabled={reviewing} onClick={()=>void reviewLatestEdits()}>{reviewing?"확인 중…":"최신 내용 비교"}</button>}</div>
           ) : null}
           {rows.length ? (
             <footer>

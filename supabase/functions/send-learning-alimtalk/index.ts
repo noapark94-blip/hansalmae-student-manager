@@ -21,7 +21,7 @@ Deno.serve(async request=>{
   const apiKey=clean(Deno.env.get("SOLAPI_API_KEY")),apiSecret=clean(Deno.env.get("SOLAPI_API_SECRET")),sender=phone(Deno.env.get("SOLAPI_SENDER_NUMBER")??""),pfId=clean(Deno.env.get("SOLAPI_KAKAO_PF_ID"));
   if(!url||!anon||!service)return json({error:"알림톡 서버 연결 설정이 없습니다."},500);
   if(!bearer?.startsWith("Bearer "))return json({error:"로그인이 필요합니다."},401);
-  let input:{studentId?:string;reportType?:ReportType;periodStart?:string;periodEnd?:string;lessonSummary?:string;attendanceSummary?:string;examSummary?:string;homeworkSummary?:string;learningSummary?:string;resendDeliveryId?:string};
+  let input:{studentId?:string;sourceVersion?:string;reportType?:ReportType;periodStart?:string;periodEnd?:string;lessonSummary?:string;attendanceSummary?:string;examSummary?:string;homeworkSummary?:string;learningSummary?:string;resendDeliveryId?:string};
   try{input=await request.json()}catch{return json({error:"발송 내용을 확인해 주세요."},400)}
   const authClient=createClient(url,anon,{global:{headers:{Authorization:bearer}},auth:{persistSession:false}}),admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   if(!input||typeof input!=="object")return json({error:"발송 내용을 확인해 주세요."},400);
@@ -38,7 +38,7 @@ Deno.serve(async request=>{
   }catch{return json({error:"로그인 또는 발송 준비를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요."},503)}
   const{data,error}=resend
     ?await authClient.rpc("staff_prepare_learning_alimtalk_resend",{p_delivery_id:input.resendDeliveryId})
-    :await authClient.rpc("staff_claim_learning_alimtalk",{p_student_id:input.studentId,p_report_type:input.reportType,p_period_start:input.periodStart,p_period_end:input.periodEnd,p_lesson_summary:input.lessonSummary,p_attendance_summary:input.attendanceSummary,p_learning_summary:input.learningSummary});
+    :await authClient.rpc("staff_claim_learning_alimtalk_current",{p_source_version:input.sourceVersion??null,p_student_id:input.studentId,p_report_type:input.reportType,p_period_start:input.periodStart,p_period_end:input.periodEnd,p_lesson_summary:input.lessonSummary,p_attendance_summary:input.attendanceSummary,p_learning_summary:input.learningSummary});
   if(error)return json({error:error.message},error.message.includes("관리자")?403:400);
   const claimed=(data??[]) as{id?:string;delivery_id?:string;recipient_phone:string;guardian_name:string;student_name:string;report_type?:ReportType;template_variables:Record<string,string>}[];
   if(!claimed.length)return json({error:"발송할 학부모 연락처를 찾지 못했습니다."},400);
