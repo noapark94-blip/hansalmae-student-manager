@@ -3,7 +3,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
 const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 (async()=>{
  const db=new PGlite();
- for(const file of ['tests/class-participants/schema.sql','supabase/migrations/20260924151450_class_day_participants.sql','supabase/migrations/20260924151643_participant_preview_compatibility.sql','supabase/migrations/20260924155505_academy_closure_days.sql'])await db.exec(fs.readFileSync(file,'utf8'));
+ for(const file of ['tests/class-participants/schema.sql','supabase/migrations/20260924151450_class_day_participants.sql','supabase/migrations/20260924151643_participant_preview_compatibility.sql','supabase/migrations/20260924155505_academy_closure_days.sql','supabase/migrations/20260924161838_dashboard_participation_counts.sql'])await db.exec(fs.readFileSync(file,'utf8'));
  const q=async(sql,args=[])=>(await db.query(sql,args)).rows;const scalar=async(sql,args=[])=>(await q(sql,args))[0].v;
  await db.exec(`set test.uid='${id(1)}';set test.role='admin';insert into profiles(id,display_name,role) values('${id(1)}','관리자','admin');insert into students(id,name,status) values('${id(3)}','학생1','active'),('${id(4)}','학생2','active');insert into classes(id,name,subject,active) values('${id(2)}','영어','영어',true);insert into class_teachers(class_id,profile_id) values('${id(2)}','${id(1)}');insert into class_schedules(class_id,weekday,start_time,end_time) values('${id(2)}',extract(isodow from current_date),'10:00','11:30');insert into enrollments(class_id,student_id,status,started_on) values('${id(2)}','${id(3)}','active',current_date-30),('${id(2)}','${id(4)}','active',current_date-30);insert into correction_assignments(id,student_id,subject,weekday,start_time,end_time,tutor_profile_id) values('${id(5)}','${id(3)}','영어',extract(isodow from current_date),'15:00','16:30','${id(1)}'),('${id(6)}','${id(4)}','영어',extract(isodow from current_date),'15:00','16:30','${id(1)}');`);
  const today=await scalar('select current_date::text v');const snap=()=>scalar('select staff_class_edit_snapshot($1,$2) v',[id(2),today]);
@@ -12,6 +12,7 @@ const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
  const save=a=>scalar('select admin_save_academy_closure($1,$2,$3,$4,$5,$6,$7,$8,$9) v',a);
  assert.equal((await save(args)).saved,false);assert.equal((await snap()).day.students.some(s=>s.excluded),false,'preview does not mutate');
  const result=await save([...args.slice(0,7),true,false]);
+ assert.equal((await scalar('select staff_dashboard_live() v')).todayClasses.length,0,'closed class has no home attendance deficit');
  let s=await snap();assert.equal(s.day.closureReason,'추석 연휴');assert(s.day.students.every(s=>s.excluded));assert.notEqual(s.day.rosterVersion,before.day.rosterVersion);
  assert.equal(await scalar('select internal_correction_closed($1,$2) v',[id(5),today]),true);
  let ready=await scalar('select staff_alimtalk_ready_students($1,$1) v',[today]);assert.equal(ready.length,0,'holiday generates no missing send targets');
@@ -19,6 +20,7 @@ const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
  await assert.rejects(q('insert into correction_reports(assignment_id,student_id,correction_date) values($1,$2,$3)',[id(5),id(3),today]),/휴강일/);
  await assert.rejects(q('select staff_set_class_lesson_participants($1,$2,$3,$4)',[id(2),today,JSON.stringify([{studentId:id(3),excluded:false,reason:''}]),before.day.rosterVersion]),/변경/);
  await q('select staff_set_class_lesson_participants($1,$2,$3,$4)',[id(2),today,JSON.stringify([{studentId:id(3),excluded:false,reason:''}]),s.day.rosterVersion]);
+ assert.equal((await scalar('select staff_dashboard_live() v')).todayClasses[0].enrolled,1,'opened student is counted once');
  s=await snap();assert.equal(s.day.students.find(s=>s.id===id(3)).excluded,false);assert.equal(s.day.students.find(s=>s.id===id(4)).excluded,true);
 
  await q('select staff_patch_class_record_with_roster($1,$2,$3,$4,$5,$6)',[id(2),today,JSON.stringify([{path:['students',id(3),'status'],before:null,value:'present'}]),'draft','complete',s.day.rosterVersion]);
