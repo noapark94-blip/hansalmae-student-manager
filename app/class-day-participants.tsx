@@ -6,7 +6,7 @@ import styles from "./class-day-participants.module.css";
 export type Participant = {id:string;name:string;school:string|null;grade:string|null;excluded?:boolean;exclusionReason?:string;recordExists?:boolean};
 export type ParticipationChange = {studentId:string;excluded:boolean;reason:string};
 
-export function ClassDayParticipants({date,students,disabled,version,onApply}:{date:string;students:Participant[];disabled:boolean;version:string;onApply:(changes:ParticipationChange[],version:string)=>Promise<void>}) {
+export function ClassDayParticipants({date,students,disabled,version,onApply,closureReason}:{closureReason?:string|null;date:string;students:Participant[];disabled:boolean;version:string;onApply:(changes:ParticipationChange[],version:string)=>Promise<void>}) {
  const [open,setOpen]=useState(false);
  const [selected,setSelected]=useState<Set<string>>(new Set());
  const [reason,setReason]=useState("");
@@ -31,10 +31,11 @@ export function ClassDayParticipants({date,students,disabled,version,onApply}:{d
   try{await onApply(changes,openedVersion.current);setOpen(false);trigger.current?.focus();}catch(e){setError(e instanceof Error?e.message:"수업 대상을 변경하지 못했습니다.");}finally{setBusy(false);}
  }
  return <section className={styles.panel} aria-label="날짜별 수업 대상">
-  <div className={styles.bar}><div><span className={styles.eyebrow}>{dateLabel} 수업 대상</span><strong>{students.length-excluded.length}명 <small>/ 전체 {students.length}명</small></strong></div><button ref={trigger} type="button" disabled={disabled||!students.length} onClick={launch}>오늘 수업 대상 변경</button></div>
-  {excluded.length>0&&<details className={styles.excluded}><summary>오늘 제외된 학생 <b>{excluded.length}명</b></summary><ul>{excluded.map(s=><li key={s.id}><b>{s.name}</b><span>{s.exclusionReason||"사유 미입력"}</span></li>)}</ul><p>선택한 날짜에만 적용됩니다. 다시 포함하려면 수업 대상을 변경해 주세요.</p></details>}
+  {closureReason&&<div className={styles.closure}><b>학원 휴강일 · {closureReason}</b><span>실제 수업하는 학생만 선택해 정규수업을 진행할 수 있습니다.</span></div>}
+  <div className={styles.bar}><div><span className={styles.eyebrow}>{dateLabel} 수업 대상</span><strong>{students.length-excluded.length}명 <small>/ 전체 {students.length}명</small></strong></div><button ref={trigger} type="button" disabled={disabled||!students.length} onClick={launch}>{closureReason&&excluded.length===students.length?"오늘 수업 진행":"오늘 수업 대상 변경"}</button></div>
+  {excluded.length>0&&<details className={styles.excluded}><summary>오늘 제외된 학생 <b>{excluded.length}명</b></summary><ul>{excluded.map(s=><li key={s.id}><b>{s.name}</b><span>{s.exclusionReason||closureReason||"사유 미입력"}</span></li>)}</ul><p>선택한 날짜에만 적용됩니다. 다시 포함하려면 수업 대상을 변경해 주세요.</p></details>}
   <dialog ref={dialog} className={styles.dialog} onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}} aria-labelledby="participants-title">
-   {open&&<><header><div><span className={styles.eyebrow}>{dateLabel}에만 적용</span><h3 id="participants-title">오늘 수업 대상 변경</h3></div><button type="button" disabled={busy} onClick={close} aria-label="닫기">×</button></header>
+   {open&&<><header><div><span className={styles.eyebrow}>{dateLabel}에만 적용</span><h3 id="participants-title">{closureReason?"휴강일 수업 대상 선택":"오늘 수업 대상 변경"}</h3></div><button type="button" disabled={busy} onClick={close} aria-label="닫기">×</button></header>
    <div className={styles.body}><p className={styles.description}>수업을 받기로 한 학생을 선택해 주세요.<br/>체크를 해제한 학생은 오늘 수업에서 제외됩니다.</p>
     <div className={styles.selection}><strong>수업 대상 {selected.size}명 <span>· 제외 {baseline.length-selected.size}명</span></strong><button type="button" disabled={busy} onClick={()=>{setSelected(new Set(baseline.map(s=>s.id)));setConfirmAll(false);}}>전체 선택</button></div>
     <div className={styles.students}>{baseline.map(s=><label key={s.id} className={!selected.has(s.id)?styles.unchecked:undefined}><input type="checkbox" disabled={busy} checked={selected.has(s.id)} onChange={e=>{const next=new Set(selected);if(e.target.checked)next.add(s.id);else next.delete(s.id);setSelected(next);setConfirmAll(false);}}/><span><b>{s.name}</b><small>{[s.school,s.grade].filter(Boolean).join(" · ")}</small></span><em>{selected.has(s.id)?"수업 대상":"제외"}</em></label>)}</div>

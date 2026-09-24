@@ -43,7 +43,7 @@ type Row = Omit<Student, "status"> & {
   inspectionStatus: string;
   inspectionNote: string;
 };
-type EditSnapshot = {values:EditValues;state:"draft"|"completed";revision:RevisionDraftResult|null;exams:ExamResult[];homework:HomeworkResult[];day:{students:Student[];rosterVersion:string};notice:string;lessonContent:string};
+type EditSnapshot = {values:EditValues;state:"draft"|"completed";revision:RevisionDraftResult|null;exams:ExamResult[];homework:HomeworkResult[];day:{students:Student[];rosterVersion:string;closureReason?:string|null};notice:string;lessonContent:string};
 function rowEditValues(rows:Row[],notice:string,lessonContent:string):EditValues {
  return {notice,lessonContent,students:Object.fromEntries(rows.map(row=>[row.id,{
   status:row.status,lateMinutes:row.lateMinutes,absenceReason:row.absenceReason??"",note:row.note??"",
@@ -268,6 +268,7 @@ export function ClassLearningBoard({
     if(!calendar.error)setWeek((calendar.data??[]) as CalendarDay[]);
   },failure=>setError((failure as {message?:string}).message??"수업 기록을 갱신하지 못했습니다."));
   useStaffLiveUpdates(supabase,`class-roster-${classId}-${date}`,`key=eq.classes:${classId}`,async()=>{await refreshLive();},failure=>setError((failure as {message?:string}).message??"명단을 갱신하지 못했습니다."));
+  useStaffLiveUpdates(supabase,`class-closures-${classId}-${date}`,"key=eq.academy-closures",async()=>{await refreshLive();},failure=>setError((failure as {message?:string}).message??"휴강 설정을 갱신하지 못했습니다."));
   const acceptSavedSnapshot=(snapshot:EditSnapshot,submitted:EditValues)=>{
     const merged=preservePendingEdits(latestEditRef.current,submitted,snapshot.values);
     editBaselineRef.current=snapshot;
@@ -1410,7 +1411,7 @@ export function ClassLearningBoard({
             classId={classId}
             date={date}
           />
-          <ClassDayParticipants key={`${classId}:${date}`} date={date} students={rows} version={editBaselineRef.current?.day.rosterVersion??""} disabled={loading||Boolean(saving)} onApply={changeParticipants}/>
+          <ClassDayParticipants closureReason={editBaselineRef.current?.day.closureReason} key={`${classId}:${date}`} date={date} students={rows} version={editBaselineRef.current?.day.rosterVersion??""} disabled={loading||Boolean(saving)} onApply={changeParticipants}/>
           <div className="learning-board-heading">
             <span>학생·출결</span>
             <span>개인별 수업 내용</span>

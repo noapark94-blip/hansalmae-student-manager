@@ -7,6 +7,7 @@ const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
  await db.exec(fs.readFileSync('tests/class-participants/schema.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/migrations/20260924151450_class_day_participants.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/migrations/20260924151643_participant_preview_compatibility.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/migrations/20260924155505_academy_closure_days.sql','utf8'));
  await db.exec(`set test.uid='${id(1)}';set test.role='admin';`);
  await db.exec(`insert into profiles(id,display_name,role,is_active) values('${id(1)}','테스트 선생님','admin',true);
  insert into students(id,name,status,profile_id) values('${id(3)}','참여 학생','active','${id(30)}'),('${id(4)}','연휴 학생','active','${id(40)}');

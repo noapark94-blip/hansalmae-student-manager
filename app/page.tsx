@@ -1099,8 +1099,8 @@ function StaffMobileHomeHero({ supabase, role, displayName, activeStudentCount, 
     const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     void supabase.rpc("correction_day_board", { p_date: date }).then(({ data, error }) => {
       if (!active) return;
-      const assignments = error ? [] : (((data as { assignments?: { studentId: string; subject: string }[] } | null)?.assignments) ?? []);
-      const unique = [...new Map(assignments.map((item) => [`${item.studentId}-${item.subject}`, item])).values()];
+      const assignments = error ? [] : (((data as { assignments?: { studentId: string; subject: string; closedDates?:string[] }[] } | null)?.assignments) ?? []);
+      const unique = [...new Map(assignments.filter(item=>!item.closedDates?.includes(date)).map((item) => [`${item.studentId}-${item.subject}`, item])).values()];
       setAssistantSummary({
         total: unique.length,
         korean: unique.filter((item) => item.subject === "국어").length,

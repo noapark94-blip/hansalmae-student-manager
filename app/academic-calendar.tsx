@@ -1,5 +1,7 @@
 "use client";
 
+import {AcademyClosures,type AcademyClosure} from "./academy-closures";
+import closureStyles from "./academy-closures.module.css";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,6 +57,7 @@ const grades = ["초6", "중1", "중2", "중3", "고1", "고2", "고3", "재수"
 const empty: Board = { events: [], categories: [], schools: [], classes: [], teachers: [] };
 
 export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClient; profile: Profile }) {
+  const [academyClosures,setAcademyClosures]=useState<AcademyClosure[]>([]);
   const now = new Date();
   const [month, setMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [data, setData] = useState<Board>(empty);
@@ -121,6 +124,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
       {([["all", "전체 일정"], ["school", "학교 일정"], ["academy", "학원 일정"]] as [View, string][]).map(([id, text]) =>
         <button key={id} className={view === id ? "active" : ""} onClick={() => changeView(id)}>{text}</button>)}
     </nav>
+    <AcademyClosures supabase={supabase} year={year} date={selected} canManage={profile.role==="admin"} onChange={setAcademyClosures}/>
     <div className="academic-filters">
       <select value={school} onChange={event => setSchool(event.target.value)}><option value="">전체 학교</option>{data.schools.map(x => <option key={x}>{x}</option>)}</select>
       <select value={grade} onChange={event => setGrade(event.target.value)}><option value="">전체 학년</option>{grades.map(x => <option key={x}>{x}</option>)}</select>
@@ -140,7 +144,7 @@ export function AcademicCalendar({ supabase, profile }: { supabase: SupabaseClie
           return <button key={date} className={`${selected === date ? "selected" : ""}${date === toDate(now) ? " today" : ""}`} onClick={() => setSelected(date)}>
             <strong className={holiday || index % 7 === 0 ? "holiday" : index % 7 === 6 ? "saturday" : ""}>{day}</strong>
             {holiday && <small className="holiday-name">{holiday.localName}</small>}
-            <span className="academic-day-events">{events.slice(0, 3).map(event => <em className={`${event.scope} ${event.category}`} key={event.id}>{calendarEventText(event)}</em>)}{events.length > 3 && <small>+{events.length - 3}개</small>}</span>
+            <span className="academic-day-events">{view!=="school"&&academyClosures.filter(r=>r.startsOn<=date&&r.endsOn>=date).map(r=><em key={r.id} className={closureStyles.closureBadge}>{r.reason} · 휴강</em>)}{events.slice(0, 3).map(event => <em className={`${event.scope} ${event.category}`} key={event.id}>{calendarEventText(event)}</em>)}{events.length > 3 && <small>+{events.length - 3}개</small>}</span>
             {events.length > 1 && <small className="academic-mobile-more">+{events.length - 1}개 · …</small>}
           </button>;
         })}</div>

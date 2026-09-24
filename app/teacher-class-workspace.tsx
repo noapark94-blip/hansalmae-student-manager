@@ -66,7 +66,7 @@ type ManagedClass = {
   lessonCount: number;
   assignmentCount: number;
 };
-type AgendaEntry = { key: string; classId: string | null; sessionId: string | null; name: string; subject: string; color: string; room: string | null; startTime: string; endTime: string; kind: string; completed: boolean; studentCount: number; teacherIds: string[] };
+type AgendaEntry = { closureReason?:string|null; key: string; classId: string | null; sessionId: string | null; name: string; subject: string; color: string; room: string | null; startTime: string; endTime: string; kind: string; completed: boolean; studentCount: number; teacherIds: string[] };
 type Workspace = { subjects: Subject[]; classes: ClassRoom[] };
 type AdminClassFilter = "all" | "mine" | "subject" | "teacher";
 type AttendanceStatus = "present" | "late" | "absent";
@@ -337,7 +337,7 @@ export function TeacherClassWorkspace({ supabase, profile, manageOnly = false, l
                 {(item ? item.room : entry.room) ? ` · ${item ? item.room : entry.room}` : ""}
               </em>
             </span>
-            <strong>{item ? item.students.length : entry.studentCount}명</strong>
+            <strong title={entry.closureReason??undefined}>{entry.closureReason?"휴강":`${entry.studentCount}명`}</strong>
           </button>;
         })}
         {!agendaLoading && !agendaError && !visibleAgenda.length && <div className={emptyAgendaStyles.card} role="status"><span className={emptyAgendaStyles.icon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="5" width="16" height="16" rx="4"/><path d="M8 3v4m8-4v4M4 10h16m-11 5h6"/></svg></span><div className={emptyAgendaStyles.copy}><h3>오늘 예정된 수업이 없습니다</h3><p>선택한 조건의 다른 일정도 확인해 보세요.</p></div><button type="button" className={emptyAgendaStyles.action} onClick={() => setTodayOnly(false)}>전체 일정 보기<span aria-hidden="true">→</span></button></div>}
