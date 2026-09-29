@@ -42,11 +42,7 @@ function defaults(s: Source): Config {
     })),
     teachers: s.teachers.map((t) => ({
       ...t,
-      days: t.name.includes("소현")
-        ? [1, 2, 3, 4, 5]
-        : t.name.includes("하영")
-          ? [1, 2, 3, 4, 6]
-          : [1, 2, 3, 4, 5, 6],
+      days: [1, 2, 3, 4, 5, 6, 7],
     })),
     starts: [
       "16:00,18:00,20:00",
@@ -253,7 +249,9 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
             if (!source) return;
             setDraft(null);
             versionRef.current = source.version;
-            change(defaults(source));
+            const next = defaults(source);
+            next.teachers = next.teachers.map(t => ({...t, days: [...(config?.teachers.find(saved => saved.id === t.id)?.days ?? t.days)]}));
+            change(next);
             setTab("conditions");
             setTitle("새 시간표 편성");
           }}
@@ -361,8 +359,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       </div>
                     ))}
                     <p>
-                      소현 선생님은 월–금, 하영 선생님은 금·일 휴무를 기본
-                      반영했습니다.
+                      근무 가능한 요일만 선택해 주세요. 선택하지 않은 요일에는 수업을
+                      배정하지 않습니다. 선택한 조건은 새 초안에도 유지됩니다.
                     </p>
                     {config.teachers.map((t, i) => (
                       <div className={styles.teacher} key={t.id}>
