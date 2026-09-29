@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   clock,
@@ -14,6 +14,7 @@ import {
   type Student,
 } from "./engine";
 import styles from "./planner.module.css";
+import { appConfirm } from "../app-dialog";
 import { StudentRoster } from "./student-roster";
 import { CourseSelection } from "./course-selection";
 type Source = {
@@ -184,6 +185,29 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       setBusy(false);
     }
   }
+  async function removeDraft() {
+    if (!draft || draft.applied_at || busy || solving) return;
+    const target = draft;
+    if (!await appConfirm({eyebrow: "시간표 초안 관리", title: `“${target.title}” 초안을 삭제할까요?`, copy: "저장된 편성 조건과 후보가 삭제됩니다.", notice: "실제 정규 시간표와 수업 기록에는 영향이 없습니다. 삭제 후에는 복구할 수 없습니다.", confirmLabel: "초안 삭제", tone: "danger"})) return;
+    setBusy(true);
+    setError("");
+    try {
+      const {error} = await supabase.rpc("admin_delete_timetable_plan", {p_id:target.id, p_version:target.version});
+      if (error) throw error;
+      setDrafts(ds => ds.filter(d => d.id !== target.id));
+      setDraft(null);
+      if (source) {
+        const next = defaults(source);
+        next.teachers = next.teachers.map(t => ({...t, days:[...(config?.teachers.find(saved => saved.id === t.id)?.days ?? t.days)]}));
+        change(next);
+        versionRef.current = source.version;
+      }
+      setTab("conditions");
+      setTitle("새 시간표 편성");
+      setNotice(`“${target.title}” 초안을 삭제했습니다.`);
+    } catch(e) { setError((e as Error).message); }
+    finally { setBusy(false); }
+  }
   async function apply() {
     if (!chosen || issues.length) return;
     if (config?.courses.some(c=>c.enabled&&c.memberCourses?.length)) { setError("합반 초안은 비교·저장용입니다. 운영 클래스의 합반 구성을 확정한 뒤 새 초안으로 실제 시간표에 적용해 주세요."); return; }
@@ -329,6 +353,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                   ))}
                 </select>
               </label>
+              {draft && <div className={styles.draftActions}>{draft.applied_at ? <span>적용 이력 · 삭제 불가</span> : <button type="button" disabled={busy || solving} onClick={()=>void removeDraft()}>초안 삭제</button>}</div>}
             </div>
             <nav className={styles.tabs} aria-label="편성 단계">
               <button
@@ -557,15 +582,15 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                     ?.teachers.includes(teacherFilter)),
                             )
                             .sort((a, b) => a.m.start - b.m.start)
-                            .map(({ m, index }) => {
+                            .map(({ m, index }, position, rows) => {
                               const c = config.courses.find(
                                 (c) => c.id === m.classId,
                               )!;
                               return (
-                                <article key={index} className={`${styles.lesson} ${c.students.some(s=>s.id===selectedStudent?.id)?styles.studentMatch:""}`}>
-                                  <time>
-                                    {clock(m.start)}–{clock(m.end)}
-                                  </time>
+                                <Fragment key={index}>
+                                {(position === 0 || rows[position-1].m.start !== m.start) && <h4 className={styles.timeGroup}>{clock(m.start)}</h4>}
+                                <article className={`${styles.lesson} ${c.students.some(s=>s.id===selectedStudent?.id)?styles.studentMatch:""}`}>
+                                  <time className={styles.lessonRange}>{clock(m.start)}–{clock(m.end)}</time>
                                   <b>{c.name}</b>
                                   <small>
                                     {c.teachers
@@ -581,8 +606,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                     {c.room || "강의실 미지정"} ·{" "}
                                     {c.students.length}명
                                   </small>
-                                  <StudentRoster course={c} selected={selectedStudent?.id} onSelect={selectStudent}/>
-                                  <select
+                                  <StudentRoster showAll course={c} selected={selectedStudent?.id} onSelect={selectStudent}/>
+                                  <details className={styles.lessonEdit}><summary>시간 변경</summary><select
                                     aria-label={`${c.name} ${d}요일 시간 변경`}
                                     value={`${m.day}:${m.start}:${m.end}`}
                                     onChange={(e) =>
@@ -598,8 +623,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                         {clock(s.end)}
                                       </option>
                                     ))}
-                                  </select>
-                                </article>
+                                  </select></details>
+                                </article></Fragment>
                               );
                             })}
                         </div>

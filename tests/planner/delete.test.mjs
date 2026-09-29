@@ -1,0 +1,25 @@
+import {readFile} from 'node:fs/promises';
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {PGlite} from '../family-database/node_modules/@electric-sql/pglite/dist/index.js';
+test('draft deletion checks authorization, applied history and version', async t => {
+ const db = new PGlite(); t.after(()=>db.close());
+ await db.exec(`create role anon; create role authenticated; create schema auth;
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
+ create function public.current_user_role() returns text language sql as $$select current_setting('test.role',true)$$;
+ create table timetable_plans(id uuid primary key, version integer, applied_at timestamptz);
+ insert into timetable_plans values('00000000-0000-0000-0000-000000000001',2,null),('00000000-0000-0000-0000-000000000002',1,now());`);
+ await db.exec(await readFile(new URL('../../supabase/migrations/20260929131518_delete_unapplied_timetable_drafts.sql',import.meta.url),'utf8'));
+ const del=(id,version)=>db.query('select admin_delete_timetable_plan($1,$2)',[`00000000-0000-0000-0000-00000000000${id}`,version]);
+ await assert.rejects(del(1,2),/관리자/);
+ await db.exec(`set test.uid='00000000-0000-0000-0000-000000000009';set test.role='teacher'`);
+ await assert.rejects(del(1,2),/관리자/);
+ await db.exec(`set test.role='admin'`);
+ await assert.rejects(del(1,1),/다른 관리자/);
+ await assert.rejects(del(1,null),/다른 관리자/);
+ await assert.rejects(del(2,1),/이력/);
+ await del(1,2);
+ await assert.rejects(del(1,2),/이미 삭제/);
+ assert.equal((await db.query('select count(*)::int n from timetable_plans')).rows[0].n,1);
+ assert.equal((await db.query("select has_function_privilege('anon','admin_delete_timetable_plan(uuid,integer)','execute') allowed")).rows[0].allowed,false);
+});

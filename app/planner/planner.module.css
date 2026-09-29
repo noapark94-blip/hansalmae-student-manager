@@ -484,3 +484,14 @@
 .course.studentMatch{padding:13px 8px;opacity:1}
 .studentFocus{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f7edf3;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#7f3159}
 .studentFocus button{padding:7px 10px;font-size:11px}
+
+.draftActions{grid-column:1/-1;display:flex;justify-content:flex-end;font-size:11px;color:#8b7a83}.draftActions button{padding:6px 10px;font-size:11px;color:#a34453}
+.week{grid-template-columns:repeat(7,minmax(175px,1fr));gap:8px}
+.day{padding:8px}.day h3{margin:6px 0 14px}
+.timeGroup{font-size:12px;color:#7e526a;margin:16px 0 7px;padding:0 3px;border-bottom:1px solid #e8dce3;padding-bottom:6px}
+.lesson{gap:5px;padding:10px;margin:7px 0;border-left-width:2px}
+.lesson .lessonRange{font-size:10px;font-weight:500;color:#89707e}
+.lesson>b{line-height:1.4;overflow-wrap:anywhere}.lesson>small{line-height:1.4;overflow-wrap:anywhere}
+.lesson .rosterNames{gap:3px}.lesson .rosterNames button{padding:3px 4px;font-size:10px;background:#faf6f8}
+.lessonEdit{font-size:10px;color:#967385;margin-top:4px}.lessonEdit summary{cursor:pointer;padding:4px 0}.lessonEdit select{margin-top:5px}
+@media(max-width:520px){.week{grid-template-columns:repeat(7,180px)}}
