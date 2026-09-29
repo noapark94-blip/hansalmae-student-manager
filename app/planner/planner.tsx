@@ -592,20 +592,11 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                 <article className={`${styles.lesson} ${c.students.some(s=>s.id===selectedStudent?.id)?styles.studentMatch:""}`}>
                                   <time className={styles.lessonRange}>{clock(m.start)}–{clock(m.end)}</time>
                                   <b>{c.name}</b>
-                                  <small>
-                                    {c.teachers
-                                      .map(
-                                        (id) =>
-                                          config.teachers.find(
-                                            (t) => t.id === id,
-                                          )?.name,
-                                      )
-                                      .join(" · ")}
-                                  </small>
-                                  <small>
-                                    {c.room || "강의실 미지정"} ·{" "}
-                                    {c.students.length}명
-                                  </small>
+                                  <div className={styles.lessonMeta}>
+                                    <span>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).filter(Boolean).join("·") || "담당 미지정"}</span>
+                                    {c.room && <span>{c.room}</span>}
+                                    <span>{c.students.length}명</span>
+                                  </div>
                                   <StudentRoster showAll course={c} selected={selectedStudent?.id} onSelect={selectStudent}/>
                                   <details className={styles.lessonEdit}><summary>시간 변경</summary><select
                                     aria-label={`${c.name} ${d}요일 시간 변경`}
@@ -639,7 +630,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                         }
                         onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? void save() : setApplyOpen(true)}
                       >
-                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 초안 저장":"적용 내용 확인"}
+                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"초안 저장":"적용 내용 확인"}
                       </button>
                     </footer>
                   </section>
