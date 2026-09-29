@@ -51,11 +51,13 @@ const GradeProgressionBoard=dynamic(()=>import("./grade-progression-board").then
 const VocabularyTestGenerator=dynamic(()=>import("./vocabulary-test-generator").then(module=>module.VocabularyTestGenerator),{loading:()=> <FamilyLoading/>});
 import confirmStyles from "./message-confirm.module.css";
 
-export type View = "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "expenses" | "analytics" | "backup" | "settings" | "my-account" | "audit";
+const TimetablePlanner=dynamic(()=>import("./planner/planner").then(m=>m.TimetablePlanner),{loading:()=> <FamilyLoading/>});
+
+export type View = "timetable-planner" | "dashboard" | "students" | "bulk-import" | "bulk-accounts" | "guide" | "class-management" | "schedule" | "corrections" | "transport" | "attendance" | "makeups" | "assignments" | "vocabulary-tests" | "alimtalk" | "reports" | "calendar" | "grades" | "consultations" | "communications" | "tuition" | "expenses" | "analytics" | "backup" | "settings" | "my-account" | "audit";
 
 const VIEW_STORAGE_KEY = "hansalmae:last-view";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "hansalmae:sidebar-collapsed";
-const VIEW_VALUES: readonly View[] = ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "reports", "calendar", "grades", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"];
+const VIEW_VALUES: readonly View[] = ["timetable-planner","dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "reports", "calendar", "grades", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"];
 const isView = (value: string): value is View => VIEW_VALUES.includes(value as View);
 type StudentFormValues = {
   name: string;
@@ -180,6 +182,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "bulk-accounts", label: "계정 일괄 생성", icon: "♙" },
   { id: "guide", label: "일괄 등록 설명서", icon: "?" },
   { id: "class-management", label: "클래스 관리", icon: "▤" },
+  { id: "timetable-planner", label: "시간표 편성", icon: "▦" },
   { id: "schedule", label: "전과목 시간표", icon: "▦" },
   { id: "corrections", label: "첨삭 시간표", icon: "✎" },
   { id: "transport", label: "차량 운행표", icon: "◇" },
@@ -213,7 +216,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 }
 
 const roleViews: Record<UserRole, View[]> = {
-  admin: ["dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"],
+  admin: ["timetable-planner", "dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"],
   sub_admin: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "my-account"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
@@ -903,6 +906,7 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
+          {view === "timetable-planner" && profile.role === "admin" && <TimetablePlanner key={profile.id} supabase={supabase} />}
           {view === "schedule" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
