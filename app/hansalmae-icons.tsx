@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { View } from "./page";
 
-type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "edit" | "bus" | "chat" | "notice" | "bell" | "wallet" | "receipt" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu" | "logout";
+type IconName = "home" | "students" | "classes" | "calendar" | "timetable" | "planner" | "edit" | "bus" | "chat" | "notice" | "bell" | "wallet" | "receipt" | "settings" | "chart" | "backup" | "shield" | "user" | "plus" | "check" | "refresh" | "book" | "exam" | "menu" | "logout";
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="M3.5 10.5 12 3.8l8.5 6.7"/><path d="M5.8 9.3v10h12.4v-10"/><path d="M9.4 19.3v-5.8h5.2v5.8"/></>,
@@ -9,6 +9,7 @@ const paths: Record<IconName, ReactNode> = {
   classes: <><rect x="4" y="4.5" width="16" height="15" rx="2.2"/><path d="M8 8.5h8M8 12h8M8 15.5h5"/></>,
   calendar: <><rect x="3.8" y="5.5" width="16.4" height="14.2" rx="2.2"/><path d="M7.5 3.5v4M16.5 3.5v4M4 9.5h16"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01"/></>,
   timetable: <><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M8.5 4.5v15M3.5 9.5h17M3.5 14.5h17M14.5 9.5v10"/></>,
+  planner: <><path d="M4 6h3M11 6h9M4 12h9M17 12h3M4 18h3M11 18h9"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></>,
   edit: <><path d="m5 16.5-.8 3.3 3.3-.8L18.8 7.7a2 2 0 0 0-2.8-2.8Z"/><path d="m14.8 6.1 3 3"/></>,
   bus: <><rect x="4" y="4" width="16" height="14" rx="3"/><path d="M7 8h10M7 12h10M7.5 18v2M16.5 18v2"/><circle cx="8" cy="15" r=".7"/><circle cx="16" cy="15" r=".7"/></>,
   chat: <><path d="M5 5.2h14v10.5H10l-5 3v-3H5Z"/><path d="M8.5 9h7M8.5 12h4.5"/></>,
@@ -31,7 +32,7 @@ const paths: Record<IconName, ReactNode> = {
 };
 
 export const viewIcon: Record<View, IconName> = {
-  "timetable-planner":"timetable", dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"timetable", corrections:"calendar", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", "vocabulary-tests":"exam", alimtalk:"chat", reports:"book", calendar:"calendar", grades:"chart", consultations:"chat", communications:"notice", tuition:"wallet", expenses:"receipt", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
+  "timetable-planner":"planner", dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"timetable", corrections:"calendar", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", "vocabulary-tests":"exam", alimtalk:"chat", reports:"book", calendar:"calendar", grades:"chart", consultations:"chat", communications:"notice", tuition:"wallet", expenses:"receipt", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
 };
 
 export function HansalmaeIcon({ name, size = 20 }: { name: IconName; size?: number }) {
