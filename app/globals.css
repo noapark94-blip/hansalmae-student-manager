@@ -849,3 +849,13 @@ button:disabled { cursor:wait; opacity:.7; }
  .learning-completion-actions{display:grid;grid-template-columns:1fr 1fr}
  .learning-completion-actions .correction-incomplete-filter{grid-column:1/-1}
 }
+
+/* Weekly correction changes remain discoverable from the fixed timetable. */
+.correction-action-fieldset{border:0;padding:0;margin:0;min-width:0}
+.correction-exception-history{margin:20px 24px 0;padding:16px;background:#faf7f9;border:1px solid #eadde5;border-radius:14px}
+.correction-exception-history h3{font-size:13px;margin:0 0 12px;color:#7d355a}
+.correction-exception-history article{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #eadde5}
+.correction-exception-history article>div{display:grid;gap:5px;min-width:0}
+.correction-exception-history b{font-size:13px}.correction-exception-history span,.correction-exception-history small{font-size:12px;overflow-wrap:anywhere;color:#827780}
+.correction-exception-history button{flex-shrink:0;font-size:12px;min-height:38px}
+@media(max-width:600px){.correction-exception-history{margin:16px 16px 0;padding:12px}.correction-exception-history article{align-items:stretch;flex-direction:column}.correction-exception-history button{align-self:flex-end}}

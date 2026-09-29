@@ -1,0 +1,32 @@
+const {PGlite}=require('../family-database/node_modules/@electric-sql/pglite');
+const fs=require('fs');const assert=require('node:assert/strict');
+(async()=>{const db=new PGlite();await db.exec(`
+create role anon;create role authenticated;create schema auth;
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function public.is_staff() returns boolean language sql as $$select auth.uid() is not null$$;
+create table correction_assignments(id uuid primary key,student_id uuid,active boolean,valid_from date,valid_until date,weekday int,start_time time,end_time time);
+create table correction_schedule_exceptions(id uuid primary key,assignment_id uuid,original_date date,kind text,target_date date,target_start_time time,target_end_time time,note text);
+create table correction_reports(assignment_id uuid,correction_date date,start_time time);
+create table classes(id uuid,name text,active boolean);
+create table class_schedules(id uuid,class_id uuid,weekday int,start_time time,end_time time,valid_from date,valid_until date);
+create function student_uses_class_schedule(uuid,uuid) returns boolean language sql as $$select true$$;
+create function student_attends_class_on(uuid,uuid,date) returns boolean language sql as $$select true$$;
+create table teacher_special_lessons(id uuid,lesson_date date,starts_at time,ends_at time);
+create table teacher_special_lesson_students(session_id uuid,student_id uuid);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+insert into correction_assignments values('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003',true,'2026-01-01',null,2,'19:00','20:30');
+`);
+await db.exec(fs.readFileSync('supabase/migrations/20260929122022_guard_correction_exception_removal.sql','utf8'));
+const wrapper=fs.readFileSync('supabase/migrations/20260912001911_correction_schedule_concurrency.sql','utf8').split('create function public.staff_delete_guarded_correction_exception')[1];await db.exec('create function public.staff_delete_guarded_correction_exception'+wrapper);
+const aid='00000000-0000-0000-0000-000000000002',eid='00000000-0000-0000-0000-000000000004';
+const add=async kind=>db.query('insert into correction_schedule_exceptions values($1,$2,$3,$4,$5,$6,$7,$8)',[eid,aid,'2026-09-29',kind,kind==='cancel'?null:'2026-09-30',kind==='cancel'?null:'19:00',kind==='cancel'?null:'20:30','memo']);
+const base=kind=>({assignmentId:aid,originalDate:'2026-09-29',kind,targetDate:kind==='cancel'?null:'2026-09-30',targetStartTime:kind==='cancel'?null:'19:00',targetEndTime:kind==='cancel'?null:'20:30',note:'memo'});
+const remove=kind=>db.query('select staff_delete_guarded_correction_exception($1,$2)',[eid,base(kind)]);
+for(const kind of ['cancel','move','extra']){await add(kind);await remove(kind);assert.equal((await db.query('select * from correction_schedule_exceptions')).rows.length,0);}
+await add('extra');await db.exec(`insert into correction_reports values('${aid}','2026-09-30','19:00')`);await assert.rejects(remove('extra'),/기록이 있습니다/);assert.equal((await db.query('select * from correction_schedule_exceptions')).rows.length,1);await db.exec('delete from correction_reports');await remove('extra');
+await add('move');await db.exec(`insert into correction_reports values('${aid}','2026-09-30','19:00')`);await assert.rejects(remove('move'),/기록이 있습니다/);await db.exec('delete from correction_reports');await remove('move');
+await add('cancel');await assert.rejects(db.query('select staff_delete_guarded_correction_exception($1,$2)',[eid,{...base('cancel'),note:'stale'}]),/다른 담당자/);
+await db.exec(`insert into classes values('${aid}','test',true);insert into class_schedules values('${eid}','${aid}',2,'20:00','21:00',null,null)`);await assert.rejects(remove('cancel'),/겹칩니다/);await db.exec('delete from class_schedules');
+await db.exec(`insert into teacher_special_lessons values('${eid}','2026-09-29','19:30','20:30');insert into teacher_special_lesson_students values('${eid}','00000000-0000-0000-0000-000000000003')`);await assert.rejects(remove('cancel'),/보강·추가수업/);await db.exec('delete from teacher_special_lessons');
+await db.exec(`select set_config('request.jwt.claim.sub','',false)`);await assert.rejects(remove('cancel'),/교직원/);await db.exec(`select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false)`);await remove('cancel');
+console.log('PASS: cancel/move restore, extra removal, report preservation, stale update, regular/special overlap, authentication');await db.close();})().catch(e=>{console.error(e);process.exitCode=1});
