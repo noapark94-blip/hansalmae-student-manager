@@ -1,0 +1,37 @@
+const {PGlite}=require('../family-database/node_modules/@electric-sql/pglite');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+(async()=>{
+ const db=new PGlite();
+ for(const f of ['tests/class-participants/schema.sql','supabase/migrations/20260924151450_class_day_participants.sql','supabase/migrations/20260924151643_participant_preview_compatibility.sql','supabase/migrations/20260924155505_academy_closure_days.sql','supabase/migrations/20260924161838_dashboard_participation_counts.sql']) await db.exec(fs.readFileSync(f,'utf8'));
+ await db.exec(fs.readFileSync('tests/class-participants/agenda-original.sql','utf8').replace('public.staff_class_agenda(', 'public.agenda_before('));
+ await db.exec(fs.readFileSync('supabase/migrations/20260928142214_optimize_class_agenda_candidate_students.sql','utf8'));
+ await db.exec(`set test.uid='${id(1)}';set test.role='admin';
+ insert into profiles(id,display_name,role) values('${id(1)}','Test','admin');
+ insert into classes(id,name,subject,active) values('${id(2)}','English','영어',true),('${id(20)}','Other','수학',true);
+ insert into class_teachers values('${id(2)}','${id(1)}');
+ insert into students(id,name,status) select md5('student'||g)::uuid,'Student'||g,'active' from generate_series(1,100)g;
+ insert into class_schedules(class_id,weekday,start_time,end_time) values('${id(2)}',1,'16:00','18:00'),('${id(20)}',1,'16:00','18:00');
+ insert into enrollments(class_id,student_id,status,started_on) select '${id(2)}',md5('student'||g)::uuid,'active','2026-01-01' from generate_series(1,3)g;
+ insert into class_makeup_attendees(class_id,student_id,attendance_date) values('${id(2)}',md5('student4')::uuid,'2026-09-28');
+ insert into class_lesson_roster_overrides(class_id,student_id,lesson_date) values('${id(2)}',md5('student5')::uuid,'2026-09-28');
+ insert into lessons(id,class_id,lesson_date,starts_at,ends_at,status) values('${id(30)}','${id(2)}','2026-09-28','2026-09-28 07:00Z','2026-09-28 09:00Z','completed');
+ insert into attendance(lesson_id,student_id,status) values('${id(30)}',md5('student6')::uuid,'present');
+ insert into lesson_homework_results(lesson_id,student_id) values('${id(30)}',md5('student7')::uuid);
+ insert into lesson_exam_results(lesson_id,student_id) values('${id(30)}',md5('student8')::uuid);
+ `);
+ const compare=async(label)=>{for(const date of ['2026-09-21','2026-09-28','2026-09-29','2026-10-05']){
+ const r=(await db.query('select agenda_before($1) before,staff_class_agenda($1) after',[date])).rows[0]; assert.deepEqual(r.after,r.before,label+date);
+ } console.log('PASS',label);};
+ await compare('enrolled, makeup, override, attendance-only, homework-only, exam-only and unrelated students');
+ await db.exec(`insert into class_lesson_participation(class_id,lesson_date,student_id,excluded,reason) values('${id(2)}','2026-09-28',md5('student1')::uuid,true,'test');`);
+ await compare('excluded student');
+ await db.exec(`update class_lesson_participation set excluded=false; update enrollments set status='completed',ended_on='2026-09-27' where student_id=md5('student2')::uuid; update students set status='withdrawn' where id=md5('student3')::uuid;`);
+ await compare('re-inclusion, ended enrollment, withdrawn student');
+ await db.query("select admin_save_academy_closure(null,'2026-09-28','2026-09-28','Holiday',true,true,null,true,false)");
+ await compare('holiday with existing records');
+ await db.exec(`set test.role='teacher';`); await compare('assigned teacher scope');
+ await db.exec(`set test.uid='${id(99)}';`); await compare('unassigned teacher scope');
+ await db.exec(`set test.role='guardian';`); await assert.rejects(db.query("select staff_class_agenda('2026-09-28')"),/교직원/);
+ await db.close();
+})().catch(e=>{console.error(e);process.exit(1)});
