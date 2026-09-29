@@ -54,7 +54,7 @@ export function CourseSelection({config, onChange, selectedStudent, onSelectStud
             <label className={styles.courseName}><input type="checkbox" checked={c.enabled} onChange={e=>patch([c.id],{enabled:e.target.checked})}/><span><b>{c.name}{c.memberCourses?.length?" · 합반":""}</b><small>{c.students.length?`${c.students.length}명`:"수강생 없음"} · {c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).filter(Boolean).join(", ")||"담당 미지정"}</small></span></label>
             <label>주 횟수<select aria-label={`${c.name} 주 횟수`} value={c.count} onChange={e=>patch([c.id],{count:Number(e.target.value)})}>{[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}회</option>)}</select></label>
             <label>수업 길이<select aria-label={`${c.name} 수업 길이`} value={c.duration} onChange={e=>patch([c.id],{duration:Number(e.target.value)})}>{[60,90,120,150,180].map(n=><option key={n} value={n}>{n}분</option>)}</select></label>
-            <div className={styles.courseRoster}><StudentRoster course={c} selected={selectedStudent} onSelect={onSelectStudent}/></div>
+            <div className={styles.courseRoster}><StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/></div>
             {c.memberCourses?.length?<div className={styles.mergeActions}><small>{c.memberCourses.map(m=>m.name).join(" + ")}</small><button type="button" onClick={()=>setMergeEditor(c)}>구성 수정</button><button type="button" onClick={()=>onChange({...config,courses:releaseMerge(config.courses,c.id)})}>합반 해제</button></div>:null}
           </div>)}
         </>}
