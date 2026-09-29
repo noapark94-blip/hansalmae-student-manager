@@ -1,6 +1,7 @@
 export type Slot = { day: number; start: number; end: number };
 export type Student = { id: string; name: string; grade: string };
 export type Course = {
+  memberCourses?: Course[];
   id: string;
   name: string;
   subject: string;

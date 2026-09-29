@@ -178,6 +178,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
   }
   async function apply() {
     if (!chosen || issues.length) return;
+    if (config?.courses.some(c=>c.enabled&&c.memberCourses?.length)) { setError("합반 초안은 비교·저장용입니다. 운영 클래스의 합반 구성을 확정한 뒤 새 초안으로 실제 시간표에 적용해 주세요."); return; }
     const d = await save();
     if (!d) return;
     setBusy(true);
@@ -594,15 +595,15 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       ))}
                     </div>
                     <footer className={styles.footer}>
-                      <p>초안을 저장해 두고 충분히 비교한 뒤 적용하세요.</p>
+                      <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 초안은 저장·비교용입니다. 운영 클래스 구성을 확정한 뒤 실제 시간표에 적용할 수 있습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
                       <button
                         className={styles.primary}
                         disabled={
                           busy || issues.length > 0 || !!draft?.applied_at
                         }
-                        onClick={() => setApplyOpen(true)}
+                        onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? setNotice("합반 초안은 비교·저장용입니다. 실제 적용은 운영 클래스의 합반 구성을 확정한 뒤 진행해 주세요.") : setApplyOpen(true)}
                       >
-                        적용 내용 확인
+                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 적용 안내":"적용 내용 확인"}
                       </button>
                     </footer>
                   </section>

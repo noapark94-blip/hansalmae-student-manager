@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import type { Config, Course } from "./engine";
+import { MergeEditor } from "./merge-editor";
+import { releaseMerge } from "./merge";
 import styles from "./planner.module.css";
 
 function gradeOrder(c: Course) {
@@ -11,6 +13,7 @@ function gradeOrder(c: Course) {
 const high3 = (c: Course) => /고\s*3/.test(c.name) || (c.students.length > 0 && c.students.every(s => /고\s*3/.test(s.grade)));
 
 export function CourseSelection({config, onChange}: {config: Config; onChange: (next: Config) => void}) {
+  const [mergeEditor, setMergeEditor] = useState<Course | null | undefined>(undefined);
   const [query, setQuery] = useState("");
   const [subject, setSubject] = useState("");
   const [teacher, setTeacher] = useState("");
@@ -26,6 +29,8 @@ export function CourseSelection({config, onChange}: {config: Config; onChange: (
   };
   const groups = subjects.filter(s => !subject || s===subject).map(s => ({subject:s, rows:config.courses.filter(c=>(c.subject||"미분류")===s&&matches(c)).sort((a,b)=>gradeOrder(a)-gradeOrder(b)||a.name.localeCompare(b.name,"ko",{numeric:true}))})).filter(g=>g.rows.length);
   return <>
+    <div className={styles.mergeToolbar}><button type="button" onClick={()=>setMergeEditor(null)}>＋ 합반 만들기</button><span>실제 클래스는 유지하고 이 초안에서만 합반합니다.</span></div>
+    {mergeEditor!==undefined&&<MergeEditor config={config} existing={mergeEditor??undefined} onClose={()=>setMergeEditor(undefined)} onSave={next=>{onChange(next);setMergeEditor(undefined);}}/>}
     <div className={styles.courseFilters}>
       <label>클래스 검색<input type="search" placeholder="클래스 이름 검색" value={query} onChange={e=>setQuery(e.target.value)}/></label>
       <label>담당 선생님<select value={teacher} onChange={e=>setTeacher(e.target.value)}><option value="">전체 선생님</option>{config.teachers.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
@@ -45,9 +50,10 @@ export function CourseSelection({config, onChange}: {config: Config; onChange: (
             <label><span className={styles.srOnly}>{group.subject} 선택 클래스 수업 길이 일괄 변경</span><select value="" disabled={!selected.length} onChange={e=>patch(selected.map(c=>c.id),{duration:Number(e.target.value)})}><option value="">수업 길이 일괄</option>{[60,90,120,150,180].map(n=><option key={n} value={n}>{n}분</option>)}</select></label>
           </div>
           {group.rows.map(c=><div key={c.id} className={`${styles.course} ${!c.enabled?styles.courseExcluded:""}`}>
-            <label className={styles.courseName}><input type="checkbox" checked={c.enabled} onChange={e=>patch([c.id],{enabled:e.target.checked})}/><span><b>{c.name}</b><small>{c.students.length?`${c.students.length}명`:"수강생 없음"} · {c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).filter(Boolean).join(", ")||"담당 미지정"}</small></span></label>
+            <label className={styles.courseName}><input type="checkbox" checked={c.enabled} onChange={e=>patch([c.id],{enabled:e.target.checked})}/><span><b>{c.name}{c.memberCourses?.length?" · 합반":""}</b><small>{c.students.length?`${c.students.length}명`:"수강생 없음"} · {c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).filter(Boolean).join(", ")||"담당 미지정"}</small></span></label>
             <label>주 횟수<select aria-label={`${c.name} 주 횟수`} value={c.count} onChange={e=>patch([c.id],{count:Number(e.target.value)})}>{[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}회</option>)}</select></label>
             <label>수업 길이<select aria-label={`${c.name} 수업 길이`} value={c.duration} onChange={e=>patch([c.id],{duration:Number(e.target.value)})}>{[60,90,120,150,180].map(n=><option key={n} value={n}>{n}분</option>)}</select></label>
+            {c.memberCourses?.length?<div className={styles.mergeActions}><small>{c.memberCourses.map(m=>m.name).join(" + ")}</small><button type="button" onClick={()=>setMergeEditor(c)}>구성 수정</button><button type="button" onClick={()=>onChange({...config,courses:releaseMerge(config.courses,c.id)})}>합반 해제</button></div>:null}
           </div>)}
         </>}
       </section>;
