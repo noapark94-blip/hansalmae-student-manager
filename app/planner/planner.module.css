@@ -449,3 +449,19 @@
   margin: 0;
   min-width: 0;
 }
+.courseFilters{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,.65fr);gap:12px;margin-bottom:14px}
+.courseFilters label{display:grid;gap:6px;font-size:11px;color:#8b7a83;min-width:0}
+.subjectTabs{display:flex;flex-wrap:wrap;gap:6px}
+.subjectTabs button{padding:8px 13px;font-size:12px}
+.subjectTabs button[aria-pressed="true"]{background:#f4e9ef;border-color:#d9b9ca;color:#902c5f;font-weight:700}
+.subjectTabs button:last-child{margin-left:auto}
+.selectionHint{font-size:11px!important;margin:13px 0 18px}
+.subjectGroup{border:1px solid #eadfe5;border-radius:13px;overflow:hidden;margin-top:12px;padding:0 14px}
+.groupHead{margin:0 -14px;background:#faf7f9}
+.groupHead>button{display:flex;align-items:center;gap:12px;border:0;border-radius:0;width:100%;text-align:left;background:transparent;padding:16px}
+.groupHead b{font-size:14px}.groupHead span{font-size:11px;color:#927788}.groupHead span:last-child{margin-left:auto;font-size:18px}
+.groupTools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:13px 0}
+.groupTools>button{padding:8px 10px;font-size:11px}.groupTools>span{font-size:10px;color:#927788;margin-right:auto}.groupTools label{max-width:140px;min-width:0}.groupTools select{font-size:11px;padding:8px}
+.courseExcluded{opacity:.6}.courseName{min-width:0}.courseName input{flex-shrink:0}.courseName span{min-width:0;overflow-wrap:anywhere}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:520px){.courseFilters{grid-template-columns:1fr}.groupTools{display:grid;grid-template-columns:1fr 1fr}.groupTools label{max-width:none}.groupTools>span{text-align:right;margin:0}.subjectGroup .course{grid-template-columns:1fr 1fr;gap:10px}.subjectGroup .courseName{grid-column:1/-1}.subjectTabs button:last-child{margin-left:0}}

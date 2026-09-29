@@ -13,6 +13,7 @@ import {
   type Meeting,
 } from "./engine";
 import styles from "./planner.module.css";
+import { CourseSelection } from "./course-selection";
 type Source = {
   version: string;
   classes: Omit<Course, "count" | "duration" | "enabled" | "high">[];
@@ -350,85 +351,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       </div>
                       <span>{enabled.length}개 선택</span>
                     </div>
-                    <div className={styles.courseList}>
-                      {config.courses.map((c, i) => (
-                        <div key={c.id} className={styles.course}>
-                          <label className={styles.courseName}>
-                            <input
-                              type="checkbox"
-                              checked={c.enabled}
-                              onChange={(e) =>
-                                change({
-                                  ...config,
-                                  courses: config.courses.map((v, j) =>
-                                    j === i
-                                      ? { ...v, enabled: e.target.checked }
-                                      : v,
-                                  ),
-                                })
-                              }
-                            />
-                            <span>
-                              <b>{c.name}</b>
-                              <small>
-                                {c.subject} · {c.students.length}명 ·{" "}
-                                {c.teachers
-                                  .map(
-                                    (id) =>
-                                      config.teachers.find((t) => t.id === id)
-                                        ?.name,
-                                  )
-                                  .join(", ") || "담당 미지정"}
-                              </small>
-                            </span>
-                          </label>
-                          <label>
-                            주 횟수
-                            <select
-                              value={c.count}
-                              onChange={(e) =>
-                                change({
-                                  ...config,
-                                  courses: config.courses.map((v, j) =>
-                                    j === i
-                                      ? { ...v, count: +e.target.value }
-                                      : v,
-                                  ),
-                                })
-                              }
-                            >
-                              {[1, 2, 3, 4, 5, 6].map((n) => (
-                                <option key={n} value={n}>
-                                  {n}회
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            수업 길이
-                            <select
-                              value={c.duration}
-                              onChange={(e) =>
-                                change({
-                                  ...config,
-                                  courses: config.courses.map((v, j) =>
-                                    j === i
-                                      ? { ...v, duration: +e.target.value }
-                                      : v,
-                                  ),
-                                })
-                              }
-                            >
-                              {[60, 90, 120, 150, 180].map((n) => (
-                                <option key={n} value={n}>
-                                  {n}분
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                    <CourseSelection config={config} onChange={change} />
                   </section>
                   <section className={styles.card}>
                     <h2>선생님 근무 요일</h2>
