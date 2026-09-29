@@ -11,8 +11,10 @@ import {
   type Course,
   type Candidate,
   type Meeting,
+  type Student,
 } from "./engine";
 import styles from "./planner.module.css";
+import { StudentRoster } from "./student-roster";
 import { CourseSelection } from "./course-selection";
 type Source = {
   version: string;
@@ -72,6 +74,11 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     [solving, setSolving] = useState(false),
     [teacherFilter, setTeacherFilter] = useState(""),
     [applyOpen, setApplyOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  function selectStudent(student: Student) {
+    setSelectedStudent(current => current?.id === student.id ? null : student);
+    setTeacherFilter("");
+  }
   const worker = useRef<Worker | null>(null);
   const versionRef = useRef("");
   useEffect(() => {
@@ -115,6 +122,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     worker.current?.terminate();
     setSolving(false);
     setConfig(next);
+    setSelectedStudent(null);
     setCandidates([]);
     setSelected(0);
     setNotice("");
@@ -206,6 +214,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     worker.current?.terminate();
     setSolving(false);
     setDraft(d);
+    setSelectedStudent(null);
     setTitle(d.title);
     setDate(d.starts_on);
     setConfig(d.payload.config);
@@ -336,6 +345,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                 02 후보 비교·조정 <small>{candidates.length}</small>
               </button>
             </nav>
+            {selectedStudent && <div className={styles.studentFocus} role="status"><span><b>{selectedStudent.name}</b> · {selectedStudent.grade} 수업 강조 중</span><button type="button" onClick={()=>setSelectedStudent(null)}>강조 해제</button></div>}
             {tab === "conditions" ? (
               <div className={styles.layout}>
                 <div>
@@ -350,7 +360,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       </div>
                       <span>{enabled.length}개 선택</span>
                     </div>
-                    <CourseSelection config={config} onChange={change} />
+                    <CourseSelection config={config} onChange={change} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} />
                   </section>
                   <section className={styles.card}>
                     <h2>선생님 근무 요일</h2>
@@ -552,7 +562,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                 (c) => c.id === m.classId,
                               )!;
                               return (
-                                <article key={index} className={styles.lesson}>
+                                <article key={index} className={`${styles.lesson} ${c.students.some(s=>s.id===selectedStudent?.id)?styles.studentMatch:""}`}>
                                   <time>
                                     {clock(m.start)}–{clock(m.end)}
                                   </time>
@@ -571,6 +581,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                                     {c.room || "강의실 미지정"} ·{" "}
                                     {c.students.length}명
                                   </small>
+                                  <StudentRoster course={c} selected={selectedStudent?.id} onSelect={selectStudent}/>
                                   <select
                                     aria-label={`${c.name} ${d}요일 시간 변경`}
                                     value={`${m.day}:${m.start}:${m.end}`}
@@ -595,15 +606,15 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       ))}
                     </div>
                     <footer className={styles.footer}>
-                      <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 초안은 저장·비교용입니다. 운영 클래스 구성을 확정한 뒤 실제 시간표에 적용할 수 있습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
+                      <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반이 포함된 초안은 현재 저장·비교만 가능합니다. 이 화면에서 실제 정규 시간표로 적용하는 기능은 아직 지원하지 않습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
                       <button
                         className={styles.primary}
                         disabled={
                           busy || issues.length > 0 || !!draft?.applied_at
                         }
-                        onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? setNotice("합반 초안은 비교·저장용입니다. 실제 적용은 운영 클래스의 합반 구성을 확정한 뒤 진행해 주세요.") : setApplyOpen(true)}
+                        onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? void save() : setApplyOpen(true)}
                       >
-                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 적용 안내":"적용 내용 확인"}
+                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반 초안 저장":"적용 내용 확인"}
                       </button>
                     </footer>
                   </section>

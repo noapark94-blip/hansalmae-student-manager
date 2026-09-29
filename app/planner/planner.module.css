@@ -471,3 +471,16 @@
 .mergeSelected{padding:14px;background:#faf5f8;border-radius:12px;margin-bottom:18px}.mergeSelected>b{font-size:13px}.mergeSelected p{font-size:11px;margin:6px 0}.mergeSelected>div{display:flex;gap:6px;flex-wrap:wrap}.mergeSelected button{font-size:11px;padding:7px 10px}
 .mergeActions{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mergeActions small{font-size:11px;color:#927788;margin-right:auto}.mergeActions button{font-size:11px;padding:6px 9px}
 @media(max-width:520px){.mergeModal{padding:18px}.mergeFilters{grid-template-columns:1fr}.mergeRoster{max-height:200px}}
+
+.courseRoster{grid-column:1/-1;min-width:0}
+.roster{min-width:0;font-size:11px}
+.rosterNames{display:flex;flex-wrap:wrap;gap:4px 8px}
+.rosterNames>div{min-width:0;max-width:100%}
+.root .rosterNames button{font-size:11px;padding:5px 7px;border-color:transparent;background:#f8f4f6;border-radius:6px;overflow-wrap:anywhere;text-align:left}
+.root .rosterNames button[aria-pressed="true"]{background:#902c5f;color:white}
+.rosterNames small{display:block;font-size:10px;color:#8b7a83;overflow-wrap:anywhere;padding:3px 0}
+.root .rosterToggle{font-size:11px;padding:6px 2px;border:0;background:transparent;color:#902c5f}
+.studentMatch{background:#fff6fb;box-shadow:inset 0 0 0 2px #b56b91;border-radius:9px}
+.course.studentMatch{padding:13px 8px;opacity:1}
+.studentFocus{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f7edf3;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#7f3159}
+.studentFocus button{padding:7px 10px;font-size:11px}
