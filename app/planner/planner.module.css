@@ -511,7 +511,7 @@
 
 .unassigned{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:12px;background:#faf5f8;margin-bottom:12px;border-radius:10px}.unassigned button{font-size:11px;padding:7px;cursor:grab}.unassigned>b{font-size:12px;margin-right:8px}
 .placementScroll{overflow:auto;max-height:75vh;border:1px solid #eadfe5;border-radius:10px}.placementTable{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:1120px}.placementTable th,.placementTable td{padding:6px;border-right:1px solid #eee5ea;border-bottom:1px solid #eee5ea;vertical-align:top}.placementTable th{font-size:11px;background:#faf6f8;color:#82556e}.placementTable th:first-child{width:70px;position:sticky;left:0;z-index:2}.placementTable thead th{position:sticky;top:0;z-index:3;padding:12px}.placementTable thead th:first-child{z-index:4}.placementTable td{background:#fdfbfc;height:65px}
-.root .placementLesson{display:flex;flex-direction:column;gap:4px;border:1px solid #e4ccd9;border-left:2px solid #a5527d;border-radius:7px;padding:8px;background:white;margin:3px 0;font-size:11px;overflow-wrap:anywhere}.placementLesson>b{font-size:12px}.placementLesson small{font-size:10px;color:#927b88}.placementLesson>div{display:flex;flex-wrap:wrap;gap:5px}.root .placementLesson button{font-size:10px;padding:4px;border:0;background:#f8f1f5}.root .placementLesson button[aria-pressed=true]{color:#902c5f;background:#f0dfE9}.root .placeHere{font-size:10px;padding:6px;width:100%;border-style:dashed;background:#f7eef4}
+.root .placementLesson{display:flex;flex-direction:column;gap:4px;border:1px solid #e4ccd9;border-left:2px solid #a5527d;border-radius:7px;padding:8px;background:white;margin:3px 0;font-size:11px;overflow-wrap:anywhere}.placementLesson>b{font-size:12px}.placementLesson small{font-size:10px;color:#927b88}.placementLesson>div{display:flex;flex-wrap:wrap;gap:5px}.root .placementLesson button{font-size:10px;padding:4px;border:0;background:#f8f1f5}.root .placementLesson button[aria-pressed=true]{color:#902c5f;background:#f0dfE9}
 
 /* Block-first timetable workspace */
 .root,.card,.boardLayout>*,.classShelf{min-width:0;box-sizing:border-box}
@@ -520,8 +520,8 @@
 .classShelf{border:1px solid #ece3e8;border-radius:12px;background:#fbf8fa;padding:12px;display:grid;gap:10px}
 .classShelf header{display:flex;justify-content:space-between;align-items:center;font-size:13px}.classShelf header small{font-size:11px;color:#987d8d}
 .shelfFilters{display:grid;grid-template-columns:1fr 1fr;gap:6px}.root .classShelf input,.root .classShelf select{font-size:11px;padding:9px;box-sizing:border-box}
-.shelfList{display:grid;gap:8px;max-height:58vh;overflow:auto;align-content:start}.shelfCard{border:1px solid #e9dce3;background:white;border-radius:9px;padding:9px;min-width:0}.shelfCard[data-selected=true]{border-color:#973963;box-shadow:0 0 0 1px #973963}.root .shelfCard>button{display:grid;gap:6px;width:100%;text-align:left;border:0;padding:0;background:transparent;cursor:grab}.shelfCard b{font-size:12px;overflow-wrap:anywhere}.shelfCard span{font-size:11px;color:#94345f}.shelfCard small{font-size:10px;color:#8a7681}.shelfCard .roster{margin-top:7px}.root .shelfCard .rosterNames button{font-size:10px;padding:2px;background:transparent}
-.root .placementTable td[data-available=true]{background:#eff8f3}.root .placementTable td[data-available=false]{background:#f6f3f5}.root .placeHere[aria-disabled=true]{color:#aa929f;border-color:transparent;background:transparent}
+.shelfList{display:grid;gap:8px;max-height:58vh;overflow:auto;align-content:start}.shelfCard{border:1px solid #e9dce3;background:white;border-radius:9px;padding:9px;min-width:0}.shelfCard[data-selected=true]{border-color:#973963;box-shadow:0 0 0 1px #973963}.root .shelfCard>.shelfCardHeading{display:grid;gap:6px;width:100%;text-align:left;border:0;padding:0;background:transparent;cursor:grab}.shelfCard b{font-size:12px;overflow-wrap:anywhere}.shelfCard span{font-size:11px;color:#94345f}.shelfCard small{font-size:10px;color:#8a7681}.shelfCard .roster{margin-top:7px}.root .shelfCard .rosterNames button{font-size:10px;padding:2px;background:transparent}
+.root .placementTable td[data-available=true]{background:#eff8f3}.root .placementTable td[data-available=false]{background:#f6f3f5}
 .root .candidates{display:flex;gap:8px;overflow:auto;margin:0 0 14px;padding:2px}.root .candidates>button{flex:0 0 190px;padding:12px;border-width:1px}.root .candidates h3{font-size:13px;margin:4px 0}.root .candidates dl{margin:8px 0}.root .candidates dl>div{margin:4px 0}.root .candidates span{display:none}.root .tabs{margin:16px 0;flex-wrap:wrap}.root .topline{padding:14px;gap:10px}.root .hero{padding-bottom:18px}.root .placementScroll{max-width:100%;max-height:70vh}.root .placementTable{min-width:960px}.root .mergeToolbar{margin-bottom:12px;gap:8px}.root .mergeToolbar button{padding:9px 12px}.root .placementLesson .rosterNames button{background:transparent;padding:2px}.root .placementLesson .rosterNames button[aria-pressed=true]{background:#902c5f;color:#fff}
 @media(max-width:850px){.boardLayout{grid-template-columns:1fr}.shelfList{display:flex;overflow:auto;max-height:210px}.shelfCard{flex:0 0 190px}.classShelf{grid-template-columns:1fr 1fr}.classShelf header,.shelfList{grid-column:1/-1}.root .card{padding:14px}.root .tabs button{padding:9px 10px;font-size:12px}}
 @media(max-width:520px){.root .topline{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.root .topline input{box-sizing:border-box;max-width:100%}.root .classShelf{grid-template-columns:1fr}.root .sectionHead{flex-wrap:wrap}.root .placementScroll{max-height:65dvh}.root .hero h1{font-size:24px}.root .hero p{max-width:240px}.root .mergeToolbar button{font-size:11px}}
@@ -531,11 +531,11 @@
 /* Compact unassigned cards, retaining every student name. */
 .root .classShelf .shelfList{gap:6px}
 .root .classShelf .shelfCard{padding:7px 8px;border-radius:7px}
-.root .classShelf .shelfCard>button{gap:3px;min-height:0;line-height:1.3}
+.root .classShelf .shelfCard>.shelfCardHeading{gap:3px;min-height:0;line-height:1.3}
 .root .classShelf .shelfTitle{display:flex;align-items:baseline;justify-content:space-between;gap:6px;min-width:0}
 .root .classShelf .shelfTitle>b{font-size:12px;line-height:1.35;color:#493a42;min-width:0;overflow-wrap:anywhere}
 .root .classShelf .shelfTitle .remainingCount{flex-shrink:0;font-size:10px;font-weight:500;white-space:nowrap;color:#94345f}
-.root .classShelf .shelfCard>button>small{font-size:10px;line-height:1.3;color:#8b7a83}
+.root .classShelf .shelfCard>.shelfCardHeading>small{font-size:10px;line-height:1.3;color:#8b7a83}
 .root .classShelf .shelfCard .roster{margin-top:5px}
 .root .classShelf .shelfCard .rosterNames{gap:1px 7px;line-height:1.3}
 .root .classShelf .shelfCard .rosterNames>div{margin:0;padding:0}
@@ -569,9 +569,9 @@
 .root .placementTable .placementLesson .rosterNames{gap:0 5px;line-height:1.25}
 .root .placementTable .placementLesson .rosterNames button{font-size:10.5px;line-height:1.25;padding:1px 0;min-height:0}
 .root .classShelf .shelfCard{padding:4px 5px;border-radius:5px}
-.root .classShelf .shelfCard>button{gap:1px}
+.root .classShelf .shelfCard>.shelfCardHeading{gap:1px}
 .root .classShelf .shelfTitle>b{font-size:11px;line-height:1.3}
-.root .classShelf .shelfCard>button>small{font-size:10px;line-height:1.25}
+.root .classShelf .shelfCard>.shelfCardHeading>small{font-size:10px;line-height:1.25}
 .root .classShelf .shelfCard .roster{margin-top:3px}
 .root .classShelf .shelfCard .rosterNames{gap:0 5px;line-height:1.25}
 .root .classShelf .shelfCard .rosterNames button{font-size:10.5px;line-height:1.25;padding:1px 0}
