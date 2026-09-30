@@ -67,7 +67,7 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  const cellReasons=new Map(starts.flatMap(start=>days.map((_,i)=>[`${i+1}:${start}`,picked&&!readOnly?evaluateReason(i+1,start):""] as const)));
  const reason=(day:number,start:number)=>cellReasons.get(`${day}:${start}`)||"";
  const unassigned=visible.filter(c=>c.count>meetings.filter(m=>m.classId===c.id).length&&(!subject||c.subject===subject)&&(!grade||c.students.some(s=>s.grade===grade))&&(!query||[c.name,...c.students.map(s=>s.name),...c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name||"")].join(" ").toLowerCase().includes(query.toLowerCase())));
- const content=<div className={expanded?`${styles.root} ${styles.boardExpanded}`:undefined}>
+ const content=<div className={`${styles.boardSurface} ${expanded?`${styles.root} ${styles.boardExpanded}`:""}`}>
  <div className={styles.boardTools}>
  <button className={styles.expandIcon} type="button" aria-label={expanded?"크게 보기 닫기":"시간표 크게 보기"} title={expanded?"크게 보기 닫기 (Esc)":"시간표 크게 보기"} aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{expanded?<path d="M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6"/>:<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>}</svg></button>
  {!readOnly&&!shelfOpen&&picked&&picked.index>=0&&<button type="button" className={styles.returnZone} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();unassign();}} onClick={unassign}>여기에 놓으면 배정 해제</button>}

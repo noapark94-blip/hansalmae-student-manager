@@ -582,3 +582,11 @@
 .root .boardFrame[data-shelf-open=true] .shelfHandle{left:218px}
 .root .boardFrame .shelfHandle:hover{color:#902c5f;background:#fbf5f8}
 @media(max-width:850px){.root .boardFrame[data-shelf-open=true] .shelfHandle{left:-12px;top:20px}.root .boardFrame[data-shelf-open=false] .shelfHandle{top:55px}}
+
+/* Share the existing action row instead of reserving an expand-only row. */
+.boardSurface{position:relative;min-width:0}
+.root .boardSurface>.boardTools{position:absolute;right:0;top:-48px;margin:0;gap:6px;z-index:6}
+.root .mergeToolbar{padding-right:40px;min-height:36px;box-sizing:border-box}
+.root .boardSurface>.boardHint{margin:0 0 8px}
+.root.boardExpanded>.boardTools{position:static;justify-content:flex-end;margin:0 0 6px}
+.root .boardSurface>.boardTools>.returnZone{max-width:190px;font-size:10px;padding:5px 8px}
