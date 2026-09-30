@@ -1,11 +1,15 @@
 "use client";
 import {useState, useEffect, useRef, type DragEvent} from "react";
+import {createPortal} from "react-dom";
 import {clock, domains, validate, type Config, type Meeting, type Student} from "./engine";
 import {StudentRoster} from "./student-roster";
 import styles from "./planner.module.css";
 const days=["월","화","수","목","금","토","일"];
 export const sameMeeting=(a:Meeting,b:Meeting)=>a.classId===b.classId&&a.day===b.day&&a.start===b.start&&a.end===b.end;
 export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedStudent,onSelectStudent,readOnly=false}:{readOnly?:boolean;config:Config;meetings:Meeting[];onChange:(config:Config,meetings:Meeting[])=>void;teacherFilter:string;selectedStudent?:string;onSelectStudent:(student:Student)=>void}) {
+ const [shelfOpen,setShelfOpen]=useState(true);
+ const [expanded,setExpanded]=useState(false);
+ useEffect(()=>{if(!expanded)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";const close=(e:KeyboardEvent)=>{if(e.key==="Escape")setExpanded(false);};document.addEventListener("keydown",close);return()=>{document.body.style.overflow=previous;document.removeEventListener("keydown",close);};},[expanded]);
  const [picked,setPicked]=useState<{id:string;index:number}|null>(null);
  const dragRef=useRef<{id:string;index:number}|null>(null);
  const [dragging,setDragging]=useState(false);
@@ -63,12 +67,17 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  const cellReasons=new Map(starts.flatMap(start=>days.map((_,i)=>[`${i+1}:${start}`,picked&&!readOnly?evaluateReason(i+1,start):""] as const)));
  const reason=(day:number,start:number)=>cellReasons.get(`${day}:${start}`)||"";
  const unassigned=visible.filter(c=>c.count>meetings.filter(m=>m.classId===c.id).length&&(!subject||c.subject===subject)&&(!grade||c.students.some(s=>s.grade===grade))&&(!query||[c.name,...c.students.map(s=>s.name),...c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name||"")].join(" ").toLowerCase().includes(query.toLowerCase())));
- return <div>
+ const content=<div className={expanded?`${styles.root} ${styles.boardExpanded}`:undefined}>
+ <div className={styles.boardTools}>
+ {!readOnly&&<button type="button" aria-expanded={shelfOpen} onClick={()=>setShelfOpen(v=>!v)}>{shelfOpen?"미배정 목록 접기":"미배정 목록 열기"}</button>}
+ <button type="button" aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}>{expanded?"크게 보기 닫기":"시간표 크게 보기"}</button>
+ {!readOnly&&!shelfOpen&&picked&&picked.index>=0&&<button type="button" className={styles.returnZone} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();unassign();}} onClick={unassign}>여기에 놓으면 배정 해제</button>}
+ </div>
  {!readOnly&&<p className={styles.boardHint}>블록을 끌어 배정·이동하고, 왼쪽 미배정 영역으로 끌어 빼세요. 추천에서도 유지할 수업만 고정하세요.</p>}
  {message&&<p role="status" className={styles.notice}>{message}</p>}
  {picked&&!readOnly&&!dragging&&<div className={styles.studentFocus}><span>{courses.find(c=>c.id===picked.id)?.name} · 배정할 칸을 선택하세요</span><button type="button" onClick={()=>setPicked(null)}>선택 취소</button></div>}
- <div className={readOnly?undefined:styles.boardLayout}>
- {!readOnly&&<aside className={styles.classShelf} data-drop-active={dragging&&picked?.index!==-1} data-drag-over={over==="shelf"} onDragOver={e=>{if(dragRef.current&&dragRef.current.index>=0){e.preventDefault();e.dataTransfer.dropEffect="move";setOver("shelf");}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();unassign();}}>
+ <div className={readOnly||!shelfOpen?undefined:styles.boardLayout}>
+ {!readOnly&&shelfOpen&&<aside className={styles.classShelf} data-drop-active={dragging&&picked?.index!==-1} data-drag-over={over==="shelf"} onDragOver={e=>{if(dragRef.current&&dragRef.current.index>=0){e.preventDefault();e.dataTransfer.dropEffect="move";setOver("shelf");}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();unassign();}}>
  {dragging&&picked&&picked.index>=0&&<div className={styles.returnZone}>여기에 놓으면 배정 해제</div>}
  <header><b>미배정 클래스</b><small>{unassigned.length}개 반</small></header>
  <input aria-label="클래스 또는 학생 검색" placeholder="반 · 학생 · 선생님 검색" value={query} onChange={e=>setQuery(e.target.value)}/>
@@ -78,9 +87,12 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/></article>)}{!unassigned.length&&<p>미배정 클래스가 없습니다.</p>}</div>
  </aside>}
  <div className={styles.placementScroll}><table className={styles.placementTable}><thead><tr><th>시간</th>{days.map(d=><th key={d}>{d}</th>)}</tr></thead><tbody>{starts.map(start=><tr key={start}><th scope="row">{clock(start)}{duration.size===1&&<><br/>–{clock(start+[...duration][0])}</>}</th>{days.map((d,di)=><td key={d} data-available={picked&&!readOnly?!reason(di+1,start):undefined} data-drag-over={over===`${di+1}:${start}`} title={picked?reason(di+1,start):undefined} onDragOver={e=>{if(dragRef.current&&!readOnly){e.preventDefault();e.dataTransfer.dropEffect=reason(di+1,start)?"none":"move";setOver(`${di+1}:${start}`);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();place(di+1,start);endDrag();}}>
- {meetings.map((m,index)=>({m,index})).filter(({m})=>m.day===di+1&&m.start===start&&visible.some(c=>c.id===m.classId)).map(({m,index})=>{const c=courses.find(c=>c.id===m.classId)!;const locked=fixed.some(f=>sameMeeting(f,m));return <article key={`${c.id}-${index}`} className={`${styles.placementLesson} ${c.students.some(s=>s.id===selectedStudent)?styles.studentMatch:""}`} draggable={!locked&&!readOnly} onDragStart={e=>startDrag(e,c.id,index)} onDragEnd={endDrag}>
- <b>{c.name}</b>{duration.size>1&&<small>{c.duration}분 · {clock(m.end)} 종료</small>}<small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join("·")}{c.room?` · ${c.room}`:""}</small><StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/>
- {!readOnly&&<div className={styles.lessonActions}><button type="button" title={locked?"고정 해제":"추천 시 이 시간 유지"} aria-pressed={locked} onClick={()=>onChange({...config,fixed:locked?fixed.filter(f=>!sameMeeting(f,m)):[...fixed,m]},meetings)}>{locked?"고정됨":"고정"}</button><button type="button" disabled={locked} onClick={()=>setPicked({id:c.id,index})}>이동</button><button type="button" disabled={locked} title="미배정 목록으로 돌려보내기" onClick={()=>onChange(config,meetings.filter((_,i)=>i!==index))}>빼기</button></div>}</article>;})}
+ {meetings.map((m,index)=>({m,index})).filter(({m})=>m.day===di+1&&m.start===start&&visible.some(c=>c.id===m.classId)).map(({m,index})=>{const c=courses.find(c=>c.id===m.classId)!;const locked=fixed.some(f=>sameMeeting(f,m));return <article key={`${c.id}-${index}`} className={`${styles.placementLesson} ${c.students.some(s=>s.id===selectedStudent)?styles.studentMatch:""}`} draggable={!locked&&!readOnly} onDragStart={e=>startDrag(e,c.id,index)} onDragEnd={endDrag} tabIndex={readOnly?undefined:0} onClick={e=>{if(!readOnly&&!locked&&!(e.target as HTMLElement).closest("button"))setPicked({id:c.id,index});}} onKeyDown={e=>{if(e.target===e.currentTarget&&!readOnly&&!locked&&(e.key==="Enter"||e.key===" ")){e.preventDefault();setPicked({id:c.id,index});}}}>
+ <div className={styles.lessonHeading}><div><b>{c.name}</b><small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join("·")}{c.room?` · ${c.room}`:""}{duration.size>1?` · ${c.duration}분 (${clock(m.end)} 종료)`:""}</small></div>
+ {!readOnly&&<button className={styles.lockIcon} type="button" aria-label={`${c.name} ${locked?"고정 해제":"시간 고정"}`} title={locked?"고정 해제":"추천 시 이 시간 유지"} aria-pressed={locked} onClick={()=>onChange({...config,fixed:locked?fixed.filter(f=>!sameMeeting(f,m)):[...fixed,m]},meetings)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/>{locked?<path d="M8 10V6a4 4 0 0 1 8 0v4"/>:<path d="M8 10V6a4 4 0 0 1 7.5-2"/>}<path d="M12 14v3"/></svg></button>}</div>
+ <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/>
+ </article>;})}
  {picked&&!readOnly&&!dragging&&<button type="button" className={styles.placeHere} title={reason(di+1,start)||"배정 가능"} aria-disabled={!!reason(di+1,start)} onClick={()=>{const why=reason(di+1,start);if(why)setMessage(why);else place(di+1,start);}}>{reason(di+1,start)?"배정 불가 · 이유":"여기에 배정"}</button>}
  </td>)}</tr>)}</tbody></table></div></div></div>;
+ return expanded?createPortal(content,document.body):content;
 }
