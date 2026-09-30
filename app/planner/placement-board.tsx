@@ -1,7 +1,7 @@
 "use client";
-import {useState, useEffect, useRef, type DragEvent} from "react";
+import {useState, useEffect, useRef, type CSSProperties, type DragEvent} from "react";
 import {createPortal} from "react-dom";
-import {clock, domains, validate, type Config, type Meeting, type Student} from "./engine";
+import {clock, domains, validate, type Course, type Config, type Meeting, type Student} from "./engine";
 import {StudentRoster} from "./student-roster";
 import styles from "./planner.module.css";
 const subjectTone=(subject:string)=>subject.includes("기하")?"geometry":subject.includes("영어")?"english":subject.includes("수학")?"math":subject.includes("국어")?"korean":"other";
@@ -68,6 +68,20 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  const cellReasons=new Map(starts.flatMap(start=>days.map((_,i)=>[`${i+1}:${start}`,picked&&!readOnly?evaluateReason(i+1,start):""] as const)));
  const reason=(day:number,start:number)=>cellReasons.get(`${day}:${start}`)||"";
  const unassigned=visible.filter(c=>c.count>meetings.filter(m=>m.classId===c.id).length&&(!subject||c.subject===subject)&&(!grade||c.students.some(s=>s.grade===grade))&&(!query||[c.name,...c.students.map(s=>s.name),...c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name||"")].join(" ").toLowerCase().includes(query.toLowerCase())));
+ const teacherTones=[...config.teachers].sort((a,b)=>a.id.localeCompare(b.id)).map(t=>t.id);
+ function blockStyle(c:Course):CSSProperties {
+  const teacherKey=[...c.teachers].sort().join(":");
+  const teacherIndex=c.teachers.length===1?Math.max(0,teacherTones.indexOf(c.teachers[0])):[...teacherKey].reduce((n,ch)=>n+ch.charCodeAt(0),0);
+  const variant=teacherIndex%5;
+  const hue=({english:316,math:211,korean:32,geometry:151,other:215}[subjectTone(c.subject)])+[-4,0,4,-2,2][variant];
+  const saturation=subjectTone(c.subject)==="other"?12:36+[0,8,-4,4,12][variant];
+  return {
+   "--subject-bg":`hsl(${hue} ${saturation}% ${[96,94,97,95,93][variant]}%)`,
+   "--subject-border":`hsl(${hue} ${saturation-6}% ${[83,79,85,81,77][variant]}%)`,
+   "--subject-accent":`hsl(${hue} ${saturation}% ${[57,52,62,55,49][variant]}%)`,
+   "--subject-text":`hsl(${hue} ${saturation-8}% 34%)`,
+  } as CSSProperties;
+ }
  const content=<div className={`${styles.boardSurface} ${expanded?`${styles.root} ${styles.boardExpanded}`:""}`}>
  <div className={styles.boardTools}>
  <button className={styles.expandIcon} type="button" aria-label={expanded?"크게 보기 닫기":"시간표 크게 보기"} title={expanded?"크게 보기 닫기 (Esc)":"시간표 크게 보기"} aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{expanded?<path d="M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6"/>:<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>}</svg></button>
@@ -82,12 +96,12 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  <header><b>미배정 클래스</b><small>{unassigned.length}개 반</small></header>
  <input aria-label="클래스 또는 학생 검색" placeholder="반 · 학생 · 선생님 검색" value={query} onChange={e=>setQuery(e.target.value)}/>
  <div className={styles.shelfFilters}><select aria-label="미배정 과목" value={subject} onChange={e=>setSubject(e.target.value)}><option value="">전체 과목</option>{[...new Set(courses.map(c=>c.subject))].sort().map(s=><option key={s}>{s}</option>)}</select><select aria-label="미배정 학년" value={grade} onChange={e=>setGrade(e.target.value)}><option value="">전체 학년</option>{[...new Set(courses.flatMap(c=>c.students.map(s=>s.grade)))].sort().map(g=><option key={g}>{g}</option>)}</select></div>
- <div className={styles.shelfList}>{unassigned.map(c=><article key={c.id} className={styles.shelfCard} data-subject-tone={subjectTone(c.subject)} data-selected={picked?.id===c.id} draggable onDragStart={e=>startDrag(e,c.id,-1)} onDragEnd={endDrag}>
+ <div className={styles.shelfList}>{unassigned.map(c=><article key={c.id} className={styles.shelfCard} data-subject-tone={subjectTone(c.subject)} style={blockStyle(c)} data-selected={picked?.id===c.id} draggable onDragStart={e=>startDrag(e,c.id,-1)} onDragEnd={endDrag}>
  <div className={styles.shelfCardHeading}><span className={styles.shelfTitle}><b>{c.name}</b><span className={styles.remainingCount}>미배정 {c.count-meetings.filter(m=>m.classId===c.id).length}회</span></span><small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join(" · ")} · {c.duration}분 · {new Set(c.students.map(s=>s.id)).size}명</small></div>
  <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/></article>)}{!unassigned.length&&<p>미배정 클래스가 없습니다.</p>}</div>
  </aside>}
  <div className={styles.placementScroll}><table className={styles.placementTable}><thead><tr><th>시간</th>{days.map(d=><th key={d}>{d}</th>)}</tr></thead><tbody>{starts.map(start=><tr key={start}><th scope="row">{clock(start)}{duration.size===1&&<><br/>–{clock(start+[...duration][0])}</>}</th>{days.map((d,di)=><td key={d} data-available={picked&&!readOnly?!reason(di+1,start):undefined} data-drag-over={over===`${di+1}:${start}`} onDragOver={e=>{if(dragRef.current&&!readOnly){e.preventDefault();e.dataTransfer.dropEffect=reason(di+1,start)?"none":"move";setOver(`${di+1}:${start}`);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();place(di+1,start);endDrag();}}>
- {meetings.map((m,index)=>({m,index})).filter(({m})=>m.day===di+1&&m.start===start&&visible.some(c=>c.id===m.classId)).map(({m,index})=>{const c=courses.find(c=>c.id===m.classId)!;const locked=fixed.some(f=>sameMeeting(f,m));return <article key={`${c.id}-${index}`} data-subject-tone={subjectTone(c.subject)} className={`${styles.placementLesson} ${c.students.some(s=>s.id===selectedStudent)?styles.studentMatch:""}`} draggable={!locked&&!readOnly} onDragStart={e=>startDrag(e,c.id,index)} onDragEnd={endDrag}>
+ {meetings.map((m,index)=>({m,index})).filter(({m})=>m.day===di+1&&m.start===start&&visible.some(c=>c.id===m.classId)).map(({m,index})=>{const c=courses.find(c=>c.id===m.classId)!;const locked=fixed.some(f=>sameMeeting(f,m));return <article key={`${c.id}-${index}`} data-subject-tone={subjectTone(c.subject)} style={blockStyle(c)} className={`${styles.placementLesson} ${c.students.some(s=>s.id===selectedStudent)?styles.studentMatch:""}`} draggable={!locked&&!readOnly} onDragStart={e=>startDrag(e,c.id,index)} onDragEnd={endDrag}>
  <div className={styles.lessonHeading}><div><b>{c.name}</b><small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join("·")}{c.room?` · ${c.room}`:""}{duration.size>1?` · ${c.duration}분 (${clock(m.end)} 종료)`:""}</small></div>
  {!readOnly&&<button className={styles.lockIcon} type="button" aria-label={`${c.name} ${locked?"고정 해제":"시간 고정"}`} title={locked?"고정 해제":"추천 시 이 시간 유지"} aria-pressed={locked} onClick={()=>onChange({...config,fixed:locked?fixed.filter(f=>!sameMeeting(f,m)):[...fixed,m]},meetings)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/>{locked?<path d="M8 10V6a4 4 0 0 1 8 0v4"/>:<path d="M8 10V6a4 4 0 0 1 7.5-2"/>}<path d="M12 14v3"/></svg></button>}</div>
  <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/>
