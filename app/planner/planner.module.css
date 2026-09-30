@@ -527,3 +527,17 @@
 @media(max-width:520px){.root .topline{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.root .topline input{box-sizing:border-box;max-width:100%}.root .classShelf{grid-template-columns:1fr}.root .sectionHead{flex-wrap:wrap}.root .placementScroll{max-height:65dvh}.root .hero h1{font-size:24px}.root .hero p{max-width:240px}.root .mergeToolbar button{font-size:11px}}
 
 .root .shelfCard[draggable=true],.root .placementLesson[draggable=true]{cursor:grab;user-select:none}.root .shelfCard[draggable=true]:active,.root .placementLesson[draggable=true]:active{cursor:grabbing}.root .classShelf[data-drop-active=true]{border:2px dashed #a95b84;background:#fcf4f8}.root .classShelf[data-drag-over=true]{background:#f1dfeb;box-shadow:0 0 0 3px #dcb9ce}.returnZone{grid-column:1/-1;padding:14px 8px;border-radius:8px;background:#f3e4ed;color:#8e2d5d;text-align:center;font-size:12px;font-weight:700;pointer-events:none}.root .placementTable td[data-drag-over=true][data-available=true]{background:#def1e7;box-shadow:inset 0 0 0 2px #579479}.root .placementTable td[data-drag-over=true][data-available=false]{background:#f9e8e5;box-shadow:inset 0 0 0 2px #bd7a70}
+
+/* Compact unassigned cards, retaining every student name. */
+.root .classShelf .shelfList{gap:6px}
+.root .classShelf .shelfCard{padding:7px 8px;border-radius:7px}
+.root .classShelf .shelfCard>button{gap:3px;min-height:0;line-height:1.3}
+.root .classShelf .shelfTitle{display:flex;align-items:baseline;justify-content:space-between;gap:6px;min-width:0}
+.root .classShelf .shelfTitle>b{font-size:12px;line-height:1.35;color:#493a42;min-width:0;overflow-wrap:anywhere}
+.root .classShelf .shelfTitle .remainingCount{flex-shrink:0;font-size:10px;font-weight:500;white-space:nowrap;color:#94345f}
+.root .classShelf .shelfCard>button>small{font-size:10px;line-height:1.3;color:#8b7a83}
+.root .classShelf .shelfCard .roster{margin-top:5px}
+.root .classShelf .shelfCard .rosterNames{gap:1px 7px;line-height:1.3}
+.root .classShelf .shelfCard .rosterNames>div{margin:0;padding:0}
+.root .classShelf .shelfCard .rosterNames button{font-size:11px;line-height:1.3;padding:1px 0;min-height:0;border:0;border-radius:3px;background:transparent}
+.root .classShelf .shelfCard .rosterNames button[aria-pressed=true]{background:#902c5f;color:white}
