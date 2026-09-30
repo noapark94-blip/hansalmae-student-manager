@@ -575,3 +575,10 @@
 .root .classShelf .shelfCard .roster{margin-top:3px}
 .root .classShelf .shelfCard .rosterNames{gap:0 5px;line-height:1.25}
 .root .classShelf .shelfCard .rosterNames button{font-size:10.5px;line-height:1.25;padding:1px 0}
+
+.root .boardTools .expandIcon{margin-left:auto;order:2;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:5px;border:1px solid #e6dbe2;border-radius:7px;background:white;color:#866476}
+.boardFrame{position:relative;min-width:0}
+.root .boardFrame .shelfHandle{position:absolute;z-index:5;left:-12px;top:70px;display:flex;align-items:center;justify-content:center;width:24px;height:52px;min-width:24px;padding:3px;border:1px solid #e3d6de;border-radius:0 13px 13px 0;background:#fff;color:#947789;box-shadow:2px 1px 5px #4930420a}
+.root .boardFrame[data-shelf-open=true] .shelfHandle{left:218px}
+.root .boardFrame .shelfHandle:hover{color:#902c5f;background:#fbf5f8}
+@media(max-width:850px){.root .boardFrame[data-shelf-open=true] .shelfHandle{left:-12px;top:20px}.root .boardFrame[data-shelf-open=false] .shelfHandle{top:55px}}

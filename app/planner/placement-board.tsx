@@ -69,14 +69,14 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  const unassigned=visible.filter(c=>c.count>meetings.filter(m=>m.classId===c.id).length&&(!subject||c.subject===subject)&&(!grade||c.students.some(s=>s.grade===grade))&&(!query||[c.name,...c.students.map(s=>s.name),...c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name||"")].join(" ").toLowerCase().includes(query.toLowerCase())));
  const content=<div className={expanded?`${styles.root} ${styles.boardExpanded}`:undefined}>
  <div className={styles.boardTools}>
- {!readOnly&&<button type="button" aria-expanded={shelfOpen} onClick={()=>setShelfOpen(v=>!v)}>{shelfOpen?"미배정 목록 접기":"미배정 목록 열기"}</button>}
- <button type="button" aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}>{expanded?"크게 보기 닫기":"시간표 크게 보기"}</button>
+ <button className={styles.expandIcon} type="button" aria-label={expanded?"크게 보기 닫기":"시간표 크게 보기"} title={expanded?"크게 보기 닫기 (Esc)":"시간표 크게 보기"} aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{expanded?<path d="M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6"/>:<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>}</svg></button>
  {!readOnly&&!shelfOpen&&picked&&picked.index>=0&&<button type="button" className={styles.returnZone} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();unassign();}} onClick={unassign}>여기에 놓으면 배정 해제</button>}
  </div>
  {!readOnly&&<p className={styles.boardHint}>블록을 끌어 배정·이동하고, 왼쪽 미배정 영역으로 끌어 빼세요. 추천에서도 유지할 수업만 고정하세요.</p>}
  {message&&<p role="status" className={styles.notice}>{message}</p>}
  {picked&&!readOnly&&!dragging&&<div className={styles.studentFocus}><span>{courses.find(c=>c.id===picked.id)?.name} · 배정할 칸을 선택하세요</span><button type="button" onClick={()=>setPicked(null)}>선택 취소</button></div>}
- <div className={readOnly||!shelfOpen?undefined:styles.boardLayout}>
+ <div className={`${styles.boardFrame} ${!readOnly&&shelfOpen?styles.boardLayout:""}`} data-shelf-open={!readOnly&&shelfOpen}>
+ {!readOnly&&<button type="button" className={styles.shelfHandle} aria-label={shelfOpen?"미배정 목록 접기":"미배정 목록 열기"} title={shelfOpen?"미배정 목록 접기":"미배정 목록 열기"} aria-expanded={shelfOpen} onClick={()=>setShelfOpen(v=>!v)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={shelfOpen?"m14 6-6 6 6 6":"m10 6 6 6-6 6"}/></svg></button>}
  {!readOnly&&shelfOpen&&<aside className={styles.classShelf} data-drop-active={dragging&&picked?.index!==-1} data-drag-over={over==="shelf"} onDragOver={e=>{if(dragRef.current&&dragRef.current.index>=0){e.preventDefault();e.dataTransfer.dropEffect="move";setOver("shelf");}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();unassign();}}>
  {dragging&&picked&&picked.index>=0&&<div className={styles.returnZone}>여기에 놓으면 배정 해제</div>}
  <header><b>미배정 클래스</b><small>{unassigned.length}개 반</small></header>
