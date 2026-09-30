@@ -560,7 +560,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                         }
                         onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? void save() : setApplyOpen(true)}
                       >
-                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"초안 저장":"적용 내용 확인"}
+                        {config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"초안 저장":"실제 시간표에 적용"}
                       </button>
                     </footer>
                   </section>
@@ -585,8 +585,14 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="planner-apply-title"
+            aria-describedby="planner-apply-warning"
           >
-            <h2 id="planner-apply-title">새 시간표를 적용할까요?</h2>
+            <h2 id="planner-apply-title">실제 정규 시간표를 변경할까요?</h2>
+            <div id="planner-apply-warning" className={styles.error}>
+              <strong>주의 · 실제 운영 시간표가 변경됩니다.</strong>
+              <p>아래 ‘실제 시간표 변경’을 누르면 초안 저장을 넘어, 선택한 클래스의 정규수업 요일과 시간이 적용 시작일부터 변경됩니다.</p>
+              <p>아직 검토 중이라면 ‘돌아가기’를 누른 뒤 ‘초안 저장’을 이용해 주세요.</p>
+            </div>
             <p>
               <b>{date}</b>부터 선택한 <b>{enabled.length}개 클래스</b>의
               정규시간표가 바뀝니다.
@@ -613,7 +619,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                 disabled={busy}
                 onClick={() => void apply()}
               >
-                {busy ? "검사·적용 중…" : "검사 후 적용"}
+                {busy ? "검사·적용 중…" : "실제 시간표 변경"}
               </button>
             </footer>
           </section>
