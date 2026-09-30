@@ -541,3 +541,16 @@
 .root .classShelf .shelfCard .rosterNames>div{margin:0;padding:0}
 .root .classShelf .shelfCard .rosterNames button{font-size:11px;line-height:1.3;padding:1px 0;min-height:0;border:0;border-radius:3px;background:transparent}
 .root .classShelf .shelfCard .rosterNames button[aria-pressed=true]{background:#902c5f;color:white}
+
+/* Dense placed blocks: scoped rules override surrounding admin button styles. */
+.root .placementTable .placementLesson{gap:2px;padding:5px 6px;margin:2px 0;border-radius:6px;min-height:0;line-height:1.3}
+.root .placementTable .placementLesson>b{font-size:12px;line-height:1.3;margin:0}
+.root .placementTable .placementLesson>small{font-size:10px;line-height:1.3;margin:0}
+.root .placementTable .placementLesson .roster{display:block;margin:2px 0;min-height:0}
+.root .placementTable .placementLesson .rosterNames{display:flex;flex-wrap:wrap;gap:1px 6px;line-height:1.3}
+.root .placementTable .placementLesson .rosterNames>div{margin:0;padding:0;min-height:0}
+.root .placementTable .placementLesson .rosterNames button{font-size:11px;line-height:1.3;min-height:0;padding:1px 0;border:0;background:transparent;border-radius:3px}
+.root .placementTable .placementLesson .rosterNames button[aria-pressed=true]{background:#902c5f;color:white}
+.root .placementTable .placementLesson .lessonActions{display:flex;gap:3px;flex-wrap:nowrap;margin-top:2px}
+.root .placementTable .placementLesson .lessonActions button{font-size:10px;line-height:1.2;min-width:0;min-height:0;white-space:nowrap;padding:3px 4px;border:0;border-radius:4px;background:#f7f0f4}
+.root .placementTable td{padding:4px}

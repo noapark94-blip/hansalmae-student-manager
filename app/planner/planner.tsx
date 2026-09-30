@@ -358,7 +358,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
               <button aria-current={tab === "conditions" ? "page" : undefined} onClick={() => setTab("conditions")}>조건·합반 설정</button>
               {candidates.length > 0 && <button aria-current={tab === "compare" ? "page" : undefined} onClick={() => setTab("compare")}>추천안 비교 <small>{candidates.length}</small></button>}
             </nav>
-            {selectedStudent && <div className={styles.studentFocus} role="status"><span><b>{selectedStudent.name}</b> · {selectedStudent.grade} 수업 강조 중</span><button type="button" onClick={()=>setSelectedStudent(null)}>강조 해제</button></div>}
+            {selectedStudent && <div className={styles.studentFocus} role="status"><span><b>{selectedStudent.name}</b> 학생의 수업을 표시하고 있어요</span><button type="button" onClick={()=>setSelectedStudent(null)}>강조 해제</button></div>}
             {tab === "conditions" ? (
               <div className={styles.layout}>
                 <div>
