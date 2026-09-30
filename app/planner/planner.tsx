@@ -1,10 +1,8 @@
 "use client";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  clock,
   capacityProblems,
-  domains,
   metrics,
   validate,
   type Config,
@@ -16,7 +14,6 @@ import {
 import styles from "./planner.module.css";
 import { PlacementBoard } from "./placement-board";
 import { appConfirm } from "../app-dialog";
-import { StudentRoster } from "./student-roster";
 import { CourseSelection } from "./course-selection";
 type Source = {
   version: string;
@@ -69,7 +66,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     [drafts, setDrafts] = useState<Draft[]>([]),
     [candidates, setCandidates] = useState<Candidate[]>([]),
     [selected, setSelected] = useState(0),
-    [tab, setTab] = useState<"conditions" | "results">("conditions");
+    [tab, setTab] = useState<"conditions" | "results" | "compare">("results");
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
@@ -85,7 +83,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
   function placementChange(next:Config, rows:Meeting[]) {
     if (!config || busy || solving) return;
     setUndo(u=>[...u.slice(-19),{config,meetings:chosen?.meetings||[]}]);
-    setConfig(next); setCandidates([metrics(next,rows)]); setSelected(0);
+    setConfig(next); setMeetings(rows); setCandidates([]); setSelected(0);
   }
   const worker = useRef<Worker | null>(null);
   const versionRef = useRef("");
@@ -124,12 +122,15 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       worker.current?.terminate();
     };
   }, [supabase]);
-  const chosen = candidates[selected];
+  const chosen = config ? metrics(config, meetings) : undefined;
+  const displayed = tab === "compare" ? candidates[selected] : chosen;
   const issues = config && chosen ? validate(config, chosen.meetings) : [];
   function change(next: Config) {
     worker.current?.terminate();
     setSolving(false);
-    setConfig(next);
+    const rows = meetings.filter(m => next.courses.some(c => c.enabled && c.id === m.classId));
+    setConfig({...next, fixed:(next.fixed || []).filter(f => rows.some(m => m.classId===f.classId && m.day===f.day && m.start===f.start && m.end===f.end))});
+    setMeetings(rows);
     setUndo([]);
     setSelectedStudent(null);
     setCandidates([]);
@@ -150,12 +151,11 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       setSolving(false);
       setError(e.data.problems.join("\n"));
       if (e.data.candidates.length) {
-        setTab("results");
+        setTab("compare");
         setNotice(
           `${e.data.candidates.length}개 후보를 찾았습니다. 탐색한 후보 중 대기시간 순으로 정렬했습니다.`,
         );
       }
-      setUndo([]);
       w.terminate();
     };
     w.onerror = () => {
@@ -211,7 +211,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
         change(next);
         versionRef.current = source.version;
       }
-      setTab("conditions");
+      setMeetings([]);
+      setTab("results");
       setTitle("새 시간표 편성");
       setNotice(`“${target.title}” 초안을 삭제했습니다.`);
     } catch(e) { setError((e as Error).message); }
@@ -253,30 +254,16 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     setDate(d.starts_on);
     setConfig(d.payload.config);
     versionRef.current = d.payload.sourceVersion;
-    setCandidates(
-      d.payload.meetings.length
-        ? [metrics(d.payload.config, d.payload.meetings)]
-        : [],
-    );
+    setMeetings(d.payload.meetings);
+    setCandidates([]);
     setSelected(0);
-    setTab(d.payload.meetings.length ? "results" : "conditions");
+    setTab("results");
     setNotice(
       d.payload.sourceVersion !== source?.version
         ? "저장 이후 운영 정보가 변경되었습니다. 비교용으로 열었으며 적용 전 새 초안을 만들어 주세요."
         : "저장한 초안을 불러왔습니다.",
     );
     setError("");
-  }
-  function edit(index: number, key: string) {
-    if (!config || !chosen) return;
-    const [day, start, end] = key.split(":").map(Number);
-    const rows = chosen.meetings.map((m, i) =>
-      i === index ? { ...m, day, start, end } : m,
-    );
-    setCandidates((cs) =>
-      cs.map((c, i) => (i === selected ? metrics(config, rows) : c)),
-    );
-    setNotice("시간을 조정했습니다. 저장 전 충돌 검사를 확인해 주세요.");
   }
   const enabled = config?.courses.filter((c) => c.enabled) || [];
   return (
@@ -285,7 +272,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
         <div>
           <span className={styles.eyebrow}>ADMIN · TIMETABLE STUDIO</span>
           <h1>시간표 편성</h1>
-          <p>다음 학기의 좋은 흐름을, 여러 안으로 비교해 보세요.</p>
+          <p>블록으로 배정하고, 고정한 수업을 중심으로 나머지를 추천받으세요.</p>
         </div>
         <button
           disabled={!source || busy || solving}
@@ -296,7 +283,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
             const next = defaults(source);
             next.teachers = next.teachers.map(t => ({...t, days: [...(config?.teachers.find(saved => saved.id === t.id)?.days ?? t.days)]}));
             change(next);
-            setTab("conditions");
+            setMeetings([]);
+            setTab("results");
             setTitle("새 시간표 편성");
           }}
         >
@@ -365,20 +353,10 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
               </label>
               {draft && <div className={styles.draftActions}>{draft.applied_at ? <span>적용 이력 · 삭제 불가</span> : <button type="button" disabled={busy || solving} onClick={()=>void removeDraft()}>초안 삭제</button>}</div>}
             </div>
-            <nav className={styles.tabs} aria-label="편성 단계">
-              <button
-                aria-current={tab === "conditions" ? "step" : undefined}
-                onClick={() => setTab("conditions")}
-              >
-                01 조건 설정
-              </button>
-              <button
-                disabled={!candidates.length}
-                aria-current={tab === "results" ? "step" : undefined}
-                onClick={() => setTab("results")}
-              >
-                02 후보 비교·조정 <small>{candidates.length}</small>
-              </button>
+            <nav className={styles.tabs} aria-label="시간표 작업 화면">
+              <button aria-current={tab === "results" ? "page" : undefined} onClick={() => setTab("results")}>시간표 편성</button>
+              <button aria-current={tab === "conditions" ? "page" : undefined} onClick={() => setTab("conditions")}>조건·합반 설정</button>
+              {candidates.length > 0 && <button aria-current={tab === "compare" ? "page" : undefined} onClick={() => setTab("compare")}>추천안 비교 <small>{candidates.length}</small></button>}
             </nav>
             {selectedStudent && <div className={styles.studentFocus} role="status"><span><b>{selectedStudent.name}</b> · {selectedStudent.grade} 수업 강조 중</span><button type="button" onClick={()=>setSelectedStudent(null)}>강조 해제</button></div>}
             {tab === "conditions" ? (
@@ -490,7 +468,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       실제 수강생·선생님·강의실 중복을 검사합니다. 후보 간
                       비교이며 전역 최적해를 보장하지 않습니다.
                     </p>
-                    <button type="button" disabled={solving || !enabled.length} onClick={()=>{setCandidates([metrics(config, config.fixed||[])]);setSelected(0);setTab("results");}}>블록으로 직접 배정</button>
+                    <button type="button" disabled={solving || !enabled.length} onClick={()=>setTab("results")}>편성 화면으로</button>
                     <button
                       className={styles.primary}
                       disabled={solving || !enabled.length}
@@ -515,7 +493,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
               </div>
             ) : (
               <>
-                <div className={styles.candidates}>
+                {tab === "compare" && <div className={styles.candidates}>
                   {candidates.map((c, i) => (
                     <button
                       key={i}
@@ -539,15 +517,14 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       <small>주간 · 학생별/선생님별 합산</small>
                     </button>
                   ))}
-                </div>
-                {chosen && (
+                </div>}
+                {displayed && (
                   <section className={styles.card}>
                     <div className={styles.sectionHead}>
                       <div>
-                        <h2>주간 시간표</h2>
+                        <h2>{tab === "compare" ? `추천안 ${selected+1} 미리보기` : "주간 시간표"}</h2>
                         <p>
-                          시간 선택으로 조정할 수 있습니다. 학생 등원 합계{" "}
-                          {chosen.visits}회/주
+                          {tab === "compare" ? "현재 편성은 유지됩니다. 마음에 드는 안을 가져와 계속 수정하세요." : `배정 ${meetings.length} / ${enabled.reduce((n,c)=>n+c.count,0)}회 · 고정 ${(config.fixed||[]).length}회 · 미배정 ${Math.max(0,enabled.reduce((n,c)=>n+c.count,0)-meetings.length)}회`}
                         </p>
                       </div>
                       <select
@@ -563,30 +540,23 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                         ))}
                       </select>
                     </div>
-                    {issues.length ? (
-                      <div className={styles.error}>
-                        {issues.map((x) => (
-                          <p key={x}>{x}</p>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className={styles.valid}>
-                        ✓ 선택한 클래스 간 충돌 없음 · 적용 시 기존 일정까지
-                        다시 검사합니다.
-                      </div>
-                    )}
-                    <div className={styles.mergeToolbar}>
-                      <button type="button" disabled={solving} onClick={run}>{solving?"추천 중…":"고정 유지 · 나머지 추천"}</button>
-                      <button type="button" disabled={!undo.length || solving} onClick={()=>{const prev=undo[undo.length-1];setConfig(prev.config);setCandidates([metrics(prev.config,prev.meetings)]);setSelected(0);setUndo(u=>u.slice(0,-1));}}>실행 취소</button>
-                      <span>고정 {(config.fixed||[]).length}회</span>
-                    </div>
-                    {!solving && <PlacementBoard key={JSON.stringify([selected,chosen.meetings,config.fixed])} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={chosen.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>}
+                    {tab === "compare" ? <div className={styles.mergeToolbar}>
+                      <button type="button" className={styles.primary} onClick={()=>{placementChange(config,displayed.meetings);setTab("results");setNotice("추천안을 가져왔습니다. 블록을 이동해 계속 편성하세요.");}}>이 안으로 편성</button>
+                      <button type="button" onClick={()=>setTab("results")}>내 편성으로 돌아가기</button>
+                    </div> : <div className={styles.mergeToolbar}>
+                      <button type="button" className={styles.primary} disabled={solving || !enabled.length} onClick={run}>{solving?"추천 중…":"고정 유지 · 나머지 추천"}</button>
+                      {solving && <button type="button" onClick={()=>{worker.current?.terminate();setSolving(false);}}>탐색 취소</button>}
+                      <button type="button" disabled={!undo.length || solving} onClick={()=>{const prev=undo[undo.length-1];setConfig(prev.config);setMeetings(prev.meetings);setCandidates([]);setUndo(u=>u.slice(0,-1));}}>되돌리기</button>
+                      <button type="button" onClick={()=>setTab("conditions")}>조건·합반 설정</button>
+                    </div>}
+                    {tab === "results" && (()=>{const conflicts=validate({...config,courses:config.courses.map(c=>({...c,count:meetings.filter(m=>m.classId===c.id).length}))},meetings);return conflicts.length ? <div className={styles.error}>{conflicts.join("\n")}</div> : null;})()}
+                    <PlacementBoard readOnly={tab === "compare" || solving} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={displayed.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>
                     <footer className={styles.footer}>
                       <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반이 포함된 초안은 현재 저장·비교만 가능합니다. 이 화면에서 실제 정규 시간표로 적용하는 기능은 아직 지원하지 않습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
                       <button
                         className={styles.primary}
                         disabled={
-                          busy || issues.length > 0 || !!draft?.applied_at
+                          busy || solving || tab === "compare" || !meetings.length || issues.length > 0 || !!draft?.applied_at
                         }
                         onClick={() => config?.courses.some(c=>c.enabled&&c.memberCourses?.length) ? void save() : setApplyOpen(true)}
                       >
