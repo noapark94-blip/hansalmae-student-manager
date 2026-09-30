@@ -23,6 +23,8 @@ test("administrator drafts, conflict checks and history-preserving application",
       "utf8",
     ),
   );
+  await db.exec(await readFile(new URL("../../supabase/migrations/20260929131518_delete_unapplied_timetable_drafts.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../../supabase/migrations/20260930124549_shared_timetable_planner_roles.sql", import.meta.url), "utf8"));
   await db.exec(
     `set test.uid='${admin}'; set test.role='admin'; insert into profiles(id,role,display_name) values('${admin}','admin','테스트'); insert into classes(id,name,subject,room) values('${cid}','중등 영어','영어','1'); insert into class_teachers(class_id,profile_id) values('${cid}','${admin}'); insert into class_schedules(class_id,weekday,start_time,end_time,valid_from) values('${cid}',1,'16:00','18:00','2020-01-01');`,
   );
@@ -35,7 +37,7 @@ test("administrator drafts, conflict checks and history-preserving application",
         enabled: true,
         count: 2,
         duration: 120,
-        high: false,
+        high: true,
       },
     ],
     teachers: [{ id: admin, name: "테스트", days: [1, 3, 5] }],
@@ -70,6 +72,24 @@ test("administrator drafts, conflict checks and history-preserving application",
       /관리자/,
     );
     await db.exec("set test.role='admin'");
+  });
+  await t.test("sub-admin can share, update and delete admin drafts; other roles cannot", async () => {
+    const d = await save();
+    await db.exec("insert into profiles(id,role,display_name) values('00000000-0000-0000-0000-000000000009','sub_admin','부관리자'); set test.uid='00000000-0000-0000-0000-000000000009'; set test.role='sub_admin'; set role authenticated");
+    assert.ok((await db.query("select id from timetable_plans where id=$1", [d.id])).rows.length);
+    await query("select admin_timetable_source()");
+    const updated = (await query("select admin_save_timetable_plan($1,'공유 수정',current_date+30,$2,$3) data", [d.id, JSON.stringify(payload), d.version])).data;
+    await assert.rejects(() => query("select admin_save_timetable_plan($1,'충돌',current_date+30,$2,$3)", [d.id, JSON.stringify(payload), d.version]), /다른 관리자/);
+    await query("select admin_delete_timetable_plan($1,$2)", [updated.id, updated.version]);
+    for (const role of ['teacher', 'student', 'guardian', 'assistant', 'manager']) {
+      await db.exec(`set test.role='${role}'`);
+      assert.equal((await db.query("select * from timetable_plans")).rows.length, 0);
+      await assert.rejects(() => query("select admin_timetable_source()"), /관리자/);
+      await assert.rejects(() => save(), /관리자/);
+      await assert.rejects(() => apply(d), /관리자/);
+      await assert.rejects(() => query("select admin_delete_timetable_plan($1,$2)", [d.id,d.version]), /관리자/);
+    }
+    await db.exec(`reset role; set test.role='admin'; set test.uid='${admin}'`);
   });
   await t.test("bad days rejected without mutating schedules", async () => {
     const p = structuredClone(payload);
@@ -120,7 +140,9 @@ test("administrator drafts, conflict checks and history-preserving application",
     "apply preserves old range and starts future range",
     async () => {
       const d = await save();
+      await db.exec("set test.role='sub_admin'; set role authenticated");
       const a = await apply(d);
+      await db.exec("reset role; set test.role='admin'");
       assert.ok(a.applied_at);
       const rows = (
         await db.query(

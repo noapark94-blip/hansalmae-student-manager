@@ -185,7 +185,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       const d = data as Draft;
       setDraft(d);
       setDrafts((ds) => [d, ...ds.filter((x) => x.id !== d.id)]);
-      setNotice("초안을 저장했습니다. 실제 시간표는 아직 바뀌지 않았습니다.");
+      setNotice("공유 초안을 저장했습니다. 관리자·부관리자가 함께 볼 수 있으며, 실제 시간표는 아직 바뀌지 않았습니다.");
       return d;
     } catch (e) {
       setError((e as Error).message);
@@ -238,6 +238,19 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       );
       const r = await supabase.rpc("admin_timetable_source");
       if (r.data) setSource(r.data as Source);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function refreshDrafts() {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.from("timetable_plans").select("*").order("updated_at", { ascending: false }).limit(30);
+      if (error) throw error;
+      setDrafts((data || []) as Draft[]);
+      setNotice("공유 초안 목록을 갱신했습니다. 최신 내용을 열려면 초안을 다시 선택해 주세요.");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -334,7 +347,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                 {busy ? "처리 중…" : "초안 저장"}
               </button>
               <label>
-                저장한 초안
+                공유 초안
                 <select
                   value={draft?.id || ""}
                   onChange={(e) => {
@@ -351,6 +364,13 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                   ))}
                 </select>
               </label>
+              <button type="button" disabled={busy || solving} onClick={() => void refreshDrafts()}>목록 새로고침</button>
+              {draft && drafts.some(d => d.id === draft.id) && <button type="button" disabled={busy || solving} onClick={async () => {
+                if (await appConfirm({eyebrow: "공유 초안", title: "저장된 초안을 다시 열까요?", copy: "저장하지 않은 현재 편집 내용은 사라집니다.", confirmLabel: "다시 열기"})) {
+                  const latest = drafts.find(d => d.id === draft.id);
+                  if (latest) open(latest);
+                }
+              }}>선택한 초안 다시 열기</button>}
               {draft && <div className={styles.draftActions}>{draft.applied_at ? <span>적용 이력 · 삭제 불가</span> : <button type="button" disabled={busy || solving} onClick={()=>void removeDraft()}>초안 삭제</button>}</div>}
             </div>
             <nav className={styles.tabs} aria-label="시간표 작업 화면">

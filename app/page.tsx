@@ -217,7 +217,7 @@ function accountDisplayName(profile: Pick<Profile, "display_name" | "role">) {
 
 const roleViews: Record<UserRole, View[]> = {
   admin: ["timetable-planner", "dashboard", "students", "bulk-import", "bulk-accounts", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "tuition", "expenses", "analytics", "backup", "settings", "my-account", "audit"],
-  sub_admin: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "my-account"],
+  sub_admin: ["timetable-planner", "dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "alimtalk", "consultations", "communications", "my-account"],
   teacher: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
   assistant: ["dashboard", "corrections", "assignments", "vocabulary-tests", "my-account"],
   manager: ["dashboard", "students", "guide", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "my-account"],
@@ -906,7 +906,7 @@ export default function Home() {
           {view === "bulk-accounts" && <BulkAccountBoard supabase={supabase} />}
           {view === "guide" && <BulkRegistrationGuide onNavigate={selectView} />}
           {view === "class-management" && <TeacherClassWorkspace supabase={supabase} profile={profile} manageOnly onClassesChanged={() => void refreshStudentRegistrationCatalog()} />}
-          {view === "timetable-planner" && profile.role === "admin" && <TimetablePlanner key={profile.id} supabase={supabase} />}
+          {view === "timetable-planner" && (profile.role === "admin" || profile.role === "sub_admin") && <TimetablePlanner key={profile.id} supabase={supabase} />}
           {view === "schedule" && (["admin","sub_admin","teacher","manager"].includes(profile.role) ? <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="all" onStudentOpen={studentId=>{const student=students.find(item=>item.id===studentId);if(student)void openStudentDetails(student);else showToast("학생 정보를 찾지 못했습니다.");}} /> : familyStudentReady ? <FamilyScheduleView key={`${profile.id}:${familyStudentId??"default"}`} supabase={supabase} profile={profile} studentId={familyStudentId} onStudentChange={selectFamilyStudent} /> : null)}
           {view === "corrections" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="correction" />}
           {view === "transport" && <TeacherScheduleHub supabase={supabase} profile={profile} initialTab="vehicle" />}
@@ -1414,8 +1414,8 @@ function StaffBottomNavigation({ role, activeView, onSelect, onMore }: { role: U
 
 function StaffMoreSheet({ items, activeView, displayName, role, onSelect, onClose, onSignOut }: { items: typeof nav; activeView: View; displayName: string; role: UserRole; onSelect: (view: View) => void; onClose: () => void; onSignOut: () => void }) {
   const mobileMenuByRole: Record<UserRole, View[]> = {
-    admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "expenses", "analytics", "alimtalk", "backup", "settings"],
-    sub_admin: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "alimtalk", "communications", "my-account"],
+    admin: ["timetable-planner", "dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "vocabulary-tests", "consultations", "communications", "tuition", "expenses", "analytics", "alimtalk", "backup", "settings"],
+    sub_admin: ["timetable-planner", "dashboard", "students", "class-management", "schedule", "corrections", "transport", "attendance", "makeups", "assignments", "vocabulary-tests", "consultations", "alimtalk", "communications", "my-account"],
     manager: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     teacher: ["dashboard", "students", "class-management", "schedule", "corrections", "transport", "makeups", "assignments", "consultations"],
     assistant: ["dashboard", "assignments", "corrections", "vocabulary-tests", "my-account"],
