@@ -6,7 +6,7 @@ const code = ts.transpile(fs.readFileSync("app/planner/engine.ts", "utf8"), {
   target: ts.ScriptTarget.ES2022,
   module: ts.ModuleKind.ES2022,
 });
-const { generate, validate, metrics } = await import(
+const { generate, validate, metrics, domains } = await import(
   "data:text/javascript;base64," + Buffer.from(code).toString("base64")
 );
 const course = (id, teacher, student, room) => ({
@@ -98,4 +98,17 @@ test('invalid and overlapping locks are rejected without silently unlocking',()=
  assert.equal(generate(config,500).candidates.length,0);
  config.fixed=[{classId:'a',day:2,start:960,end:1080}];
  assert.equal(generate(config,500).candidates.length,0);
+});
+
+
+test("configured times permit saved high-grade courses at 16:00, with availability guards intact", () => {
+  const c = { ...course("mixed", "t1", "s1", "1"), high: true, count: 1 };
+  const config = { ...structuredClone(base), courses: [c], starts: ["16:00", "16:00", "", "", "", "16:00", "21:00"] };
+  assert.deepEqual(domains(c, config), [
+    { day: 1, start: 960, end: 1080 },
+    { day: 2, start: 960, end: 1080 },
+  ]);
+  assert.deepEqual(validate(config, [{ classId: c.id, day: 1, start: 960, end: 1080 }]), []);
+  config.fixed = [{ classId: c.id, day: 1, start: 960, end: 1080 }];
+  assert.ok(generate(config, 100).candidates.length);
 });

@@ -63,10 +63,7 @@ export function domains(c: Course, config: Config): Slot[] {
           t + c.duration <= 1320 &&
           c.teachers.every((id) =>
             config.teachers.find((x) => x.id === id)?.days.includes(i + 1),
-          ) &&
-          (i === 5 ||
-            i === 6 ||
-            t >= (i === 1 || i === 3 || c.high ? 1020 : 960)),
+          ),
       )
       .map((start) => ({ day: i + 1, start, end: start + c.duration })),
   );
