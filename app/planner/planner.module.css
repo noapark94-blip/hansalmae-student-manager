@@ -590,3 +590,15 @@
 .root .boardSurface>.boardHint{margin:0 0 8px}
 .root.boardExpanded>.boardTools{position:static;justify-content:flex-end;margin:0 0 6px}
 .root .boardSurface>.boardTools>.returnZone{max-width:190px;font-size:10px;padding:5px 8px}
+
+/* Keep subject identity consistent between unassigned and placed blocks. */
+.root [data-subject-tone="english"]{--subject-bg:#faf0f8;--subject-border:#e8cde3;--subject-accent:#b06b9f;--subject-text:#824873}
+.root [data-subject-tone="math"]{--subject-bg:#f0f6ff;--subject-border:#ccddf3;--subject-accent:#5186bd;--subject-text:#294f76}
+.root [data-subject-tone="korean"]{--subject-bg:#fff5eb;--subject-border:#f0dac2;--subject-accent:#c38b4f;--subject-text:#79532d}
+.root [data-subject-tone="geometry"]{--subject-bg:#eff8f3;--subject-border:#c7e2d3;--subject-accent:#4b9975;--subject-text:#31614b}
+.root [data-subject-tone="other"]{--subject-bg:#f4f5f7;--subject-border:#dce0e5;--subject-accent:#8994a3;--subject-text:#505c6c}
+.root .classShelf .shelfCard[data-subject-tone],.root .placementTable .placementLesson[data-subject-tone]{background:var(--subject-bg);border-color:var(--subject-border);border-left:3px solid var(--subject-accent)}
+.root .classShelf .shelfCard[data-subject-tone] .shelfTitle>b,.root .placementTable .placementLesson[data-subject-tone] .lessonHeading b{color:var(--subject-text)}
+.root .classShelf .shelfCard[data-subject-tone] .remainingCount{background:var(--subject-border);color:var(--subject-text)}
+.root .placementTable .placementLesson[data-subject-tone] .lockIcon[aria-pressed=true]{background:var(--subject-border);color:var(--subject-text)}
+.root .classShelf .shelfCard[data-selected=true]{outline:1px solid var(--subject-accent);box-shadow:none}
