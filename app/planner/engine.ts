@@ -15,6 +15,7 @@ export type Course = {
 };
 export type Teacher = { id: string; name: string; days: number[] };
 export type Config = {
+  fixed?: Meeting[];
   courses: Course[];
   teachers: Teacher[];
   starts: string[];
@@ -194,8 +195,12 @@ export function generate(config: Config, budgetMs = 10000) {
   problems.push(...capacityProblems(config));
   if (!courses.length) problems.push("편성할 클래스를 선택해 주세요.");
   if (problems.length) return { candidates: [] as Candidate[], problems };
+  const fixed = config.fixed || [];
+  const fixedIssues = validate({...config, courses: config.courses.map(c => ({...c, count: fixed.filter(m=>m.classId===c.id).length}))}, fixed);
+  if (fixed.some(m=>fixed.filter(n=>n.classId===m.classId).length > (byId.get(m.classId)?.count ?? 0))) fixedIssues.push("고정한 수업이 주 횟수보다 많습니다.");
+  if (fixedIssues.length) return {candidates: [] as Candidate[], problems: fixedIssues};
   const jobs = courses.flatMap((c) =>
-    Array.from({ length: c.count }, (_, i) => ({ id: c.id, i })),
+    Array.from({ length: c.count - fixed.filter(m=>m.classId===c.id).length }, (_, i) => ({ id: c.id, i })),
   );
   const answers = new Map<string, Candidate>();
   let nodes = 0;
@@ -204,7 +209,7 @@ export function generate(config: Config, budgetMs = 10000) {
     restart < 60 && Date.now() - started < budgetMs;
     restart++
   ) {
-    const placed: Meeting[] = [];
+    const placed: Meeting[] = fixed.map(m=>({...m}));
     let tries = 0;
     const choices = new Map(
       courses.map((c) => [
@@ -228,7 +233,8 @@ export function generate(config: Config, budgetMs = 10000) {
           .get(j.id)!
           .filter(
             (s) =>
-              own.every((m) => m.day < s.day) &&
+              own.every((m) => m.day !== s.day) &&
+              own.filter(m=>!fixed.some(f=>f.classId===m.classId && f.day===m.day)).every(m=>m.day < s.day) &&
               placed.every(
                 (m) =>
                   m.day !== s.day ||

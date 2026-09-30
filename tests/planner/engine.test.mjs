@@ -83,3 +83,19 @@ test("teacher capacity shortage is reported before searching", () => {
     result.problems.some((p) => p.includes("15회") && p.includes("13회")),
   );
 });
+
+test('fixed Friday remains fixed while earlier weekdays fill; locks survive JSON save',()=>{
+ const c=course('locked','teacher','student','room');
+ const fixed={classId:c.id,day:5,start:960,end:1080};
+ const config=JSON.parse(JSON.stringify({courses:[c],teachers:[{id:'teacher',name:'teacher',days:[1,3,5]}],starts:['16:00','','16:00','','16:00','',''],objective:'student',fixed:[fixed]}));
+ const result=generate(config,500);
+ assert.ok(result.candidates.length);
+ for(const candidate of result.candidates){assert.deepEqual(validate(config,candidate.meetings),[]);assert.ok(candidate.meetings.some(m=>JSON.stringify(m)===JSON.stringify(fixed)));assert.equal(candidate.meetings.length,3);}
+});
+test('invalid and overlapping locks are rejected without silently unlocking',()=>{
+ const a=course('a','teacher','s',''), b=course('b','teacher','t','');
+ const config={courses:[a,b],teachers:[{id:'teacher',name:'teacher',days:[1,3,5]}],starts:['16:00,18:00','','16:00,18:00','','16:00,18:00','',''],objective:'student',fixed:[{classId:'a',day:1,start:960,end:1080},{classId:'b',day:1,start:960,end:1080}]};
+ assert.equal(generate(config,500).candidates.length,0);
+ config.fixed=[{classId:'a',day:2,start:960,end:1080}];
+ assert.equal(generate(config,500).candidates.length,0);
+});

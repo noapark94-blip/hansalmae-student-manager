@@ -14,6 +14,7 @@ import {
   type Student,
 } from "./engine";
 import styles from "./planner.module.css";
+import { PlacementBoard } from "./placement-board";
 import { appConfirm } from "../app-dialog";
 import { StudentRoster } from "./student-roster";
 import { CourseSelection } from "./course-selection";
@@ -80,6 +81,12 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     setSelectedStudent(current => current?.id === student.id ? null : student);
     setTeacherFilter("");
   }
+  const [undo, setUndo] = useState<{config:Config; meetings:Meeting[]}[]>([]);
+  function placementChange(next:Config, rows:Meeting[]) {
+    if (!config || busy || solving) return;
+    setUndo(u=>[...u.slice(-19),{config,meetings:chosen?.meetings||[]}]);
+    setConfig(next); setCandidates([metrics(next,rows)]); setSelected(0);
+  }
   const worker = useRef<Worker | null>(null);
   const versionRef = useRef("");
   useEffect(() => {
@@ -123,6 +130,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     worker.current?.terminate();
     setSolving(false);
     setConfig(next);
+    setUndo([]);
     setSelectedStudent(null);
     setCandidates([]);
     setSelected(0);
@@ -137,7 +145,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     const w = new Worker(new URL("./solver.worker.ts", import.meta.url));
     worker.current = w;
     w.onmessage = (e) => {
-      setCandidates(e.data.candidates);
+      if (e.data.candidates.length) setCandidates(e.data.candidates);
       setSelected(0);
       setSolving(false);
       setError(e.data.problems.join("\n"));
@@ -147,6 +155,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
           `${e.data.candidates.length}개 후보를 찾았습니다. 탐색한 후보 중 대기시간 순으로 정렬했습니다.`,
         );
       }
+      setUndo([]);
       w.terminate();
     };
     w.onerror = () => {
@@ -238,6 +247,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     worker.current?.terminate();
     setSolving(false);
     setDraft(d);
+    setUndo([]);
     setSelectedStudent(null);
     setTitle(d.title);
     setDate(d.starts_on);
@@ -480,6 +490,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       실제 수강생·선생님·강의실 중복을 검사합니다. 후보 간
                       비교이며 전역 최적해를 보장하지 않습니다.
                     </p>
+                    <button type="button" disabled={solving || !enabled.length} onClick={()=>{setCandidates([metrics(config, config.fixed||[])]);setSelected(0);setTab("results");}}>블록으로 직접 배정</button>
                     <button
                       className={styles.primary}
                       disabled={solving || !enabled.length}
@@ -564,63 +575,12 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                         다시 검사합니다.
                       </div>
                     )}
-                    <div className={styles.week}>
-                      {days.map((d, day) => (
-                        <div key={d} className={styles.day}>
-                          <h3>
-                            {d}
-                            <small>요일</small>
-                          </h3>
-                          {chosen.meetings
-                            .map((m, index) => ({ m, index }))
-                            .filter(
-                              ({ m }) =>
-                                m.day === day + 1 &&
-                                (!teacherFilter ||
-                                  config.courses
-                                    .find((c) => c.id === m.classId)
-                                    ?.teachers.includes(teacherFilter)),
-                            )
-                            .sort((a, b) => a.m.start - b.m.start)
-                            .map(({ m, index }, position, rows) => {
-                              const c = config.courses.find(
-                                (c) => c.id === m.classId,
-                              )!;
-                              return (
-                                <Fragment key={index}>
-                                {(position === 0 || rows[position-1].m.start !== m.start) && <h4 className={styles.timeGroup}>{clock(m.start)}</h4>}
-                                <article className={`${styles.lesson} ${c.students.some(s=>s.id===selectedStudent?.id)?styles.studentMatch:""}`}>
-                                  <time className={styles.lessonRange}>{clock(m.start)}–{clock(m.end)}</time>
-                                  <b>{c.name}</b>
-                                  <div className={styles.lessonMeta}>
-                                    <span>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).filter(Boolean).join("·") || "담당 미지정"}</span>
-                                    {c.room && <span>{c.room}</span>}
-                                    <span>{c.students.length}명</span>
-                                  </div>
-                                  <StudentRoster showAll course={c} selected={selectedStudent?.id} onSelect={selectStudent}/>
-                                  <details className={styles.lessonEdit}><summary>시간 변경</summary><select
-                                    aria-label={`${c.name} ${d}요일 시간 변경`}
-                                    value={`${m.day}:${m.start}:${m.end}`}
-                                    onChange={(e) =>
-                                      edit(index, e.target.value)
-                                    }
-                                  >
-                                    {domains(c, config).map((s, i) => (
-                                      <option
-                                        key={i}
-                                        value={`${s.day}:${s.start}:${s.end}`}
-                                      >
-                                        {days[s.day - 1]} {clock(s.start)}–
-                                        {clock(s.end)}
-                                      </option>
-                                    ))}
-                                  </select></details>
-                                </article></Fragment>
-                              );
-                            })}
-                        </div>
-                      ))}
+                    <div className={styles.mergeToolbar}>
+                      <button type="button" disabled={solving} onClick={run}>{solving?"추천 중…":"고정 유지 · 나머지 추천"}</button>
+                      <button type="button" disabled={!undo.length || solving} onClick={()=>{const prev=undo[undo.length-1];setConfig(prev.config);setCandidates([metrics(prev.config,prev.meetings)]);setSelected(0);setUndo(u=>u.slice(0,-1));}}>실행 취소</button>
+                      <span>고정 {(config.fixed||[]).length}회</span>
                     </div>
+                    {!solving && <PlacementBoard key={JSON.stringify([selected,chosen.meetings,config.fixed])} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={chosen.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>}
                     <footer className={styles.footer}>
                       <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반이 포함된 초안은 현재 저장·비교만 가능합니다. 이 화면에서 실제 정규 시간표로 적용하는 기능은 아직 지원하지 않습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
                       <button
