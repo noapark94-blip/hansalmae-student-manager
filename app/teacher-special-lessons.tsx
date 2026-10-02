@@ -1,4 +1,5 @@
 "use client";
+import {appConfirm} from "./app-dialog";
 import {AcademyClosureNotice} from "./academy-closures";
 import { FamilyLoading as AppLoading } from "./family-loading";
 
@@ -18,6 +19,7 @@ type AttendanceStatus = "present" | "late" | "absent" | null;
 type Student = { id: string; name: string; school: string | null; grade: string | null; attendanceStatus: AttendanceStatus;lessonKind?:"makeup"|"additional";makeupSource?:string|null;makeupSourceId?:string|null };
 type Subject = { id: string; name: string; mainSubject: string; parentId: string | null };
 type Session = {
+  overlapNotice?: string | null;
   reminderEnabled?: boolean;
   reminderRecipientIds?: string[] | null;
   id: string;
@@ -38,7 +40,8 @@ type Draft = { expectedStudentIds?:string[]; studentKinds:Record<string,StudentL
 const blank = (): Draft => ({ studentKinds:{}, reminderRecipientIds: null, reminderEnabled: false, id: "", date: today(), startTime: "", endTime: "", kind: "makeup", subjectId: "", room: "", note: "", studentIds: [] });
 
 const isMixedSession=(session:Session)=>new Set(session.students.map(s=>s.lessonKind??session.kind)).size>1;
-const sessionKindLabel=(session:Session,compact=false)=>isMixedSession(session)?(compact?"혼합":"보강·추가"):(session.students[0]?.lessonKind??session.kind)==="makeup"?"보강":compact?"추가":"추가수업";
+const baseSessionKindLabel=(session:Session,compact=false)=>isMixedSession(session)?(compact?"혼합":"보강·추가"):(session.students[0]?.lessonKind??session.kind)==="makeup"?"보강":compact?"추가":"추가수업";
+const sessionKindLabel=(session:Session,compact=false)=>baseSessionKindLabel(session,compact)+(session.overlapNotice?" · 시간 겹침":"");
 const draftFromSession = (session: Session): Draft => ({ expectedStudentIds:session.students.map(s=>s.id), studentKinds:Object.fromEntries(session.students.map(s=>[s.id,{kind:s.lessonKind??session.kind,source:s.makeupSource,sourceId:s.makeupSourceId}])), teacherId:session.teacherId, reminderRecipientIds:session.reminderRecipientIds??[session.teacherId], reminderEnabled:session.reminderEnabled??false, id: session.id, date: session.date, startTime: session.startTime.slice(0, 5), endTime: session.endTime.slice(0, 5), kind: session.kind, subjectId: session.subjectId ?? "", room: session.room ?? "", note: session.note ?? "", studentIds: session.students.map((item) => item.id) });
 
 export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEditorClose, onEditorSaved, onEditorDeleted }: { supabase: SupabaseClient; profile: Profile; editorSessionId?:string; onEditorClose?:()=>void; onEditorDeleted?:()=>void|Promise<void>; onEditorSaved?:()=>void|Promise<void> }) {
@@ -123,7 +126,7 @@ export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEd
     if(draft.reminderEnabled&&draft.reminderRecipientIds?.length===0)return setError("알림 받을 선생님을 한 명 이상 선택해 주세요.");
     setSaving(true);
     try {
-    const { error: saveError } = await supabase.rpc("staff_save_mixed_special_lesson", {p_students:draft.studentIds.map(studentId=>({studentId,...(draft.studentKinds[studentId]??{kind:draft.kind})})),p_reminder_enabled:draft.reminderEnabled,p_values: {p_reminder_recipient_ids:draft.reminderRecipientIds??[profile.id],
+    const args = {p_students:draft.studentIds.map(studentId=>({studentId,...(draft.studentKinds[studentId]??{kind:draft.kind})})),p_reminder_enabled:draft.reminderEnabled,p_values: {p_reminder_recipient_ids:draft.reminderRecipientIds??[profile.id],
       p_id: draft.id || null,
       p_expected_student_ids:draft.expectedStudentIds??null,
       p_teacher_id: draft.teacherId ?? profile.id,
@@ -135,7 +138,14 @@ export function TeacherSpecialLessons({ supabase, profile, editorSessionId, onEd
       p_room: draft.room.trim() || null,
       p_note: draft.note.trim() || null,
       p_student_ids: draft.studentIds,
-    }});
+    }};
+    let {error:saveError}=await supabase.rpc("staff_save_mixed_special_lesson",args);
+    if(saveError?.code==="PT409"&&saveError.details){
+      const proceed=await appConfirm({eyebrow:"수업 시간 확인",title:"겹치는 수업이 있습니다",copy:saveError.message,notice:"기존 수업은 그대로 유지됩니다. 겹침을 확인한 뒤 등록해 주세요.",cancelLabel:"시간 변경",confirmLabel:"겹침 확인 후 생성"});
+      if(!proceed)return;
+      const retry=await supabase.rpc("staff_save_mixed_special_lesson",{...args,p_values:{...args.p_values,p_overlap_token:saveError.details}});
+      saveError=retry.error;
+    }
     if (saveError) setError(saveError.message);
     else {
       setDraft(null);
