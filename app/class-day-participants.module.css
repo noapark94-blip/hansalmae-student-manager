@@ -5,3 +5,5 @@
 @media(max-width:600px){.bar{padding:13px 12px;gap:8px}.bar>div{display:grid;gap:5px}.bar button{min-height:42px;padding:8px 10px;font-size:11px}.dialog header{flex-shrink:0;padding:19px 18px 15px}.body{padding:16px 18px}.dialog footer{padding:14px 18px}.dialog footer button{flex:1}.reason span small{display:block;margin:5px 0 0}.students label{min-height:42px}.excluded{padding:11px 12px}}
 
 .closure{display:grid;gap:5px;padding:13px 18px;background:#faf5f8;border-bottom:1px solid #eee4ea;font-size:12px;color:#922d61}.closure span{font-size:11px;color:#8e7b85}
+
+.bar .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.actions button:first-child:not(:last-child){background:#faf6f8;color:#826675;border-color:#e8dce2}@media(max-width:600px){.bar{flex-wrap:wrap}.bar .actions{margin-left:auto;gap:6px}}
