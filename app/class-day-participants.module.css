@@ -7,3 +7,11 @@
 .closure{display:grid;gap:5px;padding:13px 18px;background:#faf5f8;border-bottom:1px solid #eee4ea;font-size:12px;color:#922d61}.closure span{font-size:11px;color:#8e7b85}
 
 .bar .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.actions button:first-child:not(:last-child){background:#faf6f8;color:#826675;border-color:#e8dce2}@media(max-width:600px){.bar{flex-wrap:wrap}.bar .actions{margin-left:auto;gap:6px}}
+
+/* Keep native checkboxes and action labels aligned on narrow mobile screens. */
+.dialog .confirmation{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.dialog .confirmation input{display:block;flex:0 0 18px;width:18px;height:18px;min-height:0;margin:2px 0 0;padding:0}
+.confirmation span{flex:1;min-width:0;word-break:keep-all}
+.recordedNames{margin-top:6px;font-size:11px}.recordedNames summary{cursor:pointer}.recordedNames span{display:block;margin-top:5px;word-break:keep-all}
+.dialog footer button{white-space:nowrap;word-break:keep-all}
+@media(max-width:600px){.dialog{max-height:calc(100dvh - 32px)}.dialog .reason{margin-top:0}.dialog .reason input{font-size:16px}.dialog footer button{flex:0 0 auto;min-width:0;padding:11px 14px}.dialog footer .primary{flex:1}.dialog footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}.notice,.warning{word-break:keep-all;overflow-wrap:break-word}}

@@ -42,11 +42,11 @@ export function ClassDayParticipants({date,students,disabled,version,onApply,clo
     <div className={styles.selection}><strong>수업 대상 {selected.size}명 <span>· 제외 {baseline.length-selected.size}명</span></strong><button type="button" disabled={busy} onClick={()=>{setSelected(new Set(baseline.map(s=>s.id)));setConfirmAll(false);}}>전체 선택</button></div>
     <div className={styles.students}>{baseline.map(s=><label key={s.id} className={!selected.has(s.id)?styles.unchecked:undefined}><input type="checkbox" disabled={busy} checked={selected.has(s.id)} onChange={e=>{const next=new Set(selected);if(e.target.checked)next.add(s.id);else next.delete(s.id);setSelected(next);setConfirmAll(false);}}/><span><b>{s.name}</b><small>{[s.school,s.grade].filter(Boolean).join(" · ")}</small></span><em>{selected.has(s.id)?"수업 대상":"제외"}</em></label>)}</div>
     </>}<label className={styles.reason}><span>{noClass?"수업 없는 사유":"제외 사유"} <small>{noClass?"선생님과 관리자만 확인":"선택 · 선생님과 관리자만 확인"}</small></span><input autoFocus={noClass} maxLength={120} value={reason} disabled={busy||!newlyExcluded.length} onChange={e=>setReason(e.target.value)} placeholder={noClass?"예: 시험 종료 후 휴식":"예: 추석 연휴, 학교 행사"}/><small>{noClass?"선택한 날짜의 전체 학생에게 적용합니다.":"이번에 제외하는 학생에게 같은 사유를 적용합니다."}</small></label>
-    <div className={styles.notice}>제외된 수업은 학부모 기록·알림톡·출결 집계에 반영되지 않습니다. 작성한 기록은 보관되며, 다시 포함하면 복구됩니다. 이미 보낸 알림톡은 변경되지 않습니다.</div>
-    {recorded.length>0&&<p className={styles.warning}><b>{recorded.map(s=>s.name).join(", ")}</b> 학생은 작성한 기록이 있습니다. 제외하면 기존에 공개된 해당 수업 기록도 숨겨집니다.</p>}
-    {(!noClass||recorded.length>0)&&!selected.size&&<label className={styles.warning}><input type="checkbox" disabled={busy} checked={confirmAll} onChange={e=>setConfirmAll(e.target.checked)}/> 오늘 전체 학생을 제외하는 것을 확인했습니다.</label>}
+    <div className={styles.notice}>학부모 앱·알림톡·출결 집계에서 제외됩니다. 기록은 보관되며 다시 포함하면 복구됩니다. 이미 보낸 알림톡은 유지됩니다.</div>
+    {recorded.length>0&&<div className={styles.warning}><b>작성된 기록 {recorded.length}명</b><br/>제외하면 학부모에게 공개된 기록도 숨겨집니다.<details className={styles.recordedNames}><summary>학생 확인</summary><span>{recorded.map(s=>s.name).join(", ")}</span></details></div>}
+    {(!noClass||recorded.length>0)&&!selected.size&&<label className={`${styles.warning} ${styles.confirmation}`}><input type="checkbox" disabled={busy} checked={confirmAll} onChange={e=>setConfirmAll(e.target.checked)}/><span>오늘 전체 학생을 제외합니다.</span></label>}
     {error&&<p className={styles.error} role="alert">{error}</p>}
-   </div><footer><button type="button" disabled={busy} onClick={close}>취소</button><button type="button" className={styles.primary} disabled={busy||!changes.length||(!selected.size&&!confirmAll)||(noClass&&!reason.trim())} onClick={()=>void apply()}>{busy?"적용 중…":noClass?"오늘 수업 없음으로 저장":"오늘만 적용"}</button></footer></>}
+   </div><footer><button type="button" disabled={busy} onClick={close}>취소</button><button type="button" className={styles.primary} disabled={busy||!changes.length||(!selected.size&&!confirmAll)||(noClass&&!reason.trim())} onClick={()=>void apply()}>{busy?"적용 중…":noClass?"수업 없음 저장":"오늘만 적용"}</button></footer></>}
   </dialog>
  </section>;
 }
