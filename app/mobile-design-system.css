@@ -168,3 +168,22 @@
 @media (prefers-reduced-motion:reduce){
   .sidebar{transition:none}
 }
+
+/* Long signup forms use the document scroller, not nested overflow containers. */
+@media(max-width:760px){
+  html:has(.auth-shell),body:has(.auth-shell){
+    overflow-x:clip;
+    overflow-y:visible;
+    overscroll-behavior-y:auto;
+  }
+  .auth-shell{overflow:visible;min-height:100svh}
+  .auth-shell .signup-card{
+    min-height:100svh!important;
+    height:auto;
+    max-height:none;
+    overflow:visible;
+    justify-content:flex-start;
+  }
+  .guardian-self-signup form,.guardian-request-grid{min-width:0}
+  .auth-shell input,.auth-shell button{scroll-margin-block:24px}
+}
