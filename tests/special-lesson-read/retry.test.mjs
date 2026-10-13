@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(fs.readFileSync(new URL('../../app/special-lesson-read-retry.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const mod={exports:{}};new Function('exports','module',code)(mod.exports,mod);const {retrySpecialRead,specialReadMessage}=mod.exports;
+const noWait=async()=>{};
+test('recovers from the reported upstream protocol failure',async()=>{let calls=0;const result=await retrySpecialRead(async()=>++calls===1?{data:null,error:{message:'upstream connect error or disconnect/reset before headers. protocol error'},status:502}:{data:['session'],error:null,status:200},()=>true,noWait);assert.equal(calls,2);assert.deepEqual(result.data,['session']);});
+test('stops after three transient failures and gives a Korean message',async()=>{let calls=0;const result=await retrySpecialRead(async()=>{calls++;return{data:null,error:{message:'protocol error'},status:503};},()=>true,noWait);assert.equal(calls,3);assert.ok(specialReadMessage(result.error).includes('연결이 끊겼습니다'));assert.ok(!specialReadMessage(result.error).includes('protocol'));});
+test('does not retry permissions or validation failures',async()=>{let calls=0;await retrySpecialRead(async()=>{calls++;return{data:null,error:{code:'42501',message:'permission denied'},status:403};},()=>true,noWait);assert.equal(calls,1);assert.ok(specialReadMessage({code:'42501'}).includes('권한'));});
+test('recovers thrown network failures and stops canceled reads',async()=>{let calls=0;const result=await retrySpecialRead(async()=>{if(++calls===1)throw new TypeError('Failed to fetch');return {data:'ok',error:null};},()=>true,noWait);assert.equal(result.data,'ok');assert.equal(calls,2);let current=true;calls=0;await assert.rejects(retrySpecialRead(async()=>{calls++;return{data:null,error:{message:'protocol error'}};},()=>current,async()=>{current=false;}));assert.equal(calls,1);});
