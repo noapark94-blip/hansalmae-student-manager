@@ -32,7 +32,7 @@ const paths: Record<IconName, ReactNode> = {
 };
 
 export const viewIcon: Record<View, IconName> = {
-  "timetable-planner":"planner", dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"timetable", corrections:"calendar", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", "vocabulary-tests":"exam", alimtalk:"chat", reports:"book", calendar:"calendar", grades:"chart", consultations:"chat", communications:"notice", tuition:"wallet", expenses:"receipt", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
+  "timetable-planner":"planner", dashboard:"home", students:"students", "bulk-import":"plus", "bulk-accounts":"user", guide:"book", "class-management":"classes", schedule:"timetable", corrections:"calendar", transport:"bus", attendance:"check", makeups:"refresh", assignments:"edit", "vocabulary-tests":"exam", "exam-library":"book", alimtalk:"chat", reports:"book", calendar:"calendar", grades:"chart", consultations:"chat", communications:"notice", tuition:"wallet", expenses:"receipt", analytics:"chart", backup:"backup", audit:"shield", settings:"settings", "my-account":"user",
 };
 
 export function HansalmaeIcon({ name, size = 20 }: { name: IconName; size?: number }) {
