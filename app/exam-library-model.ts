@@ -1,4 +1,4 @@
-export type ExamQuestion = { sharedKey?:string; id:string; number:string; passage:string; prompt:string; choices:string; answer:string; explanation:string; diagram:string };
+export type ExamQuestion = { sharedKey?:string; sharedPassage?:string; id:string; number:string; passage:string; prompt:string; choices:string; answer:string; explanation:string; diagram:string };
 export type ExamDraft = { title:string; subject:string; school:string; grade:string; year:number; term:string; exam_kind:string; description:string; questions:ExamQuestion[] };
 export type ExamRecord = ExamDraft & { id:string; owner_id:string; version:number; updated_at:string };
 export type ExamSummary = Omit<ExamRecord,"questions"> & { question_count:number; content_bytes:number };
@@ -6,7 +6,7 @@ export const newQuestion = (number=1):ExamQuestion => ({id:crypto.randomUUID(),n
 export const newExam = ():ExamDraft => ({title:"",subject:"영어",school:"",grade:"고2",year:new Date().getFullYear(),term:"1학기",exam_kind:"중간고사",description:"",questions:[newQuestion()]});
 export type ExamParseResult={questions:ExamQuestion[];warnings:string[]};
 export function parseExamText(text:string):ExamParseResult{
- const normalized=text.replace(/\r\n?/g,"\n").replace(/\\([.~()[\]])/g,"$1").replace(/<\/?u>/gi,"__").replace(/<\/?(?:b|strong)>/gi,"**");
+ const normalized=text.replace(/\r\n?/g,"\n").replace(/\\([.~()[\]<>_])/g,"$1").replace(/<\/?u>/gi,"__").replace(/<\/?(?:b|strong)>/gi,"**");
  const lines=normalized.split("\n");const questions:ExamQuestion[]=[];const warnings:string[]=[];
  const commons:{first:number;last:number;lines:string[];key:string}[]=[];
  const preamble:string[]=[];let common:typeof commons[number]|null=null;let current:ExamQuestion|null=null;let section:"passage"|"choices"|"answer"|"explanation"="passage";
@@ -27,7 +27,7 @@ export function parseExamText(text:string):ExamParseResult{
   const explicit=line.match(/^\s*(?:\*\*)?[\[<〈【]?\s*(지문|본문|선지|보기|정답|답|해설|해석)\s*[\]>〉】]?\s*(?:\*\*)?\s*[:：]\s*(.*)$/);
   if(explicit){const label=explicit[1];section=label==="지문"||label==="본문"?"passage":label==="선지"||label==="보기"?"choices":label==="정답"||label==="답"?"answer":"explanation";append(section,explicit[2]);continue;}
   if(/^\s*(?:\*\*)?(?:정답|답|해설|해석)(?:\*\*)?\s*$/.test(line)){section=/정답|답/.test(line)?"answer":"explanation";continue;}
-  if(/[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)&&(/^\s*[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)||section==="choices")){
+  if(!/밑줄 친 문장.*어법상 옳은 것은|밑줄 친 부분.*(?:어법|쓰임)/.test(current.prompt)&&/[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)&&(/^\s*[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)||section==="choices")){
    section="choices";append("choices",line.trim().replace(/\s*([①②③④⑤⑥⑦⑧⑨⑩])/g,"\n$1").trim());continue;
   }
   if(/^\s*\|/.test(line)||/^\s*<(?:A|B|C)>/.test(line))warnings.push(current.number+"번: 표·도식 또는 구획 표시를 확인해 주세요.");
@@ -36,7 +36,7 @@ export function parseExamText(text:string):ExamParseResult{
  }
  if(!questions.length){const q=newQuestion();q.passage=preamble.join("\n").trim();questions.push(q);}
  else if(preamble.length){warnings.push("문항 앞의 안내문은 첫 문항의 본문에 남겼습니다. 시험 안내인지 공통지문인지 확인해 주세요.");questions[0].passage=[preamble.join("\n"),questions[0].passage].filter(Boolean).join("\n\n");}
- for(const group of commons){const body=group.lines.join("\n").trim();const targets=questions.filter(q=>!/^서술형|^주관식/.test(q.number)&&Number(q.number)>=group.first&&Number(q.number)<=group.last);if(!body||!targets.length){warnings.push(group.first+"~"+group.last+"번 공통지문의 내용과 문항을 확인해 주세요.");continue;}for(const q of targets){q.sharedKey=group.key;q.passage=[body,q.passage].filter(Boolean).join("\n\n");}if(targets.length!==group.last-group.first+1)warnings.push(group.first+"~"+group.last+"번 중 빠진 문항이 있는지 확인해 주세요.");}
+ for(const group of commons){const body=group.lines.join("\n").trim();const targets=questions.filter(q=>!/^서술형|^주관식/.test(q.number)&&Number(q.number)>=group.first&&Number(q.number)<=group.last);if(!body||!targets.length){warnings.push(group.first+"~"+group.last+"번 공통지문의 내용과 문항을 확인해 주세요.");continue;}for(const q of targets){q.sharedKey=group.key;q.sharedPassage=body;q.passage=[body,q.passage].filter(Boolean).join("\n\n");}if(targets.length!==group.last-group.first+1)warnings.push(group.first+"~"+group.last+"번 중 빠진 문항이 있는지 확인해 주세요.");}
  for(const q of questions){for(const key of ["passage","choices","answer","explanation"] as const)q[key]=q[key].trim();if(!q.prompt)warnings.push(q.number+"번: 발문을 확인해 주세요.");if(q.choices){const marks=q.choices.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g)??[];if(marks.length<5||new Set(marks).size!==marks.length)warnings.push(q.number+"번: 선지 개수·번호를 확인해 주세요.");}}
  if(new Set(questions.map(q=>q.number)).size!==questions.length)warnings.push("중복된 문항 번호가 있습니다. 원본 번호를 확인해 주세요.");
  if(questions.length>200)warnings.push("문항은 한 시험당 200개까지 저장할 수 있습니다.");
@@ -59,7 +59,10 @@ export function validateExam(draft:ExamDraft):string{
 export type TextPart={text:string;bold?:boolean;underline?:boolean};
 export function formattedParts(text:string):TextPart[]{return text.split(/(\*\*[^*\n]+\*\*|__[^_\n]+__)/g).filter(Boolean).map(part=>part.startsWith("**")&&part.endsWith("**")?{text:part.slice(2,-2),bold:true}:part.startsWith("__")&&part.endsWith("__")?{text:part.slice(2,-2),underline:true}:{text:part});}
 export function escapeHtml(text:string){return text.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));}
-export function questionHtml(q:ExamQuestion,index:number,answers:boolean){const format=(s:string)=>formattedParts(s).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("");return `<article><h2>${index+1}. ${format(q.prompt)}</h2>${q.passage?`<div class="passage">${format(q.passage)}</div>`:""}${q.diagram&&safeDiagram(q.diagram)?`<img class="diagram" src="${q.diagram}" alt="문제 도형">`:""}${q.choices?`<div class="choices">${format(q.choices)}</div>`:""}${answers?`<div class="answer"><b>정답</b> ${format(q.answer)}${q.explanation?`\n<b>해설</b> ${format(q.explanation)}`:""}</div>`:""}</article>`;}
+export function questionHtml(q:ExamQuestion,index:number,answers:boolean){const format=(s:string)=>formattedParts(s).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("");return `<article><h2>${escapeHtml(q.number||String(index+1))}. ${format(q.prompt)}</h2>${q.passage?`<div class="passage">${format(q.passage)}</div>`:""}${q.diagram&&safeDiagram(q.diagram)?`<img class="diagram" src="${q.diagram}" alt="문제 도형">`:""}${q.choices?`<div class="choices">${format(q.choices)}</div>`:""}${answers?`<div class="answer"><b>정답</b> ${format(q.answer)}${q.explanation?`\n<b>해설</b> ${format(q.explanation)}`:""}</div>`:""}</article>`;}
 
-export function commonQuestionIndices(questions:ExamQuestion[],question:ExamQuestion){return question.sharedKey?questions.flatMap((q,i)=>q.sharedKey===question.sharedKey&&q.passage===question.passage?[i]:[]):[];}
-export function examQuestionsHtml(questions:ExamQuestion[],answers:boolean){return questions.map((q,i)=>{const group=commonQuestionIndices(questions,q);if(group.length<2)return questionHtml(q,i,answers);const common=group[0]===i?questionHtml({...q,prompt:"",choices:"",answer:"",explanation:"",diagram:""},i,false).replace(/<h2>[\s\S]*?<\/h2>/,"<h2>"+group.map(index=>index+1).join("·")+"번 공통지문</h2>"):"";return common+questionHtml({...q,passage:""},i,answers);}).join("");}
+export function sharedPassage(q:ExamQuestion){return q.sharedKey?(q.sharedPassage??q.passage):"";}
+export function questionPassage(q:ExamQuestion){const common=sharedPassage(q);return common&&q.passage.startsWith(common)?q.passage.slice(common.length).trim():q.passage;}
+export function commonQuestionIndices(questions:ExamQuestion[],question:ExamQuestion){return question.sharedKey?questions.flatMap((q,i)=>q.sharedKey===question.sharedKey&&sharedPassage(q)===sharedPassage(question)?[i]:[]):[];}
+export function examQuestionsHtml(questions:ExamQuestion[],answers:boolean){return questions.map((q,i)=>{const group=commonQuestionIndices(questions,q);const common=group[0]===i&&sharedPassage(q)?`<article><h2>${group.map(index=>escapeHtml(questions[index].number)).join("·")}번 공통지문</h2><div class="passage">${formattedParts(sharedPassage(q)).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("")}</div></article>`:"";return common+questionHtml({...q,passage:q.sharedKey?questionPassage(q):q.passage},i,answers);}).join("");}
+export function examMarkdown(exam:ExamDraft,questions:ExamQuestion[],answers:boolean){return ["# "+exam.title,[exam.subject,exam.school,exam.grade,String(exam.year),exam.term,exam.exam_kind].filter(Boolean).join(" · "),...questions.map((q,i)=>{const group=commonQuestionIndices(questions,q);const common=group[0]===i&&sharedPassage(q)?`## [${group.map(index=>questions[index].number).join("~")}] 다음 글을 읽고 물음에 답하시오.\n\n${sharedPassage(q)}\n\n`:"";return common+`## ${q.number||i+1}. ${q.prompt}\n\n${q.sharedKey?questionPassage(q):q.passage}\n\n${q.choices}`+(q.diagram?"\n\n[도형·도식은 Word 또는 PDF 파일을 확인하세요.]":"")+(answers?`\n\n정답: ${q.answer}\n\n해설: ${q.explanation}`:"");})].join("\n\n");}
