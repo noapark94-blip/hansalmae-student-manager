@@ -1,15 +1,48 @@
-export type ExamQuestion = { id:string; number:string; passage:string; prompt:string; choices:string; answer:string; explanation:string; diagram:string };
+export type ExamQuestion = { sharedKey?:string; id:string; number:string; passage:string; prompt:string; choices:string; answer:string; explanation:string; diagram:string };
 export type ExamDraft = { title:string; subject:string; school:string; grade:string; year:number; term:string; exam_kind:string; description:string; questions:ExamQuestion[] };
 export type ExamRecord = ExamDraft & { id:string; owner_id:string; version:number; updated_at:string };
 export type ExamSummary = Omit<ExamRecord,"questions"> & { question_count:number; content_bytes:number };
 export const newQuestion = (number=1):ExamQuestion => ({id:crypto.randomUUID(),number:String(number),passage:"",prompt:"",choices:"",answer:"",explanation:"",diagram:""});
 export const newExam = ():ExamDraft => ({title:"",subject:"영어",school:"",grade:"고2",year:new Date().getFullYear(),term:"1학기",exam_kind:"중간고사",description:"",questions:[newQuestion()]});
-export function splitExamText(text:string):ExamQuestion[]{
-  const lines=text.replace(/\r\n?/g,"\n").split("\n");
-  const groups:{number:string;text:string[]}[]=[];
-  for(const line of lines){const match=line.match(/^\s*(\d{1,3})[.)．]\s+(.+)$/);if(match&&Number(match[1])<=200){groups.push({number:match[1],text:[match[2]]});}else if(groups.length)groups[groups.length-1].text.push(line);else if(line.trim())groups.push({number:"1",text:[line]});}
-  return groups.length?groups.map((g,i)=>{const q=newQuestion(i+1);q.number=g.number;const all=g.text.join("\n").trim();const at=all.search(/(?:^|\n)\s*[①②③④⑤]/);q.passage=at<0?all:all.slice(0,at).trim();q.choices=at<0?"":all.slice(at).trim();return q;}):[newQuestion()];
+export type ExamParseResult={questions:ExamQuestion[];warnings:string[]};
+export function parseExamText(text:string):ExamParseResult{
+ const normalized=text.replace(/\r\n?/g,"\n").replace(/\\([.~()[\]])/g,"$1").replace(/<\/?u>/gi,"__").replace(/<\/?(?:b|strong)>/gi,"**");
+ const lines=normalized.split("\n");const questions:ExamQuestion[]=[];const warnings:string[]=[];
+ const commons:{first:number;last:number;lines:string[];key:string}[]=[];
+ const preamble:string[]=[];let common:typeof commons[number]|null=null;let current:ExamQuestion|null=null;let section:"passage"|"choices"|"answer"|"explanation"="passage";
+ const append=(key:"passage"|"choices"|"answer"|"explanation",value:string)=>{if(!current)return;current[key]+=(current[key]?"\n":"")+value;};
+ for(const original of lines){
+  const line=original.replace(/^\s*#{1,6}\s*/,"").trimEnd();
+  if(/^\s*(?:[-*_]\s*){3,}$/.test(line))continue;
+  const range=line.match(/^\s*\[?\s*(\d{1,3})\s*[~～–—-]\s*(\d{1,3})\s*\]?\s*[.)．]?\s*(.*)$/);
+  if(range&&Number(range[1])>=1&&Number(range[2])>=Number(range[1])&&Number(range[2])<=200){common={first:Number(range[1]),last:Number(range[2]),lines:[],key:crypto.randomUUID()};commons.push(common);current=null;continue;}
+  const numbered=line.match(/^\s*(서술형|주관식)?\s*[\[(]?\s*(\d{1,3})\s*(?:[.)．\]]|번[.:]?)\s+(.+)$/);
+  if(numbered&&Number(numbered[2])>=1&&Number(numbered[2])<=200){
+   current=newQuestion(questions.length+1);current.number=(numbered[1]?numbered[1]+" ":"")+numbered[2];questions.push(current);common=null;section="passage";
+   const header=numbered[3].trim();if(numbered[1]||/[?？]|(?:것은|고르|답하|쓰시오|적으시오|완성|문장|윗글|다음 글|밑줄|빈칸|서술|설명하|선택하)/.test(header))current.prompt=header;else current.passage=header;
+   continue;
+  }
+  if(common){common.lines.push(line);continue;}
+  if(!current){if(line.trim())preamble.push(line);continue;}
+  const explicit=line.match(/^\s*(?:\*\*)?[\[<〈【]?\s*(지문|본문|선지|보기|정답|답|해설|해석)\s*[\]>〉】]?\s*(?:\*\*)?\s*[:：]\s*(.*)$/);
+  if(explicit){const label=explicit[1];section=label==="지문"||label==="본문"?"passage":label==="선지"||label==="보기"?"choices":label==="정답"||label==="답"?"answer":"explanation";append(section,explicit[2]);continue;}
+  if(/^\s*(?:\*\*)?(?:정답|답|해설|해석)(?:\*\*)?\s*$/.test(line)){section=/정답|답/.test(line)?"answer":"explanation";continue;}
+  if(/[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)&&(/^\s*[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)||section==="choices")){
+   section="choices";append("choices",line.trim().replace(/\s*([①②③④⑤⑥⑦⑧⑨⑩])/g,"\n$1").trim());continue;
+  }
+  if(/^\s*\|/.test(line)||/^\s*<(?:A|B|C)>/.test(line))warnings.push(current.number+"번: 표·도식 또는 구획 표시를 확인해 주세요.");
+  if(/[□■▢⬜]/.test(line))warnings.push(current.number+"번: 빈칸·도식 배치를 확인해 주세요.");
+  append(section,line);
+ }
+ if(!questions.length){const q=newQuestion();q.passage=preamble.join("\n").trim();questions.push(q);}
+ else if(preamble.length){warnings.push("문항 앞의 안내문은 첫 문항의 본문에 남겼습니다. 시험 안내인지 공통지문인지 확인해 주세요.");questions[0].passage=[preamble.join("\n"),questions[0].passage].filter(Boolean).join("\n\n");}
+ for(const group of commons){const body=group.lines.join("\n").trim();const targets=questions.filter(q=>!/^서술형|^주관식/.test(q.number)&&Number(q.number)>=group.first&&Number(q.number)<=group.last);if(!body||!targets.length){warnings.push(group.first+"~"+group.last+"번 공통지문의 내용과 문항을 확인해 주세요.");continue;}for(const q of targets){q.sharedKey=group.key;q.passage=[body,q.passage].filter(Boolean).join("\n\n");}if(targets.length!==group.last-group.first+1)warnings.push(group.first+"~"+group.last+"번 중 빠진 문항이 있는지 확인해 주세요.");}
+ for(const q of questions){for(const key of ["passage","choices","answer","explanation"] as const)q[key]=q[key].trim();if(!q.prompt)warnings.push(q.number+"번: 발문을 확인해 주세요.");if(q.choices){const marks=q.choices.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g)??[];if(marks.length<5||new Set(marks).size!==marks.length)warnings.push(q.number+"번: 선지 개수·번호를 확인해 주세요.");}}
+ if(new Set(questions.map(q=>q.number)).size!==questions.length)warnings.push("중복된 문항 번호가 있습니다. 원본 번호를 확인해 주세요.");
+ if(questions.length>200)warnings.push("문항은 한 시험당 200개까지 저장할 수 있습니다.");
+ return {questions,warnings:Array.from(new Set(warnings))};
 }
+export function splitExamText(text:string):ExamQuestion[]{return parseExamText(text).questions;}
 export function inferExamMetadata(text:string):Partial<ExamDraft>{
   const result:Partial<ExamDraft>={};const school=text.match(/([가-힣]{2,12}(?:고등학교|중학교|고교))/);if(school)result.school=school[1];const year=text.match(/\b(20\d{2})\s*년/);if(year)result.year=Number(year[1]);const term=text.match(/([12])\s*학기/);if(term)result.term=term[1]+"학기";if(/기말/.test(text))result.exam_kind="기말고사";else if(/중간/.test(text))result.exam_kind="중간고사";const grade=text.match(/([123])\s*학년/);if(grade&&school)result.grade=(school[1].includes("중학교")?"중":"고")+grade[1];return result;
 }
@@ -27,3 +60,6 @@ export type TextPart={text:string;bold?:boolean;underline?:boolean};
 export function formattedParts(text:string):TextPart[]{return text.split(/(\*\*[^*\n]+\*\*|__[^_\n]+__)/g).filter(Boolean).map(part=>part.startsWith("**")&&part.endsWith("**")?{text:part.slice(2,-2),bold:true}:part.startsWith("__")&&part.endsWith("__")?{text:part.slice(2,-2),underline:true}:{text:part});}
 export function escapeHtml(text:string){return text.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));}
 export function questionHtml(q:ExamQuestion,index:number,answers:boolean){const format=(s:string)=>formattedParts(s).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("");return `<article><h2>${index+1}. ${format(q.prompt)}</h2>${q.passage?`<div class="passage">${format(q.passage)}</div>`:""}${q.diagram&&safeDiagram(q.diagram)?`<img class="diagram" src="${q.diagram}" alt="문제 도형">`:""}${q.choices?`<div class="choices">${format(q.choices)}</div>`:""}${answers?`<div class="answer"><b>정답</b> ${format(q.answer)}${q.explanation?`\n<b>해설</b> ${format(q.explanation)}`:""}</div>`:""}</article>`;}
+
+export function commonQuestionIndices(questions:ExamQuestion[],question:ExamQuestion){return question.sharedKey?questions.flatMap((q,i)=>q.sharedKey===question.sharedKey&&q.passage===question.passage?[i]:[]):[];}
+export function examQuestionsHtml(questions:ExamQuestion[],answers:boolean){return questions.map((q,i)=>{const group=commonQuestionIndices(questions,q);if(group.length<2)return questionHtml(q,i,answers);const common=group[0]===i?questionHtml({...q,prompt:"",choices:"",answer:"",explanation:"",diagram:""},i,false).replace(/<h2>[\s\S]*?<\/h2>/,"<h2>"+group.map(index=>index+1).join("·")+"번 공통지문</h2>"):"";return common+questionHtml({...q,passage:""},i,answers);}).join("");}

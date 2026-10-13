@@ -84,3 +84,9 @@
  .ocrControls>label:not(:first-child){min-height:32px}
  .steps button{font-size:11px}
 }
+
+.parseSummary{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:22px;padding:16px 18px;border:1px solid #e0ccd8;border-radius:12px;background:#faf4f8;color:#785069;font-size:13px;line-height:1.6}
+.parseSummary>b{font-size:15px;color:#733751}.parseSummary>span{color:#9c748c}.parseSummary details{flex-basis:100%}.parseSummary summary{cursor:pointer;color:#a36c42}.parseSummary ul{padding-left:20px;margin:10px 0 0;color:#967349}
+.diagramDrop{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px;border:1px dashed #cfafc1;border-radius:12px;background:#fffbfd;margin:8px 0 18px;transition:background .15s}
+.diagramDrop:hover{background:#faf1f6}.diagramDrop b{font-size:14px;color:#75445f}.diagramDrop p{font-size:13px;color:#97798a;line-height:1.6;margin:7px 0 0}
+@media(max-width:760px){.diagramDrop{flex-wrap:wrap}.diagramDrop .uploadButton{width:100%}.parseSummary{padding:14px}.parseSummary>span{flex-basis:100%}}
