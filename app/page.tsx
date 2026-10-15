@@ -1,4 +1,6 @@
 "use client";
+import { StudentRosterPrintButton } from "./student-roster-print";
+import rosterPrintStyles from "./student-roster-print.module.css";
 import { InitialPageGate } from "./initial-page-gate";
 import { FamilyLoading } from "./family-loading";
 
@@ -1765,9 +1767,6 @@ function Students({ rows, allRows, total, statusFilter, onStatusFilter, loading,
               </select>
             </label>
           </div>
-          <strong className="student-result-count">
-            검색 결과 {visible.length}명 <small>/ 전체 {total}명</small>
-          </strong>
         </div>
         {hasFilters ? (
           <div className="student-filter-chips">
@@ -1790,6 +1789,14 @@ function Students({ rows, allRows, total, statusFilter, onStatusFilter, loading,
             </button>
           </div>
         ) : null}
+        <div className={rosterPrintStyles.listToolbar}>
+          <strong>검색 결과 {visible.length}명 <small>/ 전체 {total}명</small></strong>
+          <StudentRosterPrintButton rows={visible} disabled={loading || Boolean(error)} scope={{
+            summary: [statusFilter === "all" ? "전체 상태" : studentStatusLabel(statusFilter), subject !== "all" ? subject : "", classId === "unassigned" ? "미배정" : selectedClass?.name ?? "", grade !== "all" ? grade : "", school !== "all" ? school : "", query.trim() ? "검색 적용" : ""].filter(Boolean).join(" · "),
+            classId: classId !== "all" && classId !== "unassigned" ? classId : undefined,
+            subject: subject !== "all" ? subject : undefined,
+          }}/>
+        </div>
         <div className="student-table">
           <div className="table-head">
             <span>학생</span>
