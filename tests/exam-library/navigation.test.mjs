@@ -5,7 +5,8 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 const require=createRequire(import.meta.url);
 const compile=(file)=>ts.transpileModule(fs.readFileSync(new URL(file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
-const modelModule={exports:{}};new Function('exports','module',compile('../../app/exam-library-model.ts'))(modelModule.exports,modelModule);const model=modelModule.exports;
+const pairedModule={exports:{}};new Function('exports','module',ts.transpileModule(fs.readFileSync(new URL('../../app/exam-choice-table.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(pairedModule.exports,pairedModule);
+const modelModule={exports:{}};new Function('exports','module','require',compile('../../app/exam-library-model.ts'))(modelModule.exports,modelModule,()=>pairedModule.exports);const model=modelModule.exports;
 function editorHarness(){
  const slots=[];let cursor=0;
  const hooks={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];},useRef(initial){const i=cursor++;return slots[i]??(slots[i]={current:initial});},useEffect(){},useCallback(fn){return fn;},useMemo(fn){return fn();}};

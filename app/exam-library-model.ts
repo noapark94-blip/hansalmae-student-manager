@@ -1,3 +1,4 @@
+import { parsePairedChoices, choiceTablePassage, isChoiceTableHeader, isChoiceTableRule } from "./exam-choice-table";
 export type ExamQuestion = { sharedKey?:string; sharedPassage?:string; id:string; number:string; passage:string; prompt:string; choices:string; answer:string; explanation:string; diagram:string };
 export type ExamDraft = { title:string; subject:string; school:string; grade:string; year:number; term:string; exam_kind:string; description:string; questions:ExamQuestion[] };
 export type ExamRecord = ExamDraft & { id:string; owner_id:string; version:number; updated_at:string };
@@ -27,10 +28,11 @@ export function parseExamText(text:string):ExamParseResult{
   const explicit=line.match(/^\s*(?:\*\*)?[\[<〈【]?\s*(지문|본문|선지|보기|정답|답|해설|해석)\s*[\]>〉】]?\s*(?:\*\*)?\s*[:：]\s*(.*)$/);
   if(explicit){const label=explicit[1];section=label==="지문"||label==="본문"?"passage":label==="선지"||label==="보기"?"choices":label==="정답"||label==="답"?"answer":"explanation";append(section,explicit[2]);continue;}
   if(/^\s*(?:\*\*)?(?:정답|답|해설|해석)(?:\*\*)?\s*$/.test(line)){section=/정답|답/.test(line)?"answer":"explanation";continue;}
-  if(!/밑줄 친 문장.*어법상 옳은 것은|밑줄 친 부분.*(?:어법|쓰임)/.test(current.prompt)&&/[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)&&(/^\s*[①②③④⑤⑥⑦⑧⑨⑩]/.test(line)||section==="choices")){
-   section="choices";append("choices",line.trim().replace(/\s*([①②③④⑤⑥⑦⑧⑨⑩])/g,"\n$1").trim());continue;
+  const choiceLine=line.replace(/^\s*\|\s*(?=[①②③④⑤⑥⑦⑧⑨⑩])/ , "");
+  if(!/밑줄 친 문장.*어법상 옳은 것은|밑줄 친 부분.*(?:어법|쓰임)/.test(current.prompt)&&/[①②③④⑤⑥⑦⑧⑨⑩]/.test(choiceLine)&&(/^\s*[①②③④⑤⑥⑦⑧⑨⑩]/.test(choiceLine)||section==="choices")){
+   section="choices";append("choices",choiceLine.trim().replace(/\s*([①②③④⑤⑥⑦⑧⑨⑩])/g,"\n$1").trim());continue;
   }
-  if(/^\s*\|/.test(line)||/^\s*<(?:A|B|C)>/.test(line))warnings.push(current.number+"번: 표·도식 또는 구획 표시를 확인해 주세요.");
+  if((/^\s*\|/.test(line)&&!isChoiceTableHeader(line)&&!isChoiceTableRule(line))||/^\s*<(?:A|B|C)>/.test(line))warnings.push(current.number+"번: 표·도식 또는 구획 표시를 확인해 주세요.");
   if(/[□■▢⬜]/.test(line))warnings.push(current.number+"번: 빈칸·도식 배치를 확인해 주세요.");
   append(section,line);
  }
@@ -59,7 +61,13 @@ export function validateExam(draft:ExamDraft):string{
 export type TextPart={text:string;bold?:boolean;underline?:boolean};
 export function formattedParts(text:string):TextPart[]{return text.split(/(\*\*[^*\n]+\*\*|__[^_\n]+__)/g).filter(Boolean).map(part=>part.startsWith("**")&&part.endsWith("**")?{text:part.slice(2,-2),bold:true}:part.startsWith("__")&&part.endsWith("__")?{text:part.slice(2,-2),underline:true}:{text:part});}
 export function escapeHtml(text:string){return text.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));}
-export function questionHtml(q:ExamQuestion,index:number,answers:boolean){const format=(s:string)=>formattedParts(s).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("");return `<article><h2>${escapeHtml(q.number||String(index+1))}. ${format(q.prompt)}</h2>${q.passage?`<div class="passage">${format(q.passage)}</div>`:""}${q.diagram&&safeDiagram(q.diagram)?`<img class="diagram" src="${q.diagram}" alt="문제 도형">`:""}${q.choices?`<div class="choices">${format(q.choices)}</div>`:""}${answers?`<div class="answer"><b>정답</b> ${format(q.answer)}${q.explanation?`\n<b>해설</b> ${format(q.explanation)}`:""}</div>`:""}</article>`;}
+export function choiceTableHtml(choices:string){
+ const rows=parsePairedChoices(choices);if(!rows)return "";
+ const format=(text:string)=>formattedParts(text).map(part=>part.bold?`<strong>${escapeHtml(part.text)}</strong>`:part.underline?`<u>${escapeHtml(part.text)}</u>`:escapeHtml(part.text)).join("");
+ return `<table class="exam-choice-table" aria-label="A와 B 선지"><colgroup><col class="exam-choice-mark"><col><col></colgroup><thead><tr><th scope="col"><span class="exam-sr-only">번호</span></th><th scope="col">(A)</th><th scope="col">(B)</th></tr></thead><tbody>${rows.map(row=>`<tr><th scope="row">${row.mark}</th><td>${format(row.a)}</td><td>${format(row.b)}</td></tr>`).join("")}</tbody></table>`;
+}
+export function questionHtml(q:ExamQuestion,index:number,answers:boolean){const format=(s:string)=>formattedParts(s).map(p=>p.bold?`<strong>${escapeHtml(p.text)}</strong>`:p.underline?`<u>${escapeHtml(p.text)}</u>`:escapeHtml(p.text)).join("");const passage=choiceTablePassage(q.passage,q.choices),table=choiceTableHtml(q.choices);return `<article><h2>${escapeHtml(q.number||String(index+1))}. ${format(q.prompt)}</h2>${passage?`<div class="passage">${format(passage)}</div>`:""}${q.diagram&&safeDiagram(q.diagram)?`<img class="diagram" src="${q.diagram}" alt="문제 도형">`:""}${q.choices?table||`<div class="choices">${format(q.choices)}</div>`:""}${answers?`<div class="answer"><b>정답</b> ${format(q.answer)}${q.explanation?`\n<b>해설</b> ${format(q.explanation)}`:""}</div>`:""}</article>`;}
+
 
 export function sharedPassage(q:ExamQuestion){return q.sharedKey?(q.sharedPassage??q.passage):"";}
 export function questionPassage(q:ExamQuestion){const common=sharedPassage(q);return common&&q.passage.startsWith(common)?q.passage.slice(common.length).trim():q.passage;}
