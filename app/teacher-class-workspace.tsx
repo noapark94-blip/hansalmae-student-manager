@@ -463,7 +463,7 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
           </span>
         </div>
         <div className={timetablePrintStyles.classAction}>
-          <TimetablePrintButton title={`${classRoom.name} 시간표`} subtitle={`${classRoom.subject} · 주간 정규 시간표`} rows={classRoom.schedules.map(s => ({ ...s, classId: classRoom.id, className: classRoom.name, subject: classRoom.subject, color: classRoom.color, room: classRoom.room, teachers: classRoom.teachers }))}/>
+          <TimetablePrintButton title={`${classRoom.name} 시간표`} subtitle={`${classRoom.subject} · 주간 정규 시간표`} rows={classRoom.schedules.map(s => ({ ...s, classId: classRoom.id, className: classRoom.name, subject: classRoom.subject, color: classRoom.color, room: classRoom.room, teachers: classRoom.teachers, students: classRoom.students }))}/>
         </div>
         <div className="class-header-actions">
           <label className="class-date-picker">
