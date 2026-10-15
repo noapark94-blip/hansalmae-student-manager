@@ -1,4 +1,6 @@
 "use client";
+import { TimetablePrintButton } from "./timetable-print";
+import timetablePrintStyles from "./timetable-print.module.css";
 
 import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -298,7 +300,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
         <div className="student-hub-body">
           {loading && <p className="hub-message">학생 기록을 불러오는 중이에요…</p>}
           {loadError && <p className="hub-message error">{loadError}</p>}
-          {data && tab === "summary" && <SummaryTab data={data} />}{" "}
+          {data && tab === "summary" && <SummaryTab data={data} studentName={student.name} />}{" "}
           {tab === "profile" && (
             <div className="student-profile-settings">
               <form className="student-profile-form" onSubmit={submit}>
@@ -381,7 +383,7 @@ export function StudentDetailHub({ supabase, student, rosterStudent, timetable, 
   );
 }
 
-function SummaryTab({ data }: { data: DetailData }) {
+function SummaryTab({ data, studentName }: { data: DetailData; studentName: string }) {
   const regularRate = attendanceRate(data.insights.regularAttendance);
   const correctionRate = attendanceRate(data.insights.correctionAttendance);
   const specialRate = attendanceRate(data.special.attendance);
@@ -412,9 +414,9 @@ function SummaryTab({ data }: { data: DetailData }) {
       </div>
       <StudentExamTrend items={data.examProgress} />
       <section className="student-personal-schedule">
-        <header>
-          <h3>개인 수업 시간표</h3>
-          <p>현재 수업이 있는 요일과 시간만 표시합니다.</p>
+        <header className={timetablePrintStyles.sectionActions}>
+          <div><h3>개인 수업 시간표</h3><p>현재 수업이 있는 요일과 시간만 표시합니다.</p></div>
+          <TimetablePrintButton rows={data.timetable} title={`${studentName} 학생 시간표`} subtitle={`${studentName} · 개인 주간 시간표`}/>
         </header>
         <StudentRelevantTimetable rows={data.timetable} />
       </section>

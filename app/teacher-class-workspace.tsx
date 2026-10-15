@@ -1,4 +1,6 @@
 "use client";
+import { TimetablePrintButton } from "./timetable-print";
+import timetablePrintStyles from "./timetable-print.module.css";
 import { FamilyLoading as AppLoading } from "./family-loading";
 
 import type { CSSProperties, FormEvent } from "react";
@@ -459,6 +461,9 @@ function ClassDayPanel({ supabase, classRoom, date, onDate, day, onReload, onWor
               ? ` · ${classRoom.teachers.map((teacher) => `${teacher.name}T`).join(" · ")}`
               : ""}
           </span>
+        </div>
+        <div className={timetablePrintStyles.classAction}>
+          <TimetablePrintButton title={`${classRoom.name} 시간표`} subtitle={`${classRoom.subject} · 주간 정규 시간표`} rows={classRoom.schedules.map(s => ({ ...s, classId: classRoom.id, className: classRoom.name, subject: classRoom.subject, color: classRoom.color, room: classRoom.room, teachers: classRoom.teachers }))}/>
         </div>
         <div className="class-header-actions">
           <label className="class-date-picker">

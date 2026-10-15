@@ -1,4 +1,6 @@
 "use client";
+import { TimetablePrintButton } from "./timetable-print";
+import timetablePrintStyles from "./timetable-print.module.css";
 import { FamilyLoading as AppLoading } from "./family-loading";
 
 import type { CSSProperties, FormEvent, ReactNode } from "react";
@@ -489,7 +491,7 @@ function ClassScheduleBoard({
     };
   });
   return (
-    <section className="panel hub-panel">
+    <section className={`panel hub-panel ${timetablePrintStyles.board}`}>
       <HubToolbar
         title={personal ? "선생님별 클래스 배정" : "학원 전과목 시간표"}
         description="모바일에서는 일간 상세와 주간 요약을 빠르게 전환할 수 있습니다."
@@ -546,6 +548,7 @@ function ClassScheduleBoard({
               )}
             </div>
           )}
+          <TimetablePrintButton rows={filteredRows} title={personal ? `${selectedTeacher?.name ?? "선생님"} 선생님 시간표` : subjectFilter === "전체" ? "전과목 주간 시간표" : `${subjectFilter} 주간 시간표`} subtitle={personal ? `${selectedTeacher?.name ?? "선생님"} · 주간 클래스 배정` : `${subjectFilter} · 주간 클래스 배정`}/>
           <button className="primary hub-add" onClick={onAdd}>
             ＋ 수업 배정
           </button>
