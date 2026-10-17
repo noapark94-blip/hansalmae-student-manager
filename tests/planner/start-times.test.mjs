@@ -19,3 +19,9 @@ test('batch application preserves unselected days and original input',()=>{
  assert.deepEqual(a(starts,[0,2,4],g('16:00',120)),['16:00,18:00,20:00','18:00','16:00,18:00,20:00','18:00','16:00,18:00,20:00','09:30,14:00','']);
  assert.equal(starts[0],'16:00');
 });
+
+test('typed 24-hour times normalize without guessing invalid input',()=>{
+ const normalize=m.exports.normalizeStartTime;
+ for(const [input,expected] of [['1600','16:00'],['930','09:30'],['9:30','09:30'],['09:30','09:30'],[' 1600 ','16:00']])assert.equal(normalize(input),expected);
+ for(const input of ['','16','24:00','25:30','16:60','오후 4시'])assert.equal(normalize(input),null);
+});

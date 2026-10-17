@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { applyStartTimes, generateStartTimes, WEEKDAYS } from "./start-times-model";
+import { applyStartTimes, generateStartTimes, normalizeStartTime, WEEKDAYS } from "./start-times-model";
 import styles from "./start-times.module.css";
 
 export function StartTimes({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
@@ -14,7 +14,7 @@ export function StartTimes({ value, onChange }: { value: string[]; onChange: (va
   const [selected, setSelected] = useState([0, 2, 4]);
   const [previous, setPrevious] = useState<string[] | null>(null);
   const [notice, setNotice] = useState("");
-  const times = generateStartTimes(start, interval);
+  const times = generateStartTimes(normalizeStartTime(start) ?? "", interval);
   function edit(day: number, next: string) {
     setPrevious(null); setNotice("");
     onChange(value.map((v, i) => i === day ? next : v));
@@ -23,7 +23,7 @@ export function StartTimes({ value, onChange }: { value: string[]; onChange: (va
     <p>시작 시간만 정하고, 같은 간격으로 채우세요.</p>
     <div className={styles.generator}>
       <div className={styles.settings}>
-        <label>시작 시간<input type="time" aria-label="자동 생성 시작 시간" value={start} onChange={e => { setStart(e.target.value); setNotice(""); }} /></label>
+        <label>시작 시간 · 24시간<input type="text" inputMode="text" placeholder="16:00 또는 1600" maxLength={5} autoComplete="off" spellCheck={false} aria-label="자동 생성 시작 시간" aria-invalid={Boolean(start) && !normalizeStartTime(start)} value={start} onBlur={() => { const normalized = normalizeStartTime(start); if (normalized) setStart(normalized); }} onChange={e => { setStart(e.target.value); setNotice(""); }} /></label>
         <div><span className={styles.label}>수업 간격</span><div className={styles.segment}>
           {[90, 120].map(n => <button type="button" key={n} aria-pressed={interval === n} onClick={() => {
             setInterval(n); setNotice("");

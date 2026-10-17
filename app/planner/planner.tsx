@@ -70,6 +70,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     [candidates, setCandidates] = useState<Candidate[]>([]),
     [selected, setSelected] = useState(0),
     [tab, setTab] = useState<"conditions" | "results" | "compare">("results");
+  const [savedContent, setSavedContent] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState("");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -169,7 +171,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     w.postMessage(config);
   }
   async function save() {
-    if (!config || !source) return null;
+    if (!config || !source || busy || solving) return null;
+    const savingContent = JSON.stringify({ title, date, config, meetings: chosen?.meetings || [] });
     setBusy(true);
     setError("");
     try {
@@ -187,6 +190,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       if (error) throw error;
       const d = data as Draft;
       setDraft(d);
+      setSavedContent(savingContent);
+      setSavedAt(new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
       setDrafts((ds) => [d, ...ds.filter((x) => x.id !== d.id)]);
       setNotice("공유 초안을 저장했습니다. 관리자·부관리자가 함께 볼 수 있으며, 실제 시간표는 아직 바뀌지 않았습니다.");
       return d;
@@ -207,7 +212,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
       const {error} = await supabase.rpc("admin_delete_timetable_plan", {p_id:target.id, p_version:target.version});
       if (error) throw error;
       setDrafts(ds => ds.filter(d => d.id !== target.id));
-      setDraft(null);
+      setDraft(null); setSavedContent(null); setSavedAt("");
       if (source) {
         const next = defaults(source);
         next.teachers = next.teachers.map(t => ({...t, days:[...(config?.teachers.find(saved => saved.id === t.id)?.days ?? t.days)]}));
@@ -264,6 +269,8 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     worker.current?.terminate();
     setSolving(false);
     setDraft(d);
+    setSavedContent(JSON.stringify({ title: d.title, date: d.starts_on, config: d.payload.config, meetings: d.payload.meetings }));
+    setSavedAt("");
     setUndo([]);
     setSelectedStudent(null);
     setTitle(d.title);
@@ -281,6 +288,9 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
     );
     setError("");
   }
+  const dirty = !!config && savedContent !== JSON.stringify({ title, date, config, meetings: chosen?.meetings || [] });
+  const saveStatus = busy ? "처리 중…" : dirty ? "저장할 변경 있음" : savedAt ? `${savedAt} 저장 완료` : "저장된 초안";
+  const saveDisabled = busy || solving || !config || !title.trim() || !date || !dirty;
   const enabled = config?.courses.filter((c) => c.enabled) || [];
   return (
     <section className={styles.root}>
@@ -294,7 +304,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
           disabled={!source || busy || solving}
           onClick={() => {
             if (!source) return;
-            setDraft(null);
+            setDraft(null); setSavedContent(null); setSavedAt("");
             versionRef.current = source.version;
             const next = defaults(source);
             next.teachers = next.teachers.map(t => ({...t, days: [...(config?.teachers.find(saved => saved.id === t.id)?.days ?? t.days)]}));
@@ -381,6 +391,10 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
               <button aria-current={tab === "conditions" ? "page" : undefined} onClick={() => setTab("conditions")}>조건·합반 설정</button>
               {candidates.length > 0 && <button aria-current={tab === "compare" ? "page" : undefined} onClick={() => setTab("compare")}>추천안 비교 <small>{candidates.length}</small></button>}
             </nav>
+            <div className={styles.quickSaveBar}>
+              <span role="status" aria-live="polite" data-dirty={dirty}>{saveStatus}</span>
+              <button type="button" className={styles.primary} disabled={saveDisabled} onClick={() => void save()}>{busy ? "저장 중…" : "현재 편성 저장"}</button>
+            </div>
             {selectedStudent && <div className={styles.studentFocus} role="status"><span><b>{selectedStudent.name}</b> 학생의 수업을 표시하고 있어요</span><button type="button" onClick={()=>setSelectedStudent(null)}>강조 해제</button></div>}
             {tab === "conditions" ? (
               <div className={styles.layout}>
@@ -562,7 +576,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       note="편성 중인 초안입니다. 실제 정규 시간표 적용 여부를 별도로 확인해 주세요."
                       label="시간표 인쇄 · PDF 저장"
                     /></div>
-                    <PlacementBoard readOnly={tab === "compare" || solving} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={displayed.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>
+                    <PlacementBoard onSave={tab === "compare" ? undefined : () => void save()} saveDisabled={saveDisabled} saveStatus={saveStatus} readOnly={tab === "compare" || solving || busy} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={displayed.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>
                     <footer className={styles.footer}>
                       <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반이 포함된 초안은 현재 저장·비교만 가능합니다. 이 화면에서 실제 정규 시간표로 적용하는 기능은 아직 지원하지 않습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>
                       <button

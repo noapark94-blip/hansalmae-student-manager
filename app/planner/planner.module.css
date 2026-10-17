@@ -617,3 +617,9 @@
 .root.boardExpanded .boardGroups{grid-template-columns:minmax(660px,5fr) minmax(340px,2fr);align-items:start}
 .root.boardExpanded .boardGroup .placementScroll{max-height:calc(100dvh - 200px)}
 @media(max-width:1100px){.root.boardExpanded .boardGroups{grid-template-columns:minmax(0,1fr)}}
+
+.root .quickSaveBar{position:sticky;top:12px;z-index:25;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:10px 14px;margin:0 0 14px;border:1px solid #e9dbe3;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 3px 14px #5333470a}
+.quickSaveBar>span,.expandedSave>span{font-size:12px;color:#8e7c86}.quickSaveBar>span[data-dirty=true]{color:#9b456e}
+.root .quickSaveBar>button{padding:9px 15px;font-size:12px}
+.expandedSave{display:flex;align-items:center;gap:12px;margin-right:auto}
+.root .expandedSave>button{font-size:12px;padding:8px 12px;background:#87315b;color:white}

@@ -8,7 +8,7 @@ import styles from "./planner.module.css";
 const subjectTone=(subject:string)=>subject.includes("기하")?"geometry":subject.includes("영어")?"english":subject.includes("수학")?"math":subject.includes("국어")?"korean":"other";
 const days=["월","화","수","목","금","토","일"];
 export const sameMeeting=(a:Meeting,b:Meeting)=>a.classId===b.classId&&a.day===b.day&&a.start===b.start&&a.end===b.end;
-export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedStudent,onSelectStudent,readOnly=false}:{readOnly?:boolean;config:Config;meetings:Meeting[];onChange:(config:Config,meetings:Meeting[])=>void;teacherFilter:string;selectedStudent?:string;onSelectStudent:(student:Student)=>void}) {
+export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedStudent,onSelectStudent,onSave,saveDisabled=false,saveStatus,readOnly=false}:{onSave?:()=>void;saveDisabled?:boolean;saveStatus?:string;readOnly?:boolean;config:Config;meetings:Meeting[];onChange:(config:Config,meetings:Meeting[])=>void;teacherFilter:string;selectedStudent?:string;onSelectStudent:(student:Student)=>void}) {
  const [shelfOpen,setShelfOpen]=useState(true);
  const [expanded,setExpanded]=useState(false);
  useEffect(()=>{if(!expanded)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";const close=(e:KeyboardEvent)=>{if(e.key==="Escape")setExpanded(false);};document.addEventListener("keydown",close);return()=>{document.body.style.overflow=previous;document.removeEventListener("keydown",close);};},[expanded]);
@@ -86,6 +86,7 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  }
  const content=<div className={`${styles.boardSurface} ${expanded?`${styles.root} ${styles.boardExpanded}`:""}`}>
  <div className={styles.boardTools}>
+ {expanded&&onSave&&<div className={styles.expandedSave}><span role="status">{saveStatus}</span><button type="button" disabled={saveDisabled} onClick={onSave}>현재 편성 저장</button></div>}
  <button className={styles.expandIcon} type="button" aria-label={expanded?"크게 보기 닫기":"시간표 크게 보기"} title={expanded?"크게 보기 닫기 (Esc)":"시간표 크게 보기"} aria-pressed={expanded} onClick={()=>setExpanded(v=>!v)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{expanded?<path d="M3 9h6V3m6 0v6h6M3 15h6v6m6 0v-6h6"/>:<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>}</svg></button>
  {!readOnly&&!shelfOpen&&picked&&picked.index>=0&&<button type="button" className={styles.returnZone} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();unassign();}} onClick={unassign}>여기에 놓으면 배정 해제</button>}
  </div>
