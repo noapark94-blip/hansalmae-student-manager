@@ -15,6 +15,8 @@ import styles from "./planner.module.css";
 import { PlacementBoard } from "./placement-board";
 import { appConfirm } from "../app-dialog";
 import { CourseSelection } from "./course-selection";
+import { TimetablePrintButton } from "../timetable-print";
+import { plannerPrintRows } from "./board-model";
 import { StartTimes } from "./start-times";
 type Source = {
   version: string;
@@ -553,6 +555,13 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                       <button type="button" onClick={()=>setTab("conditions")}>조건·합반 설정</button>
                     </div>}
                     {tab === "results" && (()=>{const conflicts=validate({...config,courses:config.courses.map(c=>({...c,count:meetings.filter(m=>m.classId===c.id).length}))},meetings);return conflicts.length ? <div className={styles.error}>{conflicts.join("\n")}</div> : null;})()}
+                    <div className={styles.plannerPrintTools}><TimetablePrintButton
+                      rows={plannerPrintRows(config, displayed.meetings, teacherFilter)}
+                      title={`${title}${tab === "compare" ? ` · 추천안 ${selected + 1}` : ""}`}
+                      subtitle={`${tab === "compare" ? "추천안" : "편성 초안"}${teacherFilter ? ` · ${config.teachers.find(t => t.id === teacherFilter)?.name || "선택 선생님"}` : " · 전체 선생님"}`}
+                      note="편성 중인 초안입니다. 실제 정규 시간표 적용 여부를 별도로 확인해 주세요."
+                      label="시간표 인쇄 · PDF 저장"
+                    /></div>
                     <PlacementBoard readOnly={tab === "compare" || solving} selectedStudent={selectedStudent?.id} onSelectStudent={selectStudent} config={config} meetings={displayed.meetings} teacherFilter={teacherFilter} onChange={placementChange}/>
                     <footer className={styles.footer}>
                       <p>{config.courses.some(c=>c.enabled&&c.memberCourses?.length)?"합반이 포함된 초안은 현재 저장·비교만 가능합니다. 이 화면에서 실제 정규 시간표로 적용하는 기능은 아직 지원하지 않습니다.":"초안을 저장해 두고 충분히 비교한 뒤 적용하세요."}</p>

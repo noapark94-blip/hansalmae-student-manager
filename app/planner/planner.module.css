@@ -602,3 +602,18 @@
 .root .classShelf .shelfCard[data-subject-tone] .remainingCount{background:var(--subject-border);color:var(--subject-text)}
 .root .placementTable .placementLesson[data-subject-tone] .lockIcon[aria-pressed=true]{background:var(--subject-border);color:var(--subject-text)}
 .root .classShelf .shelfCard[data-selected=true]{outline:1px solid var(--subject-accent);box-shadow:none}
+
+/* Weekday and weekend use independent time axes. */
+.boardGroups{min-width:0;display:grid;gap:18px;align-content:start}
+.boardGroup{min-width:0}
+.groupHeading{display:flex;align-items:baseline;gap:10px;padding:2px 0 10px}
+.groupHeading b{font-size:14px;color:#674455}.groupHeading span{font-size:11px;color:#99818e}
+.root .boardGroup .placementTable{min-width:660px}
+.root .boardGroup[data-group="주말"] .placementTable{min-width:340px}
+.root .boardGroup .placementTable th:first-child{width:70px}
+.root .boardGroup[data-group="주말"]{max-width:620px;width:100%}
+.root .boardGroup .placementScroll{max-height:60vh}
+.plannerPrintTools{display:flex;justify-content:flex-end;margin:0 0 12px}
+.root.boardExpanded .boardGroups{grid-template-columns:minmax(660px,5fr) minmax(340px,2fr);align-items:start}
+.root.boardExpanded .boardGroup .placementScroll{max-height:calc(100dvh - 200px)}
+@media(max-width:1100px){.root.boardExpanded .boardGroups{grid-template-columns:minmax(0,1fr)}}

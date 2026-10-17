@@ -6,11 +6,11 @@ import { fitTimetableScale, paginateTimetableElement, type TimetablePreview } fr
 import styles from "./student-roster-print.module.css";
 import timetableStyles from "./timetable-print.module.css";
 
-export function TimetablePrintButton({ rows, title, subtitle = "주간 등록 시간표", disabled = false }: { rows: PrintableSchedule[]; title: string; subtitle?: string; disabled?: boolean }) {
+export function TimetablePrintButton({ rows, title, subtitle = "주간 등록 시간표", note = TIMETABLE_NOTE, label = "시간표 인쇄", disabled = false }: { rows: PrintableSchedule[]; title: string; subtitle?: string; note?: string; label?: string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
-  return <><button type="button" className={`${styles.launch} ${timetableStyles.launch}`} disabled={disabled || !rows.length} onClick={() => setOpen(true)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7z"/></svg>시간표 인쇄</button>{open && <TimetablePrintDialog rows={rows} title={title} subtitle={subtitle} onClose={() => setOpen(false)}/>}</>;
+  return <><button type="button" className={`${styles.launch} ${timetableStyles.launch}`} disabled={disabled || !rows.length} onClick={() => setOpen(true)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7z"/></svg>{label}</button>{open && <TimetablePrintDialog rows={rows} title={title} subtitle={subtitle} note={note} onClose={() => setOpen(false)}/>}</>;
 }
-function TimetablePrintDialog({ rows, title, subtitle, onClose }: { rows: PrintableSchedule[]; title: string; subtitle: string; onClose: () => void }) {
+function TimetablePrintDialog({ rows, title, subtitle, note, onClose }: { rows: PrintableSchedule[]; title: string; subtitle: string; note: string; onClose: () => void }) {
   const [options, setOptions] = useState<TimetablePrintOptions>(() => timetableDefaults(title));
   const [error, setError] = useState("");
   const [zoom, setZoom] = useState<number | null>(null), [pageIndex, setPageIndex] = useState(0), [viewportWidth, setViewportWidth] = useState(0);
@@ -19,7 +19,7 @@ function TimetablePrintDialog({ rows, title, subtitle, onClose }: { rows: Printa
   const root = useRef<HTMLElement>(null), measureRoot = useRef<HTMLDivElement>(null), viewport = useRef<HTMLDivElement>(null), titleId = useId();
   const classes = useMemo(() => Array.from(new Map(rows.filter(r => r.classId).map(r => [r.classId!, { id: r.classId!, name: r.className }])).values()).sort((a, b) => a.name.localeCompare(b.name, "ko")), [rows]);
   const selected = timetableRows(rows, options), issue = timetableIssue(selected);
-  const html = useMemo(() => timetableBodyHtml(rows, options, subtitle, date), [rows, options, subtitle, date]);
+  const html = useMemo(() => timetableBodyHtml(rows, options, subtitle, date, note), [rows, options, subtitle, date, note]);
   const patch = (values: Partial<TimetablePrintOptions>) => { setOptions(o => ({ ...o, ...values })); setError(""); setPageIndex(0); };
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null, overflow = document.body.style.overflow;
@@ -61,14 +61,14 @@ function TimetablePrintDialog({ rows, title, subtitle, onClose }: { rows: Printa
   const scale = zoom ?? fitTimetableScale(viewportWidth, preview.width);
   const changeZoom = (amount: number) => setZoom(Math.max(0.1, Math.min(1.5, Math.round((scale + amount) * 100) / 100)));
   const overflowMessage = ready && preview.overflow ? "일부 수업 정보가 한 장보다 깁니다. 제목을 줄이거나 반을 선택해 주세요." : "";
-  const print = () => { if (!ready) { setError("페이지를 준비하고 있습니다. 잠시 후 다시 눌러 주세요."); return; } try { printTimetable(rows, options, subtitle, date, preview.pages); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "인쇄 창을 열지 못했습니다."); } };
+  const print = () => { if (!ready) { setError("페이지를 준비하고 있습니다. 잠시 후 다시 눌러 주세요."); return; } try { printTimetable(rows, options, subtitle, date, preview.pages, note); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "인쇄 창을 열지 못했습니다."); } };
   return createPortal(<div className={`${styles.backdrop} ${timetableStyles.backdrop}`} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}><section ref={root} className={`${styles.dialog} ${timetableStyles.dialog}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
     <header className={`${styles.header} ${timetableStyles.header}`}><div><small>WEEKLY TIMETABLE</small><h2 id={titleId}>시간표 인쇄</h2><p>빈칸은 줄이고, 수업과 명단은 한눈에.</p></div><button type="button" className={styles.close} aria-label="시간표 인쇄 닫기" onClick={onClose}>×</button></header>
     <div className={`${styles.layout} ${timetableStyles.layout}`}><aside className={`${styles.settings} ${timetableStyles.settings}`} aria-label="시간표 인쇄 설정"><section className={styles.scope}><small>인쇄 대상</small><strong>{selected.length}개 수업</strong><p>{subtitle}</p><span>A4 가로 · 요일별 촘촘한 배치</span></section>
       <label className={styles.field}><span>시간표 제목</span><input type="text" maxLength={100} value={options.title} onChange={e => patch({ title: e.target.value })}/></label>
       {classes.length > 1 && <label className={styles.field}><span>반 선택</span><select value={options.classId} onChange={e => { const id = e.target.value; patch({ classId: id, title: id ? `${classes.find(c => c.id === id)?.name} 시간표` : title }); }}><option value="">현재 조회 범위 전체</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
       <fieldset className={styles.fields}><legend>표시 항목</legend><div>{([["students", "학생 이름 · 인원"], ["teachers", "담당 선생님"], ["rooms", "강의실"], ["activeDaysOnly", "수업 있는 요일만"]] as const).filter(([id]) => id !== "students" || rows.some(row => row.students !== undefined)).map(([id, label]) => <label key={id}><input type="checkbox" checked={options[id]} onChange={e => patch({ [id]: e.target.checked })}/><span>{label}</span></label>)}</div></fieldset>
-      <p className={styles.note}>{TIMETABLE_NOTE}</p><p className={styles.note}>각 요일을 독립적으로 채웁니다. 명단이 길면 반 이름과 함께 다음 칸·페이지로 이어집니다.</p>
+      <p className={styles.note}>{note}</p><p className={styles.note}>PDF는 인쇄 창의 대상에서 ‘PDF로 저장’을 선택하세요. 각 요일을 독립적으로 채웁니다. 명단이 길면 반 이름과 함께 다음 칸·페이지로 이어집니다.</p>
     </aside><div className={`${styles.previewPanel} ${timetableStyles.previewPanel}`}><div className={timetableStyles.previewToolbar}><b>인쇄 미리보기</b><div className={timetableStyles.zoomControls} role="group" aria-label="미리보기 배율"><button type="button" onClick={() => setZoom(null)} aria-pressed={zoom === null}>너비 맞춤</button><button type="button" aria-label="미리보기 축소" disabled={scale <= 0.1} onClick={() => changeZoom(-0.1)}>−</button><span>{Math.round(scale * 100)}%</span><button type="button" aria-label="미리보기 확대" disabled={scale >= 1.5} onClick={() => changeZoom(0.1)}>＋</button><button type="button" onClick={() => setZoom(1)} aria-pressed={zoom === 1}>100%</button></div></div>
       <div ref={viewport} className={timetableStyles.viewport} tabIndex={0} role="region" aria-label="페이지별 주간 시간표 미리보기"><style>{TIMETABLE_PRINT_CSS}</style>{ready ? <div className={timetableStyles.stage} style={{ width: preview.width * scale, height: preview.height * scale }}><div className={timetableStyles.scaledPaper} style={{ width: preview.width, height: preview.height, transform: `scale(${scale})` }} dangerouslySetInnerHTML={{ __html: preview.pages[activePage] }}/></div> : <p className={timetableStyles.pending} role="status">시간표 페이지를 준비하고 있어요…</p>}</div>
       <nav className={timetableStyles.pagination} aria-label="시간표 페이지 이동"><button type="button" disabled={!ready || activePage === 0} onClick={() => setPageIndex(activePage - 1)}>이전</button><span aria-live="polite">{ready ? `${activePage + 1} / ${pageCount}쪽` : "페이지 계산 중…"}</span><button type="button" disabled={!ready || activePage + 1 >= pageCount} onClick={() => setPageIndex(activePage + 1)}>다음</button><small>화면 배율은 인쇄 크기에 영향을 주지 않습니다.</small></nav></div></div>

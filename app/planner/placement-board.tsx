@@ -2,6 +2,7 @@
 import {useState, useEffect, useRef, type CSSProperties, type DragEvent} from "react";
 import {createPortal} from "react-dom";
 import {clock, domains, validate, type Course, type Config, type Meeting, type Student} from "./engine";
+import {boardDayGroups} from "./board-model";
 import {StudentRoster} from "./student-roster";
 import styles from "./planner.module.css";
 const subjectTone=(subject:string)=>subject.includes("기하")?"geometry":subject.includes("영어")?"english":subject.includes("수학")?"math":subject.includes("국어")?"korean":"other";
@@ -39,7 +40,8 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  const fixed=config.fixed||[];
  const courses=config.courses.filter(c=>c.enabled);
  const visible=courses.filter(c=>!teacherFilter||c.teachers.includes(teacherFilter));
- const starts=[...new Set(courses.flatMap(c=>domains(c,config).map(s=>s.start)).concat(meetings.map(m=>m.start)))].sort((a,b)=>a-b);
+ const groups=boardDayGroups(config,meetings);
+ const starts=[...new Set(groups.flatMap(group=>group.starts))];
  const duration=new Set(courses.map(c=>c.duration));
  function place(day:number,start:number){
   if(readOnly)return;
@@ -100,12 +102,12 @@ export function PlacementBoard({config,meetings,onChange,teacherFilter,selectedS
  <div className={styles.shelfCardHeading}><span className={styles.shelfTitle}><b>{c.name}</b><span className={styles.remainingCount}>미배정 {c.count-meetings.filter(m=>m.classId===c.id).length}회</span></span><small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join(" · ")} · {c.duration}분 · {new Set(c.students.map(s=>s.id)).size}명</small></div>
  <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/></article>)}{!unassigned.length&&<p>미배정 클래스가 없습니다.</p>}</div>
  </aside>}
- <div className={styles.placementScroll}><table className={styles.placementTable}><thead><tr><th>시간</th>{days.map(d=><th key={d}>{d}</th>)}</tr></thead><tbody>{starts.map(start=><tr key={start}><th scope="row">{clock(start)}{duration.size===1&&<><br/>–{clock(start+[...duration][0])}</>}</th>{days.map((d,di)=><td key={d} data-available={picked&&!readOnly?!reason(di+1,start):undefined} data-drag-over={over===`${di+1}:${start}`} onDragOver={e=>{if(dragRef.current&&!readOnly){e.preventDefault();e.dataTransfer.dropEffect=reason(di+1,start)?"none":"move";setOver(`${di+1}:${start}`);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();place(di+1,start);endDrag();}}>
+ <div className={styles.boardGroups}>{groups.map(group=><section className={styles.boardGroup} key={group.label} data-group={group.label}><header className={styles.groupHeading}><b>{group.label}</b><span>{group.label==="평일"?"월–금":"토·일"} · {group.starts.length ? `${clock(group.starts[0])}부터` : "설정된 시간 없음"}</span></header><div className={styles.placementScroll}><table aria-label={`${group.label} 편성 시간표`} className={styles.placementTable}><thead><tr><th>시간</th>{group.days.map(day=><th key={day}>{days[day-1]}</th>)}</tr></thead><tbody>{group.starts.map(start=><tr key={start}><th scope="row">{clock(start)}{duration.size===1&&<><br/>–{clock(start+[...duration][0])}</>}</th>{group.days.map(day=>{const di=day-1;return <td key={day} data-available={picked&&!readOnly?!reason(di+1,start):undefined} data-drag-over={over===`${di+1}:${start}`} onDragOver={e=>{if(dragRef.current&&!readOnly){e.preventDefault();e.dataTransfer.dropEffect=reason(di+1,start)?"none":"move";setOver(`${di+1}:${start}`);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setOver("");}} onDrop={e=>{e.preventDefault();place(di+1,start);endDrag();}}>
  {meetings.map((m,index)=>({m,index})).filter(({m})=>m.day===di+1&&m.start===start&&visible.some(c=>c.id===m.classId)).map(({m,index})=>{const c=courses.find(c=>c.id===m.classId)!;const locked=fixed.some(f=>sameMeeting(f,m));return <article key={`${c.id}-${index}`} data-subject-tone={subjectTone(c.subject)} style={blockStyle(c)} className={`${styles.placementLesson} ${c.students.some(s=>s.id===selectedStudent)?styles.studentMatch:""}`} draggable={!locked&&!readOnly} onDragStart={e=>startDrag(e,c.id,index)} onDragEnd={endDrag}>
  <div className={styles.lessonHeading}><div><b>{c.name}</b><small>{c.teachers.map(id=>config.teachers.find(t=>t.id===id)?.name).join("·")}{c.room?` · ${c.room}`:""}{duration.size>1?` · ${c.duration}분 (${clock(m.end)} 종료)`:""}</small></div>
  {!readOnly&&<button className={styles.lockIcon} type="button" aria-label={`${c.name} ${locked?"고정 해제":"시간 고정"}`} title={locked?"고정 해제":"추천 시 이 시간 유지"} aria-pressed={locked} onClick={()=>onChange({...config,fixed:locked?fixed.filter(f=>!sameMeeting(f,m)):[...fixed,m]},meetings)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/>{locked?<path d="M8 10V6a4 4 0 0 1 8 0v4"/>:<path d="M8 10V6a4 4 0 0 1 7.5-2"/>}<path d="M12 14v3"/></svg></button>}</div>
  <StudentRoster showAll course={c} selected={selectedStudent} onSelect={onSelectStudent}/>
  </article>;})}
- </td>)}</tr>)}</tbody></table></div></div></div>;
+ </td>;})}</tr>)}</tbody></table>{!group.starts.length&&<p className={styles.boardHint}>조건·합반 설정에서 시작 시간을 추가해 주세요.</p>}</div></section>)}</div></div></div>;
  return expanded?createPortal(content,document.body):content;
 }
