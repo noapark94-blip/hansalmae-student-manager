@@ -15,6 +15,7 @@ import styles from "./planner.module.css";
 import { PlacementBoard } from "./placement-board";
 import { appConfirm } from "../app-dialog";
 import { CourseSelection } from "./course-selection";
+import { StartTimes } from "./start-times";
 type Source = {
   version: string;
   classes: Omit<Course, "count" | "duration" | "enabled" | "high">[];
@@ -442,25 +443,7 @@ export function TimetablePlanner({ supabase }: { supabase: SupabaseClient }) {
                   <section className={styles.card}>
                     <span className={styles.eyebrow}>PLANNING RULES</span>
                     <h2>수업 시작 시간</h2>
-                    <p>쉼표로 구분합니다. 예: 16:00,18:00,20:00</p>
-                    {days.map((d, i) => (
-                      <label className={styles.slotInput} key={d}>
-                        <b>{d}</b>
-                        <input
-                          aria-label={`${d}요일 시작 시간`}
-                          placeholder="수업 없음"
-                          value={config.starts[i]}
-                          onChange={(e) =>
-                            change({
-                              ...config,
-                              starts: config.starts.map((s, j) =>
-                                j === i ? e.target.value : s,
-                              ),
-                            })
-                          }
-                        />
-                      </label>
-                    ))}
+                    <StartTimes value={config.starts} onChange={starts => change({ ...config, starts })} />
                     <p className={styles.hint}>
                       월·수·금 16시는 중등만, 고등부와 화·목은 17시 이후에
                       배정합니다. 종료는 22시까지입니다.

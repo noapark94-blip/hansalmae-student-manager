@@ -1,0 +1,36 @@
+.root { min-width: 0; }
+.root .generator { padding: 16px; border: 1px solid #eadfe6; border-radius: 14px; background: #fbf8fa; }
+.settings { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; align-items: end; }
+.settings label, .label { display: block; font-size: 11px; font-weight: 650; color: #88707d; margin-bottom: 7px; }
+.settings label { margin: 0; }
+.settings input { margin-top: 7px; }
+.root .segment { display: flex; gap: 4px; }
+.root .segment button { flex: 1; padding: 11px 4px; font-size: 12px; white-space: nowrap; }
+.root button[aria-pressed="true"] { color: #87315b; background: #f3e4ed; border-color: #c796b0; font-weight: 750; }
+.presets { display: flex; gap: 6px; margin: 16px 0 9px; flex-wrap: wrap; }
+.root .presets button { padding: 5px 8px; font-size: 11px; border: 0; background: transparent; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.root .days button { padding: 9px 0; font-size: 12px; border-radius: 8px; }
+.preview { margin: 16px 0; }
+.preview > div { display: flex; gap: 6px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.preview > div > span { padding: 4px 7px; background: white; border: 1px solid #ece3e9; border-radius: 6px; font-size: 12px; }
+.root .apply { width: 100%; background: #87315b; color: white; border-color: #87315b; font-size: 13px; font-weight: 700; }
+.help { display: block; margin-top: 9px; color: #8c7a84; font-size: 11px; line-height: 1.6; }
+.feedback { color: #87315b; font-size: 12px; line-height: 1.6; }
+.feedback:not(:empty) { margin: 12px 0; }
+.root .feedback button { padding: 3px 7px; margin-left: 6px; font-size: 11px; }
+.schedule { margin-top: 16px; }
+.dayRow { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0e9ed; align-items: start; }
+.dayRow:last-child { border-bottom: 0; }
+.dayRow > b { width: 16px; padding-top: 8px; font-size: 12px; flex-shrink: 0; }
+.dayContent { min-width: 0; flex: 1; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip { display: inline-flex; border: 1px solid #e9dfe5; border-radius: 8px; background: #fff; align-items: center; overflow: hidden; }
+.root .dayRow .chip input[type="time"] { width: 85px; font-size: 11px; border: 0; padding: 6px 3px 6px 6px; border-radius: 0; }
+.root .chip button { padding: 4px 6px; border: 0; border-radius: 0; color: #9b8290; min-height: 30px; }
+.root .add { padding: 4px 9px; min-height: 32px; font-size: 12px; border-style: dashed; }
+.empty { color: #afa0a9; font-size: 12px; padding: 7px 0; }
+.addForm { display: flex; gap: 6px; margin-top: 8px; }
+.root .addForm input { width: 120px; font-size: 12px; }
+.root .addForm button { font-size: 12px; padding: 7px 12px; }
+.root button:focus-visible, .root input:focus-visible { outline: 2px solid #aa527d; outline-offset: 2px; }
