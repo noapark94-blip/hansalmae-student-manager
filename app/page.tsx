@@ -1,4 +1,5 @@
 "use client";
+import { ContactExportButton } from "./contact-export";
 import { StudentRosterPrintButton } from "./student-roster-print";
 import rosterPrintStyles from "./student-roster-print.module.css";
 import { InitialPageGate } from "./initial-page-gate";
@@ -1791,6 +1792,7 @@ function Students({ rows, allRows, total, statusFilter, onStatusFilter, loading,
         ) : null}
         <div className={rosterPrintStyles.listToolbar}>
           <strong>검색 결과 {visible.length}명 <small>/ 전체 {total}명</small></strong>
+          <ContactExportButton rows={visible} disabled={loading || Boolean(error)} />
           <StudentRosterPrintButton rows={visible} disabled={loading || Boolean(error)} scope={{
             summary: [statusFilter === "all" ? "전체 상태" : studentStatusLabel(statusFilter), subject !== "all" ? subject : "", classId === "unassigned" ? "미배정" : selectedClass?.name ?? "", grade !== "all" ? grade : "", school !== "all" ? school : "", query.trim() ? "검색 적용" : ""].filter(Boolean).join(" · "),
             classId: classId !== "all" && classId !== "unassigned" ? classId : undefined,
