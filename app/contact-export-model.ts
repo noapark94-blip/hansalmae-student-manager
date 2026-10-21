@@ -1,5 +1,5 @@
 import type { StudentRow } from "./supabase";
-export type ContactStudent = Pick<StudentRow, "id" | "name" | "school" | "grade" | "phone" | "guardianPhones" | "status">;
+export type ContactStudent = Pick<StudentRow, "id" | "name" | "school" | "grade" | "phone" | "guardianPhones" | "status"> & Partial<Pick<StudentRow,"enrollments">>;
 export type ContactMode = "both" | "student" | "guardian";
 export type ExportContact = { name: string; phone: string; kind: "student" | "guardian" };
 export function contactName(student: ContactStudent) {
