@@ -1,6 +1,6 @@
 import type { StudentRow } from "./supabase";
 
-export type RosterField = "school" | "grade" | "classes" | "status" | "phone" | "guardianPhones" | "check" | "memo";
+export type RosterField = "school" | "grade" | "classes" | "subjects" | "status" | "phone" | "guardianPhones" | "check" | "memo";
 export type RosterSort = "current" | "name" | "class" | "school" | "grade";
 export type RosterPrintOptions = {
   title: string;
@@ -12,12 +12,13 @@ export type RosterScope = { summary: string; classId?: string; subject?: string 
 export type RosterGroup = { id: string; title: string; students: StudentRow[] };
 export const ROSTER_FIELDS: { id: RosterField; label: string }[] = [
   { id: "school", label: "학교" }, { id: "grade", label: "학년" },
-  { id: "classes", label: "수강반" }, { id: "status", label: "재원 상태" },
+  { id: "classes", label: "수강반" }, { id: "subjects", label: "수강 과목" },
+  { id: "status", label: "재원 상태" },
   { id: "phone", label: "학생 연락처" }, { id: "guardianPhones", label: "보호자 연락처" },
   { id: "check", label: "확인란" }, { id: "memo", label: "메모칸" },
 ];
 export const defaultRosterOptions = (): RosterPrintOptions => ({
-  title: "학생명단", sort: "name", orientation: "portrait", fields: ["school", "grade", "classes", "check"],
+  title: "학생명단", sort: "name", orientation: "portrait", fields: ["school", "grade", "classes", "subjects", "check"],
 });
 const collator = new Intl.Collator("ko", { numeric: true });
 function activeClasses(student: StudentRow) {
@@ -51,6 +52,7 @@ export function rosterCell(student: StudentRow, field: RosterField): string {
     case "school": return student.school || "—";
     case "grade": return student.grade || "—";
     case "classes": return activeClasses(student).map(e => e.classes!.name).join("\n") || "—";
+    case "subjects": return Array.from(new Set(activeClasses(student).map(e => e.classes!.subject?.trim()).filter(Boolean))).join(" · ") || "—";
     case "status": return student.status === "active" || student.status === "재원" ? "재원" : student.status === "paused" || student.status === "휴원" ? "휴원" : "퇴원";
     case "phone": return student.phone || "—";
     case "guardianPhones": return Array.from(new Set((student.guardianPhones ?? []).filter(Boolean))).join("\n") || "—";
@@ -61,7 +63,7 @@ export function rosterColumns(options: RosterPrintOptions) { return ROSTER_FIELD
 const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 export const ROSTER_PAPER_CSS = `
 .roster-paper{box-sizing:border-box;background:white;color:#262126;font-family:Arial,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;line-height:1.5;font-size:10pt;padding:12mm;width:210mm;margin:auto}
-.roster-paper.is-landscape{width:297mm}.roster-paper *{box-sizing:border-box}.roster-paper .roster-heading{border-bottom:2px solid #4c3544;padding-bottom:5mm;margin-bottom:6mm}.roster-paper .roster-brand{font-size:8pt;color:#76556a;letter-spacing:.12em;font-weight:700}.roster-paper h1{font-size:21pt;letter-spacing:-.05em;margin:3mm 0 4mm;line-height:1.35;overflow-wrap:anywhere}.roster-paper .roster-meta{display:flex;justify-content:space-between;gap:4mm;flex-wrap:wrap;font-size:8pt;color:#61585e}.roster-paper .roster-group{margin-top:6mm}.roster-paper h2{font-size:11pt;margin:0 0 3mm;break-after:avoid}.roster-paper h2 small{font-size:8pt;font-weight:400;color:#756b72;margin-left:3mm}.roster-paper table{width:100%;border-collapse:collapse;table-layout:fixed}.roster-paper thead{display:table-header-group}.roster-paper tr{break-inside:avoid;page-break-inside:avoid}.roster-paper th{background:#f3eff2;color:#57404f;font-size:8pt;font-weight:700}.roster-paper th,.roster-paper td{border:1px solid #d8cfd5;padding:2.6mm 2mm;text-align:left;vertical-align:middle;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.5}.roster-paper th{white-space:nowrap}.roster-paper td{min-height:10mm;font-size:9pt}.roster-paper .roster-number{width:11mm;text-align:center;color:#80747d;font-size:8pt}.roster-paper .roster-name{width:22mm;font-weight:700}.roster-paper .field-grade{width:12mm}.roster-paper .field-status{width:18mm}.roster-paper .field-check{width:14mm;text-align:center}.roster-paper .field-memo{min-width:20mm}.roster-paper .roster-check{display:inline-block;width:3.5mm;height:3.5mm;border:1px solid #9a8d96;vertical-align:middle}.roster-paper .roster-footnote{font-size:7.5pt;color:#766b73;margin:5mm 0 0;line-height:1.6}.roster-paper .roster-empty{padding:12mm 0;text-align:center;color:#756b72}
+.roster-paper.is-landscape{width:297mm}.roster-paper *{box-sizing:border-box}.roster-paper .roster-heading{border-bottom:2px solid #4c3544;padding-bottom:5mm;margin-bottom:6mm}.roster-paper .roster-brand{font-size:8pt;color:#76556a;letter-spacing:.12em;font-weight:700}.roster-paper h1{font-size:21pt;letter-spacing:-.05em;margin:3mm 0 4mm;line-height:1.35;overflow-wrap:anywhere}.roster-paper .roster-meta{display:flex;justify-content:space-between;gap:4mm;flex-wrap:wrap;font-size:8pt;color:#61585e}.roster-paper .roster-group{margin-top:6mm}.roster-paper h2{font-size:11pt;margin:0 0 3mm;break-after:avoid}.roster-paper h2 small{font-size:8pt;font-weight:400;color:#756b72;margin-left:3mm}.roster-paper table{width:100%;border-collapse:collapse;table-layout:fixed}.roster-paper thead{display:table-header-group}.roster-paper tr{break-inside:avoid;page-break-inside:avoid}.roster-paper th{background:#f3eff2;color:#57404f;font-size:8pt;font-weight:700}.roster-paper th,.roster-paper td{border:1px solid #d8cfd5;padding:2.6mm 2mm;text-align:left;vertical-align:middle;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.5}.roster-paper th{white-space:nowrap}.roster-paper td{min-height:10mm;font-size:9pt}.roster-paper .roster-number{width:11mm;text-align:center;color:#80747d;font-size:8pt}.roster-paper .roster-name{width:22mm;font-weight:700}.roster-paper .field-grade{width:12mm}.roster-paper .field-subjects{width:22mm}.roster-paper td.field-subjects{font-size:8pt;color:#57404f}.roster-paper .field-status{width:18mm}.roster-paper .field-check{width:14mm;text-align:center}.roster-paper .field-memo{min-width:20mm}.roster-paper .roster-check{display:inline-block;width:3.5mm;height:3.5mm;border:1px solid #9a8d96;vertical-align:middle}.roster-paper .roster-footnote{font-size:7.5pt;color:#766b73;margin:5mm 0 0;line-height:1.6}.roster-paper .roster-empty{padding:12mm 0;text-align:center;color:#756b72}
 `;
 export function rosterPrintHtml(rows: StudentRow[], options: RosterPrintOptions, scope: RosterScope, date: string) {
   const groups = rosterGroups(rows, options.sort, scope);
